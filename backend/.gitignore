@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# TypeScript build output
+dist/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local storage and file uploads
+storage/public/avatars/*
+!storage/public/avatars/.gitkeep
+storage/private_docs/*
+!storage/private_docs/.gitkeep
+
+# Logs
+*.log
+logs/
+

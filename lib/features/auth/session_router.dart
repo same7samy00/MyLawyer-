@@ -1,0 +1,87 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/services/auth_service.dart';
+import 'connection_retry_screen.dart';
+import 'lawyer_approval_status_screen.dart';
+import '../lawyer/lawyer_navigation_shell.dart';
+import 'location_permission_screen.dart';
+import 'login_screen.dart';
+import '../client/main_navigation_shell.dart';
+
+/// المرجع الوحيد لتوجيه المستخدم حسب جلسته ونوع حسابه
+/// كل انتقال بين الدخول والخروج يمسح المكدس حتى لا يعود الرجوع لصفحات غير منطقية
+class SessionRouter {
+  SessionRouter._();
+
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  static bool _isHandlingExpiry = false;
+
+  /// الشاشة الصحيحة لحالة الجلسة
+  static Future<Widget> screenFor(SessionCheck check) async {
+    switch (check.status) {
+      case SessionStatus.client:
+        final prefs = await SharedPreferences.getInstance();
+        final savedLocation = prefs.getString('user_location_name');
+        return savedLocation != null && savedLocation.isNotEmpty
+            ? const MainNavigationShell()
+            : const LocationPermissionScreen();
+      case SessionStatus.lawyerApproved:
+        return const LawyerNavigationShell();
+      case SessionStatus.lawyerPending:
+        return const LawyerApprovalStatusScreen(isRejected: false);
+      case SessionStatus.lawyerRejected:
+        return const LawyerApprovalStatusScreen(isRejected: true);
+      case SessionStatus.serverUnreachable:
+        return ConnectionRetryScreen(message: check.message);
+      case SessionStatus.unauthenticated:
+      case SessionStatus.expired:
+      case SessionStatus.accountBlocked:
+        return LoginScreen(initialMessage: check.message);
+    }
+  }
+
+  /// فتح وجهة الجلسة مع مسح كل ما قبلها من المكدس
+  static Future<void> openSession(NavigatorState navigator, SessionCheck check) async {
+    final screen = await screenFor(check);
+    await replaceStack(navigator, screen);
+  }
+
+  /// فتح وجهة الحساب بعد تسجيل دخول ناجح
+  static Future<void> openCurrentAccount(NavigatorState navigator) async {
+    await openSession(navigator, await AuthService.currentSession());
+  }
+
+  /// لا تنتظر استدعاءات هذه الدالة عودة المستخدم، فهي تنتهي مع بدء الانتقال
+  static Future<void> replaceStack(NavigatorState navigator, Widget screen) async {
+    navigator.pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (context) => screen),
+      (route) => false,
+    );
+  }
+
+  static Future<void> toLogin(NavigatorState navigator, {String? message}) {
+    return replaceStack(navigator, LoginScreen(initialMessage: message));
+  }
+
+  /// إنهاء الجلسة وإغلاق كل الصفحات المحمية
+  static Future<void> signOut(NavigatorState navigator) async {
+    await AuthService.logout();
+    await toLogin(navigator);
+  }
+
+  /// يستدعيها ApiService عند ثبوت انتهاء الجلسة أثناء الاستخدام
+  static Future<void> handleSessionExpired() async {
+    if (_isHandlingExpiry) return;
+    _isHandlingExpiry = true;
+    try {
+      await AuthService.clearLocalSession();
+      final navigator = navigatorKey.currentState;
+      if (navigator != null) {
+        await toLogin(navigator, message: 'انتهت جلستك، يرجى تسجيل الدخول مرة أخرى.');
+      }
+    } finally {
+      _isHandlingExpiry = false;
+    }
+  }
+}

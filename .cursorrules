@@ -1,0 +1,22 @@
+# .cursorrules - Strict AI Guidance for My Lawyer
+
+You are working on the "My Lawyer" mobile application (Flutter for Android & iOS).
+You MUST strictly follow these rules with zero exceptions:
+
+1. READ BEFORE ACTING: Review AGENTS.md, inspect existing code and architecture before making any edits.
+2. PLATFORM SCOPE: Comprehensive multi-service legal platform (consultations, contracts, business, litigation, urgent "محاميك حالاً"). Not single-purpose emergency app.
+3. LANGUAGE & DIRECTION: UI MUST be in Egyptian Arabic (refined, accessible tone). Strictly RTL everywhere (`Locale('ar', 'EG')`).
+4. NO COURT ICONS: NEVER use scales of justice (ميزان), gavels (مطرقة المحكمة), or courthouse columns. Use modern safety/location/shield/policy icons.
+5. NO RAW COORDINATES: NEVER display latitude/longitude numbers. Display City & Governorate in Arabic (`GeoNamingService`).
+6. LOCATION: NO continuous live GPS stream, NO movement trails. The line between parties is drawn on the phone only. Navigation uses Google Maps after payment. Read docs/HANDOFF.md and docs/GPS_SYSTEM.md before any work.
+7. NAVIGATION LAYOUT:
+   - NO top header anywhere in the application (`appBar: null`).
+   - Bottom navigation bar only (`AppBottomBar`) with exactly 4 tabs: الرئيسية، الطلبات، المحفظة، الحساب.
+8. STYLING & FONTS:
+   - Fonts: ONLY 'flat-jooza' for text, with English digits from assets/fonts/app-digits.ttf.
+   - Colors: ONLY colors defined in `lib/core/constants/app_colors.dart`.
+   - Radii: EVERY SINGLE border radius without exception MUST be strictly 7.0px (`BorderRadius.circular(7.0)`).
+9. QUALITY & TESTING GATE:
+   - `flutter analyze` must output `No issues found!`.
+   - `flutter test` must pass 100%.
+10. SYNCHRONIZED DOCUMENTATION: Update AGENTS.md, README.md, docs/ARCHITECTURE.md, and docs/CHANGELOG.md alongside any code changes in the same task.

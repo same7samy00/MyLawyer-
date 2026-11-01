@@ -1,0 +1,53 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+// نسخة تجربة المحامي مش مسجلة في Firebase
+if (!project.hasProperty("lawyerTestApp")) {
+    apply plugin: "com.google.gms.google-services"
+}
+
+android {
+    namespace = "com.mylawyer.my_lawyer"
+    compileSdk = 35
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    defaultConfig {
+        // Second install beside the main app, for testing both roles on one phone
+        def lawyerTestApp = project.hasProperty("lawyerTestApp")
+        applicationId = lawyerTestApp ? "com.mylawyer.my_lawyer.lawyertest" : "com.mylawyer.my_lawyer"
+        manifestPlaceholders += [appLabel: lawyerTestApp ? "My Lawyer محامي" : "My Lawyer"]
+        minSdk = 21
+        targetSdk = 35
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    buildTypes {
+        debug {
+            signingConfig = signingConfigs.debug
+            // خادم التطوير المحلي يعمل بدون تشفير
+            manifestPlaceholders += [usesCleartext: "true"]
+        }
+        release {
+            signingConfig = signingConfigs.debug
+            manifestPlaceholders += [usesCleartext: "false"]
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}

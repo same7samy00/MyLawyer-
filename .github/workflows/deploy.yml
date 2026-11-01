@@ -1,0 +1,36 @@
+name: Backend Deploy
+
+# The runner lives on the production server, so this repo must never run
+# workflows for pull requests or forks.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: production_deployment
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, Linux, vps]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check and test
+        working-directory: backend
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm test
+
+      - name: Deploy
+        run: |
+          git archive HEAD backend > /tmp/mylawyer-backend.tar
+          sudo bash backend/deploy.sh

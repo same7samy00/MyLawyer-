@@ -1,0 +1,20 @@
+import 'package:flutter/foundation.dart';
+
+/// إعدادات بيئة التشغيل للتطبيق
+/// الإصدار النهائي (Release) مقيد دائماً بخادم الإنتاج مهما كانت قيم البناء،
+/// أما بيئات التطوير والاختبار فتحدد خادمها عبر:
+/// `--dart-define=APP_ENV=development --dart-define=API_BASE_URL=http://...`
+class AppConfig {
+  AppConfig._();
+
+  static const String productionApiBaseUrl = 'https://my-lawyer.online/api/v1';
+
+  static const String _environment = String.fromEnvironment('APP_ENV', defaultValue: 'production');
+  static const String _apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: productionApiBaseUrl);
+
+  static String get environment => kReleaseMode ? 'production' : _environment;
+
+  static bool get isProduction => environment == 'production';
+
+  static String get apiBaseUrl => kReleaseMode ? productionApiBaseUrl : _apiBaseUrl;
+}
