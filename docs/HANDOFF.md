@@ -81,4 +81,4 @@
 - `android/app/google-services.json`
 - `backend/firebase-service-account.json`
 - `~/.ssh/mylawyer_deploy` و`~/.ssh/known_hosts_mylawyer`
-- الريبو الخاص: `https://github.com/same7samy00/MyLawyer` فرع `main`. بدأ بتاريخ جديد لحماية الأسرار، والتاريخ الكامل في فرع `master` المحلي ولا يُرفع أبداً.
+- الريبو العام: `https://github.com/same7samy00/MyLawyer-` فرع `main`. بدأ بتاريخ جديد لحماية الأسرار، والتاريخ الكامل في فرع `master` المحلي ولا يُرفع أبداً.

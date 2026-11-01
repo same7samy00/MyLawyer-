@@ -2,7 +2,7 @@
 
 ## [Phase 2.72] - 2026-11-01
 ### GitHub Repository and Automatic Deploy
-- The project now lives in the private repo `same7samy00/MyLawyer` on `main`, with a fresh history that carries no server password.
+- The project now lives in the public repo `same7samy00/MyLawyer-` on `main`, with a fresh history that carries no server password.
 - Pushing backend changes to `main` runs the checks and deploys through a runner on the server. Pull requests never run on it.
 
 ## [Phase 2.71] - 2026-11-01
