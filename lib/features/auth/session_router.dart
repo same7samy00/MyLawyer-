@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/device_permission_service.dart';
 import 'connection_retry_screen.dart';
 import 'lawyer_approval_status_screen.dart';
 import '../lawyer/lawyer_navigation_shell.dart';
@@ -23,11 +24,14 @@ class SessionRouter {
       case SessionStatus.client:
         final prefs = await SharedPreferences.getInstance();
         final savedLocation = prefs.getString('user_location_name');
-        return savedLocation != null && savedLocation.isNotEmpty
+        final hasLocation = await DevicePermissionService.instance.isLocationPermissionGranted();
+        return hasLocation && savedLocation != null && savedLocation.isNotEmpty
             ? const MainNavigationShell()
             : const LocationPermissionScreen();
       case SessionStatus.lawyerApproved:
-        return const LawyerNavigationShell();
+        return await DevicePermissionService.instance.isLocationPermissionGranted()
+            ? const LawyerNavigationShell()
+            : const LocationPermissionScreen(forLawyer: true);
       case SessionStatus.lawyerPending:
         return const LawyerApprovalStatusScreen(isRejected: false);
       case SessionStatus.lawyerRejected:

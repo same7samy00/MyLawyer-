@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/device_permission_service.dart';
+import 'app_permissions_screen.dart';
 import 'session_router.dart';
 
 /// شاشة البداية (Splash Screen)
@@ -67,7 +69,12 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted || _hasNavigated) return;
     _hasNavigated = true;
 
-    await SessionRouter.openSession(Navigator.of(context), check);
+    final navigator = Navigator.of(context);
+    if (await DevicePermissionService.instance.hasRequestedInitialPermissions()) {
+      await SessionRouter.openSession(navigator, check);
+    } else {
+      await SessionRouter.replaceStack(navigator, AppPermissionsScreen(check: check));
+    }
   }
 
   @override

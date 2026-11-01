@@ -15,6 +15,16 @@ class PushService {
   static bool _isListening = false;
   static String? _token;
 
+  /// نافذة إذن الإشعارات قبل تسجيل الدخول
+  static Future<void> requestPermission() async {
+    try {
+      await Firebase.initializeApp();
+      await FirebaseMessaging.instance.requestPermission();
+    } catch (e) {
+      debugPrint('Push permission error: $e');
+    }
+  }
+
   static Future<void> start() async {
     try {
       await Firebase.initializeApp();
@@ -42,7 +52,10 @@ class PushService {
 
   static Future<void> _register(String? token) async {
     if (token == null) return;
-    await ApiService.post('/notifications/device-token', {'token': token, 'platform': 'android'});
+    await ApiService.post('/notifications/device-token', {
+      'token': token,
+      'platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
+    });
   }
 
   /// عند تسجيل الخروج الجهاز يبطل يستقبل إشعارات الحساب

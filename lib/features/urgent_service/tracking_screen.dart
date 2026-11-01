@@ -69,6 +69,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   static const double _cardsFromZoom = 14.0;
   static const double _lawyerFocusZoom = 15.5;
   static const double _orderRadiusKm = 25.0;
+  static const double _allEgyptRadiusKm = 1500.0;
   String? _lawyersError;
 
   static const double _collapsedHeight = 74.0;
@@ -114,7 +115,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   bool _isSearchingAgain = false;
   Timer? _lawyersRefreshTimer;
   double _mapZoom = 15.2;
-  Timer? _mapMoveTimer;
 
   /// المحامون اللي الطلب اتبعتلهم ولا ردوا، عشان البحث التلقائي ما يرجعلهمش
   final Set<String> _triedLawyerIds = {};
@@ -148,7 +148,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
     _orderPollTimer?.cancel();
     _lawyerOrderPollTimer?.cancel();
     _lawyersRefreshTimer?.cancel();
-    _mapMoveTimer?.cancel();
     _stageTimer?.cancel();
     _cameraAnimController?.dispose();
     _sheetCurve.dispose();
@@ -450,35 +449,26 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
 
     // المحامون يتحدثون وهو فاتح الخريطة ليظهر الموجود فعلاً فقط
     _lawyersRefreshTimer?.cancel();
-    _lawyersRefreshTimer = Timer.periodic(const Duration(seconds: 20), (_) => _loadLawyersInView());
+    _lawyersRefreshTimer = Timer.periodic(const Duration(seconds: 20), (_) => _loadAllLawyers());
+    _loadAllLawyers();
   }
 
-  /// التحريك والتقريب يجيبوا محامين المنطقة الظاهرة بعد ما الخريطة تقف
   void _onMapMoved(MapCamera camera, bool hasGesture) {
     if (camera.zoom.floor() != _mapZoom.floor()) {
       setState(() {
         _mapZoom = camera.zoom;
       });
     }
-
-    if (widget.isLawyerView || !hasGesture) return;
-    _mapMoveTimer?.cancel();
-    _mapMoveTimer = Timer(const Duration(milliseconds: 600), _loadLawyersInView);
   }
 
-  Future<void> _loadLawyersInView() async {
+  /// كل المحامين المتاحين في مصر، فكل دبوس يفضل مكانه مهما اتحركت الخريطة
+  Future<void> _loadAllLawyers() async {
     if (!mounted || _orderFlowStage != _OrderFlowStage.idle) return;
-    // أثناء حركة الكاميرا المنطقة الظاهرة لسه مش نهائية
-    if (_cameraAnimController?.isAnimating == true) return;
-
-    final camera = _mapController.camera;
-    final bounds = camera.visibleBounds;
-    final radiusKm = const Distance().as(LengthUnit.Kilometer, bounds.northWest, bounds.southEast) / 2;
 
     final res = await LawyerRepository.getNearbyLawyers(
-      lat: camera.center.latitude,
-      lon: camera.center.longitude,
-      radiusKm: math.max(radiusKm, 5.0),
+      lat: _searchCenter.latitude,
+      lon: _searchCenter.longitude,
+      radiusKm: _allEgyptRadiusKm,
     );
     if (!mounted || !res.isOk || _orderFlowStage != _OrderFlowStage.idle) return;
 
@@ -515,30 +505,47 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
         (lawyer) => const Distance().as(LengthUnit.Meter, _searchCenter, lawyer.position) < 40,
       );
 
-  /// التقريب يعرض كارت المحامي، والتصغير يعرض دبوسه فقط
-  List<Marker> _buildLawyerMarkers(double zoom) {
-    final nearestId = _nearestLawyerId;
-    final showCards = zoom >= _cardsFromZoom;
+  /// الدبوس يصغر مع التصغير عشان ما يغطيش الخريطة
+  double _pinSizeFor(double zoom) => zoom < 8 ? 24 : (zoom < 11 ? 32 : 42);
 
-    return [
-      for (final lawyer in _nearbyLawyers)
-        Marker(
-          point: lawyer.position,
-          width: showCards ? 195 : 52,
-          height: showCards ? 53 : 58,
-          alignment: Alignment.topCenter,
-          child: GestureDetector(
-            onTap: () => _onLawyerTapped(lawyer),
-            child: showCards
-                ? _LawyerMapSquareMarker(
-                    lawyer: lawyer,
-                    isSelected: _selectedLawyer?.id == lawyer.id,
-                    isNearest: lawyer.id == nearestId,
-                  )
-                : _LawyerMapPin(isSelected: _selectedLawyer?.id == lawyer.id),
+  Marker _buildLawyerPin(MapLawyer lawyer, double size) {
+    return Marker(
+      point: lawyer.position,
+      width: size,
+      height: size * 58 / 52,
+      alignment: Alignment.topCenter,
+      child: GestureDetector(
+        onTap: () => _onLawyerTapped(lawyer),
+        child: FittedBox(child: _LawyerMapPin(isSelected: _selectedLawyer?.id == lawyer.id)),
+      ),
+    );
+  }
+
+  /// التقريب يعرض كارت المحامي، والتصغير يعرض دبوس لكل محامٍ
+  List<Marker> _buildLawyerMarkers(double zoom) {
+    if (zoom >= _cardsFromZoom) {
+      final nearestId = _nearestLawyerId;
+      return [
+        for (final lawyer in _nearbyLawyers)
+          Marker(
+            point: lawyer.position,
+            width: 195,
+            height: 53,
+            alignment: Alignment.topCenter,
+            child: GestureDetector(
+              onTap: () => _onLawyerTapped(lawyer),
+              child: _LawyerMapSquareMarker(
+                lawyer: lawyer,
+                isSelected: _selectedLawyer?.id == lawyer.id,
+                isNearest: lawyer.id == nearestId,
+              ),
+            ),
           ),
-        ),
-    ];
+      ];
+    }
+
+    final pinSize = _pinSizeFor(zoom);
+    return [for (final lawyer in _nearbyLawyers) _buildLawyerPin(lawyer, pinSize)];
   }
 
   /// مسار المحامي إلى موكله، من موقعه الحالي أو آخر موقع مسجل للطلب
@@ -610,6 +617,13 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
         setState(() {
           _orderFlowStage = _OrderFlowStage.lawyerAccepted;
         });
+
+        // المحامي ممكن يكون اتحرك، فالوقت يتحسب من مكانه وقت القبول قبل الدفع
+        final lawyerLat = order.lawyerLat;
+        final lawyerLon = order.lawyerLon;
+        if (lawyerLat != null && lawyerLon != null) {
+          _drawRoute(_searchCenter, LatLng(lawyerLat, lawyerLon));
+        }
 
         _stageTimer = Timer(const Duration(milliseconds: 1400), () {
           if (mounted && _orderFlowStage != _OrderFlowStage.idle) {
@@ -1352,7 +1366,15 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   }
 
   Future<void> _acceptLawyerOrder() async {
-    final res = await OrderRepository.acceptOrder(widget.lawyerOrder!.id);
+    // تعذر الموقع لا يمنع القبول، والموكل يشوف وقت آخر مكان معروف
+    final location = await LocationService.instance.checkAndRequestPermission(fresh: true);
+    if (!mounted) return;
+
+    final res = await OrderRepository.acceptOrder(
+      widget.lawyerOrder!.id,
+      lat: location.position?.latitude,
+      lon: location.position?.longitude,
+    );
     if (!mounted) return;
 
     if (!res.isOk) {

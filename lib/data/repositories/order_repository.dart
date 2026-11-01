@@ -90,8 +90,10 @@ class OrderRepository {
   }
 
   /// قبول الطلب من قبل المحامي
-  static Future<ApiResponse<OrderModel>> acceptOrder(String orderId) async {
-    final res = await ApiService.post('/orders/$orderId/accept', {});
+  static Future<ApiResponse<OrderModel>> acceptOrder(String orderId, {double? lat, double? lon}) async {
+    final res = await ApiService.post('/orders/$orderId/accept', {
+      if (lat != null && lon != null) ...{'latitude': lat, 'longitude': lon},
+    });
     if (res.isOk && res.data is Map<String, dynamic>) {
       final order = OrderModel.fromJson(res.data as Map<String, dynamic>);
       return ApiResponse<OrderModel>(

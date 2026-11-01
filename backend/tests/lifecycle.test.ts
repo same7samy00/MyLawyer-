@@ -705,11 +705,43 @@ describe('ظهور المحامي على الخريطة', () => {
   it('المحامي المتاح يفضل ظاهر حتى لو التطبيق مقفول', async () => {
     const visible = async () => (await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25', null)).body.data.some((l: any) => l.id === lawyerId);
 
-    await sql(`UPDATE lawyer_profiles SET last_active_at = NOW() - INTERVAL '3 days' WHERE user_id = $1`, [lawyerId]);
+    await sql(`UPDATE lawyer_profiles SET last_active_at = NOW() - INTERVAL '3 hours' WHERE user_id = $1`, [lawyerId]);
+    await sweepLifecycle();
     assert.equal(await visible(), true);
 
     await call('POST', '/lawyers/me/availability', lawyerToken, { isAvailable: false });
     assert.equal(await visible(), false);
+  });
+
+  it('الموقع القديم: تذكير بعد 4 ساعات ثم يختفي بعد 6', async () => {
+    const available = async () =>
+      (await sql('SELECT is_available FROM lawyer_profiles WHERE user_id = $1', [lawyerId]))[0].is_available;
+
+    await sql(`UPDATE lawyer_profiles SET last_active_at = NOW() - INTERVAL '5 hours', stale_reminder_sent = FALSE WHERE user_id = $1`, [lawyerId]);
+    await sweepLifecycle();
+    await sweepLifecycle();
+    assert.equal(await available(), true);
+    const reminders = await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'لسه متاح؟'`, [lawyerId]);
+    assert.equal(reminders.length, 1);
+
+    await sql(`UPDATE lawyer_profiles SET last_active_at = NOW() - INTERVAL '7 hours' WHERE user_id = $1`, [lawyerId]);
+    await sweepLifecycle();
+    assert.equal(await available(), false);
+  });
+
+  it('المحامي البعيد يظهر على الخريطة بنطاق مصر كلها', async () => {
+    const res = await call('GET', '/lawyers/nearby?lat=23.9&lon=32.9&radius_km=1500', null);
+    assert.equal(res.body.data.some((l: any) => l.id === lawyerId), true);
+  });
+
+  it('القبول يحدث مكان المحامي في الطلب', async () => {
+    const order = await createOrder();
+    const accepted = await call('POST', `/orders/${order.id}/accept`, lawyerToken, { latitude: 30.79, longitude: 31.0 });
+    assert.equal(accepted.status, 200);
+
+    const row = (await sql('SELECT lawyer_latitude FROM service_orders WHERE id = $1', [order.id]))[0];
+    assert.equal(Number(row.lawyer_latitude), 30.79);
+    await sql(`UPDATE lawyer_profiles SET latitude = 30.05, longitude = 31.25 WHERE user_id = $1`, [lawyerId]);
   });
 
   it('تصفح الخريطة يوصل لمحامين أبعد من نطاق الطلب', async () => {

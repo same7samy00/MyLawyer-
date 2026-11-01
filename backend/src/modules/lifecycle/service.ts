@@ -15,6 +15,8 @@ export const LAWYER_RESPONSE_SECONDS = 120;
 export const PAYMENT_MINUTES = 10;
 export const ARRIVAL_RADIUS_KM = 0.5;
 const MAX_MISSED_ORDERS = 2;
+const LOCATION_REMINDER_HOURS = 4;
+const LOCATION_STALE_HOURS = 6;
 const APPROXIMATE_GRID_DEGREES = 0.01;
 const STRIKE_LIMIT = 3;
 const STRIKE_WINDOW_DAYS = 30;
@@ -220,6 +222,36 @@ async function liftSuspensions() {
   }
 }
 
+/// A closed app stops updating the lawyer's place, so an old pin must not stay on the map
+async function retireStaleLawyers() {
+  const openOrder = `EXISTS (
+    SELECT 1 FROM service_orders o
+    WHERE o.lawyer_id = lp.user_id AND o.status IN ('PENDING', 'ACCEPTED', 'ACTIVE')
+  )`;
+
+  const reminded = await dbPool.query(
+    `UPDATE lawyer_profiles lp SET stale_reminder_sent = TRUE
+     WHERE lp.is_available = TRUE AND lp.stale_reminder_sent = FALSE
+       AND lp.last_active_at <= NOW() - make_interval(hours => $1) AND NOT ${openOrder}
+     RETURNING lp.user_id`,
+    [LOCATION_REMINDER_HOURS]
+  );
+  for (const lawyer of reminded.rows) {
+    await notify(dbPool, lawyer.user_id, 'لسه متاح؟', 'افتح التطبيق عشان موقعك يتحدث وتفضل ظاهر للموكلين');
+  }
+
+  const retired = await dbPool.query(
+    `UPDATE lawyer_profiles lp SET is_available = FALSE, stale_reminder_sent = FALSE
+     WHERE lp.is_available = TRUE
+       AND lp.last_active_at <= NOW() - make_interval(hours => $1) AND NOT ${openOrder}
+     RETURNING lp.user_id`,
+    [LOCATION_STALE_HOURS]
+  );
+  for (const lawyer of retired.rows) {
+    await notify(dbPool, lawyer.user_id, 'اتحولت لغير متاح', 'موقعك ما اتحدثش من 6 ساعات، فعّل حالتك لما تكون جاهز');
+  }
+}
+
 async function sendDeadlineReminders() {
   const reminders = [
     { column: 'reminder_first_sent', hoursLeft: 12, body: 'باقي 12 ساعة، أنهِ المهمة بكود الموكل قبل انتهاء المهلة' },
@@ -301,6 +333,7 @@ export async function sweepLifecycle() {
   await closeUnansweredOrders();
   await closeUnpaidOrders();
   await liftSuspensions();
+  await retireStaleLawyers();
   await sendDeadlineReminders();
   await expireUnfinishedOrders();
   await releaseHeldPayouts();

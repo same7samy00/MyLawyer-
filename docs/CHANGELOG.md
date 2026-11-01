@@ -1,5 +1,20 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.74] - 2026-11-01
+### Map Pins and Moving Lawyers
+- The map loads every available lawyer in Egypt, so pins no longer depend on camera movement. Each lawyer keeps a separate pin, and pins shrink when zooming out.
+- Accepting an order sends the lawyer's current place, and the client sees a recalculated time before paying.
+- A lawyer with no location update gets a reminder after 4 hours and becomes unavailable after 6 hours.
+- Area names prefer a place within 3 km over a large distant city.
+
+## [Phase 2.73] - 2026-11-01
+### Permissions and Production Build
+- First launch shows one screen explaining location and notifications before the system dialogs, with a later option. Camera stays requested when a lawyer adds the card photo.
+- Arrival now reads a fresh GPS position, and first GPS waits up to 15 seconds for slower phones.
+- Phones on iOS register as iOS for push, and iOS allows background notifications.
+- Release builds use a production signing key kept outside Git.
+- The location page now also serves lawyers with their own text, and it appears whenever location permission is missing, including when opening the urgent service.
+
 ## [Phase 2.72] - 2026-11-01
 ### GitHub Repository and Automatic Deploy
 - The project now lives in the public repo `same7samy00/MyLawyer-` on `main`, with a fresh history that carries no server password.

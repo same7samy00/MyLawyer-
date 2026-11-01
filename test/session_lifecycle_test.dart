@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/core/config/app_config.dart';
@@ -56,6 +57,8 @@ Map<String, Object> _savedSession([Map<String, Object> extra = const {}]) => {
 
 /// تشغيل التطبيق من الشاشة الافتتاحية حتى استقرار الوجهة
 Future<void> _launch(WidgetTester tester) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('has_requested_initial_permissions', true);
   await tester.pumpWidget(_app(const SplashScreen()));
   await tester.pump(const Duration(milliseconds: 2700));
   await tester.pump();
@@ -75,6 +78,10 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('flutter.baseflow.com/geolocator'),
+      (call) async => call.method == 'checkPermission' ? 3 : throw MissingPluginException(),
+    );
     backend = FakeBackend();
     ApiService.useHttpClient(backend.client);
   });
@@ -737,6 +744,21 @@ void main() {
   });
 
   group('دورة المهمة', () {
+    testWidgets('أول فتح يعرض الأذونات، و«لاحقاً» يكمل ولا تتكرر', (tester) async {
+      await tester.pumpWidget(_app(const SplashScreen()));
+      await tester.pump(const Duration(milliseconds: 2700));
+      await _settleAsync(tester);
+
+      expect(find.text('السماح والمتابعة'), findsOneWidget);
+
+      await tester.tap(find.text('لاحقاً'));
+      await _settleAsync(tester);
+
+      expect(find.text('السماح والمتابعة'), findsNothing);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('has_requested_initial_permissions'), isTrue);
+    });
+
     testWidgets('صفحة الإشعارات لا تعلم كمقروء إلا بالزر', (tester) async {
       backend.overrides['GET /notifications'] = (request) => FakeBackend.json(200, {
             'success': true,

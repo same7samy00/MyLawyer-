@@ -4,9 +4,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/device_permission_service.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/widgets/app_card.dart';
 import '../urgent_service/urgent_service_problem_screen.dart';
+import '../auth/location_permission_screen.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -294,9 +296,13 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  void _openUrgentService() {
+  Future<void> _openUrgentService() async {
+    final hasLocation = await DevicePermissionService.instance.isLocationPermissionGranted();
+    if (!mounted) return;
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const UrgentServiceProblemScreen()),
+      MaterialPageRoute(
+        builder: (context) => hasLocation ? const UrgentServiceProblemScreen() : const LocationPermissionScreen(),
+      ),
     );
   }
 

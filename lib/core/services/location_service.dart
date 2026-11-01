@@ -29,7 +29,8 @@ class LocationService {
   static final LocationService instance = LocationService._();
 
   /// Check permission and service availability, then fetch current single-point position
-  Future<LocationResult> checkAndRequestPermission() async {
+  /// [fresh] skips the stored position, for checks that depend on where the phone is now
+  Future<LocationResult> checkAndRequestPermission({bool fresh = false}) async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -58,11 +59,12 @@ class LocationService {
       }
 
       // محاولة استرجاع آخر موقع مسجل فوراً لتسريع الاستجابة دون انتظار
-      Position? position = await Geolocator.getLastKnownPosition();
+      Position? position = fresh ? null : await Geolocator.getLastKnownPosition();
+      // الأجهزة الضعيفة تحتاج وقتاً أطول لأول إشارة GPS
       position ??= await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 5),
+        locationSettings: LocationSettings(
+          accuracy: fresh ? LocationAccuracy.high : LocationAccuracy.medium,
+          timeLimit: const Duration(seconds: 15),
         ),
       );
 

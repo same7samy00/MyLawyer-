@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'location_service.dart';
+import 'push_service.dart';
 
 /// خدمة إدارة وتنسيق أذونات الجهاز الأصلية
 /// تضمن استدعاء نوافذ النظام الرسمية دون أي نوافذ بديلة شكلية
@@ -24,10 +24,17 @@ class DevicePermissionService {
     await prefs.setBool(_prefInitialPermissionRequested, true);
   }
 
-  /// طلب إذن الموقع عبر نافذة النظام الأصلية
-  Future<LocationResult> requestLocationPermission() async {
+  /// طلب إذني الموقع والإشعارات عبر نوافذ النظام، ورفض أي منهما لا يوقف التطبيق
+  Future<void> requestInitialPermissions() async {
     await markInitialPermissionsRequested();
-    return await LocationService.instance.checkAndRequestPermission();
+    try {
+      if (await Geolocator.checkPermission() == LocationPermission.denied) {
+        await Geolocator.requestPermission();
+      }
+    } catch (e) {
+      debugPrint('Request location permission error: $e');
+    }
+    await PushService.requestPermission();
   }
 
   /// فحص حالة إذن الموقع الحالية دون إظهار نافذة طلب جديدة

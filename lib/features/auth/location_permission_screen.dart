@@ -6,9 +6,13 @@ import '../../core/services/location_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../client/main_navigation_shell.dart';
 import '../client/nearby_lawyers_showcase_screen.dart';
+import '../lawyer/lawyer_navigation_shell.dart';
+import 'session_router.dart';
 
 class LocationPermissionScreen extends StatefulWidget {
-  const LocationPermissionScreen({super.key});
+  final bool forLawyer;
+
+  const LocationPermissionScreen({super.key, this.forLawyer = false});
 
   @override
   State<LocationPermissionScreen> createState() => _LocationPermissionScreenState();
@@ -39,12 +43,26 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
       );
     }
 
+    if (widget.forLawyer) {
+      _openLawyerHome();
+      return;
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const NearbyLawyersShowcaseScreen()),
     );
   }
 
+  void _openLawyerHome() {
+    SessionRouter.replaceStack(Navigator.of(context), const LawyerNavigationShell());
+  }
+
   void _handleLater() {
+    if (widget.forLawyer) {
+      _openLawyerHome();
+      return;
+    }
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const MainNavigationShell()),
     );
@@ -108,12 +126,14 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
                         const SizedBox(height: 32),
 
                         // Concise direct text on screen (Two lines)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 40.0),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 40.0),
                           child: Text(
-                            'محتاجين نحدد موقعك\nعشان نوفرلك أقرب محامي ليك',
+                            widget.forLawyer
+                                ? 'محتاجين نحدد موقعك\nعشان توصلك طلبات الموكلين القريبين منك'
+                                : 'محتاجين نحدد موقعك\nعشان نوفرلك أقرب محامي ليك',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontFamily: 'AppFont',
                               fontFamilyFallback: appFontFallback,
                               fontSize: 19,

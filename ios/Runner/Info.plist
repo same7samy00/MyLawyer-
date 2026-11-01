@@ -45,6 +45,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>يحتاج تطبيق My Lawyer إلى إذن الموقع لتحديد مدينتك وعرض أقرب المحامين والخدمات القانونية المتاحة.</string>
 	<key>NSCameraUsageDescription</key>

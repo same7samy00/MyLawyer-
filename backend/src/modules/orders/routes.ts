@@ -463,16 +463,34 @@ export async function orderRoutes(fastify: FastifyInstance) {
       return reply.status(409).send({ success: false, error: 'عندك مهمة مفتوحة، خلصها الأول' });
     }
 
+    // Lawyers move around, so the place stored on the map may be old by now
+    const body = (request.body || {}) as { latitude?: unknown; longitude?: unknown };
+    const lat = typeof body.latitude === 'number' && Number.isFinite(body.latitude) ? body.latitude : null;
+    const lon = typeof body.longitude === 'number' && Number.isFinite(body.longitude) ? body.longitude : null;
+    const hasFreshLocation = lat !== null && lon !== null;
+
     await withTransaction(async (client) => {
       await client.query(
         `UPDATE service_orders
          SET status = 'ACCEPTED', accepted_at = NOW(), updated_at = NOW(),
-             payment_deadline = NOW() + make_interval(mins => $2)
+             payment_deadline = NOW() + make_interval(mins => $2),
+             lawyer_latitude = COALESCE($3, lawyer_latitude),
+             lawyer_longitude = COALESCE($4, lawyer_longitude)
          WHERE id = $1`,
-        [order.id, PAYMENT_MINUTES]
+        [order.id, PAYMENT_MINUTES, lat, lon]
       );
 
       await client.query('UPDATE lawyer_profiles SET missed_orders = 0 WHERE user_id = $1', [userId]);
+
+      if (hasFreshLocation) {
+        await client.query(
+          `UPDATE lawyer_profiles
+           SET latitude = $1, longitude = $2, last_location_updated_at = NOW(), last_active_at = NOW(),
+               stale_reminder_sent = FALSE
+           WHERE user_id = $3`,
+          [lat, lon, userId]
+        );
+      }
 
       await client.query(
         `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)

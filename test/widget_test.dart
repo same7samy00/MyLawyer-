@@ -3,6 +3,7 @@ import 'package:my_lawyer/core/services/app_cached_tile_provider.dart';
 import 'package:my_lawyer/core/widgets/app_button.dart';
 import 'package:my_lawyer/core/widgets/app_header.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/core/constants/app_colors.dart';
@@ -758,6 +759,12 @@ void main() {
     });
 
     testWidgets('LoginScreen routes lawyer account to LawyerNavigationShell', (WidgetTester tester) async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        const MethodChannel('flutter.baseflow.com/geolocator'),
+        (call) async => call.method == 'checkPermission' ? 3 : throw MissingPluginException(),
+      );
+      addTearDown(() => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(const MethodChannel('flutter.baseflow.com/geolocator'), null));
       backend.account = lawyerAccount(fullName: 'إبراهيم حسن سالم', syndicateNumber: '554433');
 
       await tester.pumpWidget(

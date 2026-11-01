@@ -27,7 +27,7 @@ interface AuthenticatedLawyer {
 }
 
 // Clients can browse the map further than the area they can order from
-const MAX_MAP_RADIUS_KM = 150;
+const MAX_MAP_RADIUS_KM = 1500;
 
 export async function lawyerRoutes(fastify: FastifyInstance) {
   // Helper authentication hook for protected lawyer routes
@@ -127,7 +127,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
         END,
         lp.rating DESC,
         distance_km ASC
-      LIMIT 200;
+      LIMIT 1000;
     `;
 
     try {
@@ -271,7 +271,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
 
     const updateRes = await query(
       `UPDATE lawyer_profiles
-       SET is_available = $1, missed_orders = 0, last_active_at = NOW(), updated_at = NOW()
+       SET is_available = $1, missed_orders = 0, last_active_at = NOW(), stale_reminder_sent = FALSE, updated_at = NOW()
        WHERE user_id = $2
        RETURNING id, is_available, last_active_at`,
       [isAvailable, userId]
@@ -310,7 +310,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
 
     const updateRes = await query(
       `UPDATE lawyer_profiles
-       SET latitude = $1, longitude = $2, last_location_updated_at = NOW(), last_active_at = NOW(), updated_at = NOW()
+       SET latitude = $1, longitude = $2, last_location_updated_at = NOW(), last_active_at = NOW(), stale_reminder_sent = FALSE, updated_at = NOW()
        WHERE user_id = $3
        RETURNING id, latitude, longitude, last_location_updated_at`,
       [lat, lon, userId]

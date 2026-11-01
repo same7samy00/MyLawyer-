@@ -259,7 +259,7 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
   }
 
   Future<void> _markArrived(OrderModel order) async {
-    final location = await LocationService.instance.checkAndRequestPermission();
+    final location = await LocationService.instance.checkAndRequestPermission(fresh: true);
     final position = location.position;
     if (!mounted) return;
 

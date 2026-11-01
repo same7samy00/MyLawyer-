@@ -10,6 +10,13 @@ if (!project.hasProperty("lawyerTestApp")) {
     apply plugin: "com.google.gms.google-services"
 }
 
+// مفتاح التوقيع خارج Git، ومن غيره تتبني نسخة بتوقيع التطوير
+def keyProperties = new Properties()
+def keyPropertiesFile = rootProject.file("key.properties")
+if (keyPropertiesFile.exists()) {
+    keyPropertiesFile.withInputStream { keyProperties.load(it) }
+}
+
 android {
     namespace = "com.mylawyer.my_lawyer"
     compileSdk = 35
@@ -35,6 +42,17 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (keyPropertiesFile.exists()) {
+            release {
+                storeFile = rootProject.file(keyProperties["storeFile"])
+                storePassword = keyProperties["storePassword"]
+                keyAlias = keyProperties["keyAlias"]
+                keyPassword = keyProperties["keyPassword"]
+            }
+        }
+    }
+
     buildTypes {
         debug {
             signingConfig = signingConfigs.debug
@@ -42,7 +60,7 @@ android {
             manifestPlaceholders += [usesCleartext: "true"]
         }
         release {
-            signingConfig = signingConfigs.debug
+            signingConfig = keyPropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
             manifestPlaceholders += [usesCleartext: "false"]
         }
     }

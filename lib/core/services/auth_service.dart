@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
+import 'device_permission_service.dart';
 import 'push_service.dart';
 
 /// نوع الحساب في منصة My Lawyer
@@ -518,7 +519,9 @@ class AuthService {
     await ApiService.clearTokens();
     final prefs = await SharedPreferences.getInstance();
     final loginPhone = prefs.getString(_prefLoginPhone);
+    final permissionsAsked = await DevicePermissionService.instance.hasRequestedInitialPermissions();
     await prefs.clear();
     if (loginPhone != null) await prefs.setString(_prefLoginPhone, loginPhone);
+    if (permissionsAsked) await DevicePermissionService.instance.markInitialPermissionsRequested();
   }
 }

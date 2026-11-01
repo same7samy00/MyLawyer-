@@ -44,6 +44,8 @@ class GeoNamingService {
   }
 }
 
+const double _closePlaceKm = 3.0;
+
 class _Place {
   final String name;
   final double lat;
@@ -80,18 +82,31 @@ class _PlacesData {
 
   String areaNameFor(double lat, double lon, double maxDistanceKm) {
     _Place? best;
+    _Place? nearest;
     var bestScore = double.infinity;
+    var nearestDistance = double.infinity;
     final lonScale = math.cos(lat * math.pi / 180);
 
     for (final place in places) {
       final dLat = (place.lat - lat) * 111.0;
       final dLon = (place.lon - lon) * 111.0 * lonScale;
-      final score = math.sqrt(dLat * dLat + dLon * dLon) / place.weight;
+      final distance = math.sqrt(dLat * dLat + dLon * dLon);
+      final score = distance / place.weight;
 
       if (score < bestScore) {
         best = place;
         bestScore = score;
       }
+      if (distance < nearestDistance) {
+        nearest = place;
+        nearestDistance = distance;
+      }
+    }
+
+    // منطقة قريبة فعلاً أدق من مدينة كبيرة بعيدة
+    if (nearestDistance <= _closePlaceKm) {
+      best = nearest;
+      bestScore = nearestDistance;
     }
 
     if (best == null) return GeoNamingService._unknownArea;
