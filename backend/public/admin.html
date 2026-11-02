@@ -6059,6 +6059,13 @@ body .custom-switch-toggle.active.sm .switch-knob {
   .detail-table th .info-key { color: var(--text-secondary); }
   .custom-table.detail-table tbody td, .custom-table.detail-table tbody th { text-align: right !important; }
 
+  .page-guide { display: flex; gap: 0.6rem; align-items: flex-start; background: #f8fafc; border: 1px dashed var(--border-color); border-right: 4px solid var(--brand-primary); border-radius: var(--radius-sm); padding: 0.65rem 0.85rem; color: var(--text-secondary); font-size: 0.84rem; line-height: 1.7; }
+  .page-guide svg { width: 18px; height: 18px; color: var(--brand-primary); flex-shrink: 0; margin-top: 0.2rem; }
+  .page-guide p { margin: 0; }
+  .decision-box { background: var(--brand-light); border: 1.5px solid var(--brand-border); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.35rem; }
+  .decision-box strong { color: var(--brand-dark); font-size: 1rem; }
+  .decision-box p { margin: 0; color: var(--text-main); }
+
   @media (max-width: 860px) {
     .sidebar { position: fixed !important; top: 0; right: 0; display: none !important; box-shadow: -8px 0 24px rgba(15, 23, 42, 0.15); }
     .sidebar.mobile-open { display: flex !important; }
@@ -6075,7 +6082,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     <div style="text-align: center; margin-bottom: 2rem">
       <div class="login-brand-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6zM9 12l2 2 4-4"/></svg></div>
       <h1 class="login-title">تسجيل الدخول للوحة My Lawyer</h1>
-      <p class="login-subtitle">ادخل ببيانات حساب الإدارة للوصول للوحة التحكم</p>
+      <p class="login-subtitle">أدخل بيانات حساب الإدارة للوصول إلى لوحة التحكم</p>
     </div>
     <div class="login-error" id="login-error"></div>
     <form class="login-form" id="login-form">
@@ -6164,10 +6171,14 @@ body .custom-switch-toggle.active.sm .switch-knob {
   const STATUS = {
     PENDING: ['بانتظار المحامي', 'amber'], ACCEPTED: ['بانتظار الدفع', 'amber'], ACTIVE: ['قيد التنفيذ', 'blue'],
     COMPLETED: ['مكتمل', 'green'], CANCELLED: ['ملغي', 'gray'], REJECTED: ['اعتذر المحامي', 'red'],
-    NO_RESPONSE: ['بدون رد', 'red'], PAYMENT_EXPIRED: ['انتهت مهلة الدفع', 'red'],
-    EXPIRED: ['انتهت المهلة', 'red'], REFUNDED: ['تم الرد', 'purple'],
+    NO_RESPONSE: ['دون رد', 'red'], PAYMENT_EXPIRED: ['انتهت مهلة الدفع', 'red'],
+    EXPIRED: ['انتهت المهلة', 'red'], REFUNDED: ['مردود للموكل', 'purple'],
   };
   const PAYOUT = { HELD: 'محجوزة 24 ساعة', AVAILABLE: 'متاحة', FROZEN: 'مجمدة', REFUNDED: 'مردودة' };
+  const RESOLUTIONS = {
+    REFUND: 'رد المبلغ للموكل', LAWYER: 'صرف الأتعاب للمحامي', SPLIT: 'تقسيم مناصفة', WARNING: 'إنذار', CLOSED: 'إغلاق دون إجراء',
+    REFUND_FULL: 'رد كامل', REFUND_PARTIAL: 'رد جزئي', RELEASE: 'صرف للمحامي',
+  };
   const REQUEST = { OPEN: 'مفتوحة', RESOLVED: 'مغلقة', APPROVED: 'مقبولة', REJECTED: 'مرفوضة' };
 
   function readSession() {
@@ -6553,7 +6564,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     };
     row.append(
       pill('طلب', stats.orders, 'blue'),
-      pill('شكوى عليه', stats.against, stats.against > 0 ? 'red' : 'gray'),
+      pill('شكوى ضده', stats.against, stats.against > 0 ? 'red' : 'gray'),
       pill('شكوى قدمها', stats.filed, stats.filed > 0 ? 'amber' : 'gray'));
     return row;
   }
@@ -6635,6 +6646,61 @@ body .custom-switch-toggle.active.sm .switch-knob {
     return list.reduce((total, row) => total + Number(row[key] || 0), 0);
   }
 
+  /// A short explanation for whoever works on the control page
+  function guide(...lines) {
+    const box = el('div', undefined, 'page-guide');
+    const body = el('div');
+    lines.forEach((line) => body.append(el('p', line)));
+    box.append(icon('ticket'), body);
+    return box;
+  }
+
+  const OUTCOMES = {
+    REFUND: ['رد المبلغ كاملًا إلى الموكل', 'btn-outline-danger'],
+    LAWYER: ['صرف الأتعاب كاملة للمحامي', 'btn-outline'],
+    SPLIT: ['تقسيم المبلغ مناصفة', 'btn-outline'],
+  };
+
+  /// The fixed decision for an order, built from the arrival and the completion code
+  async function settlementSection(orderId, returnAfter) {
+    const { data } = await api('GET', '/admin/orders/' + orderId + '/settlement');
+    const note = input('', 'ملاحظة القرار (اختيارية)');
+    note.style.minWidth = '260px';
+    const settle = (outcome) => {
+      const run = () => api('POST', '/admin/orders/' + orderId + '/settle', { outcome, note: note.value });
+      return returnAfter ? decideAndReturn(run) : run();
+    };
+
+    const facts = details([
+      ['وصول المحامي', data.lawyerArrived ? badge('سُجّل الوصول', 'green') : badge('لم يُسجّل الوصول', 'red')],
+      ['كود الإنهاء', data.codeEntered ? badge('أُدخل الكود', 'green') : badge('لم يُدخل الكود', 'red')],
+      ['إنذارات الموكل السارية', data.clientWarnings], ['إنذارات المحامي السارية', data.lawyerWarnings],
+      ['قيمة الطلب', data.price + ' ج.م'],
+    ]);
+    const decision = el('div', undefined, 'decision-box');
+    decision.append(el('strong', 'القرار المقترح: ' + OUTCOMES[data.outcome][0]), el('p', data.reason));
+
+    const parts = [
+      guide('القاعدة الثابتة: إذا لم يسجّل المحامي وصوله يُرد المبلغ كاملًا إلى الموكل. وإذا وصل وأُدخل كود الإنهاء تُصرف الأتعاب كاملة للمحامي.',
+        'وإذا وصل المحامي ولم يُدخل الكود يُقسم المبلغ مناصفة، إلا إذا كان على أحد الطرفين 3 إنذارات سارية أو أكثر، فيُحكم للطرف الآخر.'),
+      facts, decision,
+    ];
+    if (data.open) {
+      const others = Object.entries(OUTCOMES).filter(([key]) => key !== data.outcome).map(([key, [label, style]]) =>
+        button(label, style, confirmed('هذا القرار يخالف القرار المقترح. هل تريد تنفيذ «' + label + '»؟', () => settle(key)), 'تم تنفيذ القرار'));
+      parts.push(actionRow(note,
+        button('تنفيذ القرار المقترح', 'btn-primary', confirmed('سيُنفذ القرار: ' + OUTCOMES[data.outcome][0] + '. هل تريد المتابعة؟', () => settle(data.outcome)), 'تم تنفيذ القرار', 'check')),
+        el('p', 'قرارات أخرى عند الحاجة، بعد التواصل مع الطرفين:', 'muted'), actionRow(...others));
+    } else {
+      parts.push(el('p', 'تمت تسوية هذا الطلب، ولا يمكن تنفيذ قرار مالي جديد عليه.', 'muted'));
+    }
+    return section('التسوية المالية', ...parts);
+  }
+
+  function kindBadge(kind) {
+    return kind === 'BEHAVIOR' ? badge('على التعامل', 'purple') : badge('على الفلوس', 'red');
+  }
+
   /// The title lives in the top header, and the page keeps only its extra details
   function pageHead(title) {
     $('page-title').textContent = title;
@@ -6659,7 +6725,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
         ['طلبات مفتوحة', data.open_orders, 'orders', 'blue'], ['طلبات مكتملة', data.completed_orders, 'check', 'green'],
         ['قيمة الطلبات المكتملة', Number(data.completed_value) + ' ج.م', 'money', 'brand'],
       ]),
-      subheading('محتاج متابعة'),
+      subheading('بحاجة إلى متابعة'),
       summaryBar([
         ['طلبات انضمام', data.pending_lawyers, 'lawyer', 'amber'], ['شكاوى مفتوحة', data.open_complaints, 'complaint', 'red'],
         ['اعتراضات مفتوحة', data.open_appeals, 'appeal', 'amber'],
@@ -6680,21 +6746,21 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
   async function complaintsPage(box) {
     const { data } = await api('GET', '/admin/complaints');
-    const shown = applyFilters(data, (item) => item.created_at, (item) => (item.filed_after_hold ? 'after' : 'in'));
+    const shown = applyFilters(data, (item) => item.created_at, (item) => item.kind);
     box.append(summaryBar([
       ['شكاوى مفتوحة', data.length, 'complaint', 'red'],
-      ['خلال 24 ساعة', data.filter((item) => !item.filed_after_hold).length, 'ticket', 'amber'],
-      ['بعد 24 ساعة', data.filter((item) => item.filed_after_hold).length, 'calendar', 'blue'],
-      ['قيمة الطلبات عليها شكاوى', sumOf(data, 'price') + ' ج.م', 'money', 'brand'],
+      ['على الفلوس', data.filter((item) => item.kind !== 'BEHAVIOR').length, 'money', 'amber'],
+      ['على التعامل', data.filter((item) => item.kind === 'BEHAVIOR').length, 'appeal', 'blue'],
+      ['قيمة الطلبات المعنية', sumOf(data, 'price') + ' ج.م', 'money', 'brand'],
     ]));
-    box.append(controlsBar([stateFilter([['', 'كل الأنواع'], ['in', 'خلال 24 ساعة'], ['after', 'بعد 24 ساعة']]), ...dateFilters()]));
+    box.append(guide('تظهر هنا شكاوى الموكلين المفتوحة. الشكوى على الفلوس تُحسم بالتسوية المالية وفق قاعدة ثابتة، والشكوى على التعامل تُحسم بتوجيه إنذار أو بالإغلاق دون إجراء.',
+      'تُجمّد أتعاب الطلب تلقائيًا عند تقديم شكوى على الفلوس حتى صدور القرار.'));
+    box.append(controlsBar([stateFilter([['', 'كل الأنواع'], ['MONEY', 'على الفلوس'], ['BEHAVIOR', 'على التعامل']]), ...dateFilters()]));
     box.append(table(['النوع', 'رقم الطلب', 'الموكل', 'المحامي', 'التفاصيل', 'المبلغ', 'التاريخ', 'الإجراءات'], shown.map((item) => ({
       item,
       cells: [
-        badge(item.filed_after_hold ? 'شكوى بعد 24 ساعة' : 'شكوى على طلب', item.filed_after_hold ? 'blue' : 'red'),
-        el('strong', item.order_number, 'prod-name-ar'),
-        personCell(item.client_name, item.client_phone, statsOf(item, 'client')),
-        personCell(item.lawyer_name, item.lawyer_phone, statsOf(item, 'lawyer')),
+        kindBadge(item.kind), el('strong', item.order_number, 'prod-name-ar'),
+        personCell(item.client_name, item.client_phone), personCell(item.lawyer_name, item.lawyer_phone),
         item.reason, item.price + ' ج.م', date(item.created_at), openButton('فتح', 'complaint', item),
       ],
     })), (item) => open('complaint', item)));
@@ -6702,38 +6768,30 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
   async function complaintPage(box) {
     const item = current.param;
+    const isMoney = item.kind !== 'BEHAVIOR';
     pageHead('شكوى على طلب ' + item.order_number);
-    const note = input('', 'ملاحظة القرار');
-    note.style.minWidth = '260px';
-    const resolve = (resolution, refundAmount) => decideAndReturn(() =>
-      api('POST', '/admin/complaints/' + item.id + '/resolve', { resolution, refundAmount, note: note.value }));
 
-    box.append(hero(avatarBox(null, 'complaint'), 'شكوى موكل', [badge('مفتوحة', 'red'),
-      item.filed_after_hold ? badge('بعد 24 ساعة', 'blue') : badge('خلال 24 ساعة', 'amber')],
+    box.append(hero(avatarBox(null, 'complaint'), 'شكوى موكل', [badge('مفتوحة', 'red'), kindBadge(item.kind)],
       [['orders', 'طلب ' + item.order_number], ['calendar', date(item.created_at)], ['money', item.price + ' ج.م']],
       [link('تفاصيل الطلب', () => open('order', item.order_id), 'btn-outline', 'orders')]));
-
     box.append(section('نص الشكوى', el('p', item.reason)));
     box.append(section('أطراف الطلب', parties(
       personCard('الموكل', item.client_name, item.client_phone, item.client_id, statsOf(item, 'client'), item.client_email),
       personCard('المحامي', item.lawyer_name, item.lawyer_phone, item.lawyer_id, statsOf(item, 'lawyer'), item.lawyer_email))));
-    box.append(section('بيانات الطلب', details([
-      ['الخدمة', item.service_title], ['المبلغ', item.price + ' ج.م'], ['حالة الأتعاب', PAYOUT[item.payout_status] || item.payout_status],
-    ])));
 
-    const tools = [note];
-    if (!item.filed_after_hold) {
-      const amount = input('', 'مبلغ جزئي', 'small');
-      amount.type = 'number';
-      tools.push(button('رد كامل', 'btn-outline-danger', confirmed('رد المبلغ كامل للموكل؟', () => resolve('REFUND_FULL')), 'تم رد المبلغ'));
-      tools.push(amount, button('رد جزئي', 'btn-outline', () => resolve('REFUND_PARTIAL', Number(amount.value)), 'تم الرد الجزئي'));
+    if (isMoney) {
+      box.append(await settlementSection(item.order_id, true));
+      return;
     }
-    tools.push(button(item.filed_after_hold ? 'إغلاق الشكوى' : 'تحويل للمحامي', 'btn-primary', () => resolve('RELEASE'), 'تم تسجيل القرار', 'check'));
+    const note = input('', 'سبب الإنذار أو ملاحظة الإغلاق');
+    note.style.minWidth = '280px';
+    const close = (warn) => decideAndReturn(() => api('POST', '/admin/complaints/' + item.id + '/close', { warn, note: note.value }));
     box.append(section('القرار',
-      el('p', item.filed_after_hold
-        ? 'الشكوى اتقدمت بعد ما الأتعاب اتحولت للمحامي، فالقرار هنا إغلاقها بملاحظة.'
-        : 'تقدر ترد المبلغ للموكل كامل أو جزء منه، أو تحول الأتعاب للمحامي.', 'muted'),
-      actionRow(...tools)));
+      guide('الشكوى على التعامل لا تؤثر في الفلوس. وجّه إنذارًا للمحامي إذا ثبتت المخالفة أو تكررت من موكلين مختلفين، أو أغلق الشكوى دون إجراء.',
+        '3 إنذارات سارية خلال 30 يومًا توقف الحساب أسبوعًا تلقائيًا.'),
+      actionRow(note,
+        button('توجيه إنذار للمحامي', 'btn-outline-danger', confirmed('توجيه إنذار للمحامي وإغلاق الشكوى؟', () => close(true)), 'تم توجيه الإنذار'),
+        button('إغلاق دون إجراء', 'btn-outline', () => close(false), 'تم إغلاق الشكوى'))));
   }
 
   const LAWYER_ITEMS = {
@@ -6747,9 +6805,9 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const [reports, appeals, reviews, tickets] = await Promise.all([
       api('GET', '/admin/reports'), api('GET', '/admin/appeals'), api('GET', '/admin/reviews/reported'), api('GET', '/admin/tickets'),
     ]);
-    const lawyerCell = (item) => personCell(item.lawyer_name, item.lawyer_phone, statsOf(item, 'lawyer'));
+    const lawyerCell = (item) => personCell(item.lawyer_name, item.lawyer_phone);
     const items = [
-      ...reports.data.map((item) => ({ kind: 'report', item, order: item.order_number, lawyer: lawyerCell(item), details: item.reason, at: item.created_at })),
+      ...reports.data.map((item) => ({ kind: 'report', item, order: item.order_number, lawyer: lawyerCell(item), details: (item.kind === 'BEHAVIOR' ? 'على التعامل: ' : 'على الفلوس: ') + item.reason, at: item.created_at })),
       ...appeals.data.map((item) => ({ kind: 'appeal', item, order: item.order_number, lawyer: lawyerCell(item), details: item.reason, at: item.created_at })),
       ...reviews.data.map((item) => ({ kind: 'review', item, order: '-', lawyer: personCell(item.lawyer_name), details: item.report_reason, at: item.reported_at })),
       ...tickets.data.filter((item) => item.type === 'locked').map((item) => ({ kind: 'locked', item, order: item.order_number, lawyer: '-', details: item.details, at: item.created_at })),
@@ -6761,6 +6819,8 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['شكاوى على موكلين', count('report'), 'complaint', 'red'], ['اعتراضات', count('appeal'), 'appeal', 'amber'],
       ['بلاغات تقييمات', count('review'), 'review', 'blue'], ['أكواد مقفولة', count('locked'), 'unlock', 'brand'],
     ]));
+    box.append(guide('تظهر هنا شكاوى المحامين على الموكلين، واعتراضاتهم السابقة على انتهاء المهلة، وبلاغاتهم عن التقييمات، والأكواد المقفولة.',
+      'افتح أي بند لمراجعة الأدلة واتخاذ القرار. الشكوى على الفلوس تُحسم بالتسوية المالية، والشكوى على التعامل تُحسم بإنذار للموكل أو بالإغلاق.'));
     box.append(controlsBar([stateFilter([['', 'كل الأنواع'], ...Object.entries(LAWYER_ITEMS).map(([key, [label]]) => [key, label])]), ...dateFilters()]));
     box.append(table(['النوع', 'رقم الطلب', 'المحامي', 'التفاصيل', 'التاريخ', 'الإجراءات'], shown.map((entry) => {
       const [label, color, page] = LAWYER_ITEMS[entry.kind];
@@ -6780,7 +6840,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     box.append(section('سبب البلاغ', el('p', item.report_reason || '-')));
     box.append(section('التقييم', details([['التقييم', item.rating + ' / 5'], ['التعليق', item.comment || 'بدون تعليق']])));
     box.append(section('القرار',
-      el('p', 'الإخفاء بيشيل التعليق من ملف المحامي، والإبقاء بيقفل البلاغ والتعليق يفضل ظاهر.', 'muted'),
+      el('p', 'يؤدي الإخفاء إلى حذف التعليق من ملف المحامي، ويؤدي الإبقاء إلى إغلاق البلاغ مع بقاء التعليق ظاهرًا.', 'muted'),
       actionRow(
         button('إخفاء التعليق', 'btn-outline-danger', () => moderate(true), 'تم إخفاء التعليق'),
         button('إبقاء التعليق', 'btn-primary', () => moderate(false), 'تم إبقاء التعليق', 'check'))));
@@ -6794,30 +6854,36 @@ body .custom-switch-toggle.active.sm .switch-knob {
       [link('تفاصيل الطلب', () => open('order', item.id), 'btn-outline', 'orders')]));
     box.append(section('التفاصيل', el('p', item.details)));
     box.append(section('القرار',
-      el('p', 'فتح الكود بيرجع للمحامي محاولات إدخاله عشان يقدر ينهي المهمة.', 'muted'),
+      el('p', 'يعيد فتح الكود للمحامي محاولات إدخاله ليتمكن من إنهاء المهمة.', 'muted'),
       actionRow(button('فتح الكود', 'btn-primary', () => decideAndReturn(() =>
         api('POST', '/admin/orders/' + item.id + '/unlock-code', {})), 'تم فتح الكود', 'unlock'))));
   }
 
   async function reportPage(box) {
     const item = current.param;
-    pageHead('شكوى محامي على طلب ' + item.order_number);
-    const note = input('', 'ملاحظة القرار');
-    note.style.minWidth = '260px';
+    const isMoney = item.kind !== 'BEHAVIOR';
+    pageHead('شكوى محامٍ على طلب ' + item.order_number);
 
-    box.append(hero(avatarBox(null, 'complaint'), 'شكوى محامي', [badge('مفتوحة', 'red'), tag(item.order_status)],
+    box.append(hero(avatarBox(null, 'complaint'), 'شكوى محامٍ', [badge('مفتوحة', 'red'), kindBadge(item.kind), tag(item.order_status)],
       [['orders', 'طلب ' + item.order_number], ['calendar', date(item.created_at)], ['money', item.price + ' ج.م']],
       [link('تفاصيل الطلب', () => open('order', item.order_id), 'btn-outline', 'orders')]));
-
     box.append(section('نص الشكوى', el('p', item.reason)));
     box.append(section('أطراف الطلب', parties(
       personCard('المحامي', item.lawyer_name, item.lawyer_phone, item.lawyer_id, statsOf(item, 'lawyer'), item.lawyer_email),
       personCard('الموكل', item.client_name, item.client_phone, item.client_id, statsOf(item, 'client'), item.client_email))));
-    box.append(section('بيانات الطلب', details([['حالة الطلب', tag(item.order_status)], ['المبلغ', item.price + ' ج.م']])));
+
+    if (isMoney) {
+      box.append(await settlementSection(item.order_id, true));
+      return;
+    }
+    const note = input('', 'سبب الإنذار أو ملاحظة الإغلاق');
+    note.style.minWidth = '280px';
+    const close = (warn) => decideAndReturn(() => api('POST', '/admin/reports/' + item.id + '/close', { warn, note: note.value }));
     box.append(section('القرار',
-      el('p', 'بعد المراجعة اقفل الشكوى، والمحامي هيوصله إشعار بالملاحظة.', 'muted'),
-      actionRow(note, button('إغلاق الشكوى', 'btn-primary', () => decideAndReturn(() =>
-        api('POST', '/admin/reports/' + item.id + '/resolve', { note: note.value })), 'تم إغلاق الشكوى', 'check'))));
+      guide('الشكوى على التعامل لا تؤثر في الفلوس. وجّه إنذارًا للموكل إذا ثبتت المخالفة أو تكررت من محامين مختلفين، أو أغلق الشكوى دون إجراء.'),
+      actionRow(note,
+        button('توجيه إنذار للموكل', 'btn-outline-danger', confirmed('توجيه إنذار للموكل وإغلاق الشكوى؟', () => close(true)), 'تم توجيه الإنذار'),
+        button('إغلاق دون إجراء', 'btn-outline', () => close(false), 'تم إغلاق الشكوى'))));
   }
 
   async function appealPage(box) {
@@ -6832,7 +6898,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
       personCard('المحامي', item.lawyer_name, item.lawyer_phone, item.lawyer_id, statsOf(item, 'lawyer'), item.lawyer_email))));
     box.append(section('بيانات الطلب', details([['الخدمة', item.service_title], ['المبلغ', item.price + ' ج.م']])));
     box.append(section('القرار',
-      el('p', 'قبول الاعتراض بيرجع الأتعاب للمحامي، والرفض بيسيب المبلغ مردود للموكل.', 'muted'),
+      el('p', 'يعيد قبول الاعتراض الأتعاب إلى المحامي، ويُبقي الرفض المبلغ مردودًا إلى الموكل.', 'muted'),
       actionRow(
         button('قبول الاعتراض', 'btn-primary', () => resolve(true), 'تم قبول الاعتراض', 'check'),
         button('رفض الاعتراض', 'btn-outline-danger', confirmed('رفض الاعتراض؟', () => resolve(false)), 'تم رفض الاعتراض'))));
@@ -6847,6 +6913,8 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['آخر 7 أيام', data.filter((item) => new Date(item.urgent_terms_accepted_at || 0) > week).length, 'calendar', 'blue'],
       ['مستندات مكتملة', data.filter((item) => item.photo && item.card_id).length, 'check', 'green'],
     ]));
+    box.append(guide('راجع الصورة الشخصية وصورة الكارنيه وبيانات المحامي قبل الموافقة.',
+      'بعد الموافقة ينتقل المحامي إلى قائمة المحامين ويصبح له بروفايل، ويتمكن من استقبال طلبات «محاميك حالاً».'));
     box.append(controlsBar(dateFilters()));
 
     box.append(table(['الاسم', 'الهاتف', 'رقم القيد', 'التخصص', 'تاريخ التقديم', 'الحالة', 'الإجراءات'], shown.map((item) => ({
@@ -6893,11 +6961,11 @@ body .custom-switch-toggle.active.sm .switch-knob {
       view.append(image);
       grid.append(documentBox('الصورة الشخصية', view));
     } else {
-      grid.append(documentBox('الصورة الشخصية', missingDocument('المحامي لسه ما رفعش صورته')));
+      grid.append(documentBox('الصورة الشخصية', missingDocument('لم يرفع المحامي صورته بعد')));
     }
 
     if (!item.card_id) {
-      grid.append(documentBox('كارنيه النقابة', missingDocument('المحامي لسه ما رفعش الكارنيه')));
+      grid.append(documentBox('كارنيه النقابة', missingDocument('لم يرفع المحامي صورة الكارنيه بعد')));
     } else {
       try {
         const url = await privateDocument(item.card_id);
@@ -6925,7 +6993,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
   /// One application on its own page, the list already carries everything it shows
   async function applicationPage(box) {
     const item = current.param;
-    const reason = input('', 'سبب الرفض لو هترفض');
+    const reason = input('', 'سبب الرفض (عند الرفض)');
     reason.style.minWidth = '260px';
     const decide = (approve) => decideAndReturn(() =>
       api('POST', '/admin/urgent-applications/' + item.user_id + '/decision', { approve, reason: reason.value }));
@@ -6941,7 +7009,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     ])));
 
     box.append(section('القرار',
-      el('p', 'الموافقة بتخلي المحامي يقدر يفعّل استقبال طلبات «محاميك حالاً»، والرفض بيوصله إشعار بالسبب.', 'muted'),
+      el('p', 'تتيح الموافقة للمحامي تفعيل استقبال طلبات «محاميك حالاً»، ويصله عند الرفض إشعار بالسبب.', 'muted'),
       actionRow(
         button('موافقة', 'btn-primary', () => decide(true), 'تمت الموافقة', 'check'),
         reason,
@@ -6965,10 +7033,12 @@ body .custom-switch-toggle.active.sm .switch-knob {
         ['حسابات نشطة', data.filter((item) => item.status === 'active').length, 'check', 'green'],
         ['حسابات موقوفة', data.filter((item) => item.status === 'suspended').length, 'power', 'red'],
         ['إجمالي الطلبات', sumOf(data, 'orders_count'), 'orders', 'blue'],
-        ['عليهم شكاوى', data.filter((item) => item.user_against > 0).length, 'complaint', 'amber'],
+        ['حسابات عليها شكاوى', data.filter((item) => item.user_against > 0).length, 'complaint', 'amber'],
       ]));
+      box.append(guide('افتح البروفايل لمراجعة الطلبات والشكاوى، ولإضافة رصيد أو خصمه، ولتوجيه الإنذارات أو إلغائها.',
+        isLawyer ? 'لا يظهر المحامي في هذه القائمة إلا بعد الموافقة على طلب انضمامه.' : 'إيقاف الحساب يمنع صاحبه من استخدام التطبيق كليًا حتى تفعيله مرة أخرى.'));
       box.append(controlsBar([
-        searchBox(q, 'ابحث بالاسم أو الهاتف أو الإيميل', (value) => { current.search = value; render(); }),
+        searchBox(q, 'ابحث بالاسم أو الهاتف أو البريد', (value) => { current.search = value; render(); }),
         filterSelect(ACCOUNT_FILTERS, filter, (key) => { current.filter = key; render(); }, 'power'),
         ...dateFilters(),
       ]));
@@ -7009,7 +7079,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
         ? button('تفعيل الحساب', 'btn-primary', () => suspend(false), undefined, 'power')
         : button('إيقاف الحساب', 'btn-outline-danger', confirmed('إيقاف هذا الحساب؟', () => suspend(true)), undefined, 'power')]));
 
-    const stats = [['الطلبات', user.user_orders, 'orders', 'blue'], ['شكاوى عليه', user.user_against, 'complaint', 'red'],
+    const stats = [['الطلبات', user.user_orders, 'orders', 'blue'], ['شكاوى ضده', user.user_against, 'complaint', 'red'],
       ['شكاوى قدمها', user.user_filed, 'appeal', 'amber'], ['الإنذارات', user.warnings_count, 'power', 'gray']];
     if (isLawyer) stats.unshift(['التقييم', Number(user.rating ?? 0).toFixed(1) + ' / 5', 'review', 'green']);
     box.append(summaryBar(stats));
@@ -7019,7 +7089,8 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['orders', 'الطلبات', data.orders.length],
       ['reviews', 'التقييمات', data.reviews.length],
       ['complaints', 'الشكاوى', data.complaints.length],
-      isLawyer ? ['strikes', 'المخالفات', data.strikes.length] : ['credits', 'حركات الرصيد', data.credits.length],
+      ['wallet', 'الرصيد والإنذارات', data.warnings.filter((item) => !item.revoked_at).length],
+      ...(isLawyer ? [['strikes', 'المخالفات', data.strikes.length]] : []),
     ];
     const active = list.some(([key]) => key === current.tab) ? current.tab : 'data';
     box.append(tabs(list, active, (key) => { current.tab = key; render(); }));
@@ -7027,7 +7098,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const pane = el('div', undefined, 'tab-content-pane');
     if (active === 'data') {
       pane.append(section('بيانات الحساب', details([
-        ['الاسم', user.full_name], ['الهاتف', user.phone], ['الإيميل', user.email], ['تاريخ التسجيل', date(user.created_at)],
+        ['الاسم', user.full_name], ['الهاتف', user.phone], ['البريد', user.email], ['تاريخ التسجيل', date(user.created_at)],
       ])));
       if (isLawyer) {
         pane.append(section('البيانات المهنية', details([
@@ -7047,15 +7118,68 @@ body .custom-switch-toggle.active.sm .switch-knob {
         item, cells: [item.order_number, item.rating + ' / 5', item.comment, date(item.created_at)],
       })), (item) => open('order', item.order_id)));
     } else if (active === 'complaints') {
-      pane.append(table(['رقم الطلب', 'الشكوى', 'الحالة', 'القرار', 'التاريخ'], data.complaints.map((item) => ({
-        item, cells: [item.order_number, item.reason, REQUEST[item.status] || item.status, item.resolution, date(item.created_at)],
+      pane.append(table(['رقم الطلب', 'النوع', 'الشكوى', 'الحالة', 'القرار', 'التاريخ'], data.complaints.map((item) => ({
+        item, cells: [item.order_number, kindBadge(item.kind), item.reason, REQUEST[item.status] || item.status, RESOLUTIONS[item.resolution] || item.resolution || '-', date(item.created_at)],
       })), (item) => open('order', item.order_id)));
     } else if (active === 'strikes') {
       pane.append(table(['النوع', 'التاريخ'], data.strikes.map((item) => ({ item, cells: [item.kind, date(item.created_at)] }))));
     } else {
-      pane.append(table(['المبلغ', 'السبب', 'التاريخ'], data.credits.map((item) => ({ item, cells: [item.amount + ' ج.م', item.reason, date(item.created_at)] }))));
+      walletPane(pane, data, user, isLawyer);
     }
     box.append(pane);
+  }
+
+  function money(value) {
+    const amount = Number(value || 0);
+    return el('strong', (amount > 0 ? '+' : '') + amount + ' ج.م', amount < 0 ? 'text-danger' : 'text-success');
+  }
+
+  /// Manual balance changes and warnings, each one with its reason
+  function walletPane(pane, data, user, isLawyer) {
+    const wallet = data.wallet || {};
+    pane.append(summaryBar(isLawyer
+      ? [['الرصيد المتاح', Number(wallet.available) + ' ج.م', 'money', Number(wallet.available) < 0 ? 'red' : 'green'],
+        ['أتعاب محجوزة', Number(wallet.held) + ' ج.م', 'calendar', 'amber'], ['أتعاب مجمدة', Number(wallet.frozen) + ' ج.م', 'power', 'blue']]
+      : [['رصيد الموكل', Number(wallet.client_balance) + ' ج.م', 'money', Number(wallet.client_balance) < 0 ? 'red' : 'green']]));
+
+    const type = filterSelect([['add', 'إضافة إلى الرصيد'], ['deduct', 'خصم من الرصيد']], 'add', () => {}, 'money');
+    const amount = input('', 'المبلغ', 'small');
+    amount.type = 'number';
+    amount.min = '0';
+    const reason = input('', 'سبب الحركة (إلزامي)');
+    reason.style.minWidth = '260px';
+    const orderNumber = input('', 'رقم الطلب (اختياري)');
+    const submit = () => {
+      const deduct = type.querySelector('select').value === 'deduct';
+      const value = Math.abs(Number(amount.value));
+      return api('POST', '/admin/users/' + user.id + '/balance', { amount: deduct ? -value : value, reason: reason.value, orderNumber: orderNumber.value || undefined });
+    };
+    pane.append(section('إضافة رصيد أو خصمه',
+      guide('تُسجّل كل حركة بسببها ولا تُحذف، ويصل إشعار بالحركة إلى صاحب الحساب. لتصحيح حركة خاطئة نفّذ حركة معاكسة لها.',
+        'إذا زاد الخصم على الرصيد أصبح الرصيد سالبًا، ويُسدَّد تلقائيًا من المبالغ التي تدخل الحساب لاحقًا.'),
+      actionRow(type, amount, reason, orderNumber,
+        button('تنفيذ الحركة', 'btn-primary', confirmed('هل تريد تنفيذ هذه الحركة على الرصيد؟', submit), 'تم تنفيذ الحركة', 'check'))));
+
+    const ledger = isLawyer ? data.adjustments : data.credits;
+    pane.append(section(isLawyer ? 'حركات الرصيد اليدوية' : 'كل حركات الرصيد', table(['المبلغ', 'السبب', 'رقم الطلب', 'بواسطة', 'التاريخ'], ledger.map((item) => ({
+      item, cells: [money(item.amount), item.reason, item.order_number || '-', item.created_by || 'تلقائي', date(item.created_at)],
+    })))));
+
+    const warningReason = input('', 'سبب الإنذار (إلزامي)');
+    warningReason.style.minWidth = '280px';
+    const rows = data.warnings.map((item) => ({
+      item,
+      cells: [
+        item.reason, item.order_number || '-', item.created_by || 'تلقائي', date(item.created_at),
+        item.revoked_at ? badge('ملغى', 'gray') : badge('سارٍ', 'red'),
+        item.revoked_at ? '-' : button('إلغاء', 'btn-outline btn-xs', confirmed('إلغاء هذا الإنذار؟', () => api('POST', '/admin/warnings/' + item.id + '/revoke', {})), 'تم إلغاء الإنذار'),
+      ],
+    }));
+    pane.append(section('الإنذارات',
+      guide('3 إنذارات سارية خلال 30 يومًا توقف الحساب أسبوعًا، ثم يعود الحساب للعمل تلقائيًا. وإلغاء الإنذار لا يرفع إيقافًا قائمًا.'),
+      actionRow(warningReason, button('توجيه إنذار', 'btn-outline-danger', confirmed('توجيه إنذار لهذا الحساب؟', () =>
+        api('POST', '/admin/users/' + user.id + '/warnings', { reason: warningReason.value })), 'تم توجيه الإنذار')),
+      table(['السبب', 'رقم الطلب', 'بواسطة', 'التاريخ', 'الحالة', 'الإجراء'], rows)));
   }
 
   async function ordersPage(box) {
@@ -7069,6 +7193,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['الطلبات المعروضة', data.length, 'orders', 'brand'], ['قيمتها', sumOf(data, 'price') + ' ج.م', 'money', 'green'], ['طلبات جارية', count(['PENDING', 'ACCEPTED', 'ACTIVE']), 'ticket', 'blue'],
       ['طلبات مكتملة', count(['COMPLETED']), 'check', 'green'], ['ملغية أو منتهية', count(['CANCELLED', 'REJECTED', 'NO_RESPONSE', 'PAYMENT_EXPIRED', 'EXPIRED', 'REFUNDED']), 'close', 'red'],
     ]));
+    box.append(guide('افتح الطلب لمراجعة دورة حياته وأطرافه، أو لتسويته ماليًا، أو لتجميد أتعابه.'));
     box.append(controlsBar([
       searchBox(q, 'ابحث برقم الطلب أو الاسم أو الهاتف', (value) => { current.search = value; render(); }),
       filterSelect([['', 'كل الحالات'], ...Object.entries(STATUS).map(([key, [label]]) => [key, label])], status,
@@ -7097,6 +7222,18 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['السعر', order.price + ' ج.م', 'money', 'brand'], ['صافي المحامي', order.lawyer_amount + ' ج.م', 'lawyer', 'green'],
       ['نسبة المنصة', order.commission_percent + '%', 'price', 'blue'], ['الضريبة', order.tax_percent + '%', 'orders', 'amber'],
     ]));
+
+    if (order.status === 'ACTIVE' || ['HELD', 'FROZEN'].includes(order.payout_status)) {
+      box.append(await settlementSection(order.id, false));
+    }
+    if (['HELD', 'AVAILABLE', 'FROZEN'].includes(order.payout_status)) {
+      const frozen = order.payout_status === 'FROZEN';
+      box.append(section('أتعاب الطلب',
+        guide('التجميد يوقف تحويل أتعاب هذا الطلب إلى المحامي حتى تفك التجميد أو تنفذ تسوية.'),
+        details([['حالة الأتعاب', PAYOUT[order.payout_status]], ['صافي المحامي', order.lawyer_amount + ' ج.م']]),
+        actionRow(button(frozen ? 'فك التجميد' : 'تجميد الأتعاب', frozen ? 'btn-primary' : 'btn-outline-danger',
+          () => api('POST', '/admin/orders/' + order.id + '/freeze', { freeze: !frozen }), frozen ? 'تم فك التجميد' : 'تم تجميد الأتعاب', 'power'))));
+    }
 
     box.append(section('أطراف الطلب', parties(
       personCard('الموكل', order.client_name, order.client_phone, order.client_id, statsOf(order, 'client'), order.client_email),
@@ -7139,6 +7276,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['تقييمات ضعيفة', data.filter((item) => item.rating <= 2).length, 'complaint', 'red'],
       ['مخفية', data.filter((item) => item.is_hidden).length, 'close', 'gray'],
     ]));
+    box.append(guide('تظهر التقييمات في ملف المحامي فور إرسالها. أما بلاغات المحامين عن التقييمات فتظهر في صفحة شكاوى المحامين.'));
     box.append(controlsBar([stateFilter([['', 'كل الحالات'], ['shown', 'ظاهر'], ['hidden', 'مخفي']]), ...dateFilters()]));
     box.append(table(['المحامي', 'التقييم', 'التعليق', 'رقم الطلب', 'الحالة', 'التاريخ'], shown.map((item) => ({
       item, cells: [item.lawyer_name, item.rating + ' / 5', item.comment, item.order_number, item.is_hidden ? badge('مخفي', 'gray') : badge('ظاهر', 'green'), date(item.created_at)],
@@ -7162,7 +7300,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     taxInput.type = 'number';
 
     box.append(section('النسب العامة',
-      el('p', 'الضريبة تتخصم من السعر الأول، ونسبة المنصة من الصافي بعدها. التغيير للطلبات الجديدة فقط.', 'muted'),
+      guide('تُخصم الضريبة من السعر أولًا، ثم تُحسب نسبة المنصة من الصافي. تُطبق التغييرات على الطلبات الجديدة فقط.'),
       actionRow(el('span', 'نسبة المنصة لكل الخدمات'), percent,
         button('تطبيق على الكل', 'btn-primary', () => api('POST', '/admin/commission', { percent: Number(percent.value) }))),
       actionRow(el('span', 'نسبة الضريبة'), taxInput,
@@ -7197,8 +7335,8 @@ body .custom-switch-toggle.active.sm .switch-knob {
   const INNER = { user: userPage, order: orderPage, application: applicationPage, complaint: complaintPage, report: reportPage, appeal: appealPage, reviewReport: reviewReportPage, locked: lockedPage };
   const INNER_TITLES = { user: 'بروفايل الحساب', order: 'تفاصيل الطلب', application: 'طلب انضمام', complaint: 'شكوى موكل', report: 'شكوى محامي', appeal: 'اعتراض محامي', reviewReport: 'بلاغ عن تقييم', locked: 'كود مقفول' };
   const SUBTITLES = {
-    overview: 'ملخص الحسابات والطلبات', complaints: 'كل اللي جاي من الموكلين ومحتاج قرار', reports: 'شكاوى واعتراضات وبلاغات المحامين ومحتاجة قرار',
-    reviewReport: 'مراجعة التعليق والقرار', locked: 'مراجعة الطلب وفتح الكود', complaint: 'مراجعة الشكوى والقرار', report: 'مراجعة الشكوى والقرار', appeal: 'مراجعة الاعتراض والقرار', applications: 'محامون طالبين الانضمام للخدمة', lawyers: 'كل حسابات المحامين',
+    overview: 'ملخص الحسابات والطلبات', complaints: 'كل ما يرد من الموكلين ويحتاج إلى قرار', reports: 'شكاوى المحامين واعتراضاتهم وبلاغاتهم التي تحتاج إلى قرار',
+    reviewReport: 'مراجعة التعليق والقرار', locked: 'مراجعة الطلب وفتح الكود', complaint: 'مراجعة الشكوى والقرار', report: 'مراجعة الشكوى والقرار', appeal: 'مراجعة الاعتراض والقرار', applications: 'محامون تقدموا للانضمام إلى الخدمة', lawyers: 'كل حسابات المحامين',
     clients: 'كل حسابات الموكلين', orders: 'البحث في الطلبات ومتابعة حالتها', reviews: 'تقييمات الموكلين للمحامين',
     prices: 'أسعار الخدمات ونسبة المنصة والضريبة', application: 'مراجعة بيانات المحامي والقرار', user: 'البيانات والطلبات والتقييمات', order: 'البيانات ودورة حياة الطلب',
   };
@@ -7276,7 +7414,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     saveSession({ accessToken: json.data.accessToken, refreshToken: json.data.refreshToken });
     $('password').value = '';
     render();
-    toast('أهلاً بيك');
+    toast('مرحبًا بك');
   }
 
   $('menu-button').addEventListener('click', () => setMenu(true));

@@ -155,13 +155,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   Future<void> _openComplaint() async {
-    final sent = await OrderActionSheets.text(
+    final sent = await OrderActionSheets.complaint(
       context,
-      title: 'شكوى على الطلب',
-      subtitle: 'اكتب اللي حصل والإدارة هتراجعه',
-      hint: 'تفاصيل الشكوى',
-      buttonText: 'إرسال الشكوى',
-      onSubmit: (reason) => OrderRepository.submitComplaint(_order.id, reason),
+      onSubmit: (kind, details) => widget.isLawyer
+          ? OrderRepository.reportClient(_order.id, kind, details)
+          : OrderRepository.submitComplaint(_order.id, kind, details),
     );
     if (!sent || !mounted) return;
     _showNotice('تم استلام شكواك');
@@ -231,20 +229,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   Future<void> _withdraw() async {
     if (!await _confirm('الاعتذار عن المهمة', 'المبلغ هيرجع للموكل وهتتسجل عليك نقطة', 'اعتذار')) return;
     await _run(() => OrderRepository.withdrawFromOrder(_order.id), 'تم تسجيل الاعتذار');
-  }
-
-  Future<void> _openReport() async {
-    final sent = await OrderActionSheets.text(
-      context,
-      title: 'بلاغ عن مشكلة',
-      subtitle: 'اكتب اللي حصل والإدارة هتراجعه',
-      hint: 'تفاصيل البلاغ',
-      buttonText: 'إرسال البلاغ',
-      onSubmit: (reason) => OrderRepository.reportClient(_order.id, reason),
-    );
-    if (!sent || !mounted) return;
-    _showNotice('تم استلام البلاغ');
-    await _load();
   }
 
   Future<void> _openAppeal() async {
@@ -490,10 +474,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             _primaryAction('وصلت', _markArrived)
           else if (!order.isCodeLocked)
             _primaryAction('إنهاء المهمة', _openCompletion),
-          _action('بلاغ عن مشكلة', _openReport),
           _action('اعتذار', _withdraw, isDanger: true),
         ],
       ],
+      if (order.isComplaintWindowOpen && !order.hasReport) _action('عندك مشكلة؟', _openComplaint, isDanger: true),
       if (order.canAppeal) _action('اعتراض', _openAppeal),
     ];
   }

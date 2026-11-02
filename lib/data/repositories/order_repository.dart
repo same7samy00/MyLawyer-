@@ -197,8 +197,8 @@ class OrderRepository {
     return ApiService.post('/orders/$orderId/withdraw', {});
   }
 
-  static Future<ApiResponse<dynamic>> reportClient(String orderId, String reason) {
-    return ApiService.post('/orders/$orderId/report', {'reason': reason});
+  static Future<ApiResponse<dynamic>> reportClient(String orderId, String kind, String details) {
+    return ApiService.post('/orders/$orderId/report', {'kind': kind, if (details.isNotEmpty) 'reason': details});
   }
 
   static Future<ApiResponse<dynamic>> updateReview(String orderId, int rating, String comment) {
@@ -213,8 +213,8 @@ class OrderRepository {
     return ApiService.post('/orders/$orderId/complete', {'code': code});
   }
 
-  static Future<ApiResponse<dynamic>> submitComplaint(String orderId, String reason) {
-    return ApiService.post('/orders/$orderId/complaint', {'reason': reason});
+  static Future<ApiResponse<dynamic>> submitComplaint(String orderId, String kind, String details) {
+    return ApiService.post('/orders/$orderId/complaint', {'kind': kind, if (details.isNotEmpty) 'reason': details});
   }
 
   static Future<ApiResponse<dynamic>> submitAppeal(String orderId, String reason) {

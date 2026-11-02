@@ -133,13 +133,13 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  for (const table of ['reviews', 'order_appeals', 'complaints', 'lawyer_reports', 'lawyer_strikes', 'client_credits', 'notifications', 'client_problem_prices', 'order_status_logs']) {
+  for (const table of ['reviews', 'order_appeals', 'complaints', 'lawyer_reports', 'lawyer_strikes', 'client_credits', 'account_warnings', 'lawyer_adjustments', 'notifications', 'client_problem_prices', 'order_status_logs']) {
     await sql(`DELETE FROM ${table}`);
   }
   await sql('DELETE FROM service_orders');
   await sql(`UPDATE problem_prices SET min_price = 350, max_price = 350, commission_percent = 0`);
   await sql(`UPDATE lawyer_profiles SET is_available = TRUE, urgent_status = 'APPROVED', availability_off_reason = NULL, missed_orders = 0, suspended_until = NULL, last_active_at = NOW(), last_location_updated_at = NOW() WHERE user_id = $1`, [lawyerId]);
-  await sql(`UPDATE users SET warnings_count = 0, status = 'active'::user_status WHERE id = $1`, [clientId]);
+  await sql(`UPDATE users SET warnings_count = 0, suspended_until = NULL, status = 'active'::user_status WHERE id = ANY($1)`, [[clientId, lawyerId]]);
 });
 
 after(async () => {
@@ -264,11 +264,15 @@ describe('الدفع والإنهاء بالكود', () => {
     assert.equal(blocked.status, 429);
   });
 
-  it('الإلغاء بعد الدفع للموكل فقط وقبل وصول المحامي، والمبلغ يرجع كامل', async () => {
+  it('الإلغاء بعد الدفع للموكل فقط في أول 5 دقايق، والمبلغ يرجع كامل', async () => {
     const order = await createPaidOrder();
     assert.equal((await call('POST', `/orders/${order.id}/cancel`, lawyerToken, {})).status, 400);
     assert.equal((await call('POST', `/orders/${order.id}/cancel`, clientToken, {})).status, 200);
     assert.equal(await clientBalance(), 350);
+
+    const late = await createPaidOrder();
+    await sql(`UPDATE service_orders SET paid_at = NOW() - INTERVAL '6 minutes' WHERE id = $1`, [late.id]);
+    assert.equal((await call('POST', `/orders/${late.id}/cancel`, clientToken, {})).status, 400);
   });
 
   it('الوصول يتسجل قرب الموكل فقط ويمنع الإلغاء', async () => {
@@ -315,65 +319,53 @@ describe('المحفظة', () => {
   });
 });
 
-describe('الشكاوى', () => {
-  it('شكوى خلال 24 ساعة تجمد الأتعاب، والرد الكامل يرجع الفلوس للموكل', async () => {
-    const order = await createCompletedOrder();
-    const filed = await call('POST', `/orders/${order.id}/complaint`, clientToken, { reason: 'المحامي لم يحضر إلى الموقع' });
-    assert.equal(filed.status, 201);
-    assert.equal((await wallet()).frozenBalance, 350);
+describe('الشكاوى والتسوية', () => {
+  const settlement = async (orderId: string) => (await call('GET', `/admin/orders/${orderId}/settlement`, adminToken)).body.data;
+  const settle = (orderId: string, body: object = {}) => call('POST', `/admin/orders/${orderId}/settle`, adminToken, body);
 
-    await sql(`UPDATE service_orders SET hold_until = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
-    await sweepLifecycle();
-    assert.equal((await wallet()).availableBalance, 0);
+  it('المحامي ما وصلش: الفلوس ترجع للموكل كاملة', async () => {
+    const order = await createPaidOrder();
+    assert.equal((await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'MONEY' })).status, 201);
+    assert.equal((await settlement(order.id)).outcome, 'REFUND');
 
-    const list = await call('GET', '/admin/complaints', adminToken);
-    const decision = await call('POST', `/admin/complaints/${list.body.data[0].id}/resolve`, adminToken, { resolution: 'REFUND_FULL' });
-    assert.equal(decision.status, 200);
-
-    const balance = await wallet();
-    assert.equal(balance.frozenBalance, 0);
-    assert.equal(balance.availableBalance, 0);
+    assert.equal((await settle(order.id)).status, 200);
     assert.equal(await clientBalance(), 350);
+    assert.equal((await wallet()).availableBalance, 0);
   });
 
-  it('الرد الجزئي يقسم المبلغ', async () => {
+  it('المحامي وصل والكود اتكتب: الأتعاب للمحامي حتى لو فيه شكوى فلوس', async () => {
     const order = await createCompletedOrder();
-    await call('POST', `/orders/${order.id}/complaint`, clientToken, { reason: 'الخدمة لم تكتمل كما اتفقنا' });
-    const list = await call('GET', '/admin/complaints', adminToken);
-    await call('POST', `/admin/complaints/${list.body.data[0].id}/resolve`, adminToken, { resolution: 'REFUND_PARTIAL', refundAmount: 100 });
+    await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'MONEY' });
+    assert.equal((await wallet()).frozenBalance, 350);
+    assert.equal((await settlement(order.id)).outcome, 'LAWYER');
 
-    assert.equal((await wallet()).availableBalance, 250);
-    assert.equal(await clientBalance(), 100);
-  });
-
-  it('رفض الشكوى يحول الأتعاب للمحامي', async () => {
-    const order = await createCompletedOrder();
-    await call('POST', `/orders/${order.id}/complaint`, clientToken, { reason: 'شكوى غير صحيحة من الموكل' });
-    const list = await call('GET', '/admin/complaints', adminToken);
-    await call('POST', `/admin/complaints/${list.body.data[0].id}/resolve`, adminToken, { resolution: 'RELEASE' });
-
+    await settle(order.id);
     assert.equal((await wallet()).availableBalance, 350);
     assert.equal(await clientBalance(), 0);
   });
 
-  it('شكوى بعد 24 ساعة تتسجل من غير رد تلقائي', async () => {
-    const order = await createCompletedOrder();
-    await sql(`UPDATE service_orders SET hold_until = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
-    await sweepLifecycle();
+  it('المحامي وصل والكود ما اتكتبش: نص ونص، والنسبة على نصيب المحامي', async () => {
+    await sql(`UPDATE problem_prices SET min_price = 1000, max_price = 1000, commission_percent = 20 WHERE problem_type = $1`, [PROBLEM]);
+    const order = await createArrivedOrder();
+    await call('POST', `/orders/${order.id}/report`, lawyerToken, { kind: 'MONEY' });
+    assert.equal((await settlement(order.id)).outcome, 'SPLIT');
 
-    await call('POST', `/orders/${order.id}/complaint`, clientToken, { reason: 'اكتشفت مشكلة بعد انتهاء المهلة' });
-    assert.equal((await wallet()).availableBalance, 350);
-
-    const list = await call('GET', '/admin/complaints', adminToken);
-    const refund = await call('POST', `/admin/complaints/${list.body.data[0].id}/resolve`, adminToken, { resolution: 'REFUND_FULL' });
-    assert.equal(refund.status, 400);
+    await settle(order.id);
+    assert.equal(await clientBalance(), 500);
+    assert.equal((await wallet()).availableBalance, 400);
+    assert.equal((await call('GET', '/admin/reports', adminToken)).body.data.length, 0);
   });
 
-  it('شكوى قبل الإنهاء توقف الكود والمهلة', async () => {
+  it('3 إنذارات على الموكل تقلب النص ونص لصالح المحامي', async () => {
+    for (let i = 0; i < 3; i++) await sql(`INSERT INTO account_warnings (user_id, reason) VALUES ($1, 'إنذار سابق')`, [clientId]);
+    const order = await createArrivedOrder();
+    assert.equal((await settlement(order.id)).outcome, 'LAWYER');
+  });
+
+  it('شكوى الفلوس توقف الكود والمهلة لحد القرار', async () => {
     const order = await createArrivedOrder();
     const code = await clientCode(order.id);
-    await call('POST', `/orders/${order.id}/complaint`, clientToken, { reason: 'المحامي لم يصل حتى الآن' });
-
+    await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'MONEY' });
     assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code })).status, 409);
 
     await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
@@ -381,11 +373,27 @@ describe('الشكاوى', () => {
     assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'ACTIVE');
   });
 
-  it('الموكل غريب عن الطلب لا يقدر يشتكي', async () => {
-    const other = await createUser('01000000009', 'client');
+  it('شكوى التعامل ما بتلمسش الفلوس، والإدارة توجه إنذار', async () => {
     const order = await createCompletedOrder();
-    const res = await call('POST', `/orders/${order.id}/complaint`, app.jwt.sign({ userId: other, role: 'client' }), { reason: 'محاولة من حساب آخر' });
-    assert.equal(res.status, 404);
+    assert.equal((await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'BEHAVIOR' })).status, 201);
+    assert.equal((await wallet()).heldBalance, 350);
+
+    const list = await call('GET', '/admin/complaints', adminToken);
+    assert.equal(list.body.data[0].kind, 'BEHAVIOR');
+    assert.equal((await call('POST', `/admin/complaints/${list.body.data[0].id}/close`, adminToken, { warn: true })).status, 200);
+    assert.equal((await sql('SELECT COUNT(*)::int AS n FROM account_warnings WHERE user_id = $1', [lawyerId]))[0].n, 1);
+  });
+
+  it('الشكوى محتاجة نوع، وبتتقفل بعد 24 ساعة، والغريب ما يشتكيش', async () => {
+    const order = await createCompletedOrder();
+    assert.equal((await call('POST', `/orders/${order.id}/complaint`, clientToken, {})).status, 400);
+
+    const other = await createUser('01000000009', 'client');
+    assert.equal((await call('POST', `/orders/${order.id}/complaint`, app.jwt.sign({ userId: other, role: 'client' }), { kind: 'MONEY' })).status, 404);
+
+    await sql(`UPDATE service_orders SET completed_at = NOW() - INTERVAL '25 hours' WHERE id = $1`, [order.id]);
+    assert.equal((await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'MONEY' })).status, 400);
+    assert.equal((await call('POST', `/orders/${order.id}/report`, lawyerToken, { kind: 'BEHAVIOR' })).status, 400);
   });
 });
 
@@ -400,30 +408,24 @@ describe('مهلة المهمة', () => {
     assert.equal(rows.length, 1);
   });
 
-  it('الطلب يتقفل والفلوس ترجع للموكل ولا يأخذ المحامي شيئاً', async () => {
+  it('المهلة خلصت والمحامي ما وصلش: الفلوس ترجع للموكل لوحدها', async () => {
     const order = await createPaidOrder();
     await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
     await sweepLifecycle();
     await sweepLifecycle();
 
-    assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'EXPIRED');
+    assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'REFUNDED');
     assert.equal(await clientBalance(), 350);
     assert.equal((await wallet()).availableBalance, 0);
   });
 
-  it('قبول اعتراض المحامي يحول الأتعاب ويعكس الرد', async () => {
-    const order = await createPaidOrder();
+  it('المهلة خلصت والمحامي وصل: نص ونص لوحده', async () => {
+    const order = await createArrivedOrder();
     await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
     await sweepLifecycle();
 
-    const appeal = await call('POST', `/orders/${order.id}/appeal`, lawyerToken, { reason: 'نفذت المهمة والموكل لم يعطني الكود' });
-    assert.equal(appeal.status, 201);
-
-    const list = await call('GET', '/admin/appeals', adminToken);
-    await call('POST', `/admin/appeals/${list.body.data[0].id}/resolve`, adminToken, { approve: true });
-
-    assert.equal((await wallet()).availableBalance, 350);
-    assert.equal(await clientBalance(), 0);
+    assert.equal(await clientBalance(), 175);
+    assert.equal((await wallet()).availableBalance, 175);
   });
 });
 
@@ -472,7 +474,7 @@ describe('التقييمات', () => {
     assert.equal(found.body.data.length, 1);
     assert.equal((await call('GET', '/admin/overview', clientToken)).status, 403);
 
-    await call('POST', `/orders/${order.id}/report`, lawyerToken, { reason: 'الموكل ما ادانيش الكود في الميعاد' });
+    await call('POST', `/orders/${order.id}/report`, lawyerToken, { kind: 'BEHAVIOR', reason: 'الموكل ما ادانيش الكود في الميعاد' });
     const reports = await call('GET', '/admin/reports', adminToken);
     const report = reports.body.data.find((r: any) => r.order_id === order.id);
     assert.equal(report.client_against >= 1, true);
@@ -579,15 +581,25 @@ describe('السعر قبل الطلب والنسبة', () => {
     assert.equal((await wallet()).heldBalance, 900);
   });
 
-  it('الرد الجزئي يحسب النسبة على الباقي', async () => {
-    await sql(`UPDATE problem_prices SET min_price = 1100, max_price = 1100, commission_percent = 20 WHERE problem_type = $1`, [PROBLEM]);
-    const order = await createCompletedOrder();
-    await call('POST', `/orders/${order.id}/complaint`, clientToken, { reason: 'الخدمة لم تكتمل كما اتفقنا' });
-    const list = await call('GET', '/admin/complaints', adminToken);
-    await call('POST', `/admin/complaints/${list.body.data[0].id}/resolve`, adminToken, { resolution: 'REFUND_PARTIAL', refundAmount: 300 });
+  it('الإدارة تضيف وتخصم من الرصيد بسبب، والخصم الزيادة بيبقى دين', async () => {
+    assert.equal((await call('POST', `/admin/users/${clientId}/balance`, adminToken, { amount: 100 })).status, 400);
+    assert.equal((await call('POST', `/admin/users/${clientId}/balance`, adminToken, { amount: 100, reason: 'تعويض عن مشكلة' })).status, 200);
+    assert.equal(await clientBalance(), 100);
 
-    assert.equal((await wallet()).availableBalance, 640);
-    assert.equal(await clientBalance(), 300);
+    assert.equal((await call('POST', `/admin/users/${lawyerId}/balance`, adminToken, { amount: -50, reason: 'خصم بقرار الإدارة' })).status, 200);
+    assert.equal((await wallet()).availableBalance, -50);
+
+    const profile = (await call('GET', `/admin/users/${lawyerId}`, adminToken)).body.data;
+    assert.equal(profile.adjustments.length, 1);
+    assert.equal(Number(profile.wallet.available), -50);
+  });
+
+  it('الإدارة تجمد أتعاب طلب وتفكها', async () => {
+    const order = await createCompletedOrder();
+    assert.equal((await call('POST', `/admin/orders/${order.id}/freeze`, adminToken, { freeze: true })).status, 200);
+    assert.equal((await wallet()).frozenBalance, 350);
+    assert.equal((await call('POST', `/admin/orders/${order.id}/freeze`, adminToken, { freeze: false })).status, 200);
+    assert.equal((await wallet()).heldBalance, 350);
   });
 });
 
@@ -672,34 +684,32 @@ describe('المهل والمخالفات', () => {
     assert.equal((await call('GET', '/orders', lawyerToken)).body.data[0].clientPhone, '01000000001');
   });
 
-  it('إثبات رفض الكود مرتين يوقف الموكل', async () => {
+  it('3 إنذارات في شهر توقف الحساب أسبوع، وإلغاء إنذار يقلل العدد', async () => {
     for (let i = 0; i < 2; i++) {
-      const order = await createPaidOrder();
-      await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
-      await sweepLifecycle();
-      await call('POST', `/orders/${order.id}/appeal`, lawyerToken, { reason: 'نفذت المهمة والموكل رفض الكود' });
-      const list = await call('GET', '/admin/appeals', adminToken);
-      await call('POST', `/admin/appeals/${list.body.data[0].id}/resolve`, adminToken, { approve: true });
+      assert.equal((await call('POST', `/admin/users/${clientId}/warnings`, adminToken, { reason: 'تعامل غير لائق' })).status, 200);
     }
+    const warnings = (await call('GET', `/admin/users/${clientId}`, adminToken)).body.data.warnings;
+    assert.equal(warnings.length, 2);
+    assert.equal((await call('POST', `/admin/warnings/${warnings[0].id}/revoke`, adminToken, {})).status, 200);
 
-    assert.equal((await sql('SELECT status FROM users WHERE id = $1', [clientId]))[0].status, 'suspended');
+    for (let i = 0; i < 2; i++) await call('POST', `/admin/users/${clientId}/warnings`, adminToken, { reason: 'تعامل غير لائق' });
+    const user = (await sql('SELECT status, suspended_until FROM users WHERE id = $1', [clientId]))[0];
+    assert.equal(user.status, 'suspended');
+    assert.notEqual(user.suspended_until, null);
+
+    await sql(`UPDATE users SET suspended_until = NOW() - INTERVAL '1 minute' WHERE id = $1`, [clientId]);
+    await sweepLifecycle();
+    assert.equal((await sql('SELECT status FROM users WHERE id = $1', [clientId]))[0].status, 'active');
   });
 
-  it('بلاغ المحامي يظهر كتذكرة ويتقفل', async () => {
+  it('شكوى المحامي على التعامل تتقفل بإنذار للموكل', async () => {
     const order = await createPaidOrder();
-    await call('POST', `/orders/${order.id}/report`, lawyerToken, { reason: 'الموكل رفض إعطاء الكود بعد التنفيذ' });
+    assert.equal((await call('POST', `/orders/${order.id}/report`, lawyerToken, { kind: 'BEHAVIOR' })).status, 201);
 
-    const tickets = await call('GET', '/admin/tickets', adminToken);
-    const ticket = tickets.body.data.find((t: any) => t.type === 'report');
-    assert.equal((await call('POST', `/admin/reports/${ticket.id}/resolve`, adminToken, {})).status, 200);
-    assert.equal((await call('GET', '/admin/tickets', adminToken)).body.data.length, 0);
-  });
-
-  it('شكوى بعد 7 أيام مرفوضة', async () => {
-    const order = await createCompletedOrder();
-    await sql(`UPDATE service_orders SET payout_status = 'AVAILABLE', completed_at = NOW() - INTERVAL '8 days' WHERE id = $1`, [order.id]);
-    const res = await call('POST', `/orders/${order.id}/complaint`, clientToken, { reason: 'شكوى متأخرة بعد المدة' });
-    assert.equal(res.status, 400);
+    const reports = await call('GET', '/admin/reports', adminToken);
+    assert.equal(reports.body.data[0].kind, 'BEHAVIOR');
+    assert.equal((await call('POST', `/admin/reports/${reports.body.data[0].id}/close`, adminToken, { warn: true })).status, 200);
+    assert.equal((await sql('SELECT COUNT(*)::int AS n FROM account_warnings WHERE user_id = $1', [clientId]))[0].n, 1);
   });
 });
 

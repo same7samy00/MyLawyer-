@@ -267,31 +267,22 @@ async function sendDeadlineReminders() {
   }
 }
 
+/// When the deadline passes the settlement table decides by itself, unless a money complaint is waiting
 async function expireUnfinishedOrders() {
+  const { evaluateSettlement, applySettlement } = await import('./settlement.js');
   const expired = await dbPool.query(
     `SELECT o.* FROM service_orders o
      WHERE o.status = 'ACTIVE' AND o.expires_at <= NOW()
-       AND NOT EXISTS (SELECT 1 FROM complaints c WHERE c.order_id = o.id AND c.status = 'OPEN')`
+       AND NOT EXISTS (SELECT 1 FROM complaints c WHERE c.order_id = o.id AND c.status = 'OPEN' AND c.kind = 'MONEY')
+       AND NOT EXISTS (SELECT 1 FROM lawyer_reports r WHERE r.order_id = o.id AND r.status = 'OPEN' AND r.kind = 'MONEY')`
   );
 
   for (const order of expired.rows) {
     await withTransaction(async (client) => {
-      const updated = await client.query(
-        `UPDATE service_orders
-         SET status = 'EXPIRED', payout_status = 'REFUNDED', payout_amount = 0, completion_code = NULL
-         WHERE id = $1 AND status = 'ACTIVE' RETURNING id`,
-        [order.id]
-      );
-      if (updated.rows.length === 0) return;
-
-      await client.query(
-        `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)
-         VALUES ($1, $2, 'ACTIVE', 'EXPIRED', 'انتهت مهلة المهمة دون إنهائها')`,
-        [order.id, order.lawyer_id]
-      );
-      await addClientCredit(client, order.client_id, order.id, Number(order.price), 'رد قيمة طلب انتهت مهلته');
-      await notify(client, order.client_id, 'رجعت فلوسك', 'انتهت مهلة المهمة ورجع المبلغ لرصيدك', order.id);
-      await notify(client, order.lawyer_id, 'انتهت مهلة الطلب', 'الطلب اتقفل من غير أتعاب، وتقدر تعترض خلال 7 أيام', order.id);
+      const fresh = await client.query(`SELECT * FROM service_orders WHERE id = $1 AND status = 'ACTIVE' FOR UPDATE`, [order.id]);
+      if (fresh.rows.length === 0) return;
+      const settlement = await evaluateSettlement(client, fresh.rows[0]);
+      await applySettlement(client, fresh.rows[0], settlement.outcome, order.lawyer_id, 'انتهت مهلة المهمة');
     });
   }
 }
@@ -313,6 +304,7 @@ export async function sweepLifecycle() {
   await closeUnansweredOrders();
   await closeUnpaidOrders();
   await liftSuspensions();
+  await (await import('./settlement.js')).liftUserSuspensions(dbPool);
   await hideSilentLawyers();
   await sendDeadlineReminders();
   await expireUnfinishedOrders();

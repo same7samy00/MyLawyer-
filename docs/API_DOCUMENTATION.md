@@ -103,6 +103,14 @@
 | `/lawyers/me/urgent-terms` | `POST` | محامٍ | التقديم على «محاميك حالاً»، ومرفوض لو مفيش صورة شخصية وكارنيه |
 | `/lawyers/me/documents` | `POST` | محامٍ | رفع صورة كارنيه النقابة (صورة أو PDF)، ونوع الملف بيتعرف من الملف نفسه |
 | `/admin/urgent-applications` | `GET` | إدارة | طلبات الانضمام ومعاها `photo` و`card_id` و`card_mime`، والكارنيه بيتفتح من `/lawyers/documents/:id` |
+| `/orders/:id/complaint` | `POST` | موكل | `kind`: `MONEY` أو `BEHAVIOR`، و`reason` اختياري. متاحة أثناء المهمة ولحد 24 ساعة بعدها |
+| `/orders/:id/report` | `POST` | محامٍ | نفس الشكوى من ناحية المحامي |
+| `/admin/orders/:id/settlement` | `GET` | إدارة | القرار المقترح وأدلته: الوصول والكود والإنذارات |
+| `/admin/orders/:id/settle` | `POST` | إدارة | تنفيذ القرار المقترح أو `outcome` تاني: `REFUND` أو `LAWYER` أو `SPLIT` |
+| `/admin/orders/:id/freeze` | `POST` | إدارة | `freeze`: تجميد أتعاب الطلب أو فكها |
+| `/admin/complaints/:id/close` و`/admin/reports/:id/close` | `POST` | إدارة | إغلاق شكوى التعامل، و`warn` يوجه إنذار للطرف التاني |
+| `/admin/users/:id/balance` | `POST` | إدارة | إضافة أو خصم رصيد: `amount` موجب أو سالب، و`reason` إلزامي، و`orderNumber` اختياري |
+| `/admin/users/:id/warnings` و`/admin/warnings/:id/revoke` | `POST` | إدارة | توجيه إنذار بسبب، أو إلغاؤه |
 | `/admin/overview` | `GET` | إدارة | أرقام عامة عن الحسابات والطلبات |
 | `/admin/users?role=&q=` | `GET` | إدارة | قائمة المحامين أو الموكلين والبحث فيهم |
 | `/admin/users/:id` | `GET` | إدارة | بروفايل كامل بالطلبات والتقييمات والشكاوى |

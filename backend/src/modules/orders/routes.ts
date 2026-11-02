@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
+import { CANCEL_MINUTES, COMPLAINT_HOURS } from '../lifecycle/settlement.js';
 import { sanitizeText } from '../../utils/security.js';
 import {
   addClientCredit,
@@ -64,6 +65,26 @@ function visibleLocation(order: any, viewerId: string, role: string) {
     lawyerLatitude: isLawyer ? (order.lawyer_latitude == null ? null : Number(order.lawyer_latitude)) : coarse(order.lawyer_latitude),
     lawyerLongitude: isLawyer ? (order.lawyer_longitude == null ? null : Number(order.lawyer_longitude)) : coarse(order.lawyer_longitude),
   };
+}
+
+const COMPLAINT_LABELS = { MONEY: 'مشكلة في الفلوس', BEHAVIOR: 'مشكلة في التعامل' } as const;
+
+function complaintKind(value?: string): 'MONEY' | 'BEHAVIOR' | null {
+  return value === 'MONEY' || value === 'BEHAVIOR' ? value : null;
+}
+
+/// A complaint is open during the task and for a day after it ends
+function canComplain(order: any): boolean {
+  if (order.status === 'ACTIVE') return true;
+  if (order.status !== 'COMPLETED' || !order.completed_at) return false;
+  return Date.now() - new Date(order.completed_at).getTime() <= COMPLAINT_HOURS * 3600000;
+}
+
+/// The fees wait for the admin decision
+async function freezePayout(db: any, order: any) {
+  if (order.status === 'COMPLETED') {
+    await db.query(`UPDATE service_orders SET payout_status = 'FROZEN' WHERE id = $1 AND payout_status IN ('HELD', 'AVAILABLE')`, [order.id]);
+  }
 }
 
 export async function orderRoutes(fastify: FastifyInstance) {
@@ -725,8 +746,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
     if (order.status === 'CANCELLED') {
       return reply.status(400).send({ success: false, error: 'الطلب ملغى بالفعل مسبقاً' });
     }
-    // After payment only the client may cancel, and only before the lawyer arrives
-    const refundOnCancel = order.status === 'ACTIVE' && order.client_id === userId && !order.arrived_at;
+    // After payment the client may cancel only in the first minutes and before the lawyer arrives
+    const refundOnCancel = order.status === 'ACTIVE' && order.client_id === userId && !order.arrived_at
+      && Date.now() - new Date(order.paid_at).getTime() <= CANCEL_MINUTES * 60000;
     if (order.status !== 'PENDING' && order.status !== 'ACCEPTED' && !refundOnCancel) {
       return reply.status(400).send({ success: false, error: 'لا يمكن إلغاء الطلب في حالته الحالية' });
     }
@@ -795,7 +817,8 @@ export async function orderRoutes(fastify: FastifyInstance) {
       `SELECT
          COALESCE(SUM(payout_amount) FILTER (WHERE payout_status = 'HELD'), 0) AS held,
          COALESCE(SUM(payout_amount) FILTER (WHERE payout_status = 'FROZEN'), 0) AS frozen,
-         COALESCE(SUM(payout_amount) FILTER (WHERE payout_status = 'AVAILABLE'), 0) AS available,
+         COALESCE(SUM(payout_amount) FILTER (WHERE payout_status = 'AVAILABLE'), 0)
+           + (SELECT COALESCE(SUM(amount), 0) FROM lawyer_adjustments WHERE lawyer_id = $1) AS available,
          MIN(hold_until) FILTER (WHERE payout_status = 'HELD') AS next_release_at
        FROM service_orders WHERE lawyer_id = $1`,
       [userId]
@@ -817,12 +840,10 @@ export async function orderRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/complaint', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = request.user as AuthenticatedUser;
     const { id } = request.params as { id: string };
-    const body = (request.body || {}) as { reason?: string };
+    const body = (request.body || {}) as { kind?: string; reason?: string };
 
-    const reason = body.reason ? sanitizeText(body.reason, 2000) : '';
-    if (reason.trim().length < 10) {
-      return reply.status(400).send({ success: false, error: 'اكتب تفاصيل الشكوى في 10 أحرف على الأقل' });
-    }
+    const kind = complaintKind(body.kind);
+    if (!kind) return reply.status(400).send({ success: false, error: 'اختار نوع المشكلة' });
 
     const orderRes = await query(
       `SELECT * FROM service_orders WHERE (id::text = $1 OR order_number = $1) AND client_id = $2`,
@@ -833,39 +854,31 @@ export async function orderRoutes(fastify: FastifyInstance) {
     }
 
     const order = orderRes.rows[0];
-    if (order.status !== 'ACTIVE' && order.status !== 'COMPLETED') {
-      return reply.status(400).send({ success: false, error: 'لا يمكن تقديم شكوى على هذا الطلب' });
+    if (!canComplain(order)) {
+      return reply.status(400).send({ success: false, error: 'مدة الشكوى على الطلب ده خلصت' });
     }
 
-    const openRes = await query(`SELECT 1 FROM complaints WHERE order_id = $1 AND status = 'OPEN'`, [order.id]);
+    const openRes = await query(`SELECT 1 FROM complaints WHERE order_id = $1 AND status = 'OPEN' AND kind = $2`, [order.id, kind]);
     if (openRes.rows.length > 0) {
-      return reply.status(409).send({ success: false, error: 'لديك شكوى مفتوحة على هذا الطلب' });
+      return reply.status(409).send({ success: false, error: 'عندك شكوى مفتوحة من النوع ده على الطلب' });
     }
 
-    // After the hold ends the money is no longer frozen automatically
-    const filedAfterHold = order.status === 'COMPLETED' && order.payout_status !== 'HELD';
-
-    if (filedAfterHold && Date.now() > new Date(order.completed_at).getTime() + COMPLAINT_WINDOW_DAYS * 86400000) {
-      return reply.status(400).send({ success: false, error: 'انتهت مدة تقديم الشكوى' });
-    }
-
+    const reason = sanitizeText(body.reason || COMPLAINT_LABELS[kind], 2000);
     await withTransaction(async (client) => {
       await client.query(
-        `INSERT INTO complaints (order_id, client_id, lawyer_id, reason, filed_after_hold)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [order.id, userId, order.lawyer_id, reason, filedAfterHold]
+        `INSERT INTO complaints (order_id, client_id, lawyer_id, reason, kind, filed_after_hold)
+         VALUES ($1, $2, $3, $4, $5, FALSE)`,
+        [order.id, userId, order.lawyer_id, reason, kind]
       );
-
-      if (!filedAfterHold && order.status === 'COMPLETED') {
-        await client.query(`UPDATE service_orders SET payout_status = 'FROZEN' WHERE id = $1`, [order.id]);
-      }
-
-      await notify(client, order.lawyer_id, 'شكوى على طلب', 'الأتعاب متوقفة لحد ما الإدارة تراجع الشكوى', order.id);
+      if (kind === 'MONEY') await freezePayout(client, order);
+      await notify(client, order.lawyer_id, 'شكوى على طلب', kind === 'MONEY'
+        ? 'الموكل قدم شكوى على الفلوس، والأتعاب متوقفة لحد قرار الإدارة'
+        : 'الموكل قدم شكوى على التعامل، والإدارة هتراجعها', order.id);
     });
 
     return reply.status(201).send({
       success: true,
-      message: filedAfterHold ? 'تم تسجيل شكواك وستراجعها الإدارة' : 'تم استلام شكواك وإيقاف الأتعاب لحين المراجعة',
+      message: kind === 'MONEY' ? 'استلمنا شكواك، والفلوس متوقفة لحد قرار الإدارة' : 'استلمنا شكواك، والإدارة هتراجعها',
     });
   });
 
@@ -1048,12 +1061,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/report', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = request.user as AuthenticatedUser;
     const { id } = request.params as { id: string };
-    const body = (request.body || {}) as { reason?: string };
-
-    const reason = body.reason ? sanitizeText(body.reason, 2000) : '';
-    if (reason.trim().length < 10) {
-      return reply.status(400).send({ success: false, error: 'اكتب التفاصيل في 10 أحرف على الأقل' });
-    }
+    const body = (request.body || {}) as { kind?: string; reason?: string };
+    const kind = complaintKind(body.kind);
+    if (!kind) return reply.status(400).send({ success: false, error: 'اختار نوع المشكلة' });
 
     const orderRes = await query(
       `SELECT * FROM service_orders WHERE (id::text = $1 OR order_number = $1) AND lawyer_id = $2`,
@@ -1064,12 +1074,25 @@ export async function orderRoutes(fastify: FastifyInstance) {
     }
 
     const order = orderRes.rows[0];
-    await query(
-      'INSERT INTO lawyer_reports (order_id, lawyer_id, client_id, reason) VALUES ($1, $2, $3, $4)',
-      [order.id, userId, order.client_id, reason]
-    );
+    if (!canComplain(order)) {
+      return reply.status(400).send({ success: false, error: 'مدة الشكوى على الطلب ده خلصت' });
+    }
+    const openRes = await query(`SELECT 1 FROM lawyer_reports WHERE order_id = $1 AND status = 'OPEN' AND kind = $2`, [order.id, kind]);
+    if (openRes.rows.length > 0) {
+      return reply.status(409).send({ success: false, error: 'عندك شكوى مفتوحة من النوع ده على الطلب' });
+    }
 
-    return reply.status(201).send({ success: true, message: 'تم إرسال البلاغ للإدارة' });
+    const reason = sanitizeText(body.reason || COMPLAINT_LABELS[kind], 2000);
+    await withTransaction(async (client) => {
+      await client.query(
+        'INSERT INTO lawyer_reports (order_id, lawyer_id, client_id, reason, kind) VALUES ($1, $2, $3, $4, $5)',
+        [order.id, userId, order.client_id, reason, kind]
+      );
+      if (kind === 'MONEY') await freezePayout(client, order);
+      await notify(client, order.client_id, 'شكوى على طلب', 'المحامي قدم شكوى على الطلب، والإدارة هتراجعها', order.id);
+    });
+
+    return reply.status(201).send({ success: true, message: 'استلمنا شكواك، والإدارة هتراجعها' });
   });
 
   // 16. PUT /api/v1/orders/:id/review - One edit before the review is published

@@ -1,5 +1,15 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.86] - 2026-11-02
+### Simple Settlement and Admin Account Tools
+- One fixed money rule: no arrival refunds the client, arrival with the code pays the lawyer, and arrival without the code splits in half unless one side has 3 active warnings.
+- The rule runs by itself when the task deadline passes, unless a money complaint is open. Appeals are no longer needed for new orders.
+- The client can cancel after payment only in the first 5 minutes.
+- Complaints are two choices for both sides, money or conduct, and close 24 hours after the task.
+- Warnings for clients and lawyers, and 3 active warnings in 30 days suspend the account for a week, then it returns by itself.
+- The admin can add to or deduct from any balance with a required reason, freeze an order's fees, and add or revoke warnings. A negative balance is a debt paid from later money.
+- The control page shows the suggested decision with its evidence, uses plain classical Arabic, and explains each page and tool.
+
 ## [Phase 2.85] - 2026-11-02
 ### Control Page Redesign
 - The control page now follows the EGY-ORDER dashboard: white side menu, page header with a subtitle and back button, quick reports on top of every page, filters by date and state, and organized tables.

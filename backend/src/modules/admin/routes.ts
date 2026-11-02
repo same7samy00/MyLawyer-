@@ -105,7 +105,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // GET /api/v1/admin/complaints - Open complaints with the context needed to decide
   fastify.get('/complaints', async (_request: FastifyRequest, reply: FastifyReply) => {
     const res = await query(
-      `SELECT c.id, c.reason, c.filed_after_hold, c.created_at,
+      `SELECT c.id, c.reason, c.kind, c.filed_after_hold, c.created_at, o.arrived_at, o.hold_until,
               o.id as order_id, o.order_number, o.status as order_status, o.price, o.service_title,
               o.problem_description, o.completed_at, o.payout_status,
               u.phone as client_phone, u.email as client_email, lu.email as lawyer_email, COALESCE(u.full_name, 'موكل') as client_name, c.client_id,

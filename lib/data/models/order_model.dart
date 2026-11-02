@@ -189,8 +189,12 @@ class OrderModel {
   bool get isRefunded => status == 'REFUNDED';
   bool get isNoResponse => status == 'NO_RESPONSE';
 
-  /// الإلغاء بعد الدفع مسموح قبل وصول المحامي فقط
-  bool get canCancelAfterPayment => isActive && arrivedAt == null;
+  /// الإلغاء بعد الدفع مسموح في أول 5 دقايق بس وقبل وصول المحامي
+  bool get canCancelAfterPayment {
+    final paid = paidAt;
+    if (!isActive || arrivedAt != null || paid == null) return false;
+    return DateTime.now().difference(paid).inMinutes < 5;
+  }
 
   /// الموكل يلغي قبل الدفع، وبعده قبل وصول المحامي فقط
   bool get canCancel => isPending || isAccepted || canCancelAfterPayment;
@@ -203,8 +207,14 @@ class OrderModel {
     return seconds <= 0 ? 0 : (seconds / 60).ceil();
   }
 
-  /// الشكوى متاحة أثناء التنفيذ وبعد الإنهاء، وواحدة مفتوحة فقط لكل طلب
-  bool get canComplain => (isActive || isCompleted) && !hasOpenComplaint;
+  /// الشكوى متاحة أثناء المهمة ولحد 24 ساعة بعد ما تخلص
+  bool get isComplaintWindowOpen {
+    if (isActive) return true;
+    final finishedAt = completedAt;
+    return isCompleted && finishedAt != null && DateTime.now().difference(finishedAt).inHours < 24;
+  }
+
+  bool get canComplain => isComplaintWindowOpen && !hasOpenComplaint;
 
   /// التقييم متاح لمدة 7 أيام بعد إنهاء المهمة
   bool get canReview {

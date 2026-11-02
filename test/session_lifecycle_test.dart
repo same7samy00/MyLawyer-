@@ -915,6 +915,8 @@ void main() {
       await tester.tap(find.text('عندك مشكلة؟'));
       await _settleAsync(tester);
 
+      await tester.tap(find.text('مشكلة في الفلوس'));
+      await tester.pump();
       await tester.enterText(find.byType(TextField), 'المحامي لم يكمل المهمة كما اتفقنا');
       await tester.tap(find.text('إرسال الشكوى'));
       await _settleAsync(tester);

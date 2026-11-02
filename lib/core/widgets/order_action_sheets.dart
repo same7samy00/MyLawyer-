@@ -58,6 +58,14 @@ class OrderActionSheets {
     );
   }
 
+  /// الشكوى اختيارين بس، والتفاصيل اختيارية
+  static Future<bool> complaint(
+    BuildContext context, {
+    required Future<ApiResponse<dynamic>> Function(String kind, String details) onSubmit,
+  }) {
+    return _show(context, _ComplaintSheet(onSubmit: onSubmit));
+  }
+
   static Future<bool> review(
     BuildContext context, {
     required String lawyerName,
@@ -356,4 +364,122 @@ class _ReviewSheetState extends State<_ReviewSheet> {
       ],
     );
   }
+}
+
+class _ComplaintSheet extends StatefulWidget {
+  final Future<ApiResponse<dynamic>> Function(String kind, String details) onSubmit;
+
+  const _ComplaintSheet({required this.onSubmit});
+
+  @override
+  State<_ComplaintSheet> createState() => _ComplaintSheetState();
+}
+
+class _ComplaintSheetState extends State<_ComplaintSheet> {
+  static const _options = [
+    ('MONEY', 'مشكلة في الفلوس', 'الفلوس بتتوقف لحد ما الإدارة تقرر', Icons.payments_rounded),
+    ('BEHAVIOR', 'مشكلة في التعامل', 'الإدارة بتراجعها، والفلوس ما بتتأثرش', Icons.record_voice_over_rounded),
+  ];
+
+  final _controller = TextEditingController();
+  String? _kind;
+  String? _error;
+  bool _isSending = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_kind == null) {
+      setState(() => _error = 'اختار نوع المشكلة');
+      return;
+    }
+
+    setState(() => _isSending = true);
+    final navigator = Navigator.of(context);
+    final res = await widget.onSubmit(_kind!, _controller.text.trim());
+    if (!mounted) return;
+
+    if (res.isOk) {
+      navigator.pop(true);
+    } else {
+      setState(() {
+        _isSending = false;
+        _error = res.error ?? 'تعذر الإرسال، حاول مرة أخرى';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SheetFrame(
+      children: [
+        const Text('عندك مشكلة؟', textAlign: TextAlign.center, style: _titleStyle),
+        const SizedBox(height: 4),
+        const Text('اختار نوع المشكلة والإدارة هتراجعها', textAlign: TextAlign.center, style: _subtitleStyle),
+        const SizedBox(height: 16),
+        for (final (kind, title, note, icon) in _options) ...[
+          AppPressable(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(7.0),
+              onTap: () => setState(() {
+                _kind = kind;
+                _error = null;
+              }),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _kind == kind ? AppColors.primaryLight : Colors.white,
+                  borderRadius: BorderRadius.circular(7.0),
+                  border: Border.all(color: _kind == kind ? AppColors.primary : AppColors.cardBorder, width: 1.2),
+                ),
+                child: Row(
+                  children: [
+                    Icon(icon, color: AppColors.primary, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title, style: _optionTitleStyle),
+                          const SizedBox(height: 2),
+                          Text(note, style: _subtitleStyle),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      _kind == kind ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                      color: _kind == kind ? AppColors.primary : AppColors.textMuted,
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        TextField(
+          controller: _controller,
+          maxLines: 2,
+          maxLength: 300,
+          decoration: const InputDecoration(hintText: 'تفاصيل إضافية لو حابب (اختياري)'),
+        ),
+        const SizedBox(height: 4),
+        _ErrorText(_error),
+        AppButton.primary(text: 'إرسال الشكوى', onPressed: _isSending ? null : _submit),
+      ],
+    );
+  }
+
+  static const TextStyle _optionTitleStyle = TextStyle(
+    fontFamily: 'AppFont',
+    fontFamilyFallback: appFontFallback,
+    fontSize: 14,
+    fontWeight: FontWeight.w800,
+    color: AppColors.dark,
+  );
 }

@@ -1,7 +1,8 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { dbPool, query } from '../../database/index.js';
+import { dbPool, query, withTransaction } from '../../database/index.js';
 import { notify } from '../lifecycle/service.js';
 import { sanitizeText } from '../../utils/security.js';
+import { addWarning, adjustBalance, applySettlement, evaluateSettlement, revokeWarning, SettlementOutcome } from '../lifecycle/settlement.js';
 
 const PAGE_LIMIT = 100;
 
@@ -72,7 +73,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     );
     if (userRes.rows.length === 0) return reply.status(404).send({ success: false, error: 'الحساب غير موجود' });
 
-    const [orders, reviews, complaints, strikes, credits] = await Promise.all([
+    const [orders, reviews, complaints, strikes, credits, warnings, adjustments, wallet] = await Promise.all([
       query(
         `SELECT id, order_number, status, price, problem_type, created_at FROM service_orders
          WHERE client_id = $1 OR lawyer_id = $1 ORDER BY created_at DESC LIMIT $2`,
@@ -85,13 +86,31 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
         [id, PAGE_LIMIT]
       ),
       query(
-        `SELECT c.reason, c.status, c.resolution, c.created_at, o.order_number, o.id AS order_id
+        `SELECT c.reason, c.kind, c.status, c.resolution, c.created_at, o.order_number, o.id AS order_id
          FROM complaints c JOIN service_orders o ON o.id = c.order_id
          WHERE c.lawyer_id = $1 OR c.client_id = $1 ORDER BY c.created_at DESC LIMIT $2`,
         [id, PAGE_LIMIT]
       ),
       query('SELECT kind, created_at FROM lawyer_strikes WHERE lawyer_id = $1 ORDER BY created_at DESC LIMIT $2', [id, PAGE_LIMIT]),
-      query('SELECT amount, reason, created_at FROM client_credits WHERE client_id = $1 ORDER BY created_at DESC LIMIT $2', [id, PAGE_LIMIT]),
+      query(
+        `SELECT c.amount, c.reason, c.created_at, o.order_number, a.email AS created_by
+         FROM client_credits c LEFT JOIN service_orders o ON o.id = c.order_id LEFT JOIN users a ON a.id = c.created_by
+         WHERE c.client_id = $1 ORDER BY c.created_at DESC LIMIT $2`, [id, PAGE_LIMIT]),
+      query(
+        `SELECT w.id, w.reason, w.created_at, w.revoked_at, o.order_number, a.email AS created_by
+         FROM account_warnings w LEFT JOIN service_orders o ON o.id = w.order_id LEFT JOIN users a ON a.id = w.created_by
+         WHERE w.user_id = $1 ORDER BY w.created_at DESC LIMIT $2`, [id, PAGE_LIMIT]),
+      query(
+        `SELECT j.amount, j.reason, j.created_at, o.order_number, a.email AS created_by
+         FROM lawyer_adjustments j LEFT JOIN service_orders o ON o.id = j.order_id LEFT JOIN users a ON a.id = j.created_by
+         WHERE j.lawyer_id = $1 ORDER BY j.created_at DESC LIMIT $2`, [id, PAGE_LIMIT]),
+      query(
+        `SELECT
+           (SELECT COALESCE(SUM(amount), 0) FROM client_credits WHERE client_id = $1) AS client_balance,
+           (SELECT COALESCE(SUM(payout_amount), 0) FROM service_orders WHERE lawyer_id = $1 AND payout_status = 'HELD') AS held,
+           (SELECT COALESCE(SUM(payout_amount), 0) FROM service_orders WHERE lawyer_id = $1 AND payout_status = 'FROZEN') AS frozen,
+           (SELECT COALESCE(SUM(payout_amount), 0) FROM service_orders WHERE lawyer_id = $1 AND payout_status = 'AVAILABLE')
+             + (SELECT COALESCE(SUM(amount), 0) FROM lawyer_adjustments WHERE lawyer_id = $1) AS available`, [id]),
     ]);
 
     return reply.send({
@@ -103,6 +122,9 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
         complaints: complaints.rows,
         strikes: strikes.rows,
         credits: credits.rows,
+        warnings: warnings.rows,
+        adjustments: adjustments.rows,
+        wallet: wallet.rows[0],
       },
     });
   });
@@ -114,7 +136,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
 
     const res = await query(
-      `UPDATE users SET status = $1::user_status, updated_at = NOW() WHERE id = $2 AND role <> 'admin' RETURNING id`,
+      `UPDATE users SET status = $1::user_status, suspended_until = NULL, updated_at = NOW() WHERE id = $2 AND role <> 'admin' RETURNING id`,
       [suspend ? 'suspended' : 'active', id]
     );
     if (res.rows.length === 0) return reply.status(404).send({ success: false, error: 'الحساب غير موجود' });
@@ -173,7 +195,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
 
     const [logs, complaints, appeals, reviews] = await Promise.all([
       query('SELECT old_status, new_status, note, created_at FROM order_status_logs WHERE order_id = $1 ORDER BY created_at ASC', [id]),
-      query('SELECT reason, status, resolution, refund_amount, admin_note, created_at FROM complaints WHERE order_id = $1 ORDER BY created_at DESC', [id]),
+      query('SELECT reason, kind, status, resolution, refund_amount, admin_note, created_at FROM complaints WHERE order_id = $1 ORDER BY created_at DESC', [id]),
       query('SELECT reason, status, admin_note, created_at FROM order_appeals WHERE order_id = $1', [id]),
       query('SELECT rating, comment, created_at FROM reviews WHERE order_id = $1', [id]),
     ]);
@@ -188,7 +210,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
   // GET /api/v1/admin/reports - Open reports the lawyers filed about clients
   fastify.get('/reports', async (_request: FastifyRequest, reply: FastifyReply) => {
     const res = await query(
-      `SELECT r.id, r.reason, r.created_at, o.id AS order_id, o.order_number, o.status AS order_status, o.price,
+      `SELECT r.id, r.reason, r.kind, r.created_at, o.id AS order_id, o.order_number, o.status AS order_status, o.price,
               lp.full_name AS lawyer_name, l.phone AS lawyer_phone, l.email AS lawyer_email, r.lawyer_id,
               COALESCE(c.full_name, 'موكل') AS client_name, c.phone AS client_phone, c.email AS client_email, r.client_id,
               ${userStats('r.client_id', 'client')}, ${userStats('r.lawyer_id', 'lawyer')}
@@ -202,6 +224,159 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
       [PAGE_LIMIT]
     );
     return reply.send({ success: true, data: res.rows });
+  });
+
+  // GET /api/v1/admin/orders/:id/settlement - The fixed decision for an order and the facts behind it
+  fastify.get('/orders/:id/settlement', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
+    const res = await query('SELECT * FROM service_orders WHERE id = $1', [id]);
+    if (res.rows.length === 0) return reply.status(404).send({ success: false, error: 'الطلب غير موجود' });
+
+    const order = res.rows[0];
+    const settlement = await evaluateSettlement(dbPool, order);
+    return reply.send({
+      success: true,
+      data: { ...settlement, price: Number(order.price), status: order.status, payoutStatus: order.payout_status, open: order.status === 'ACTIVE' || ['HELD', 'FROZEN'].includes(order.payout_status) },
+    });
+  });
+
+  // POST /api/v1/admin/orders/:id/settle - Applies the fixed decision, or another one the admin chose
+  fastify.post('/orders/:id/settle', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
+    const { id } = request.params as { id: string };
+    const body = (request.body || {}) as { outcome?: string; note?: string };
+    if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
+    if (body.outcome && !['REFUND', 'LAWYER', 'SPLIT'].includes(body.outcome)) {
+      return reply.status(400).send({ success: false, error: 'القرار غير صالح' });
+    }
+
+    const result = await withTransaction(async (client) => {
+      const res = await client.query('SELECT * FROM service_orders WHERE id = $1 FOR UPDATE', [id]);
+      const order = res.rows[0];
+      if (!order || !['ACTIVE', 'COMPLETED', 'EXPIRED'].includes(order.status) || order.payout_status === 'REFUNDED') return null;
+      if (order.status === 'COMPLETED' && order.payout_status !== 'HELD' && order.payout_status !== 'FROZEN') return null;
+      const outcome = (body.outcome as SettlementOutcome) || (await evaluateSettlement(client, order)).outcome;
+      return applySettlement(client, order, outcome, adminId, body.note ? sanitizeText(body.note, 1000) : '');
+    });
+    if (!result) return reply.status(409).send({ success: false, error: 'تمت تسوية هذا الطلب من قبل' });
+    return reply.send({ success: true, message: 'تم تنفيذ القرار', data: result });
+  });
+
+  // POST /api/v1/admin/complaints/:id/close - Closes a conduct complaint, with or without a warning
+  fastify.post('/complaints/:id/close', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
+    const { id } = request.params as { id: string };
+    const body = (request.body || {}) as { warn?: boolean; note?: string };
+    const note = body.note ? sanitizeText(body.note, 1000) : null;
+
+    const done = await withTransaction(async (client) => {
+      const res = await client.query(
+        `UPDATE complaints SET status = 'RESOLVED', resolution = $1, admin_note = $2, resolved_by = $3, resolved_at = NOW()
+         WHERE id::text = $4 AND status = 'OPEN' RETURNING order_id, client_id, lawyer_id`,
+        [body.warn ? 'WARNING' : 'CLOSED', note, adminId, id]
+      );
+      const row = res.rows[0];
+      if (!row) return false;
+      if (body.warn) await addWarning(client, row.lawyer_id, note || 'إنذار بسبب شكوى من موكل على التعامل', row.order_id, adminId);
+      await notify(client, row.client_id, 'قرار الشكوى', body.warn ? 'راجعت الإدارة شكواك ووجهت إنذارًا للمحامي' : 'راجعت الإدارة شكواك وأغلقتها', row.order_id);
+      return true;
+    });
+    if (!done) return reply.status(404).send({ success: false, error: 'الشكوى غير موجودة أو مغلقة' });
+    return reply.send({ success: true, message: body.warn ? 'تم توجيه الإنذار وإغلاق الشكوى' : 'تم إغلاق الشكوى' });
+  });
+
+  // POST /api/v1/admin/reports/:id/close - Closes a lawyer's conduct complaint, with or without a warning
+  fastify.post('/reports/:id/close', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
+    const { id } = request.params as { id: string };
+    const body = (request.body || {}) as { warn?: boolean; note?: string };
+    const note = body.note ? sanitizeText(body.note, 1000) : null;
+
+    const done = await withTransaction(async (client) => {
+      const res = await client.query(
+        `UPDATE lawyer_reports SET status = 'RESOLVED', resolution = $1, admin_note = $2, resolved_by = $3, resolved_at = NOW()
+         WHERE id::text = $4 AND status = 'OPEN' RETURNING order_id, client_id, lawyer_id`,
+        [body.warn ? 'WARNING' : 'CLOSED', note, adminId, id]
+      );
+      const row = res.rows[0];
+      if (!row) return false;
+      if (body.warn) await addWarning(client, row.client_id, note || 'إنذار بسبب شكوى من محامٍ على التعامل', row.order_id, adminId);
+      await notify(client, row.lawyer_id, 'قرار الشكوى', body.warn ? 'راجعت الإدارة شكواك ووجهت إنذارًا للموكل' : 'راجعت الإدارة شكواك وأغلقتها', row.order_id);
+      return true;
+    });
+    if (!done) return reply.status(404).send({ success: false, error: 'الشكوى غير موجودة أو مغلقة' });
+    return reply.send({ success: true, message: body.warn ? 'تم توجيه الإنذار وإغلاق الشكوى' : 'تم إغلاق الشكوى' });
+  });
+
+  // POST /api/v1/admin/users/:id/balance - Adds to or deducts from a balance with a reason
+  fastify.post('/users/:id/balance', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
+    const { id } = request.params as { id: string };
+    const body = (request.body || {}) as { amount?: number; reason?: string; orderNumber?: string };
+    const amount = Math.round(Number(body.amount) * 100) / 100;
+    const reason = sanitizeText(body.reason || '', 500).trim();
+
+    if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
+    if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > 100000) {
+      return reply.status(400).send({ success: false, error: 'أدخل مبلغًا صحيحًا غير الصفر' });
+    }
+    if (reason.length < 5) return reply.status(400).send({ success: false, error: 'اكتب سبب الحركة' });
+
+    const userRes = await query(`SELECT id, role FROM users WHERE id = $1 AND role IN ('client', 'lawyer')`, [id]);
+    if (userRes.rows.length === 0) return reply.status(404).send({ success: false, error: 'الحساب غير موجود' });
+
+    let orderId: string | null = null;
+    if (body.orderNumber) {
+      const orderRes = await query('SELECT id FROM service_orders WHERE order_number = $1 AND (client_id = $2 OR lawyer_id = $2)', [body.orderNumber.trim(), id]);
+      if (orderRes.rows.length === 0) return reply.status(400).send({ success: false, error: 'رقم الطلب غير مرتبط بهذا الحساب' });
+      orderId = orderRes.rows[0].id;
+    }
+
+    await adjustBalance(dbPool, userRes.rows[0], amount, reason, orderId, adminId);
+    return reply.send({ success: true, message: amount > 0 ? 'تمت إضافة المبلغ' : 'تم خصم المبلغ' });
+  });
+
+  // POST /api/v1/admin/users/:id/warnings - A manual warning with its reason
+  fastify.post('/users/:id/warnings', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
+    const { id } = request.params as { id: string };
+    const reason = sanitizeText(((request.body || {}) as { reason?: string }).reason || '', 500).trim();
+    if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
+    if (reason.length < 5) return reply.status(400).send({ success: false, error: 'اكتب سبب الإنذار' });
+
+    const userRes = await query(`SELECT id FROM users WHERE id = $1 AND role IN ('client', 'lawyer')`, [id]);
+    if (userRes.rows.length === 0) return reply.status(404).send({ success: false, error: 'الحساب غير موجود' });
+    await addWarning(dbPool, id, reason, null, adminId);
+    return reply.send({ success: true, message: 'تم توجيه الإنذار' });
+  });
+
+  // POST /api/v1/admin/warnings/:id/revoke
+  fastify.post('/warnings/:id/revoke', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
+    const { id } = request.params as { id: string };
+    if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
+    const done = await revokeWarning(dbPool, id, adminId);
+    if (!done) return reply.status(404).send({ success: false, error: 'الإنذار غير موجود أو أُلغي من قبل' });
+    return reply.send({ success: true, message: 'تم إلغاء الإنذار' });
+  });
+
+  // POST /api/v1/admin/orders/:id/freeze - Stops or releases one order's fees
+  fastify.post('/orders/:id/freeze', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const freeze = Boolean(((request.body || {}) as { freeze?: boolean }).freeze);
+    if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
+
+    const res = freeze
+      ? await query(`UPDATE service_orders SET payout_status = 'FROZEN' WHERE id = $1 AND payout_status IN ('HELD', 'AVAILABLE') RETURNING lawyer_id`, [id])
+      : await query(
+        `UPDATE service_orders SET payout_status = CASE WHEN hold_until > NOW() THEN 'HELD' ELSE 'AVAILABLE' END
+         WHERE id = $1 AND payout_status = 'FROZEN' RETURNING lawyer_id`, [id]);
+    if (res.rows.length === 0) return reply.status(409).send({ success: false, error: 'لا يمكن تنفيذ ذلك على أتعاب هذا الطلب الآن' });
+
+    await notify(dbPool, res.rows[0].lawyer_id, freeze ? 'تجميد أتعاب' : 'فك تجميد الأتعاب',
+      freeze ? 'الإدارة جمدت أتعاب طلب لحين المراجعة' : 'الإدارة فكت تجميد أتعاب طلب', id);
+    return reply.send({ success: true, message: freeze ? 'تم تجميد الأتعاب' : 'تم فك تجميد الأتعاب' });
   });
 
   // GET /api/v1/admin/reviews
