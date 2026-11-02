@@ -345,6 +345,12 @@ class AuthService {
     }
   }
 
+  /// نوع الحساب المحفوظ: client أو lawyer
+  static Future<String?> currentRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefAccountType);
+  }
+
   /// تحديد وجهة المستخدم من آخر بيانات حساب تأكدت مع الخادم
   static Future<SessionCheck> currentSession() async {
     final prefs = await SharedPreferences.getInstance();

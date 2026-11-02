@@ -1,13 +1,12 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { CANCEL_MINUTES } from '../lifecycle/settlement.js';
-import { OPEN_MONEY_TICKET } from '../support/service.js';
+import { OPEN_ORDER_TICKET } from '../support/service.js';
 import { sanitizeText } from '../../utils/security.js';
 import {
   addClientCredit,
   addLawyerStrike,
   approximateCoordinate,
-  APPEAL_WINDOW_DAYS,
   ARRIVAL_RADIUS_KM,
   HOLD_HOURS,
   LAWYER_RESPONSE_SECONDS,
@@ -235,9 +234,8 @@ export async function orderRoutes(fastify: FastifyInstance) {
              lp.specialty as lawyer_specialty,
              lp.rating as lawyer_rating,
              EXISTS (SELECT 1 FROM reviews r WHERE r.order_id = o.id) as has_review,
-             EXISTS (SELECT 1 FROM support_tickets st WHERE st.order_id = o.id AND st.user_id = $1 AND st.status <> 'CLOSED') as has_open_ticket,
-             ${OPEN_MONEY_TICKET('o.id')} as has_open_complaint,
-             EXISTS (SELECT 1 FROM order_appeals a WHERE a.order_id = o.id) as has_appeal,
+             (SELECT st.id FROM support_tickets st WHERE st.order_id = o.id AND st.user_id = $1 AND st.status <> 'CLOSED' LIMIT 1) as open_ticket_id,
+             ${OPEN_ORDER_TICKET('o.id')} as has_open_complaint,
              EXISTS (SELECT 1 FROM reviews r WHERE r.order_id = o.id AND r.edited = FALSE) as review_editable
       FROM service_orders o
       JOIN users u_client ON o.client_id = u_client.id
@@ -327,9 +325,8 @@ export async function orderRoutes(fastify: FastifyInstance) {
         holdUntil: o.hold_until,
         payoutStatus: o.payout_status,
         hasReview: o.has_review,
-        hasOpenTicket: o.has_open_ticket,
+        openTicketId: o.open_ticket_id,
         hasOpenComplaint: o.has_open_complaint,
-        hasAppeal: o.has_appeal,
         canEditReview: o.review_editable,
       };
     });
@@ -644,8 +641,8 @@ export async function orderRoutes(fastify: FastifyInstance) {
       return reply.status(409).send({ success: false, error: 'سجل وصولك الأول عند الموكل' });
     }
 
-    // A money ticket waits for the admin decision before the task can close
-    const openComplaint = await query(`SELECT ${OPEN_MONEY_TICKET('$1')}  AS open`, [order.id]);
+    // A ticket on the order waits for the admin decision before the task can close
+    const openComplaint = await query(`SELECT ${OPEN_ORDER_TICKET('$1')} AS open`, [order.id]);
     if (openComplaint.rows[0].open) {
       return reply.status(409).send({ success: false, error: 'الطلب قيد مراجعة تذكرة من الإدارة' });
     }
@@ -835,49 +832,6 @@ export async function orderRoutes(fastify: FastifyInstance) {
 
     await refreshLawyerRating(dbPool, order.lawyer_id);
     return reply.status(201).send({ success: true, message: 'شكراً لتقييمك' });
-  });
-
-  // 12. POST /api/v1/orders/:id/appeal - Lawyer appeals an expired order
-  fastify.post('/:id/appeal', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { userId } = request.user as AuthenticatedUser;
-    const { id } = request.params as { id: string };
-    const body = (request.body || {}) as { reason?: string };
-
-    const reason = body.reason ? sanitizeText(body.reason, 2000) : '';
-    if (reason.trim().length < 10) {
-      return reply.status(400).send({ success: false, error: 'اكتب تفاصيل الاعتراض في 10 أحرف على الأقل' });
-    }
-
-    const orderRes = await query(
-      `SELECT * FROM service_orders WHERE (id::text = $1 OR order_number = $1) AND lawyer_id = $2`,
-      [id, userId]
-    );
-    if (orderRes.rows.length === 0) {
-      return reply.status(404).send({ success: false, error: 'الطلب غير موجود أو غير مسند إليك' });
-    }
-
-    const order = orderRes.rows[0];
-    if (order.status !== 'EXPIRED') {
-      return reply.status(400).send({ success: false, error: 'الاعتراض متاح للطلبات منتهية المهلة فقط' });
-    }
-
-    const windowEnd = new Date(order.expires_at).getTime() + APPEAL_WINDOW_DAYS * 86400000;
-    if (Date.now() > windowEnd) {
-      return reply.status(400).send({ success: false, error: 'انتهت مدة الاعتراض' });
-    }
-
-    const res = await query(
-      `INSERT INTO order_appeals (order_id, lawyer_id, reason) VALUES ($1, $2, $3)
-       ON CONFLICT (order_id) DO NOTHING RETURNING id, reference`,
-      [order.id, userId, reason]
-    );
-
-    if (res.rows.length === 0) {
-      return reply.status(409).send({ success: false, error: 'تم تقديم اعتراض على هذا الطلب من قبل' });
-    }
-
-    const reference = res.rows[0].reference;
-    return reply.status(201).send({ success: true, data: { reference }, message: `تم استلام اعتراضك رقم ${reference} وستراجعه الإدارة` });
   });
 
   // 13. POST /api/v1/orders/:id/arrive - Lawyer confirms arrival near the client

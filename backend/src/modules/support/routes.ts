@@ -6,7 +6,6 @@ import { notify } from '../lifecycle/service.js';
 import {
   addMessage,
   attachmentFile,
-  canFreezeFor,
   freezePayout,
   MAX_OPEN_TICKETS,
   readTicketForm,
@@ -28,6 +27,7 @@ const listItem = (row: any) => ({
   title: row.title,
   status: row.status,
   orderNumber: row.order_number,
+  orderId: row.order_id,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -104,11 +104,11 @@ export async function supportRoutes(fastify: FastifyInstance) {
         const row = ticket.rows[0];
         await addMessage(db, row.id, 'USER', userId, fields.body ?? '', images);
 
-        // A money problem on a running or just finished task holds the fees until the admin decides
-        if (category === 'MONEY' && order && canFreezeFor(order)) {
+        // Any problem on an order holds its fees until the admin decides
+        if (order) {
           await freezePayout(db, order);
           const other = order.client_id === userId ? order.lawyer_id : order.client_id;
-          await notify(db, other, 'مراجعة على طلب', `فيه مشكلة في الفلوس على طلب ${order.order_number}، والإدارة بتراجعها`, order.id);
+          await notify(db, other, 'مراجعة على طلب', `فيه مشكلة على طلب ${order.order_number}، والأتعاب متوقفة لحد قرار الإدارة`, { orderId: order.id });
         }
 
         return {

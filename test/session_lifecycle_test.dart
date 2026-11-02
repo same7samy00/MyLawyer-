@@ -943,6 +943,74 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
 
+    testWidgets('لو فيه تذكرة على الطلب، الزرار يبقى «تابع مشكلتك» ويفتحها', (tester) async {
+      backend.overrides['GET /support/tickets/t-9'] = (request) => FakeBackend.json(200, {
+            'success': true,
+            'data': {
+              'id': 't-9',
+              'reference': 'ML-TKT-100009',
+              'category': 'ORDER',
+              'title': 'المحامي اتأخر',
+              'status': 'UNDER_REVIEW',
+              'messages': [
+                {'author': 'USER', 'body': 'المحامي اتأخر ساعة', 'images': []},
+              ],
+            },
+          });
+      backend.orders = [
+        {
+          ...sampleOrder(status: 'COMPLETED'),
+          'completedAt': DateTime.now().toIso8601String(),
+          'paidAt': DateTime.now().toIso8601String(),
+          'openTicketId': 't-9',
+        },
+      ];
+
+      await _openDetails(tester);
+      expect(find.text('عندك مشكلة؟'), findsNothing);
+      await tester.ensureVisible(find.text('تابع مشكلتك'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('تابع مشكلتك'));
+      await _settleAsync(tester);
+
+      expect(find.text('المحامي اتأخر ساعة'), findsOneWidget);
+      expect(find.text('تحت المراجعة'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('لمس إشعار رد الدعم بيفتح التذكرة نفسها', (tester) async {
+      backend.overrides['GET /notifications'] = (request) => FakeBackend.json(200, {
+            'success': true,
+            'data': [
+              {'id': 'n-1', 'title': 'رد الدعم الفني', 'body': 'الإدارة ردت على تذكرتك ML-TKT-100001', 'isRead': false, 'ticketId': 't-1'},
+            ],
+          });
+      backend.overrides['GET /support/tickets/t-1'] = (request) => FakeBackend.json(200, {
+            'success': true,
+            'data': {
+              'id': 't-1',
+              'reference': 'ML-TKT-100001',
+              'category': 'ACCOUNT',
+              'title': 'مشكلة في الدخول',
+              'status': 'OPEN',
+              'messages': [
+                {'author': 'ADMIN', 'body': 'جرب تاني دلوقتي', 'images': []},
+              ],
+            },
+          });
+
+      await tester.pumpWidget(_app(const NotificationsScreen()));
+      await _settleAsync(tester);
+      await tester.tap(find.text('رد الدعم الفني'));
+      await _settleAsync(tester);
+
+      expect(find.text('جرب تاني دلوقتي'), findsOneWidget);
+      expect(find.text('إرسال الرد'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
     testWidgets('التذكرة المقفولة بتعرض الرسايل من غير خانة رد', (tester) async {
       final ticket = {
         'id': 't-1',

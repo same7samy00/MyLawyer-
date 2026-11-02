@@ -6,7 +6,6 @@ import { FastifyRequest } from 'fastify';
 import { config } from '../../config/index.js';
 import { sanitizeText } from '../../utils/security.js';
 import { detectFileType } from '../../utils/files.js';
-import { COMPLAINT_HOURS } from '../lifecycle/settlement.js';
 
 type Db = pg.Pool | pg.PoolClient;
 
@@ -23,13 +22,6 @@ export class TicketError extends Error {
   }
 }
 
-/// A money ticket freezes the fees only while the task runs or for a day after it ends
-export function canFreezeFor(order: any): boolean {
-  if (order.status === 'ACTIVE') return true;
-  if (order.status !== 'COMPLETED' || !order.completed_at) return false;
-  return Date.now() - new Date(order.completed_at).getTime() <= COMPLAINT_HOURS * 3600000;
-}
-
 /// The fees wait for the admin decision
 export async function freezePayout(db: Db, order: any) {
   if (order.status === 'COMPLETED') {
@@ -37,9 +29,9 @@ export async function freezePayout(db: Db, order: any) {
   }
 }
 
-/// SQL condition: the order has an open money ticket, which holds the task and the fees
-export const OPEN_MONEY_TICKET = (orderColumn: string) =>
-  `EXISTS (SELECT 1 FROM support_tickets st WHERE st.order_id = ${orderColumn} AND st.status <> 'CLOSED' AND st.category = 'MONEY')`;
+/// SQL condition: the order has an open ticket, which holds the task and the fees until the admin decides
+export const OPEN_ORDER_TICKET = (orderColumn: string) =>
+  `EXISTS (SELECT 1 FROM support_tickets st WHERE st.order_id = ${orderColumn} AND st.status <> 'CLOSED')`;
 
 export interface TicketForm {
   fields: Record<string, string>;

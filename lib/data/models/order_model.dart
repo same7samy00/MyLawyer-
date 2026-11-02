@@ -30,9 +30,8 @@ class OrderModel {
   final DateTime? holdUntil;
   final String? payoutStatus;
   final bool hasReview;
-  final bool hasOpenTicket;
+  final String? openTicketId;
   final bool hasOpenComplaint;
-  final bool hasAppeal;
   final bool canEditReview;
   final DateTime? arrivedAt;
   final DateTime? paymentDeadline;
@@ -70,9 +69,8 @@ class OrderModel {
     this.holdUntil,
     this.payoutStatus,
     this.hasReview = false,
-    this.hasOpenTicket = false,
+    this.openTicketId,
     this.hasOpenComplaint = false,
-    this.hasAppeal = false,
     this.canEditReview = false,
     this.arrivedAt,
     this.paymentDeadline,
@@ -125,9 +123,8 @@ class OrderModel {
       holdUntil: _toDate(json['holdUntil'] ?? json['hold_until']),
       payoutStatus: json['payoutStatus']?.toString(),
       hasReview: json['hasReview'] == true,
-      hasOpenTicket: json['hasOpenTicket'] == true,
+      openTicketId: json['openTicketId']?.toString(),
       hasOpenComplaint: json['hasOpenComplaint'] == true,
-      hasAppeal: json['hasAppeal'] == true,
       canEditReview: json['canEditReview'] == true,
       arrivedAt: _toDate(json['arrivedAt'] ?? json['arrived_at']),
       paymentDeadline: _toDate(json['paymentDeadline'] ?? json['payment_deadline']),
@@ -199,6 +196,8 @@ class OrderModel {
   }
 
   /// أي طلب اتدفع يقدر صاحبه يفتح عليه تذكرة دعم، وتذكرة مفتوحة واحدة بس على نفس الطلب
+  bool get hasOpenTicket => openTicketId != null;
+
   bool get canOpenTicket => paidAt != null && !hasOpenTicket;
 
   /// التقييم متاح لمدة 7 أيام بعد إنهاء المهمة
@@ -206,13 +205,6 @@ class OrderModel {
     final finishedAt = completedAt;
     if (!isCompleted || hasReview || finishedAt == null) return false;
     return DateTime.now().difference(finishedAt).inDays < 7;
-  }
-
-  /// الاعتراض متاح للمحامي لمدة 7 أيام بعد انتهاء المهلة
-  bool get canAppeal {
-    final deadline = expiresAt;
-    if (!isExpired || hasAppeal || deadline == null) return false;
-    return DateTime.now().difference(deadline).inDays < 7;
   }
 
   /// طلب لم ينتهِ بعد ويحتاج متابعة من طرفيه

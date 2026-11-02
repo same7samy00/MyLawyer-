@@ -4,7 +4,6 @@ import { addClientCredit, lawyerShare, notify } from './service.js';
 type Db = pg.Pool | pg.PoolClient;
 
 export const CANCEL_MINUTES = 5;
-export const COMPLAINT_HOURS = 24;
 const WARNING_LIMIT = 3;
 const WARNING_WINDOW_DAYS = 30;
 const SUSPENSION_DAYS = 7;

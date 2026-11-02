@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/services/background_location_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/notification_center.dart';
+import '../notifications/notification_router.dart';
 import '../../core/services/push_service.dart';
 import '../../core/widgets/app_bottom_bar.dart';
 import '../../core/widgets/app_header.dart';
@@ -48,7 +49,7 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
     super.initState();
     _currentIndex = widget.initialIndex;
     _visitedTabs.add(_currentIndex);
-    NotificationCenter.openOrdersRequest.addListener(_openOrdersTab);
+    NotificationCenter.openRequest.addListener(_onOpenRequest);
     NotificationCenter.start(interval: const Duration(seconds: 15));
     NotificationCenter.pendingOrders.addListener(_onPendingOrdersChanged);
     NotificationCenter.isAvailable.addListener(_onAvailabilityChanged);
@@ -68,7 +69,7 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
   void dispose() {
     _presenceTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
-    NotificationCenter.openOrdersRequest.removeListener(_openOrdersTab);
+    NotificationCenter.openRequest.removeListener(_onOpenRequest);
     NotificationCenter.pendingOrders.removeListener(_onPendingOrdersChanged);
     NotificationCenter.isAvailable.removeListener(_onAvailabilityChanged);
     NotificationCenter.stop();
@@ -106,10 +107,13 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
     _dataRefresh.value++;
   }
 
-  void _openOrdersTab() {
-    if (!mounted) return;
+  /// لمس إشعار يفتح صفحته، والإشعار اللي مش مربوط بصفحة يفتح الطلبات
+  Future<void> _onOpenRequest() async {
+    final target = NotificationCenter.openRequest.value;
+    if (target == null || !mounted) return;
+    NotificationCenter.openRequest.value = null;
     Navigator.of(context).popUntil((route) => route.isFirst);
-    _onTabSelected(1);
+    if (!await NotificationRouter.open(context, target) && mounted) _onTabSelected(1);
   }
 
   void _onTabSelected(int index) {

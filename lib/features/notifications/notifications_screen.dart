@@ -6,6 +6,7 @@ import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../data/models/lifecycle_models.dart';
+import 'notification_router.dart';
 
 /// صفحة الإشعارات، والتعليم كمقروء يتم بزر من المستخدم
 class NotificationsScreen extends StatefulWidget {
@@ -43,7 +44,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (!mounted) return;
     setState(() {
       _items = _items
-          .map((item) => AppNotification(id: item.id, title: item.title, body: item.body, isRead: true))
+          .map((item) => AppNotification(id: item.id, title: item.title, body: item.body, isRead: true, orderId: item.orderId, ticketId: item.ticketId))
           .toList();
     });
   }
@@ -113,7 +114,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             const SizedBox(height: 12),
           ],
           for (final item in _items) ...[
-            _NotificationCard(item: item),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => NotificationRouter.open(context, NotificationTarget(orderId: item.orderId, ticketId: item.ticketId)),
+              child: _NotificationCard(item: item),
+            ),
             const SizedBox(height: 10),
           ],
         ],

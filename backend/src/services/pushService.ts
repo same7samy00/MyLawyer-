@@ -62,7 +62,7 @@ async function getAccessToken(service: ServiceAccount): Promise<string> {
   return accessToken.value;
 }
 
-async function sendToDevice(service: ServiceAccount, bearer: string, token: string, title: string, body: string, orderId?: string) {
+async function sendToDevice(service: ServiceAccount, bearer: string, token: string, title: string, body: string, link: { orderId?: string; ticketId?: string }) {
   const res = await fetch(`https://fcm.googleapis.com/v1/projects/${service.project_id}/messages:send`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' },
@@ -70,7 +70,8 @@ async function sendToDevice(service: ServiceAccount, bearer: string, token: stri
       message: {
         token,
         notification: { title, body },
-        data: orderId ? { orderId } : {},
+        // The phone opens the page this notification talks about
+        data: Object.fromEntries(Object.entries(link).filter(([, value]) => value)) as Record<string, string>,
         android: {
           priority: 'high',
           ttl: '300s',
@@ -95,7 +96,7 @@ async function sendToDevice(service: ServiceAccount, bearer: string, token: stri
 }
 
 /// Failure here never affects the order, the notification stays inside the app
-export async function sendPush(userId: string, title: string, body: string, orderId?: string) {
+export async function sendPush(userId: string, title: string, body: string, link: { orderId?: string; ticketId?: string } = {}) {
   const service = loadAccount();
   if (!service) return;
 
@@ -104,7 +105,7 @@ export async function sendPush(userId: string, title: string, body: string, orde
     if (res.rows.length === 0) return;
 
     const bearer = await getAccessToken(service);
-    await Promise.all(res.rows.map((row) => sendToDevice(service, bearer, row.token, title, body, orderId)));
+    await Promise.all(res.rows.map((row) => sendToDevice(service, bearer, row.token, title, body, link)));
   } catch (err) {
     console.error('[MyLawyer Backend] Push error:', err);
   }

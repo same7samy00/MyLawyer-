@@ -72,8 +72,8 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
       order = orderRes.rows[0] ?? null;
     }
 
-    // A money decision is needed only while the fees are frozen for this ticket
-    const needsDecision = ticket.category === 'MONEY' && ticket.status !== 'CLOSED' && order?.payout_status === 'FROZEN';
+    // A money decision is needed while the fees of the order are frozen
+    const needsDecision = ticket.status !== 'CLOSED' && order?.payout_status === 'FROZEN';
     let suggestion = null;
     if (needsDecision) {
       const full = await query('SELECT * FROM service_orders WHERE id = $1', [order.id]);
@@ -98,7 +98,7 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
         if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة مقفولة');
         await addMessage(db, ticket.id, 'ADMIN', adminId, fields.body ?? '', images);
         await db.query(`UPDATE support_tickets SET status = 'OPEN' WHERE id = $1`, [ticket.id]);
-        await notify(db, ticket.user_id, 'رد الدعم الفني', `الإدارة ردت على تذكرتك ${ticket.reference}`, ticket.order_id ?? undefined);
+        await notify(db, ticket.user_id, 'رد الدعم الفني', `الإدارة ردت على تذكرتك ${ticket.reference}`, { ticketId: ticket.id });
         return { message: 'تم إرسال الرد' };
       });
     });
@@ -127,15 +127,15 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
       if (!ticket) throw new TicketError(404, 'التذكرة غير موجودة');
       if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة مقفولة من قبل');
 
-      if (ticket.category === 'MONEY' && ticket.order_id) {
+      if (ticket.order_id) {
         const order = (await db.query('SELECT * FROM service_orders WHERE id = $1 FOR UPDATE', [ticket.order_id])).rows[0];
-        const otherMoneyTicket = await db.query(
-          `SELECT 1 FROM support_tickets WHERE order_id = $1 AND id <> $2 AND status <> 'CLOSED' AND category = 'MONEY'`,
+        const otherTicket = await db.query(
+          `SELECT 1 FROM support_tickets WHERE order_id = $1 AND id <> $2 AND status <> 'CLOSED'`,
           [ticket.order_id, ticket.id]
         );
-        if (order?.payout_status === 'FROZEN' && otherMoneyTicket.rows.length === 0) {
+        if (order?.payout_status === 'FROZEN' && otherTicket.rows.length === 0) {
           if (!body.outcome || !OUTCOMES.includes(body.outcome)) {
-            throw new TicketError(400, 'الأتعاب متوقفة على التذكرة دي، اختار الفلوس رايحة فين قبل القفل');
+            throw new TicketError(400, 'أتعاب الطلب متوقفة على التذكرة دي، اختار الفلوس رايحة فين قبل القفل');
           }
           await applySettlement(db, order, body.outcome as SettlementOutcome, adminId, `قرار تذكرة ${ticket.reference}`);
         }
@@ -143,7 +143,7 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
 
       if (body.body && body.body.trim()) await addMessage(db, ticket.id, 'ADMIN', adminId, body.body, []);
       await db.query(`UPDATE support_tickets SET status = 'CLOSED', closed_at = NOW(), closed_by = $2, updated_at = NOW() WHERE id = $1`, [ticket.id, adminId]);
-      await notify(db, ticket.user_id, 'التذكرة اتقفلت', `الإدارة قفلت تذكرتك ${ticket.reference}، ولو عندك مشكلة جديدة افتح تذكرة جديدة`, ticket.order_id ?? undefined);
+      await notify(db, ticket.user_id, 'التذكرة اتقفلت', `الإدارة قفلت تذكرتك ${ticket.reference}، ولو عندك مشكلة جديدة افتح تذكرة جديدة`, { ticketId: ticket.id });
       return { message: 'تم قفل التذكرة' };
     }));
   });

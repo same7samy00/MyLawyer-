@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api_service.dart';
@@ -54,7 +55,7 @@ class PushService {
           android: AndroidInitializationSettings('@mipmap/ic_launcher'),
           iOS: DarwinInitializationSettings(),
         ),
-        onDidReceiveNotificationResponse: (_) => _openOrders(),
+        onDidReceiveNotificationResponse: (response) => _openPayload(response.payload),
       );
       await messaging.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
       messaging.onTokenRefresh.listen((token) {
@@ -66,20 +67,32 @@ class PushService {
         NotificationCenter.refresh();
         _showWhileOpen(message);
       });
-      FirebaseMessaging.onMessageOpenedApp.listen((_) => _openOrders());
+      FirebaseMessaging.onMessageOpenedApp.listen((message) => _open(message.data));
 
       // التطبيق كان مقفول واتفتح بلمس الإشعار
       final launchDetails = await _localNotifications.getNotificationAppLaunchDetails();
       final initialMessage = await messaging.getInitialMessage();
-      if (initialMessage != null || launchDetails?.didNotificationLaunchApp == true) _openOrders();
+      if (initialMessage != null) {
+        _open(initialMessage.data);
+      } else if (launchDetails?.didNotificationLaunchApp == true) {
+        _openPayload(launchDetails?.notificationResponse?.payload);
+      }
     } catch (e) {
       debugPrint('Push setup error: $e');
     }
   }
 
-  static void _openOrders() {
+  static void _open(Map<String, dynamic> data) {
     NotificationCenter.refresh();
-    NotificationCenter.openOrdersRequest.value++;
+    NotificationCenter.openRequest.value = NotificationTarget.fromMap(data);
+  }
+
+  static void _openPayload(String? payload) {
+    Map<String, dynamic> data = const {};
+    try {
+      if (payload != null && payload.isNotEmpty) data = jsonDecode(payload) as Map<String, dynamic>;
+    } catch (_) {}
+    _open(data);
   }
 
   /// النظام ما يعرضش الإشعار والتطبيق مفتوح على أندرويد، فيتعرض بنفس الصوت والاهتزاز
@@ -91,6 +104,7 @@ class PushService {
       notification.title,
       notification.body,
       const NotificationDetails(android: _alertDetails),
+      payload: jsonEncode(message.data),
     );
   }
 

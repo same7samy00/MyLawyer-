@@ -3,6 +3,23 @@ import 'package:flutter/widgets.dart';
 import '../../data/models/lifecycle_models.dart';
 import 'api_service.dart';
 
+/// الصفحة اللي الإشعار بيفتحها
+class NotificationTarget {
+  final String? orderId;
+  final String? ticketId;
+
+  const NotificationTarget({this.orderId, this.ticketId});
+
+  factory NotificationTarget.fromMap(Map<String, dynamic> data) {
+    String? value(String key) {
+      final raw = data[key]?.toString();
+      return raw == null || raw.isEmpty ? null : raw;
+    }
+
+    return NotificationTarget(orderId: value('orderId'), ticketId: value('ticketId'));
+  }
+}
+
 /// عدادات الإشعارات والطلبات لشريط التنقل والهيدر أثناء فتح التطبيق
 class NotificationCenter {
   NotificationCenter._();
@@ -13,8 +30,8 @@ class NotificationCenter {
   /// حالة المحامي من الخادم، فالزر يتبع القواعد تلقائياً
   static final ValueNotifier<bool?> isAvailable = ValueNotifier<bool?>(null);
 
-  /// لمس إشعار من خارج التطبيق يفتح صفحة الطلبات
-  static final ValueNotifier<int> openOrdersRequest = ValueNotifier<int>(0);
+  /// لمس إشعار من خارج التطبيق يفتح صفحته، أو صفحة الطلبات لو مش مربوط بحاجة
+  static final ValueNotifier<NotificationTarget?> openRequest = ValueNotifier<NotificationTarget?>(null);
 
   /// يتغير بعد تعديل صورة الحساب فتتحدث الكروت المفتوحة
   static final ValueNotifier<int> profileChanged = ValueNotifier<int>(0);

@@ -29,7 +29,6 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
         (SELECT COUNT(*)::int FROM service_orders WHERE status = 'COMPLETED') AS completed_orders,
         (SELECT COUNT(*)::int FROM support_tickets WHERE status = 'UNDER_REVIEW') AS waiting_tickets,
         (SELECT COUNT(*)::int FROM support_tickets WHERE status = 'OPEN') AS open_tickets,
-        (SELECT COUNT(*)::int FROM order_appeals WHERE status = 'OPEN') AS open_appeals,
         (SELECT COALESCE(SUM(price), 0) FROM service_orders WHERE status = 'COMPLETED') AS completed_value
     `);
     return reply.send({ success: true, data: res.rows[0] });
@@ -193,18 +192,17 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     );
     if (orderRes.rows.length === 0) return reply.status(404).send({ success: false, error: 'الطلب غير موجود' });
 
-    const [logs, tickets, appeals, reviews] = await Promise.all([
+    const [logs, tickets, reviews] = await Promise.all([
       query('SELECT old_status, new_status, note, created_at FROM order_status_logs WHERE order_id = $1 ORDER BY created_at ASC', [id]),
       query(`SELECT t.id, t.reference, t.title, t.category, t.status, t.created_at, u.role AS user_role
              FROM support_tickets t JOIN users u ON u.id = t.user_id WHERE t.order_id = $1 ORDER BY t.created_at DESC`, [id]),
-      query('SELECT reason, status, admin_note, created_at FROM order_appeals WHERE order_id = $1', [id]),
       query('SELECT rating, comment, created_at FROM reviews WHERE order_id = $1', [id]),
     ]);
 
     const { completion_code: _hidden, ...order } = orderRes.rows[0];
     return reply.send({
       success: true,
-      data: { order, logs: logs.rows, tickets: tickets.rows, appeals: appeals.rows, reviews: reviews.rows },
+      data: { order, logs: logs.rows, tickets: tickets.rows, reviews: reviews.rows },
     });
   });
 

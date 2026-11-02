@@ -22,7 +22,7 @@ const TextStyle _subtitleStyle = TextStyle(
   color: AppColors.textMuted,
 );
 
-/// نوافذ الإجراءات: الاعتراض، التقييم، والتحويل من المحفظة
+/// نوافذ الإجراءات: التقييم، والتحويل من المحفظة
 /// كل نافذة تعيد true عندما يقبل الخادم الإجراء
 class OrderActionSheets {
   OrderActionSheets._();
@@ -38,20 +38,6 @@ class OrderActionSheets {
       builder: (context) => child,
     );
     return result ?? false;
-  }
-
-  static Future<bool> text(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    required String hint,
-    required String buttonText,
-    required Future<ApiResponse<dynamic>> Function(String text) onSubmit,
-  }) {
-    return _show(
-      context,
-      _TextActionSheet(title: title, subtitle: subtitle, hint: hint, buttonText: buttonText, onSubmit: onSubmit),
-    );
   }
 
   static Future<bool> review(
@@ -136,77 +122,6 @@ class _ErrorText extends StatelessWidget {
           color: AppColors.danger,
         ),
       ),
-    );
-  }
-}
-
-class _TextActionSheet extends StatefulWidget {
-  final String title;
-  final String subtitle;
-  final String hint;
-  final String buttonText;
-  final Future<ApiResponse<dynamic>> Function(String text) onSubmit;
-
-  const _TextActionSheet({
-    required this.title,
-    required this.subtitle,
-    required this.hint,
-    required this.buttonText,
-    required this.onSubmit,
-  });
-
-  @override
-  State<_TextActionSheet> createState() => _TextActionSheetState();
-}
-
-class _TextActionSheetState extends State<_TextActionSheet> {
-  final _controller = TextEditingController();
-  String? _error;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final text = _controller.text.trim();
-    if (text.length < 10) {
-      setState(() => _error = 'اكتب التفاصيل في 10 أحرف على الأقل');
-      return;
-    }
-
-    final navigator = Navigator.of(context);
-    final res = await widget.onSubmit(text);
-    if (!mounted) return;
-
-    if (res.isOk) {
-      navigator.pop(true);
-    } else {
-      setState(() => _error = res.error ?? 'تعذر الإرسال، حاول مرة أخرى');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _SheetFrame(
-      children: [
-        Text(widget.title, textAlign: TextAlign.center, style: _titleStyle),
-        const SizedBox(height: 4),
-        Text(widget.subtitle, textAlign: TextAlign.center, style: _subtitleStyle),
-        const SizedBox(height: 14),
-        TextField(
-          controller: _controller,
-          maxLines: 4,
-          maxLength: 2000,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 14),
-          decoration: InputDecoration(hintText: widget.hint, counterText: ''),
-        ),
-        const SizedBox(height: 12),
-        _ErrorText(_error),
-        AppButton.primary(text: widget.buttonText, onPressed: _submit),
-      ],
     );
   }
 }

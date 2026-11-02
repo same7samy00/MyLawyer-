@@ -8,7 +8,6 @@ type Db = pg.Pool | pg.PoolClient;
 export const HOLD_HOURS = 24;
 export const ORDER_DEADLINE_HOURS = 24;
 export const REVIEW_WINDOW_DAYS = 7;
-export const APPEAL_WINDOW_DAYS = 7;
 export const LAWYER_RESPONSE_SECONDS = 120;
 export const PAYMENT_MINUTES = 10;
 /// The lawyer and the client must really meet, so arrival is accepted within 50 meters only
@@ -27,14 +26,21 @@ export function approximateCoordinate(value: number): number {
   return Math.round(value / APPROXIMATE_GRID_DEGREES) * APPROXIMATE_GRID_DEGREES;
 }
 
-export async function notify(db: Db, userId: string, title: string, body: string, orderId?: string) {
+/// What a notification opens when tapped: an order, a ticket, or nothing
+export interface NotifyLink {
+  orderId?: string;
+  ticketId?: string;
+}
+
+export async function notify(db: Db, userId: string, title: string, body: string, link?: string | NotifyLink) {
+  const { orderId, ticketId } = typeof link === 'string' ? { orderId: link, ticketId: undefined } : (link ?? {});
   await db.query(
-    'INSERT INTO notifications (user_id, title, body, order_id) VALUES ($1, $2, $3, $4)',
-    [userId, title, body, orderId ?? null]
+    'INSERT INTO notifications (user_id, title, body, order_id, ticket_id) VALUES ($1, $2, $3, $4, $5)',
+    [userId, title, body, orderId ?? null, ticketId ?? null]
   );
 
   // The order never waits for the phone
-  void sendPush(userId, title, body, orderId);
+  void sendPush(userId, title, body, { orderId, ticketId });
 }
 
 export async function addClientCredit(db: Db, clientId: string, orderId: string, amount: number, reason: string) {
@@ -268,7 +274,7 @@ async function expireUnfinishedOrders() {
   const expired = await dbPool.query(
     `SELECT o.* FROM service_orders o
      WHERE o.status = 'ACTIVE' AND o.expires_at <= NOW()
-       AND NOT EXISTS (SELECT 1 FROM support_tickets st WHERE st.order_id = o.id AND st.status <> 'CLOSED' AND st.category = 'MONEY')`
+       AND NOT EXISTS (SELECT 1 FROM support_tickets st WHERE st.order_id = o.id AND st.status <> 'CLOSED')`
   );
 
   for (const order of expired.rows) {

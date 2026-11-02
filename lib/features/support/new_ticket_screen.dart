@@ -97,22 +97,25 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text('نوع المشكلة', style: supportTitleStyle),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final entry in SupportTicket.categories.entries)
-                  ChoiceChip(
-                    label: Text(entry.value, style: supportTextStyle),
-                    selected: _category == entry.key,
-                    selectedColor: AppColors.primaryLight,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.0)),
-                    onSelected: widget.order != null ? null : (_) => setState(() => _category = entry.key),
-                  ),
-              ],
-            ),
+            // From an order the problem is about that order, so there is nothing to choose
+            if (widget.order == null) ...[
+              const Text('نوع المشكلة', style: supportTitleStyle),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final entry in SupportTicket.categories.entries)
+                    ChoiceChip(
+                      label: Text(entry.value, style: supportTextStyle),
+                      selected: _category == entry.key,
+                      selectedColor: AppColors.primaryLight,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.0)),
+                      onSelected: (_) => setState(() => _category = entry.key),
+                    ),
+                ],
+              ),
+            ],
             if (widget.order != null || _category == 'ORDER' || _category == 'MONEY') ...[
               const SizedBox(height: 16),
               const Text('الطلب', style: supportTitleStyle),
@@ -128,7 +131,8 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
                     for (final order in _orders)
                       DropdownMenuItem(
                         value: order.id,
-                        child: Text('${order.orderNumber} • ${order.serviceTitle}', style: supportTextStyle, overflow: TextOverflow.ellipsis),
+                        child: Text('${order.orderNumber} • ${order.serviceTitle}',
+                            style: supportTextStyle, overflow: TextOverflow.ellipsis),
                       ),
                   ],
                   onChanged: (id) => setState(() => _order = _orders.where((order) => order.id == id).firstOrNull),
@@ -157,7 +161,8 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
             if (_error != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: Text(_error!, textAlign: TextAlign.center, style: supportTextStyle.copyWith(color: AppColors.danger)),
+                child: Text(_error!,
+                    textAlign: TextAlign.center, style: supportTextStyle.copyWith(color: AppColors.danger)),
               ),
             AppButton.primary(text: 'إرسال التذكرة', isLoading: _isSending, onPressed: _isSending ? null : _send),
           ],

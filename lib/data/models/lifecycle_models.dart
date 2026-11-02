@@ -28,12 +28,16 @@ class AppNotification {
   final String title;
   final String body;
   final bool isRead;
+  final String? orderId;
+  final String? ticketId;
 
   const AppNotification({
     required this.id,
     required this.title,
     required this.body,
     required this.isRead,
+    this.orderId,
+    this.ticketId,
   });
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
@@ -42,6 +46,8 @@ class AppNotification {
       title: json['title']?.toString() ?? '',
       body: json['body']?.toString() ?? '',
       isRead: json['isRead'] == true,
+      orderId: json['orderId']?.toString(),
+      ticketId: json['ticketId']?.toString(),
     );
   }
 }

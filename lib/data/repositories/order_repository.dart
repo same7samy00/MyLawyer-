@@ -209,10 +209,6 @@ class OrderRepository {
     return ApiService.post('/orders/$orderId/complete', {});
   }
 
-  static Future<ApiResponse<dynamic>> submitAppeal(String orderId, String reason) {
-    return ApiService.post('/orders/$orderId/appeal', {'reason': reason});
-  }
-
   static Future<ApiResponse<dynamic>> submitReview(String orderId, int rating, String comment) {
     return ApiService.post('/orders/$orderId/review', {
       'rating': rating,

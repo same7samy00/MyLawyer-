@@ -14,6 +14,7 @@ import '../../core/widgets/response_countdown.dart';
 import '../../data/models/order_model.dart';
 import '../../data/repositories/order_repository.dart';
 import '../support/new_ticket_screen.dart';
+import '../support/ticket_details_screen.dart';
 import 'payment_screen.dart';
 
 /// كل تفاصيل الطلب وإجراءاته للموكل والمحامي في صفحة واحدة
@@ -158,12 +159,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     await _run(() => OrderRepository.cancelOrder(_order.id), 'تم إلغاء الطلب');
   }
 
-  /// المشكلة على الطلب بتتبعت كتذكرة دعم فني والطلب متحدد فيها
+  /// أول مرة بيفتح تذكرة جديدة على الطلب، وبعدها بيفتح نفس التذكرة للمتابعة
   Future<void> _openComplaint() async {
-    final sent = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => NewTicketScreen(order: _order)),
+    final ticketId = _order.openTicketId;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ticketId == null ? NewTicketScreen(order: _order) : TicketDetailsScreen(ticketId: ticketId),
+      ),
     );
-    if (sent == true && mounted) await _load();
+    if (mounted) await _load();
   }
 
   Future<void> _openReview({required bool isEdit}) async {
@@ -225,20 +229,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   Future<void> _withdraw() async {
     if (!await _confirm('الاعتذار عن المهمة', 'المبلغ هيرجع للموكل وهتتسجل عليك نقطة', 'اعتذار')) return;
     await _run(() => OrderRepository.withdrawFromOrder(_order.id), 'تم تسجيل الاعتذار');
-  }
-
-  Future<void> _openAppeal() async {
-    final sent = await OrderActionSheets.text(
-      context,
-      title: 'اعتراض على انتهاء المهلة',
-      subtitle: 'اكتب اللي حصل والإدارة هتراجعه',
-      hint: 'تفاصيل الاعتراض',
-      buttonText: 'إرسال الاعتراض',
-      onSubmit: (reason) => OrderRepository.submitAppeal(_order.id, reason),
-    );
-    if (!sent || !mounted) return;
-    _showNotice('تم استلام الاعتراض');
-    await _load();
   }
 
   @override
@@ -416,11 +406,17 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         _primaryAction('اتصل بالمحامي', () => _call(order.lawyerPhone), icon: Icons.call_rounded),
       if (order.canReview) _primaryAction('قيّم المحامي', () => _openReview(isEdit: false)),
       if (order.canEditReview) _action('تعديل التقييم', () => _openReview(isEdit: true)),
-      if (order.hasOpenComplaint) _statusNote('الطلب عليه تذكرة فلوس قيد المراجعة'),
-      if (order.hasOpenTicket) _statusNote('عندك تذكرة مفتوحة على الطلب ده في الدعم الفني'),
-      if (order.canOpenTicket) _action('عندك مشكلة؟', _openComplaint, isDanger: true),
+      if (order.hasOpenComplaint) _statusNote('الطلب قيد المراجعة، والأتعاب متوقفة لحد قرار الإدارة'),
+      ..._problemAction(order),
       if (order.canCancel) _action('إلغاء الطلب', _cancelOrder, isDanger: true),
     ];
+  }
+
+  /// «عندك مشكلة؟» يفتح تذكرة جديدة، ولو فيه تذكرة مفتوحة يبقى «تابع مشكلتك»
+  List<Widget> _problemAction(OrderModel order) {
+    if (order.hasOpenTicket) return [_action('تابع مشكلتك', _openComplaint, icon: Icons.headset_mic_outlined)];
+    if (order.canOpenTicket) return [_action('عندك مشكلة؟', _openComplaint, isDanger: true)];
+    return const [];
   }
 
   List<Widget> _buildLawyerActions(OrderModel order) {
@@ -430,7 +426,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         _action('اعتذار', _rejectOrder, isDanger: true),
       ],
       if (order.isActive) ...[
-        if (order.hasOpenComplaint) _statusNote('الطلب عليه تذكرة فلوس قيد المراجعة'),
+        if (order.hasOpenComplaint) _statusNote('الطلب قيد المراجعة، والأتعاب متوقفة لحد قرار الإدارة'),
         if (order.clientPhone != null)
           _action('اتصل بالموكل', () => _call(order.clientPhone), icon: Icons.call_rounded),
         _action('افتح مكان الموكل في Google Maps', _openDirections, icon: Icons.navigation_rounded),
@@ -443,8 +439,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           _action('اعتذار', _withdraw, isDanger: true),
         ],
       ],
-      if (order.canOpenTicket) _action('عندك مشكلة؟', _openComplaint, isDanger: true),
-      if (order.canAppeal) _action('اعتراض', _openAppeal),
+      ..._problemAction(order),
     ];
   }
 

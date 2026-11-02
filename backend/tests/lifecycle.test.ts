@@ -132,7 +132,7 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  for (const table of ['ticket_attachments', 'ticket_messages', 'support_tickets', 'wallet_transfers', 'reviews', 'order_appeals', 'complaints', 'lawyer_reports', 'lawyer_strikes', 'client_credits', 'account_warnings', 'lawyer_adjustments', 'notifications', 'client_problem_prices', 'order_status_logs']) {
+  for (const table of ['ticket_attachments', 'ticket_messages', 'support_tickets', 'wallet_transfers', 'reviews', 'complaints', 'lawyer_reports', 'lawyer_strikes', 'client_credits', 'account_warnings', 'lawyer_adjustments', 'notifications', 'client_problem_prices', 'order_status_logs']) {
     await sql(`DELETE FROM ${table}`);
   }
   await sql('DELETE FROM service_orders');
@@ -335,22 +335,33 @@ describe('تذاكر الفلوس والتسوية بالالتقاء', () => {
     assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'ACTIVE');
   });
 
-  it('تذكرة الطلب العادية ما بتلمسش الفلوس', async () => {
+  it('أي تذكرة على طلب بتوقف أتعابه، حتى بعد أيام، وبتوصل للطرف التاني إشعار', async () => {
     const order = await createCompletedOrder();
+    await sql(`UPDATE service_orders SET completed_at = NOW() - INTERVAL '5 days' WHERE id = $1`, [order.id]);
     assert.equal((await openTicket(clientToken, order.id, 'ORDER')).status, 201);
-    assert.equal((await wallet()).heldBalance, 350);
+    assert.equal((await wallet()).frozenBalance, 350);
+    const notes = await sql(`SELECT order_id FROM notifications WHERE user_id = $1 AND title = 'مراجعة على طلب'`, [lawyerId]);
+    assert.equal(notes[0].order_id, order.id);
   });
 
-  it('التذكرة محتاجة نوع، والغريب ما يفتحش على طلب، وبعد 24 ساعة الفلوس ما بتتوقفش', async () => {
+  it('التذكرة محتاجة نوع، والغريب ما يفتحش على طلب', async () => {
     const order = await createCompletedOrder();
     assert.equal((await call('POST', '/support/tickets', clientToken, { title: 'مشكلة', body: 'تفاصيل المشكلة بالكامل' })).status, 400);
 
     const other = await createUser('01000000009', 'client');
     assert.equal((await openTicket(app.jwt.sign({ userId: other, role: 'client' }), order.id)).status, 404);
+  });
 
-    await sql(`UPDATE service_orders SET completed_at = NOW() - INTERVAL '25 hours' WHERE id = $1`, [order.id]);
-    assert.equal((await openTicket(clientToken, order.id)).status, 201);
-    assert.equal((await wallet()).heldBalance, 350);
+  it('الإشعار بيقول يفتح إيه: رد الإدارة بيفتح التذكرة، وفيه رقم التذكرة', async () => {
+    const order = await createCompletedOrder();
+    const ticket = (await openTicket(lawyerToken, order.id, 'ORDER')).body.data;
+    const mine = (await call('GET', '/orders', lawyerToken)).body.data.find((o: any) => o.orderId === order.id);
+    assert.equal(mine.openTicketId, ticket.id);
+
+    await call('POST', `/admin/support/${ticket.id}/reply`, adminToken, { body: 'بنراجع' });
+    const list = (await call('GET', '/notifications', lawyerToken)).body.data;
+    const reply = list.find((n: any) => n.title === 'رد الدعم الفني');
+    assert.equal(reply.ticketId, ticket.id);
   });
 });
 

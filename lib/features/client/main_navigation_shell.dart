@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/services/notification_center.dart';
+import '../notifications/notification_router.dart';
 import '../../core/services/push_service.dart';
 import '../../core/widgets/order_action_sheets.dart';
 import '../../data/models/order_model.dart';
@@ -46,7 +47,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _visitedTabs.add(_currentIndex);
-    NotificationCenter.openOrdersRequest.addListener(_openOrdersTab);
+    NotificationCenter.openRequest.addListener(_onOpenRequest);
     NotificationCenter.start();
     PushService.start();
     _promptPendingReview();
@@ -55,7 +56,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   @override
   void dispose() {
     NotificationCenter.stop();
-    NotificationCenter.openOrdersRequest.removeListener(_openOrdersTab);
+    NotificationCenter.openRequest.removeListener(_onOpenRequest);
     _dataRefresh.dispose();
     super.dispose();
   }
@@ -80,10 +81,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     _dataRefresh.value++;
   }
 
-  void _openOrdersTab() {
-    if (!mounted) return;
+  /// لمس إشعار يفتح صفحته، والإشعار اللي مش مربوط بصفحة يفتح الطلبات
+  Future<void> _onOpenRequest() async {
+    final target = NotificationCenter.openRequest.value;
+    if (target == null || !mounted) return;
+    NotificationCenter.openRequest.value = null;
     Navigator.of(context).popUntil((route) => route.isFirst);
-    _onTabSelected(1);
+    if (!await NotificationRouter.open(context, target) && mounted) _onTabSelected(1);
   }
 
   void _onTabSelected(int index) {

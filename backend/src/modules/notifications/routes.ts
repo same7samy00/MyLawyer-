@@ -47,7 +47,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = request.user as AuthenticatedUser;
     const res = await query(
-      `SELECT id, title, body, order_id, read_at, created_at
+      `SELECT id, title, body, order_id, ticket_id, read_at, created_at
        FROM notifications WHERE user_id = $1
        ORDER BY created_at DESC LIMIT 50`,
       [userId]
@@ -60,6 +60,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         title: row.title,
         body: row.body,
         orderId: row.order_id,
+        ticketId: row.ticket_id,
         isRead: row.read_at !== null,
         createdAt: row.created_at,
       })),

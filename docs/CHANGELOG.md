@@ -1,5 +1,13 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.98] - 2026-11-02
+### One Path for Problems, and Notifications That Open Their Page
+- Any ticket on an order, of any type and at any time, holds the order's fees, its finish, and its automatic settlement until the admin decides.
+- "عندك مشكلة؟" in an order opens a new ticket on that order with no type to choose. When a ticket is already open it becomes "تابع مشكلتك" and opens that ticket.
+- Removed the appeal button and routes. A lawyer who disagrees opens a ticket, and open appeals moved into tickets (migration `015`).
+- Every notification carries the order or the ticket it talks about. Tapping it, from the phone or the notifications page, opens that ticket or that order.
+- The control page keeps "بلاغات التقييمات" in place of appeals and reports.
+
 ## [Phase 2.97] - 2026-11-02
 ### Technical Support Tickets
 - Clients and lawyers open a ticket from "الدعم الفني" in the account page, or from "عندك مشكلة؟" in an order with the order already picked. A ticket has a type, a title, the details, and up to 5 images.

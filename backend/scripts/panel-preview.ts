@@ -133,13 +133,12 @@ const accountTicket = await call('/support/tickets', c3, { category: 'ACCOUNT', 
 await sql(`INSERT INTO ticket_messages (ticket_id, author, author_id, body) VALUES ($1, 'ADMIN', $2, 'جرب صورة أصغر من 5 ميجا وقولنا')`, [accountTicket.data.id, adminId]);
 await sql(`UPDATE support_tickets SET status = 'OPEN' WHERE id = $1`, [accountTicket.data.id]);
 
-// Lawyer ticket, then the order expired and the lawyer appealed
+// Lawyer ticket on an order that expired
 const expired = await order(c4, lawyer4, 'محضر في قسم الشرطة');
 await call(`/orders/${expired.id}/accept`, l4);
 await call(`/orders/${expired.id}/confirm-payment`, c4);
 await call('/support/tickets', l4, { category: 'ORDER', orderId: expired.id, title: 'تعامل غير لائق', body: 'الموكل اتعامل بشكل غير لائق وقت المهمة' });
 await sql(`UPDATE service_orders SET status = 'EXPIRED', expires_at = NOW() - INTERVAL '1 hour' WHERE id = $1`, [expired.id]);
-await call(`/orders/${expired.id}/appeal`, l4, { reason: 'وصلت للموكل وخلصت المهمة بس النت كان واقع' });
 
 // Cancelled after payment, so the client got the money back as credit
 const refunded = await order(c5, lawyer5, 'محضر في قسم الشرطة');
