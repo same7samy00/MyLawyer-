@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.95] - 2026-11-02
+### ML Numbering
+- Every record now gets an organized number that starts with ML: ML-ORD orders, ML-CMP client complaints, ML-RPT lawyer complaints, ML-APL appeals, and ML-TRF transfers.
+- The database gives the next number by itself, and old orders were renumbered by date.
+- The numbers show in the replies, the notifications, the wallet movements, and the control page tables.
+
 ## [Phase 2.94] - 2026-11-02
 ### Wallet Transfers
 - Any client or lawyer can send money from their balance to any active account by phone number.

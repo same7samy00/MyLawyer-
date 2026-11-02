@@ -611,7 +611,7 @@ void main() {
     testWidgets('بعد السداد لا يعيد الرجوع لصفحة الدفع بل يذهب للطلبات', (tester) async {
       await tester.pumpWidget(_app(const PaymentSuccessScreen(
         price: 350,
-        orderRef: 'ORD-1001',
+        orderRef: 'ML-ORD-100001',
         locationName: 'قصر النيل',
       )));
 
@@ -630,7 +630,7 @@ void main() {
 
       await tester.pumpWidget(_app(const PaymentScreen(
         orderId: 'order-1',
-        orderNumber: 'ORD-1001',
+        orderNumber: 'ML-ORD-100001',
         locationName: 'قصر النيل',
       )));
 
@@ -840,7 +840,7 @@ void main() {
       await _openDetails(tester);
 
       expect(find.text('كود إنهاء المهمة'), findsNothing);
-      expect(find.text('ORD-1001'), findsOneWidget);
+      expect(find.text('ML-ORD-100001'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
     });
@@ -851,7 +851,7 @@ void main() {
       await tester.pumpWidget(_app(const Scaffold(body: OrdersTab())));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('ORD-1001'), findsOneWidget);
+      expect(find.textContaining('ML-ORD-100001'), findsOneWidget);
       expect(find.text('إلغاء الطلب'), findsNothing);
     });
 
@@ -944,7 +944,7 @@ void main() {
       ];
       backend.overrides['POST /orders'] = (request) => FakeBackend.json(201, {
             'success': true,
-            'data': {'id': 'order-1', 'orderNumber': 'ORD-1', 'price': 425, 'status': 'PENDING'},
+            'data': {'id': 'order-1', 'orderNumber': 'ML-ORD-100002', 'price': 425, 'status': 'PENDING'},
           });
       backend.overrides['GET /orders/order-1'] = (request) => FakeBackend.json(200, {
             'success': true,
@@ -1036,7 +1036,7 @@ void main() {
       final order = OrderModel.fromJson(sampleOrder(status: 'ACTIVE'));
 
       expect(order.id, 'order-1');
-      expect(order.orderNumber, 'ORD-1001');
+      expect(order.orderNumber, 'ML-ORD-100001');
       expect(order.isOngoing, isTrue);
       expect(order.isPaid, isTrue);
     });

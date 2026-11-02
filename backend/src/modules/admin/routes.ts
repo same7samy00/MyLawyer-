@@ -23,7 +23,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // GET /api/v1/admin/complaints - Open complaints with the context needed to decide
   fastify.get('/complaints', async (_request: FastifyRequest, reply: FastifyReply) => {
     const res = await query(
-      `SELECT c.id, c.reason, c.kind, c.filed_after_hold, c.created_at, o.arrived_at, o.hold_until,
+      `SELECT c.id, c.reference, c.reason, c.kind, c.filed_after_hold, c.created_at, o.arrived_at, o.hold_until,
               o.id as order_id, o.order_number, o.status as order_status, o.price, o.service_title,
               o.problem_description, o.completed_at, o.payout_status,
               u.phone as client_phone, u.email as client_email, lu.email as lawyer_email, COALESCE(u.full_name, 'موكل') as client_name, c.client_id,
@@ -44,7 +44,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // GET /api/v1/admin/appeals
   fastify.get('/appeals', async (_request: FastifyRequest, reply: FastifyReply) => {
     const res = await query(
-      `SELECT a.id, a.reason, a.created_at, o.id as order_id, o.order_number, o.price, o.service_title,
+      `SELECT a.id, a.reference, a.reason, a.created_at, o.id as order_id, o.order_number, o.price, o.service_title,
               lp.full_name as lawyer_name, a.lawyer_id, lu.phone as lawyer_phone, lu.email as lawyer_email,
               ${userStats('a.lawyer_id', 'lawyer')}
        FROM order_appeals a
@@ -210,17 +210,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.get('/tickets', async (_request: FastifyRequest, reply: FastifyReply) => {
     const res = await query(
       `SELECT * FROM (
-         SELECT 'complaint' AS type, 'شكوى موكل' AS label, c.id::text AS id, o.order_number, c.reason AS details, c.created_at, o.price
+         SELECT 'complaint' AS type, 'شكوى موكل' AS label, c.id::text AS id, c.reference, o.order_number, c.reason AS details, c.created_at, o.price
          FROM complaints c JOIN service_orders o ON o.id = c.order_id WHERE c.status = 'OPEN'
          UNION ALL
-         SELECT 'appeal', 'اعتراض محامي', a.id::text, o.order_number, a.reason, a.created_at, o.price
+         SELECT 'appeal', 'اعتراض محامي', a.id::text, a.reference, o.order_number, a.reason, a.created_at, o.price
          FROM order_appeals a JOIN service_orders o ON o.id = a.order_id WHERE a.status = 'OPEN'
          UNION ALL
-         SELECT 'report', 'بلاغ من محامي', r.id::text, o.order_number, r.reason, r.created_at, o.price
+         SELECT 'report', 'بلاغ من محامي', r.id::text, r.reference, o.order_number, r.reason, r.created_at, o.price
          FROM lawyer_reports r JOIN service_orders o ON o.id = r.order_id WHERE r.status = 'OPEN'
 
          UNION ALL
-         SELECT 'review', 'تعليق مبلغ عنه', r.id::text, o.order_number, r.report_reason, r.reported_at, o.price
+         SELECT 'review', 'تعليق مبلغ عنه', r.id::text, NULL, o.order_number, r.report_reason, r.reported_at, o.price
          FROM reviews r JOIN service_orders o ON o.id = r.order_id WHERE r.reported_at IS NOT NULL AND r.is_hidden = FALSE
        ) tickets
        ORDER BY created_at ASC`

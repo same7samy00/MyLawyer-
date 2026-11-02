@@ -152,7 +152,7 @@ describe('السعر', () => {
 
   it('الرقم العشوائي يثبت للمستخدم في نفس المشكلة', async () => {
     await sql(`UPDATE problem_prices SET min_price = 300, max_price = 900 WHERE problem_type = $1`, [PROBLEM]);
-    const first = await createOrder();
+    const first: any = await createOrder();
     assert.ok(first.price >= 300 && first.price <= 900);
 
     for (let i = 0; i < 5; i++) {
@@ -905,5 +905,28 @@ describe('التحويل بين الحسابات', () => {
 
     await sql(`UPDATE wallet_transfers SET created_at = NOW() - INTERVAL '25 hours'`);
     assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 100 })).status, 200);
+  });
+});
+
+describe('ترقيم ML الموحد', () => {
+  it('الطلب والشكوى والتحويل ياخدوا أرقام ML متسلسلة', async () => {
+    const first: any = await createOrder();
+    await closeOrders();
+    assert.match(first.order_number ?? first.orderNumber, /^ML-ORD-\d{6}$/);
+
+    const order = await createArrivedOrder();
+    const complaint = await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'BEHAVIOR' });
+    assert.match(complaint.body.data.reference, /^ML-CMP-\d{6}$/);
+    assert.ok(complaint.body.message.includes(complaint.body.data.reference));
+
+    const report = await call('POST', `/orders/${order.id}/report`, lawyerToken, { kind: 'BEHAVIOR' });
+    assert.match(report.body.data.reference, /^ML-RPT-\d{6}$/);
+
+    const listed = await call('GET', '/admin/complaints', adminToken);
+    assert.equal(listed.body.data[0].reference, complaint.body.data.reference);
+
+    await sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, 500, 'شحن تجريبي')`, [clientId]);
+    const transfer = await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 100 });
+    assert.match(transfer.body.data.reference, /^ML-TRF-\d{6}$/);
   });
 });

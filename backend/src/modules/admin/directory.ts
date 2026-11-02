@@ -210,7 +210,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
   // GET /api/v1/admin/reports - Open reports the lawyers filed about clients
   fastify.get('/reports', async (_request: FastifyRequest, reply: FastifyReply) => {
     const res = await query(
-      `SELECT r.id, r.reason, r.kind, r.created_at, o.id AS order_id, o.order_number, o.status AS order_status, o.price,
+      `SELECT r.id, r.reference, r.reason, r.kind, r.created_at, o.id AS order_id, o.order_number, o.status AS order_status, o.price,
               lp.full_name AS lawyer_name, l.phone AS lawyer_phone, l.email AS lawyer_email, r.lawyer_id,
               COALESCE(c.full_name, 'موكل') AS client_name, c.phone AS client_phone, c.email AS client_email, r.client_id,
               ${userStats('r.client_id', 'client')}, ${userStats('r.lawyer_id', 'lawyer')}

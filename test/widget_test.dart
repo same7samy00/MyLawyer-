@@ -241,7 +241,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('طلب رقم ORD-1001'), findsOneWidget);
+      expect(find.text('طلب رقم ML-ORD-100001'), findsOneWidget);
       expect(find.text('عرض التفاصيل'), findsOneWidget);
       expect(find.text('عندك مشكلة؟'), findsNothing);
     });
@@ -825,7 +825,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('طلب رقم ORD-1001'), findsOneWidget);
+      expect(find.text('طلب رقم ML-ORD-100001'), findsOneWidget);
       expect(find.text('محضر في قسم الشرطة'), findsAtLeastNWidgets(1));
       expect(find.textContaining('الموكل: 01099990000'), findsOneWidget);
       expect(find.textContaining('350 ج.م'), findsOneWidget);
@@ -861,7 +861,7 @@ void main() {
 
       expect(find.byType(OrderDetailsScreen), findsOneWidget);
       expect(find.byType(TrackingScreen), findsNothing);
-      expect(find.text('ORD-1001'), findsOneWidget);
+      expect(find.text('ML-ORD-100001'), findsOneWidget);
       expect(find.text('قبول الطلب'), findsOneWidget);
       expect(find.text('اعتذار'), findsOneWidget);
 

@@ -162,10 +162,6 @@ export async function orderRoutes(fastify: FastifyInstance) {
       return reply.status(409).send({ success: false, error: 'المحامي مشغول دلوقتي، اختار محامي تاني' });
     }
 
-    // Generate unique order number
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const orderNumber = `ORD-${Date.now().toString().slice(-6)}-${randomSuffix}`;
-
     const cleanServiceTitle = sanitizeText(body.serviceTitle || 'محاميك حالاً', 255);
     const cleanProblemType = body.problemType ? sanitizeText(body.problemType, 100) : null;
     const cleanDescription = sanitizeText(body.problemDescription, 3000);
@@ -176,17 +172,17 @@ export async function orderRoutes(fastify: FastifyInstance) {
       const quote = await resolveClientQuote(client, userId, cleanProblemType);
 
       const orderRes = await client.query(
+        // The database gives the order its ML-ORD number
         `INSERT INTO service_orders (
-          order_number, client_id, lawyer_id, service_type,
+          client_id, lawyer_id, service_type,
           service_title, problem_type, problem_description,
           client_latitude, client_longitude, client_address,
           lawyer_latitude, lawyer_longitude, price, commission_percent, tax_percent, lawyer_amount,
           response_deadline, status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-          NOW() + make_interval(secs => $17), 'PENDING')
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+          NOW() + make_interval(secs => $16), 'PENDING')
         RETURNING *`,
         [
-          orderNumber,
           userId,
           targetLawyer.user_id,
           body.serviceType || 'lawyer_now',
@@ -848,21 +844,25 @@ export async function orderRoutes(fastify: FastifyInstance) {
     }
 
     const reason = sanitizeText(body.reason || COMPLAINT_LABELS[kind], 2000);
-    await withTransaction(async (client) => {
-      await client.query(
+    const reference = await withTransaction(async (client) => {
+      const inserted = await client.query(
         `INSERT INTO complaints (order_id, client_id, lawyer_id, reason, kind, filed_after_hold)
-         VALUES ($1, $2, $3, $4, $5, FALSE)`,
+         VALUES ($1, $2, $3, $4, $5, FALSE) RETURNING reference`,
         [order.id, userId, order.lawyer_id, reason, kind]
       );
       if (kind === 'MONEY') await freezePayout(client, order);
       await notify(client, order.lawyer_id, 'شكوى على طلب', kind === 'MONEY'
-        ? 'الموكل قدم شكوى على الفلوس، والأتعاب متوقفة لحد قرار الإدارة'
-        : 'الموكل قدم شكوى على التعامل، والإدارة هتراجعها', order.id);
+        ? `الموكل قدم شكوى على الفلوس على طلب ${order.order_number}، والأتعاب متوقفة لحد قرار الإدارة`
+        : `الموكل قدم شكوى على التعامل على طلب ${order.order_number}، والإدارة هتراجعها`, order.id);
+      return inserted.rows[0].reference as string;
     });
 
     return reply.status(201).send({
       success: true,
-      message: kind === 'MONEY' ? 'استلمنا شكواك، والفلوس متوقفة لحد قرار الإدارة' : 'استلمنا شكواك، والإدارة هتراجعها',
+      data: { reference },
+      message: kind === 'MONEY'
+        ? `استلمنا شكواك رقم ${reference}، والفلوس متوقفة لحد قرار الإدارة`
+        : `استلمنا شكواك رقم ${reference}، والإدارة هتراجعها`,
     });
   });
 
@@ -942,7 +942,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
 
     const res = await query(
       `INSERT INTO order_appeals (order_id, lawyer_id, reason) VALUES ($1, $2, $3)
-       ON CONFLICT (order_id) DO NOTHING RETURNING id`,
+       ON CONFLICT (order_id) DO NOTHING RETURNING id, reference`,
       [order.id, userId, reason]
     );
 
@@ -950,7 +950,8 @@ export async function orderRoutes(fastify: FastifyInstance) {
       return reply.status(409).send({ success: false, error: 'تم تقديم اعتراض على هذا الطلب من قبل' });
     }
 
-    return reply.status(201).send({ success: true, message: 'تم استلام اعتراضك وستراجعه الإدارة' });
+    const reference = res.rows[0].reference;
+    return reply.status(201).send({ success: true, data: { reference }, message: `تم استلام اعتراضك رقم ${reference} وستراجعه الإدارة` });
   });
 
   // 13. POST /api/v1/orders/:id/arrive - Lawyer confirms arrival near the client
@@ -1068,16 +1069,17 @@ export async function orderRoutes(fastify: FastifyInstance) {
     }
 
     const reason = sanitizeText(body.reason || COMPLAINT_LABELS[kind], 2000);
-    await withTransaction(async (client) => {
-      await client.query(
-        'INSERT INTO lawyer_reports (order_id, lawyer_id, client_id, reason, kind) VALUES ($1, $2, $3, $4, $5)',
+    const reference = await withTransaction(async (client) => {
+      const inserted = await client.query(
+        'INSERT INTO lawyer_reports (order_id, lawyer_id, client_id, reason, kind) VALUES ($1, $2, $3, $4, $5) RETURNING reference',
         [order.id, userId, order.client_id, reason, kind]
       );
       if (kind === 'MONEY') await freezePayout(client, order);
-      await notify(client, order.client_id, 'شكوى على طلب', 'المحامي قدم شكوى على الطلب، والإدارة هتراجعها', order.id);
+      await notify(client, order.client_id, 'شكوى على طلب', `المحامي قدم شكوى على طلب ${order.order_number}، والإدارة هتراجعها`, order.id);
+      return inserted.rows[0].reference as string;
     });
 
-    return reply.status(201).send({ success: true, message: 'استلمنا شكواك، والإدارة هتراجعها' });
+    return reply.status(201).send({ success: true, data: { reference }, message: `استلمنا شكواك رقم ${reference}، والإدارة هتراجعها` });
   });
 
   // 16. PUT /api/v1/orders/:id/review - One edit before the review is published

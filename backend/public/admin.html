@@ -6767,10 +6767,10 @@ body .custom-switch-toggle.active.sm .switch-knob {
     box.append(guide('تظهر هنا شكاوى الموكلين المفتوحة. يمكنك مراجعة الشكوى والرد عليها ليصل الرد للموكل في إشعار وتُغلق الشكوى.',
       'إذا استدعت الشكوى أي إجراء (مثل الإنذار أو إضافة/خصم رصيد أو تجميد أتعاب)، يمكنك تطبيقه مباشرة من صفحة بروفايل الحساب المعني.'));
     box.append(controlsBar([stateFilter([['', 'كل الأنواع'], ['MONEY', 'على الفلوس'], ['BEHAVIOR', 'على التعامل']]), ...dateFilters()]));
-    box.append(table(['النوع', 'رقم الطلب', 'الموكل', 'المحامي', 'التفاصيل', 'المبلغ', 'التاريخ', 'الإجراءات'], shown.map((item) => ({
+    box.append(table(['رقم الشكوى', 'النوع', 'رقم الطلب', 'الموكل', 'المحامي', 'التفاصيل', 'المبلغ', 'التاريخ', 'الإجراءات'], shown.map((item) => ({
       item,
       cells: [
-        kindBadge(item.kind), el('strong', item.order_number, 'prod-name-ar'),
+        el('strong', item.reference, 'prod-name-ar'), kindBadge(item.kind), item.order_number,
         personCell(item.client_name, item.client_phone), personCell(item.lawyer_name, item.lawyer_phone),
         item.reason, item.price + ' ج.م', date(item.created_at), openButton('فتح', 'complaint', item),
       ],
@@ -6779,7 +6779,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
   async function complaintPage(box) {
     const item = current.param;
-    pageHead('شكوى على طلب ' + item.order_number);
+    pageHead('شكوى ' + item.reference + ' على طلب ' + item.order_number);
 
     box.append(hero(avatarBox(null, 'complaint'), 'شكوى موكل', [badge('مفتوحة', 'red'), kindBadge(item.kind), tag(item.order_status)],
       [['orders', 'طلب ' + item.order_number], ['calendar', date(item.created_at)], ['money', item.price + ' ج.م']],
@@ -6832,11 +6832,11 @@ body .custom-switch-toggle.active.sm .switch-knob {
     box.append(guide('تظهر هنا شكاوى المحامين على الموكلين واعتراضاتهم وبلاغاتهم.',
       'يمكنك مراجعة الشكوى والرد عليها ليصل الرد في إشعار للمحامي وتُغلق الشكوى. وإذا استدعت الشكوى أي إجراء، يمكنك تطبيقه مباشرة من صفحة بروفايل الحساب المعني.'));
     box.append(controlsBar([stateFilter([['', 'كل الأنواع'], ...Object.entries(LAWYER_ITEMS).map(([key, [label]]) => [key, label])]), ...dateFilters()]));
-    box.append(table(['النوع', 'رقم الطلب', 'المحامي', 'التفاصيل', 'التاريخ', 'الإجراءات'], shown.map((entry) => {
+    box.append(table(['الرقم', 'النوع', 'رقم الطلب', 'المحامي', 'التفاصيل', 'التاريخ', 'الإجراءات'], shown.map((entry) => {
       const [label, color, page] = LAWYER_ITEMS[entry.kind];
       return {
         item: entry,
-        cells: [badge(label, color), el('strong', entry.order, 'prod-name-ar'), entry.lawyer, entry.details || '-', date(entry.at), openButton('فتح', page, entry.item)],
+        cells: [el('strong', entry.item.reference || '-', 'prod-name-ar'), badge(label, color), entry.order, entry.lawyer, entry.details || '-', date(entry.at), openButton('فتح', page, entry.item)],
       };
     }), (entry) => open(LAWYER_ITEMS[entry.kind][2], entry.item)));
   }
@@ -6858,7 +6858,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
   async function reportPage(box) {
     const item = current.param;
-    pageHead('شكوى محامٍ على طلب ' + item.order_number);
+    pageHead('شكوى محامٍ ' + item.reference + ' على طلب ' + item.order_number);
 
     box.append(hero(avatarBox(null, 'complaint'), 'شكوى محامٍ', [badge('مفتوحة', 'red'), kindBadge(item.kind), tag(item.order_status)],
       [['orders', 'طلب ' + item.order_number], ['calendar', date(item.created_at)], ['money', item.price + ' ج.م']],
@@ -6887,7 +6887,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
   async function appealPage(box) {
     const item = current.param;
-    pageHead('اعتراض على طلب ' + item.order_number);
+    pageHead('اعتراض ' + item.reference + ' على طلب ' + item.order_number);
     const resolve = (approve) => decideAndReturn(() => api('POST', '/admin/appeals/' + item.id + '/resolve', { approve }));
 
     box.append(hero(avatarBox(null, 'appeal'), 'اعتراض محامي', [badge('مفتوح', 'amber')],

@@ -135,16 +135,18 @@ export async function walletRoutes(fastify: FastifyInstance) {
       if (amount > await spendableBalance(db, userId, role)) throw new TransferError(400, 'رصيدك مش كفاية');
 
       const transfer = await db.query(
-        'INSERT INTO wallet_transfers (sender_id, recipient_id, amount) VALUES ($1, $2, $3) RETURNING id, created_at',
+        'INSERT INTO wallet_transfers (sender_id, recipient_id, amount) VALUES ($1, $2, $3) RETURNING id, reference, created_at',
         [userId, recipient.id, amount]
       );
-      await addToLedger(db, { id: userId, role }, -amount, `تحويل إلى ${shortName(recipient.full_name)}`);
-      await addToLedger(db, recipient, amount, `تحويل من ${senderName}`);
-      await notify(db, userId, 'تم التحويل', `حوّلت ${amount} ج.م إلى ${shortName(recipient.full_name)}`);
-      await notify(db, recipient.id, 'وصلك تحويل', `وصلك ${amount} ج.م من ${senderName}`);
+      const reference = transfer.rows[0].reference;
+      await addToLedger(db, { id: userId, role }, -amount, `تحويل ${reference} إلى ${shortName(recipient.full_name)}`);
+      await addToLedger(db, recipient, amount, `تحويل ${reference} من ${senderName}`);
+      await notify(db, userId, 'تم التحويل', `حوّلت ${amount} ج.م إلى ${shortName(recipient.full_name)}، رقم التحويل ${reference}`);
+      await notify(db, recipient.id, 'وصلك تحويل', `وصلك ${amount} ج.م من ${senderName}، رقم التحويل ${reference}`);
 
       return {
         id: transfer.rows[0].id,
+        reference,
         amount,
         recipientName: shortName(recipient.full_name),
         balance: await spendableBalance(db, userId, role),
