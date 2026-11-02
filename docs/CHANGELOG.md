@@ -2,6 +2,8 @@
 
 ## [Phase 2.82] - 2026-11-02
 ### Production Reset
+- Lawyer specialty is chosen from a separate page with its own drawing.
+- The backend now logs to journald, and its service no longer depends on the removed log folder.
 - Removed everything unrelated to the app from the server, cleared all client and lawyer data, and kept the admin accounts.
 - Removed unused public map routes, moved Nginx logs to `/var/log/nginx`, and set the platform share to 30%.
 - The notifications page has its own empty drawing, and its header no longer shows the bell.

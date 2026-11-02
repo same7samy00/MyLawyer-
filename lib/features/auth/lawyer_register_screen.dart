@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../core/constants/legal_specialties.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_pressable.dart';
@@ -10,6 +9,7 @@ import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/password_strength_widget.dart';
 import 'email_verification_screen.dart';
+import 'specialty_picker_screen.dart';
 
 /// شاشة إنشاء حساب محامي جديد بنظام متعدد الخطوات (Step-by-Step)
 class LawyerRegisterScreen extends StatefulWidget {
@@ -241,6 +241,16 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
         );
       },
     );
+  }
+
+  Future<void> _pickSpecialty(FormFieldState<String> field) async {
+    final picked = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (context) => SpecialtyPickerScreen(selected: _specialty)),
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _specialty = picked);
+    field.validate();
   }
 
   void _validateAndAdvanceStep1() {
@@ -530,24 +540,25 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
 
           _buildInputLabel('التخصص', isRequired: true),
           const SizedBox(height: 8),
-          Autocomplete<String>(
-            optionsViewOpenDirection: OptionsViewOpenDirection.up,
-            optionsBuilder: (value) {
-              final text = value.text.trim();
-              if (text.isEmpty) return const Iterable<String>.empty();
-              return legalSpecialties.where((item) => item.contains(text));
-            },
-            onSelected: (value) => _specialty = value,
-            fieldViewBuilder: (context, controller, focusNode, onSubmitted) => TextFormField(
-              controller: controller,
-              focusNode: focusNode,
-              style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 14),
+          FormField<String>(
+            validator: (_) => _specialty == null ? 'اختار تخصصك' : null,
+            builder: (field) => InputDecorator(
               decoration: _inputDecoration(
-                hintText: 'اكتب للبحث عن تخصصك',
+                hintText: 'اختار تخصصك',
                 prefixIcon: Icons.policy_outlined,
+              ).copyWith(errorText: field.errorText),
+              child: InkWell(
+                onTap: () => _pickSpecialty(field),
+                child: Text(
+                  _specialty ?? 'اختار تخصصك',
+                  style: TextStyle(
+                    fontFamily: 'AppFont',
+                    fontFamilyFallback: appFontFallback,
+                    fontSize: 14,
+                    color: _specialty == null ? AppColors.textMuted : AppColors.dark,
+                  ),
+                ),
               ),
-              onChanged: (_) => _specialty = null,
-              validator: (_) => _specialty == null ? 'اختار تخصصك من القائمة' : null,
             ),
           ),
           const SizedBox(height: 18),

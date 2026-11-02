@@ -557,9 +557,11 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(0), 'سامي إبراهيم أحمد السيد');
       await tester.enterText(find.byType(TextFormField).at(1), '01123456789');
       await tester.enterText(find.byType(TextFormField).at(2), '984512');
-      await tester.enterText(find.byType(TextFormField).at(3), 'الجنائي');
+      await tester.ensureVisible(find.text('اختار تخصصك').last);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('القانون الجنائي').last);
+      await tester.tap(find.text('اختار تخصصك').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('القانون الجنائي'));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('بيانات الحساب'));
       await tester.pumpAndSettle();
