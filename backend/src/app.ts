@@ -18,6 +18,8 @@ import { notificationRoutes } from './modules/notifications/routes.js';
 import { dbPool } from './database/index.js';
 import { runMigrations } from './database/migrate.js';
 
+const ADMIN_FONTS = ['app-digits.ttf', 'flat-jooza-regular.ttf', 'Nunito-Variable.ttf'];
+
 export function buildApp() {
   const fastify = Fastify({
     logger: config.nodeEnv === 'development',
@@ -160,6 +162,13 @@ export function buildApp() {
     api.get('/admin-panel', async (_request, reply) => {
       const page = fs.readFileSync(path.resolve(process.cwd(), 'public/admin.html'), 'utf-8');
       return reply.type('text/html; charset=utf-8').send(page);
+    });
+    api.get('/admin-panel/fonts/:file', async (request, reply) => {
+      const { file } = request.params as { file: string };
+      if (!ADMIN_FONTS.includes(file)) return reply.status(404).send({ success: false, error: 'الملف غير موجود' });
+
+      const font = fs.readFileSync(path.resolve(process.cwd(), 'public/fonts', file));
+      return reply.type('font/ttf').header('Cache-Control', 'public, max-age=604800').send(font);
     });
     api.register(authRoutes, { prefix: '/auth' });
     api.register(userRoutes, { prefix: '/users' });
