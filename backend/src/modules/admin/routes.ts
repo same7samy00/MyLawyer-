@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
-import { registerAdminDirectory } from './directory.js';
+import { registerAdminDirectory, userStats } from './directory.js';
 import { sanitizeText } from '../../utils/security.js';
 import { addClientCredit, addLawyerStrike, lawyerShare, MAX_CODE_ATTEMPTS, notify, refreshLawyerRating, warnClient } from '../lifecycle/service.js';
 
@@ -108,9 +108,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
       `SELECT c.id, c.reason, c.filed_after_hold, c.created_at,
               o.id as order_id, o.order_number, o.status as order_status, o.price, o.service_title,
               o.problem_description, o.completed_at, o.payout_status,
-              u.phone as client_phone, lu.phone as lawyer_phone, lp.full_name as lawyer_name,
-              (SELECT COUNT(*)::int FROM complaints x WHERE x.client_id = c.client_id) as client_complaints,
-              (SELECT COUNT(*)::int FROM complaints x WHERE x.lawyer_id = c.lawyer_id) as lawyer_complaints
+              u.phone as client_phone, u.email as client_email, lu.email as lawyer_email, COALESCE(u.full_name, 'موكل') as client_name, c.client_id,
+              lu.phone as lawyer_phone, lp.full_name as lawyer_name, c.lawyer_id,
+              ${userStats('c.client_id', 'client')}, ${userStats('c.lawyer_id', 'lawyer')}
        FROM complaints c
        JOIN service_orders o ON o.id = c.order_id
        JOIN users u ON u.id = c.client_id
@@ -204,9 +204,12 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // GET /api/v1/admin/appeals
   fastify.get('/appeals', async (_request: FastifyRequest, reply: FastifyReply) => {
     const res = await query(
-      `SELECT a.id, a.reason, a.created_at, o.order_number, o.price, o.service_title, lp.full_name as lawyer_name
+      `SELECT a.id, a.reason, a.created_at, o.id as order_id, o.order_number, o.price, o.service_title,
+              lp.full_name as lawyer_name, a.lawyer_id, lu.phone as lawyer_phone, lu.email as lawyer_email,
+              ${userStats('a.lawyer_id', 'lawyer')}
        FROM order_appeals a
        JOIN service_orders o ON o.id = a.order_id
+       JOIN users lu ON lu.id = a.lawyer_id
        JOIN lawyer_profiles lp ON lp.user_id = a.lawyer_id
        WHERE a.status = 'OPEN' ORDER BY a.created_at ASC`
     );
@@ -307,8 +310,15 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // GET /api/v1/admin/urgent-applications
   fastify.get('/urgent-applications', async (_request: FastifyRequest, reply: FastifyReply) => {
     const res = await query(
-      `SELECT lp.user_id, lp.full_name, lp.syndicate_number, lp.specialty, lp.bio, u.phone
+      `SELECT lp.user_id, lp.full_name, lp.syndicate_number, lp.specialty, lp.bio, u.phone, u.email, lp.urgent_terms_accepted_at,
+              COALESCE(lp.profile_photo_path, u.profile_photo_path) AS photo,
+              card.id AS card_id, card.mime_type AS card_mime
        FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id
+       LEFT JOIN LATERAL (
+         SELECT id, mime_type FROM lawyer_documents d
+         WHERE d.lawyer_profile_id = lp.id AND d.document_type = 'syndicate_card' AND d.is_current
+         ORDER BY uploaded_at DESC LIMIT 1
+       ) card ON TRUE
        WHERE lp.urgent_status = 'PENDING' ORDER BY lp.urgent_terms_accepted_at ASC`
     );
     return reply.send({ success: true, data: res.rows });

@@ -100,6 +100,9 @@
 | `/admin/tickets` | `GET` | الإدارة | كل ما ينتظر قرار، والأقدم أولاً |
 | `/admin/orders/:id/unlock-code` | `POST` | الإدارة | فتح كود مقفول بعد 5 محاولات خاطئة |
 | `/admin/reports/:id/resolve` | `POST` | الإدارة | إغلاق بلاغ محامي |
+| `/lawyers/me/urgent-terms` | `POST` | محامٍ | التقديم على «محاميك حالاً»، ومرفوض لو مفيش صورة شخصية وكارنيه |
+| `/lawyers/me/documents` | `POST` | محامٍ | رفع صورة كارنيه النقابة (صورة أو PDF)، ونوع الملف بيتعرف من الملف نفسه |
+| `/admin/urgent-applications` | `GET` | إدارة | طلبات الانضمام ومعاها `photo` و`card_id` و`card_mime`، والكارنيه بيتفتح من `/lawyers/documents/:id` |
 | `/admin/overview` | `GET` | إدارة | أرقام عامة عن الحسابات والطلبات |
 | `/admin/users?role=&q=` | `GET` | إدارة | قائمة المحامين أو الموكلين والبحث فيهم |
 | `/admin/users/:id` | `GET` | إدارة | بروفايل كامل بالطلبات والتقييمات والشكاوى |
@@ -107,6 +110,7 @@
 | `/admin/orders?q=&status=` | `GET` | إدارة | البحث في الطلبات |
 | `/admin/orders/:id` | `GET` | إدارة | الطلب ودورة حياته كاملة |
 | `/admin/reviews` | `GET` | إدارة | كل التقييمات |
+| `/admin/reports` | `GET` | إدارة | بلاغات المحامين المفتوحة عن الموكلين |
 | `/admin-panel` | `GET` | عام | صفحة لوحة التحكم، وبياناتها تتطلب حساب إدارة |
 | `/admin/reviews/reported`، `/admin/reviews/:id/moderate` | `GET`/`POST` | الإدارة | مراجعة التعليقات |
 | `/orders/:id/cancel` | `POST` | أطراف الطلب | إلغاء قبل الدفع، وللموكل بعد الدفع قبل وصول المحامي مع رد المبلغ لرصيده |

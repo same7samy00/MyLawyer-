@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
@@ -76,6 +77,8 @@ class _LawyerUrgentServiceIntroScreenState extends State<LawyerUrgentServiceIntr
         _rejectionReason = profile['urgent_rejection_reason']?.toString();
       });
     }
+    // الصورة والكارنيه من التسجيل يتحاولوا تاني لو رفعهم الأول فشل
+    await AuthService.uploadPendingDocuments();
   }
 
   Future<void> _handleApply() async {

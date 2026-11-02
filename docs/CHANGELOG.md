@@ -1,5 +1,22 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.85] - 2026-11-02
+### Control Page Redesign
+- The control page now follows the EGY-ORDER dashboard: white side menu, page header with a subtitle and back button, quick reports on top of every page, filters by date and state, and organized tables.
+- Client complaints and lawyer complaints are two pages. The lawyer page also holds appeals, reported reviews, and locked codes, so the tickets and appeals pages were removed.
+- Every complaint, appeal, report, locked code, and lawyer application opens on its own page with its decision.
+- Lawyers waiting for approval stay out of the lawyers list and have no profile until approved.
+- Accounts open as profiles with top tabs, and people show in cards with icons for name, phone, and email.
+
+### Lawyer Photo and Syndicate Card Before Approval
+- Registration asks for a profile photo next to the syndicate card, and both are uploaded right after the first sign-in. Before, the card stayed on the phone only.
+- If that upload fails, the service page tries again in the background.
+- The server reads the card file itself, because phones often send no file type, and refuses an application without both files.
+- The admin applications list returns the photo and the private card, so the control page can show them before approval.
+- New admin list of open lawyer reports about clients, so client and lawyer complaints can have their own pages.
+- Admin lists of accounts, orders, complaints, reports, and appeals now return each person's orders, complaints against them, and complaints they filed.
+- The same lists also return each person's email, so their data card shows name, phone, and email.
+
 ## [Phase 2.84] - 2026-11-02
 ### Suspended Accounts
 - Removed the public `health/migrate` link. Database updates run when the server starts, or with `npm run migrate`.

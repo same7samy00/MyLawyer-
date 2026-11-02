@@ -9,6 +9,7 @@ import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 const PORT = 55433;
 process.env.DATABASE_URL = `postgresql://postgres:postgres@127.0.0.1:${PORT}/postgres?sslmode=disable`;
 process.env.NODE_ENV = 'test';
+process.env.PRIVATE_STORAGE_PATH = (await import('node:path')).join((await import('node:os')).tmpdir(), 'mylawyer-test-docs');
 
 const PROBLEM = 'محضر في قسم الشرطة';
 
@@ -470,6 +471,13 @@ describe('التقييمات', () => {
     const found = await call('GET', `/admin/orders?q=${encodeURIComponent(life.body.data.order.order_number)}`, adminToken);
     assert.equal(found.body.data.length, 1);
     assert.equal((await call('GET', '/admin/overview', clientToken)).status, 403);
+
+    await call('POST', `/orders/${order.id}/report`, lawyerToken, { reason: 'الموكل ما ادانيش الكود في الميعاد' });
+    const reports = await call('GET', '/admin/reports', adminToken);
+    const report = reports.body.data.find((r: any) => r.order_id === order.id);
+    assert.equal(report.client_against >= 1, true);
+    assert.equal(report.lawyer_filed >= 1, true);
+    assert.equal(typeof report.lawyer_orders, 'number');
   });
 
   it('المحامي يبلغ والإدارة تخفي التعليق', async () => {
@@ -522,7 +530,37 @@ describe('السعر قبل الطلب والنسبة', () => {
     const visible = async () => (await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25', null)).body.data.some((l: any) => l.id === lawyerId);
 
     assert.equal((await call('POST', '/lawyers/me/availability', lawyerToken, { isAvailable: true })).status, 403);
-    await call('POST', '/lawyers/me/urgent-terms', lawyerToken, {});
+
+    // No photo or card means no application
+    await sql('UPDATE users SET profile_photo_path = NULL WHERE id = $1', [lawyerId]);
+    await sql('UPDATE lawyer_profiles SET profile_photo_path = NULL WHERE user_id = $1', [lawyerId]);
+    await sql('DELETE FROM lawyer_documents');
+    assert.equal((await call('POST', '/lawyers/me/urgent-terms', lawyerToken, {})).status, 400);
+
+    await sql(`UPDATE lawyer_profiles SET profile_photo_path = '/uploads/avatars/test.jpg' WHERE user_id = $1`, [lawyerId]);
+    assert.equal((await call('POST', '/lawyers/me/urgent-terms', lawyerToken, {})).status, 400);
+
+    // The phone sends the card with no file type, the server reads the file itself
+    const boundary = 'card-boundary';
+    const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(40)]);
+    const upload = await app.inject({
+      method: 'POST',
+      url: '/api/v1/lawyers/me/documents',
+      headers: { authorization: `Bearer ${lawyerToken}`, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: Buffer.concat([
+        Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="card"\r\nContent-Type: application/octet-stream\r\n\r\n`),
+        jpeg,
+        Buffer.from(`\r\n--${boundary}--\r\n`),
+      ]),
+    });
+    assert.equal(upload.statusCode, 201, upload.body);
+
+    assert.equal((await call('POST', '/lawyers/me/urgent-terms', lawyerToken, {})).status, 200);
+    const pending = (await call('GET', '/admin/urgent-applications', adminToken)).body.data.find((item: any) => item.user_id === lawyerId);
+    assert.equal(pending.photo, '/uploads/avatars/test.jpg');
+    const card = await app.inject({ method: 'GET', url: `/api/v1/lawyers/documents/${pending.card_id}`, headers: { authorization: `Bearer ${adminToken}` } });
+    assert.equal(card.statusCode, 200);
+    assert.equal(card.headers['content-type'], 'image/jpeg');
     assert.equal(await visible(), false);
 
     const decision = await call('POST', `/admin/urgent-applications/${lawyerId}/decision`, adminToken, { approve: true });

@@ -6,6 +6,7 @@ import { pipeline } from 'stream/promises';
 import { query, withTransaction } from '../../database/index.js';
 import { config } from '../../config/index.js';
 import { sanitizeText } from '../../utils/security.js';
+import { detectFileType } from '../../utils/files.js';
 import { approximateCoordinate } from '../lifecycle/service.js';
 
 // Ensure storage directories exist
@@ -256,6 +257,23 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
   // POST /api/v1/lawyers/me/urgent-terms - The lawyer joins the urgent service
   fastify.post('/me/urgent-terms', { preHandler: [requireLawyerAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = request.user as AuthenticatedLawyer;
+
+    // The admin checks the photo and the syndicate card before approving
+    const filesRes = await query(
+      `SELECT COALESCE(lp.profile_photo_path, u.profile_photo_path) AS photo,
+              EXISTS (SELECT 1 FROM lawyer_documents d WHERE d.lawyer_profile_id = lp.id
+                      AND d.document_type = 'syndicate_card' AND d.is_current) AS has_card
+       FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id WHERE lp.user_id = $1`,
+      [userId]
+    );
+    const files = filesRes.rows[0];
+    if (!files?.photo) {
+      return reply.status(400).send({ success: false, error: 'ارفع صورتك الشخصية الأول من البيانات الشخصية' });
+    }
+    if (!files.has_card) {
+      return reply.status(400).send({ success: false, error: 'ارفع صورة كارنيه النقابة الأول' });
+    }
+
     await query(
       `UPDATE lawyer_profiles
        SET urgent_terms_accepted_at = COALESCE(urgent_terms_accepted_at, NOW()), updated_at = NOW(),
@@ -400,18 +418,16 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: 'لم يتم إرسال الملف' });
     }
 
-    const allowedMime = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    if (!allowedMime.includes(data.mimetype)) {
+    const buffer = await data.toBuffer();
+    const type = detectFileType(buffer);
+    if (!type) {
       return reply.status(400).send({ success: false, error: 'نوع الملف غير مدعوم، يرجى رفع صورة أو ملف PDF' });
     }
 
-    const ext = path.extname(data.filename) || (data.mimetype === 'application/pdf' ? '.pdf' : '.jpg');
-    const secretStorageName = `doc_${crypto.randomBytes(24).toString('hex')}${ext}`;
+    const secretStorageName = `doc_${crypto.randomBytes(24).toString('hex')}${type.ext}`;
+    fs.mkdirSync(config.privateStoragePath, { recursive: true });
     const secretStoragePath = path.join(config.privateStoragePath, secretStorageName);
-
-    await pipeline(data.file, fs.createWriteStream(secretStoragePath));
-
-    const stats = fs.statSync(secretStoragePath);
+    fs.writeFileSync(secretStoragePath, buffer);
 
     const docRes = await withTransaction(async (client) => {
       await client.query(
@@ -425,7 +441,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
         `INSERT INTO lawyer_documents (lawyer_profile_id, document_type, storage_path, original_filename, mime_type, file_size, is_current)
          VALUES ($1, 'syndicate_card', $2, $3, $4, $5, TRUE)
          RETURNING id, document_type, original_filename, mime_type, file_size, uploaded_at`,
-        [profileId, secretStoragePath, data.filename, data.mimetype, stats.size]
+        [profileId, secretStoragePath, data.filename || 'card' + type.ext, type.mime, buffer.length]
       );
       return inserted.rows[0];
     });

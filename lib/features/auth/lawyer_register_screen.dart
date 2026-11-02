@@ -35,6 +35,8 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
 
   final ImagePicker _imagePicker = ImagePicker();
   String? _syndicateCardPath;
+  String? _profilePhotoPath;
+  bool _isPickingPhoto = false;
 
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -80,7 +82,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
       case 1:
         return 'حدد بريدك الإلكتروني وكلمة مرور آمنة\nللوصول لحسابك وإدارة قضاياك';
       case 2:
-        return 'أرفق صورة واضحة لوجه الكارنيه النقابي\nساري المفعول للتحقق والاعتماد';
+        return 'أرفق صورتك الشخصية وصورة واضحة للكارنيه\nالإدارة بتراجعهم قبل الاعتماد';
       default:
         return 'راجع بيانات ملفك المهني بعناية\nويمكنك تعديل أي خطوة من رمز التعديل';
     }
@@ -124,7 +126,11 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
 
       if (pickedFile != null) {
         setState(() {
-          _syndicateCardPath = pickedFile.path;
+          if (_isPickingPhoto) {
+            _profilePhotoPath = pickedFile.path;
+          } else {
+            _syndicateCardPath = pickedFile.path;
+          }
           _errorMessage = null;
         });
       }
@@ -135,7 +141,8 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
     }
   }
 
-  void _showImageSourceModal() {
+  void _showImageSourceModal({bool forPhoto = false}) {
+    _isPickingPhoto = forPhoto;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -158,9 +165,9 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'إرفاق صورة كارنيه نقابة المحامين',
-                  style: TextStyle(
+                Text(
+                  _isPickingPhoto ? 'إرفاق صورتك الشخصية' : 'إرفاق صورة كارنيه نقابة المحامين',
+                  style: const TextStyle(
                     fontFamily: 'AppFont',
                     fontFamilyFallback: appFontFallback,
                     fontSize: 16,
@@ -169,10 +176,12 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'يرجى التأكد من وضوح الصورة وظهور كافة البيانات ورقم القيد جلياً',
+                Text(
+                  _isPickingPhoto
+                      ? 'صورة واضحة لوشك، وهتظهر للموكلين في ملفك'
+                      : 'يرجى التأكد من وضوح الصورة وظهور كافة البيانات ورقم القيد جلياً',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'AppFont',
                     fontFamilyFallback: appFontFallback,
                     fontSize: 12,
@@ -276,6 +285,12 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
 
   void _validateAndAdvanceStep3() {
     setState(() => _errorMessage = null);
+    if (_profilePhotoPath == null) {
+      setState(() {
+        _errorMessage = 'يرجى إرفاق صورتك الشخصية للمتابعة.';
+      });
+      return;
+    }
     if (_syndicateCardPath == null) {
       setState(() {
         _errorMessage = 'يرجى إرفاق صورة كارنيه نقابة المحامين للمتابعة.';
@@ -299,6 +314,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
       password: _passwordController.text,
       syndicateNumber: _syndicateNumberController.text.trim(),
       syndicateCardPath: _syndicateCardPath,
+      profilePhotoPath: _profilePhotoPath,
       specialty: _specialty,
       bio: _bioController.text.trim(),
     );
@@ -706,11 +722,54 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
     );
   }
 
+  /// الصورة الشخصية بتظهر للموكلين وبتراجعها الإدارة مع الكارنيه
+  Widget _buildPhotoPicker() {
+    final photo = _profilePhotoPath;
+    return AppCard(
+      isDashed: true,
+      padding: const EdgeInsets.all(12),
+      onTap: () => _showImageSourceModal(forPhoto: true),
+      child: Row(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(7.0),
+            ),
+            child: photo == null
+                ? const Icon(Icons.person_add_alt_1_rounded, color: AppColors.primary, size: 32)
+                : Image.file(File(photo), fit: BoxFit.cover),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              photo == null ? 'اضغط هنا لالتقاط أو اختيار صورتك' : 'اضغط لتغيير الصورة',
+              style: const TextStyle(
+                fontFamily: 'AppFont',
+                fontFamilyFallback: appFontFallback,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// الخطوة الثالثة: مستندات المحامي (إرفاق ومعاينة صورة كارنيه النقابة)
   Widget _buildStep3Documents() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        _buildInputLabel('صورتك الشخصية', isRequired: true),
+        const SizedBox(height: 14),
+        _buildPhotoPicker(),
+        const SizedBox(height: 24),
         _buildInputLabel('صورة كارنيه نقابة المحامين (ساري)', isRequired: true),
         const SizedBox(height: 14),
 
@@ -919,6 +978,39 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                 value: '•••••••• (محمية ومطابقة للشروط)',
                 icon: Icons.lock_rounded,
                 onEdit: () => setState(() => _currentStep = 1),
+              ),
+              const Divider(height: 20, color: AppColors.cardBorder),
+
+              // الصورة الشخصية
+              Row(
+                children: [
+                  const Icon(Icons.person_rounded, color: AppColors.primary, size: 18),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'الصورة الشخصية:',
+                      style: TextStyle(
+                        fontFamily: 'AppFont',
+                        fontFamilyFallback: appFontFallback,
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (_profilePhotoPath != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(7.0),
+                      child: Image.file(File(_profilePhotoPath!), width: 44, height: 44, fit: BoxFit.cover),
+                    ),
+                  AppPressable(
+                    child: IconButton(
+                      onPressed: () => setState(() => _currentStep = 2),
+                      icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.primary),
+                      tooltip: 'تعديل',
+                    ),
+                  ),
+                ],
               ),
               const Divider(height: 20, color: AppColors.cardBorder),
 

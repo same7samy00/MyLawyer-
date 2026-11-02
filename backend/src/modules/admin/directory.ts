@@ -4,6 +4,15 @@ import { notify } from '../lifecycle/service.js';
 import { sanitizeText } from '../../utils/security.js';
 
 const PAGE_LIMIT = 100;
+
+/// Orders and complaints of one account, shown next to it wherever the control page lists it
+export function userStats(id: string, prefix: string) {
+  return `(SELECT COUNT(*)::int FROM service_orders x WHERE x.client_id = ${id} OR x.lawyer_id = ${id}) AS ${prefix}_orders,
+          ((SELECT COUNT(*) FROM complaints x WHERE x.lawyer_id = ${id})
+            + (SELECT COUNT(*) FROM lawyer_reports x WHERE x.client_id = ${id}))::int AS ${prefix}_against,
+          ((SELECT COUNT(*) FROM complaints x WHERE x.client_id = ${id})
+            + (SELECT COUNT(*) FROM lawyer_reports x WHERE x.lawyer_id = ${id}))::int AS ${prefix}_filed`;
+}
 const UUID_PATTERN = /^[0-9a-f-]{36}$/i;
 
 /// Read side of the control page: accounts, orders, and everything linked to them
@@ -34,7 +43,8 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
       `SELECT u.id, u.role, u.status, u.phone, u.email, u.created_at, u.warnings_count,
               COALESCE(lp.full_name, u.full_name) AS full_name,
               lp.specialty, lp.syndicate_number, lp.rating, lp.reviews_count, lp.is_available, lp.urgent_status,
-              (SELECT COUNT(*)::int FROM service_orders o WHERE o.client_id = u.id OR o.lawyer_id = u.id) AS orders_count
+              (SELECT COUNT(*)::int FROM service_orders o WHERE o.client_id = u.id OR o.lawyer_id = u.id) AS orders_count,
+              ${userStats('u.id', 'user')}
        FROM users u LEFT JOIN lawyer_profiles lp ON lp.user_id = u.id
        WHERE u.role = $1
          AND (COALESCE(lp.full_name, u.full_name, '') ILIKE $2 OR u.phone ILIKE $2 OR u.email ILIKE $2 OR COALESCE(lp.syndicate_number, '') ILIKE $2)
@@ -54,7 +64,8 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
               COALESCE(lp.full_name, u.full_name) AS full_name,
               COALESCE(lp.profile_photo_path, u.profile_photo_path) AS photo,
               lp.specialty, lp.bio, lp.syndicate_number, lp.rating, lp.reviews_count, lp.is_available,
-              lp.availability_off_reason, lp.urgent_status, lp.last_location_updated_at, lp.suspended_until
+              lp.availability_off_reason, lp.urgent_status, lp.last_location_updated_at, lp.suspended_until,
+              ${userStats('u.id', 'user')}
        FROM users u LEFT JOIN lawyer_profiles lp ON lp.user_id = u.id
        WHERE u.id = $1`,
       [id]
@@ -128,7 +139,8 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     const res = await query(
       `SELECT o.id, o.order_number, o.status, o.price, o.problem_type, o.created_at,
               COALESCE(c.full_name, 'موكل') AS client_name, c.id AS client_id,
-              lp.full_name AS lawyer_name, lp.user_id AS lawyer_id
+              lp.full_name AS lawyer_name, lp.user_id AS lawyer_id,
+              ${userStats('o.client_id', 'client')}, ${userStats('o.lawyer_id', 'lawyer')}
        FROM service_orders o
        JOIN users c ON c.id = o.client_id
        JOIN lawyer_profiles lp ON lp.user_id = o.lawyer_id
@@ -147,8 +159,9 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
 
     const orderRes = await query(
-      `SELECT o.*, COALESCE(c.full_name, 'موكل') AS client_name, c.phone AS client_phone,
-              lp.full_name AS lawyer_name, l.phone AS lawyer_phone
+      `SELECT o.*, COALESCE(c.full_name, 'موكل') AS client_name, c.phone AS client_phone, c.email AS client_email, l.email AS lawyer_email,
+              lp.full_name AS lawyer_name, l.phone AS lawyer_phone,
+              ${userStats('o.client_id', 'client')}, ${userStats('o.lawyer_id', 'lawyer')}
        FROM service_orders o
        JOIN users c ON c.id = o.client_id
        JOIN users l ON l.id = o.lawyer_id
@@ -170,6 +183,25 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
       success: true,
       data: { order, logs: logs.rows, complaints: complaints.rows, appeals: appeals.rows, reviews: reviews.rows },
     });
+  });
+
+  // GET /api/v1/admin/reports - Open reports the lawyers filed about clients
+  fastify.get('/reports', async (_request: FastifyRequest, reply: FastifyReply) => {
+    const res = await query(
+      `SELECT r.id, r.reason, r.created_at, o.id AS order_id, o.order_number, o.status AS order_status, o.price,
+              lp.full_name AS lawyer_name, l.phone AS lawyer_phone, l.email AS lawyer_email, r.lawyer_id,
+              COALESCE(c.full_name, 'موكل') AS client_name, c.phone AS client_phone, c.email AS client_email, r.client_id,
+              ${userStats('r.client_id', 'client')}, ${userStats('r.lawyer_id', 'lawyer')}
+       FROM lawyer_reports r
+       JOIN service_orders o ON o.id = r.order_id
+       JOIN users l ON l.id = r.lawyer_id
+       JOIN lawyer_profiles lp ON lp.user_id = r.lawyer_id
+       JOIN users c ON c.id = r.client_id
+       WHERE r.status = 'OPEN'
+       ORDER BY r.created_at ASC LIMIT $1`,
+      [PAGE_LIMIT]
+    );
+    return reply.send({ success: true, data: res.rows });
   });
 
   // GET /api/v1/admin/reviews

@@ -6,15 +6,7 @@ import { config } from '../../config/index.js';
 import { query } from '../../database/index.js';
 import { hashPassword, verifyPassword, sanitizeText } from '../../utils/security.js';
 import { z } from 'zod';
-
-function imageExtension(file: Buffer): string | null {
-  if (file.length < 12) return null;
-  if (file[0] === 0xff && file[1] === 0xd8 && file[2] === 0xff) return '.jpg';
-  if (file.subarray(0, 8).toString('hex') === '89504e470d0a1a0a') return '.png';
-  if (file.subarray(0, 4).toString() === 'RIFF' && file.subarray(8, 12).toString() === 'WEBP') return '.webp';
-  if (file.subarray(4, 8).toString() === 'ftyp') return '.heic';
-  return null;
-}
+import { detectFileType } from '../../utils/files.js';
 
 export async function userRoutes(fastify: FastifyInstance) {
   // Hook to authenticate all routes in this plugin
@@ -79,7 +71,8 @@ export async function userRoutes(fastify: FastifyInstance) {
 
     // Phones often send no image type, so the file itself decides
     const buffer = await data.toBuffer();
-    const ext = imageExtension(buffer);
+    const type = detectFileType(buffer);
+    const ext = type?.mime.startsWith('image/') ? type.ext : null;
     if (!ext) return reply.status(400).send({ success: false, error: 'الملف ده مش صورة مدعومة' });
 
     const filename = `avatar_${crypto.randomUUID()}${ext}`;

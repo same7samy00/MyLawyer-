@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
@@ -84,6 +85,7 @@ class RegistrationData {
   final String password;
   final String? syndicateNumber;
   final String? syndicateCardPath;
+  final String? profilePhotoPath;
   final String? specialty;
   final String? bio;
 
@@ -95,6 +97,7 @@ class RegistrationData {
     required this.password,
     this.syndicateNumber,
     this.syndicateCardPath,
+    this.profilePhotoPath,
     this.specialty,
     this.bio,
   });
@@ -114,6 +117,7 @@ class AuthService {
   static const String _prefUserEmail = 'user_email';
   static const String _prefSyndicateNumber = 'syndicate_number';
   static const String _prefSyndicateCardPath = 'syndicate_card_path';
+  static const String _prefProfilePhotoPath = 'pending_profile_photo_path';
   static const String _prefIsEmailVerified = 'is_email_verified';
   static const String _prefApprovalStatus = 'lawyer_approval_status';
   static const String _prefUserStatus = 'user_account_status';
@@ -262,6 +266,25 @@ class AuthService {
     } else {
       await prefs.remove(_prefApprovalStatus);
     }
+  }
+
+  /// صورة المحامي والكارنيه المختارين وقت التسجيل يترفعوا أول ما يبقى فيه جلسة، ولو فشلوا يتحاولوا تاني من صفحة الخدمة
+  static Future<void> uploadPendingDocuments() async {
+    await _uploadPending(_prefSyndicateCardPath, '/lawyers/me/documents');
+    await _uploadPending(_prefProfilePhotoPath, '/users/me/profile-photo');
+  }
+
+  static Future<void> _uploadPending(String key, String endpoint) async {
+    final prefs = await SharedPreferences.getInstance();
+    final path = prefs.getString(key);
+    if (path == null) return;
+    if (!File(path).existsSync()) {
+      await prefs.remove(key);
+      return;
+    }
+
+    final res = await ApiService.uploadFile(endpoint, path);
+    if (res.isOk) await prefs.remove(key);
   }
 
   /// جلب الحساب الحالي من الخادم وتحديث نسخته المحلية
@@ -439,6 +462,10 @@ class AuthService {
       if (registration.syndicateCardPath != null) {
         await prefs.setString(_prefSyndicateCardPath, registration.syndicateCardPath!);
       }
+      if (registration.profilePhotoPath != null) {
+        await prefs.setString(_prefProfilePhotoPath, registration.profilePhotoPath!);
+      }
+      await uploadPendingDocuments();
     }
 
     return AuthResult(
