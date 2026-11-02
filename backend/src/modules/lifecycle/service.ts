@@ -243,8 +243,8 @@ async function hideSilentLawyers() {
 
 async function sendDeadlineReminders() {
   const reminders = [
-    { column: 'reminder_first_sent', hoursLeft: 12, body: 'باقي 12 ساعة، أنهِ المهمة بكود الموكل قبل انتهاء المهلة' },
-    { column: 'reminder_second_sent', hoursLeft: 4, body: 'باقي 4 ساعات، لو المهلة خلصت الطلب هيتقفل من غير أتعاب' },
+    { column: 'reminder_first_sent', hoursLeft: 12, body: 'باقي 12 ساعة، سجّل وصولك عند الموكل وأنهِ المهمة قبل انتهاء المهلة' },
+    { column: 'reminder_second_sent', hoursLeft: 4, body: 'باقي 4 ساعات، لو المهلة خلصت من غير ما توصل للموكل المبلغ هيرجعله' },
   ];
 
   for (const reminder of reminders) {
@@ -278,7 +278,28 @@ async function expireUnfinishedOrders() {
       if (fresh.rows.length === 0) return;
       const settlement = await evaluateSettlement(client, fresh.rows[0]);
       await applySettlement(client, fresh.rows[0], settlement.outcome, order.lawyer_id, 'انتهت مهلة المهمة');
+      // They met, so the client can rate the lawyer like any finished task
+      if (fresh.rows[0].arrived_at && settlement.outcome !== 'REFUND') {
+        await notify(client, order.client_id, 'المهمة اتقفلت', 'قيّم المحامي، ولو فيه مشكلة قدم شكوى خلال 24 ساعة', order.id);
+      }
     });
+  }
+}
+
+/// A day after the task ends, one reminder to rate if the client has not rated yet
+async function sendReviewReminders() {
+  const res = await dbPool.query(
+    `UPDATE service_orders o SET review_reminder_sent = TRUE
+     WHERE o.status = 'COMPLETED' AND o.review_reminder_sent = FALSE
+       AND o.completed_at <= NOW() - INTERVAL '24 hours'
+       AND o.completed_at > NOW() - make_interval(days => $1)
+       AND NOT EXISTS (SELECT 1 FROM reviews r WHERE r.order_id = o.id)
+     RETURNING o.id, o.client_id, o.order_number`,
+    [REVIEW_WINDOW_DAYS]
+  );
+
+  for (const order of res.rows) {
+    await notify(dbPool, order.client_id, 'قيّم المحامي', `رأيك بيفرق، قيّم المحامي على طلب ${order.order_number}`, order.id);
   }
 }
 
@@ -304,4 +325,5 @@ export async function sweepLifecycle() {
   await sendDeadlineReminders();
   await expireUnfinishedOrders();
   await releaseHeldPayouts();
+  await sendReviewReminders();
 }

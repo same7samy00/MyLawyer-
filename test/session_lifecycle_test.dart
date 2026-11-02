@@ -891,6 +891,25 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
 
+    testWidgets('شيت التقييم يفتح لوحده للموكل أول ما المحامي ينهي المهمة', (tester) async {
+      backend.orders = [
+        {...sampleOrder(status: 'ACTIVE'), 'arrivedAt': DateTime.now().toIso8601String()},
+      ];
+      await _openDetails(tester);
+      expect(find.byType(BottomSheet), findsNothing);
+
+      backend.orders = [
+        {...sampleOrder(status: 'COMPLETED'), 'completedAt': DateTime.now().toIso8601String()},
+      ];
+      await tester.pump(const Duration(seconds: 11));
+      await _settleAsync(tester);
+
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.descendant(of: find.byType(BottomSheet), matching: find.text('قيّم المحامي')), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
     testWidgets('الطلب المكتمل يعرض التقييم والشكوى', (tester) async {
       backend.overrides['POST /orders/order-1/complaint'] =
           (request) => FakeBackend.json(201, {'success': true});

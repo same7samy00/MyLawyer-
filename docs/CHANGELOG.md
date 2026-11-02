@@ -1,5 +1,13 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.96] - 2026-11-02
+### Rating Prompts
+- The rating sheet opens by itself for the client the moment the lawyer finishes the task.
+- When the deadline ends after the lawyer arrived, the client gets a notification to rate, like a normal finish.
+- One reminder to rate reaches the client a day after the task if they did not rate (migration `013`).
+- The app still asks once on every launch to rate the last unrated order.
+- Fixed the lawyer deadline reminders that still talked about the old code.
+
 ## [Phase 2.95] - 2026-11-02
 ### ML Numbering
 - Every record now gets an organized number that starts with ML: ML-ORD orders, ML-CMP client complaints, ML-RPT lawyer complaints, ML-APL appeals, and ML-TRF transfers.

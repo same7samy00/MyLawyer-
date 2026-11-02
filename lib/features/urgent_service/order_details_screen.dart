@@ -57,7 +57,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
     for (final order in res.data ?? const <OrderModel>[]) {
       if (order.id == _order.id) {
+        final justFinished = !_order.canReview && order.canReview;
         setState(() => _order = order);
+        // The rating opens by itself the moment the lawyer finishes the task
+        if (justFinished && !widget.isLawyer) await _openReview(isEdit: false);
         return;
       }
     }

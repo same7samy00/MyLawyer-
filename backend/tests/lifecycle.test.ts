@@ -930,3 +930,30 @@ describe('ترقيم ML الموحد', () => {
     assert.match(transfer.body.data.reference, /^ML-TRF-\d{6}$/);
   });
 });
+
+describe('تذكير التقييم', () => {
+  it('بعد يوم من إنهاء المهمة يوصل للموكل تذكير واحد بس، ومش بيوصل لو قيّم', async () => {
+    const order = await createCompletedOrder();
+    await sql(`UPDATE service_orders SET completed_at = NOW() - INTERVAL '25 hours' WHERE id = $1`, [order.id]);
+    await sweepLifecycle();
+    await sweepLifecycle();
+    const reminders = await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'قيّم المحامي'`, [clientId]);
+    assert.equal(reminders.length, 1);
+
+    await sql('DELETE FROM notifications');
+    await closeOrders();
+    const rated = await createCompletedOrder();
+    await call('POST', `/orders/${rated.id}/review`, clientToken, { rating: 5 });
+    await sql(`UPDATE service_orders SET completed_at = NOW() - INTERVAL '25 hours' WHERE id = $1`, [rated.id]);
+    await sweepLifecycle();
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE title = 'قيّم المحامي'`)).length, 0);
+  });
+
+  it('لو المهلة خلصت والمحامي وصل، الطلب يتقفل والموكل يقدر يقيّم', async () => {
+    const order = await createArrivedOrder();
+    await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
+    await sweepLifecycle();
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'المهمة اتقفلت'`, [clientId])).length, 1);
+    assert.equal((await call('POST', `/orders/${order.id}/review`, clientToken, { rating: 4 })).status, 201);
+  });
+});
