@@ -15,6 +15,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onBack;
   final VoidCallback? onSearch;
   final VoidCallback? onNotifications;
+  final bool showNotifications;
 
   const AppHeader({
     super.key,
@@ -23,6 +24,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
     this.onBack,
     this.onSearch,
     this.onNotifications,
+    this.showNotifications = true,
   });
 
   @override
@@ -102,6 +104,9 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                 ),
 
                 // 3. يسار الهيدر في RTL: أيقونة الإشعارات الثابتة
+                if (!showNotifications)
+                  const SizedBox(width: 40, height: 40)
+                else
                 _buildActionBtn(
                   context: context,
                   isPrimary: false,

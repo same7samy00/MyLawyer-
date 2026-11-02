@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/notification_center.dart';
 import '../../core/widgets/app_button.dart';
@@ -51,7 +52,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppHeader(title: 'الإشعارات', isInnerPage: true, onNotifications: () {}),
+      appBar: const AppHeader(title: 'الإشعارات', isInnerPage: true, showNotifications: false),
       body: _buildBody(),
     );
   }
@@ -72,8 +73,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     if (_items.isEmpty) {
-      return const Center(
-        child: AppStateMessage(icon: Icons.notifications_none_rounded, title: 'لا توجد إشعارات'),
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SvgPicture.asset('assets/images/notifications_empty.svg', height: 150, excludeFromSemantics: true),
+            const SizedBox(height: 14),
+            const Text(
+              'لا توجد إشعارات',
+              style: TextStyle(
+                fontFamily: 'AppFont',
+                fontFamilyFallback: appFontFallback,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: AppColors.dark,
+              ),
+            ),
+          ],
+        ),
       );
     }
 
