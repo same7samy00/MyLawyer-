@@ -24,6 +24,7 @@ import 'package:my_lawyer/features/auth/login_screen.dart';
 import 'package:my_lawyer/features/client/main_navigation_shell.dart';
 import 'package:my_lawyer/features/client/nearby_lawyers_showcase_screen.dart';
 import 'package:my_lawyer/features/client/orders_tab.dart';
+import 'package:my_lawyer/features/client/wallet_tab.dart';
 import 'package:my_lawyer/features/urgent_service/payment_screen.dart';
 import 'package:my_lawyer/features/urgent_service/payment_success_screen.dart';
 import 'package:my_lawyer/features/auth/account_suspended_screen.dart';
@@ -978,6 +979,46 @@ void main() {
       expect(noMoreLawyers, findsOneWidget);
       expect(backend.countOf('POST /orders'), 2);
       expect(find.text('طلب الآن'), findsOneWidget);
+    });
+  });
+
+  group('التحويل من المحفظة', () {
+    testWidgets('الموكل يكتب الرقم والمبلغ، ويأكد اسم المستلم، وبعدها يتحول', (tester) async {
+      backend.overrides['GET /wallet/recipient'] = (request) {
+        expect(request.url.queryParameters['phone'], '01000000002');
+        return FakeBackend.json(200, {'success': true, 'data': {'name': 'أحمد م.', 'role': 'lawyer'}});
+      };
+      backend.overrides['POST /wallet/transfer'] = (request) {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['phone'], '01000000002');
+        expect(body['amount'], 150);
+        return FakeBackend.json(200, {'success': true, 'data': {'amount': 150}});
+      };
+
+      await tester.pumpWidget(_app(const Scaffold(body: WalletTab())));
+      await _settleAsync(tester);
+
+      await tester.tap(find.text('تحويل لحساب تاني'));
+      await _settleAsync(tester);
+
+      await tester.enterText(find.byType(TextField).at(0), '01000000002');
+      await tester.enterText(find.byType(TextField).at(1), '50');
+      await tester.tap(find.text('متابعة'));
+      await _settleAsync(tester);
+      expect(find.text('المبلغ من 100 لـ 10000 ج.م'), findsOneWidget);
+      expect(backend.countOf('GET /wallet/recipient'), 0);
+
+      await tester.enterText(find.byType(TextField).at(1), '150');
+      await tester.tap(find.text('متابعة'));
+      await _settleAsync(tester);
+      expect(find.text('150 ج.م إلى أحمد م.'), findsOneWidget);
+
+      await tester.tap(find.text('تأكيد التحويل'));
+      await _settleAsync(tester);
+      expect(backend.countOf('POST /wallet/transfer'), 1);
+      expect(find.text('تأكيد التحويل'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
     });
   });
 

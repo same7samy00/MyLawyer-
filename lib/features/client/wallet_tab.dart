@@ -2,11 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
+import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/order_action_sheets.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../data/repositories/order_repository.dart';
 
-/// محفظة الموكل: المبالغ المرتجعة من الطلبات والشكاوى
+/// محفظة الموكل: المبالغ المرتجعة والتحويلات، ومنها التحويل لأي حساب
 class WalletTab extends StatefulWidget {
   final ValueListenable<int>? refreshSignal;
 
@@ -53,6 +55,20 @@ class _WalletTabState extends State<WalletTab> {
         _error = res.error ?? 'تعذر تحميل الرصيد';
       }
     });
+  }
+
+
+  Future<void> _openTransfer() async {
+    final sent = await OrderActionSheets.transfer(
+      context,
+      findRecipient: OrderRepository.findTransferRecipient,
+      onSubmit: OrderRepository.transfer,
+    );
+    if (!sent || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم التحويل'), backgroundColor: AppColors.success),
+    );
+    await _load();
   }
 
   @override
@@ -107,7 +123,7 @@ class _WalletTabState extends State<WalletTab> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'المبالغ المرتجعة من طلباتك',
+                    'المبالغ المرتجعة من طلباتك والتحويلات اللي وصلتك',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'AppFont',
@@ -118,6 +134,12 @@ class _WalletTabState extends State<WalletTab> {
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: 16),
+            AppButton.primary(
+              text: 'تحويل لحساب تاني',
+              icon: Icons.send_rounded,
+              onPressed: _openTransfer,
             ),
           ],
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 import '../services/api_service.dart';
 import 'app_button.dart';
@@ -21,7 +22,7 @@ const TextStyle _subtitleStyle = TextStyle(
   color: AppColors.textMuted,
 );
 
-/// نوافذ إجراءات الطلب: الشكوى، الاعتراض، والتقييم
+/// نوافذ الإجراءات: الشكوى، الاعتراض، التقييم، والتحويل من المحفظة
 /// كل نافذة تعيد true عندما يقبل الخادم الإجراء
 class OrderActionSheets {
   OrderActionSheets._();
@@ -67,6 +68,14 @@ class OrderActionSheets {
     required Future<ApiResponse<dynamic>> Function(int rating, String comment) onSubmit,
   }) {
     return _show(context, _ReviewSheet(lawyerName: lawyerName, onSubmit: onSubmit));
+  }
+
+  static Future<bool> transfer(
+    BuildContext context, {
+    required Future<ApiResponse<dynamic>> Function(String phone) findRecipient,
+    required Future<ApiResponse<dynamic>> Function(String phone, double amount) onSubmit,
+  }) {
+    return _show(context, _TransferSheet(findRecipient: findRecipient, onSubmit: onSubmit));
   }
 }
 
@@ -406,4 +415,134 @@ class _ComplaintSheetState extends State<_ComplaintSheet> {
     fontWeight: FontWeight.w800,
     color: AppColors.dark,
   );
+}
+
+/// التحويل على خطوتين: الرقم والمبلغ، ثم تأكيد اسم المستلم قبل الإرسال
+class _TransferSheet extends StatefulWidget {
+  final Future<ApiResponse<dynamic>> Function(String phone) findRecipient;
+  final Future<ApiResponse<dynamic>> Function(String phone, double amount) onSubmit;
+
+  const _TransferSheet({required this.findRecipient, required this.onSubmit});
+
+  @override
+  State<_TransferSheet> createState() => _TransferSheetState();
+}
+
+class _TransferSheetState extends State<_TransferSheet> {
+  static const _minimum = 100;
+  static const _dailyLimit = 10000;
+
+  final _phone = TextEditingController();
+  final _amount = TextEditingController();
+  String? _recipientName;
+  String? _error;
+  bool _isBusy = false;
+
+  @override
+  void dispose() {
+    _phone.dispose();
+    _amount.dispose();
+    super.dispose();
+  }
+
+  double get _amountValue => double.tryParse(_amount.text.trim()) ?? 0;
+
+  Future<void> _next() async {
+    final phone = _phone.text.trim();
+    if (!RegExp(r'^01[0125][0-9]{8}$').hasMatch(phone)) {
+      setState(() => _error = 'اكتب رقم موبايل صحيح');
+      return;
+    }
+    if (_amountValue < _minimum || _amountValue > _dailyLimit) {
+      setState(() => _error = 'المبلغ من $_minimum لـ $_dailyLimit ج.م');
+      return;
+    }
+
+    setState(() => _isBusy = true);
+    final res = await widget.findRecipient(phone);
+    if (!mounted) return;
+    setState(() {
+      _isBusy = false;
+      if (res.isOk && res.data is Map<String, dynamic>) {
+        _recipientName = (res.data as Map<String, dynamic>)['name']?.toString();
+        _error = null;
+      } else {
+        _error = res.error ?? 'تعذر العثور على الحساب';
+      }
+    });
+  }
+
+  Future<void> _send() async {
+    setState(() => _isBusy = true);
+    final navigator = Navigator.of(context);
+    final res = await widget.onSubmit(_phone.text.trim(), _amountValue);
+    if (!mounted) return;
+
+    if (res.isOk) {
+      navigator.pop(true);
+    } else {
+      setState(() {
+        _isBusy = false;
+        _error = res.error ?? 'تعذر التحويل';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final confirming = _recipientName != null;
+    return _SheetFrame(
+      children: [
+        const Text('تحويل من رصيدك', textAlign: TextAlign.center, style: _titleStyle),
+        const SizedBox(height: 4),
+        Text(
+          confirming ? 'راجع البيانات قبل التحويل' : 'من $_minimum لحد $_dailyLimit ج.م في اليوم، ومن غير رسوم',
+          textAlign: TextAlign.center,
+          style: _subtitleStyle,
+        ),
+        const SizedBox(height: 16),
+        if (confirming) ...[
+          Text(
+            '${_amountValue.toStringAsFixed(0)} ج.م إلى $_recipientName',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'AppFont',
+              fontFamilyFallback: appFontFallback,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.dark,
+            ),
+          ),
+          Text(_phone.text.trim(), textAlign: TextAlign.center, style: _subtitleStyle),
+          const SizedBox(height: 16),
+          _ErrorText(_error),
+          AppButton.primary(text: 'تأكيد التحويل', onPressed: _isBusy ? null : _send),
+          const SizedBox(height: 8),
+          AppButton.outlined(text: 'تعديل', onPressed: _isBusy ? null : () => setState(() => _recipientName = null)),
+        ] else ...[
+          TextField(
+            controller: _phone,
+            autofocus: true,
+            textAlign: TextAlign.center,
+            keyboardType: TextInputType.phone,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(11)],
+            style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 15),
+            decoration: const InputDecoration(hintText: 'رقم موبايل المستلم'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _amount,
+            textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(5)],
+            style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 15),
+            decoration: const InputDecoration(hintText: 'المبلغ بالجنيه'),
+          ),
+          const SizedBox(height: 12),
+          _ErrorText(_error),
+          AppButton.primary(text: 'متابعة', onPressed: _isBusy ? null : _next),
+        ],
+      ],
+    );
+  }
 }

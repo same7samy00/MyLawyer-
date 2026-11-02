@@ -128,7 +128,7 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  for (const table of ['reviews', 'order_appeals', 'complaints', 'lawyer_reports', 'lawyer_strikes', 'client_credits', 'account_warnings', 'lawyer_adjustments', 'notifications', 'client_problem_prices', 'order_status_logs']) {
+  for (const table of ['wallet_transfers', 'reviews', 'order_appeals', 'complaints', 'lawyer_reports', 'lawyer_strikes', 'client_credits', 'account_warnings', 'lawyer_adjustments', 'notifications', 'client_problem_prices', 'order_status_logs']) {
     await sql(`DELETE FROM ${table}`);
   }
   await sql('DELETE FROM service_orders');
@@ -864,5 +864,46 @@ describe('إيقاف الحساب', () => {
 
     await call('POST', `/admin/users/${clientId}/status`, adminToken, { suspend: false });
     assert.equal((await call('GET', '/users/me', clientToken)).status, 200);
+  });
+});
+
+describe('التحويل بين الحسابات', () => {
+  const credit = (amount: number) => sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, $2, 'شحن تجريبي')`, [clientId, amount]);
+
+  it('الموكل يحوّل للمحامي برقم الموبايل، والرصيد يتنقل للطرفين', async () => {
+    await credit(500);
+    const who = await call('GET', '/wallet/recipient?phone=01000000002', clientToken);
+    assert.equal(who.status, 200);
+    assert.equal(who.body.data.role, 'lawyer');
+
+    const res = await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 150 });
+    assert.equal(res.status, 200, JSON.stringify(res.body));
+    assert.equal(await clientBalance(), 350);
+    assert.equal((await wallet()).availableBalance, 150);
+
+    const back = await call('POST', '/wallet/transfer', lawyerToken, { phone: '01000000001', amount: 100 });
+    assert.equal(back.status, 200);
+    assert.equal(await clientBalance(), 450);
+    assert.equal((await wallet()).availableBalance, 50);
+  });
+
+  it('أقل من 100، أو أكتر من الرصيد، أو لنفسك، أو رقم مش موجود: مرفوض', async () => {
+    await credit(500);
+    assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 99 })).status, 400);
+    assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 600 })).status, 400);
+    assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000001', amount: 100 })).status, 400);
+    assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01099999999', amount: 100 })).status, 404);
+    assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000003', amount: 100 })).status, 404);
+    assert.equal(await clientBalance(), 500);
+  });
+
+  it('أقصى مجموع 10,000 في اليوم', async () => {
+    await credit(20000);
+    assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 9950 })).status, 200);
+    assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 100 })).status, 400);
+    assert.equal((await call('GET', '/wallet/limits', clientToken)).body.data.remainingToday, 50);
+
+    await sql(`UPDATE wallet_transfers SET created_at = NOW() - INTERVAL '25 hours'`);
+    assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 100 })).status, 200);
   });
 });

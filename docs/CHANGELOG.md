@@ -1,5 +1,12 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.94] - 2026-11-02
+### Wallet Transfers
+- Any client or lawyer can send money from their balance to any active account by phone number.
+- The sender sees the short name of the receiver and confirms before sending.
+- At least 100 EGP per transfer, at most 10,000 EGP in the last 24 hours, with no fees.
+- Added migration `011_wallet_transfers.sql`, the `/wallet` routes, the transfer sheet in both wallets, and tests.
+
 ## [Phase 2.93] - 2026-11-02
 ### Public Website for the Payment Gateway
 - Added a landing page on `https://my-lawyer.online` that describes the app and its services, with the Alexandria address, phone, and email.

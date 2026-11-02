@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_pressable.dart';
 import '../../core/services/api_service.dart';
+import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/order_action_sheets.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../data/models/order_model.dart';
 import '../../data/models/lifecycle_models.dart';
@@ -48,6 +50,19 @@ class _LawyerWalletTabState extends State<LawyerWalletTab> {
     if (ApiService.isServerReachable.value && _errorMessage != null) {
       _loadFees();
     }
+  }
+
+  Future<void> _openTransfer() async {
+    final sent = await OrderActionSheets.transfer(
+      context,
+      findRecipient: OrderRepository.findTransferRecipient,
+      onSubmit: OrderRepository.transfer,
+    );
+    if (!sent || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم التحويل'), backgroundColor: AppColors.success),
+    );
+    await _loadFees();
   }
 
   Future<void> _loadFees() async {
@@ -185,6 +200,13 @@ class _LawyerWalletTabState extends State<LawyerWalletTab> {
                   ),
                 ],
               ),
+            ),
+
+            const SizedBox(height: 12),
+            AppButton.outlined(
+              text: 'تحويل لحساب تاني',
+              icon: Icons.send_rounded,
+              onPressed: _openTransfer,
             ),
 
             const SizedBox(height: 16),

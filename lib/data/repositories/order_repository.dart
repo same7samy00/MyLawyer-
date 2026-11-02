@@ -256,4 +256,14 @@ class OrderRepository {
       error: res.error ?? 'تعذر تحميل الرصيد',
     );
   }
+
+  /// اسم صاحب الرقم مختصر، عشان المحوّل يتأكد قبل الإرسال
+  static Future<ApiResponse<dynamic>> findTransferRecipient(String phone) {
+    return ApiService.get('/wallet/recipient', queryParams: {'phone': phone});
+  }
+
+  /// تحويل من رصيدي لأي حساب برقم الموبايل
+  static Future<ApiResponse<dynamic>> transfer(String phone, double amount) {
+    return ApiService.post('/wallet/transfer', {'phone': phone, 'amount': amount});
+  }
 }
