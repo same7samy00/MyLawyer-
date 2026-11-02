@@ -17,7 +17,7 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font-family: "AppDigits", "FlatJooza", sans-serif; font-size: 14px; }
   h1 { font-size: 20px; margin: 0; color: var(--dark); }
-  h2 { font-size: 15px; margin: 0 0 10px; color: var(--dark); }
+  h2 { font-size: 15px; margin: 18px 0 10px; color: var(--dark); }
   a { color: var(--primary); cursor: pointer; text-decoration: none; }
 
   [hidden] { display: none !important; }
@@ -44,14 +44,15 @@
   aside svg { width: 19px; height: 19px; flex-shrink: 0; }
   aside .logout { margin-top: 16px; border-top: 1px solid var(--slate); border-radius: 0; padding-top: 14px; }
 
-  main { flex: 1; min-width: 0; padding: 22px; }
-  .page-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  main { flex: 1; min-width: 0; padding: 22px; text-align: center; }
+  #content > div { max-width: 1040px; margin: 0 auto; }
+  .page-head { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
   .card { background: #fff; border: 1px solid var(--border); border-radius: 7px; padding: 16px; margin-bottom: 12px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px; }
   .stat { background: #fff; border: 1px solid var(--border); border-radius: 7px; padding: 14px; }
   .stat b { display: block; font-size: 24px; color: var(--dark); margin-top: 4px; }
   .muted { color: var(--muted); font-size: 13px; }
-  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .row { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
   button.btn { font: inherit; border: 1px solid var(--border); background: #fff; color: var(--text); border-radius: 7px; padding: 8px 14px; cursor: pointer; }
   button.btn:hover { border-color: var(--primary); }
   button.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
@@ -61,7 +62,7 @@
   input.wide { width: 100%; margin-bottom: 10px; }
   input.search { min-width: 260px; }
   table { width: 100%; border-collapse: collapse; }
-  th { text-align: start; color: var(--muted); font-size: 12px; font-weight: 600; padding: 8px; border-bottom: 1px solid var(--border); }
+  th { text-align: center; color: var(--muted); font-size: 12px; font-weight: 600; padding: 8px; border-bottom: 1px solid var(--border); }
   td { padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
   tr.click { cursor: pointer; }
   tr.click:hover { background: var(--primary-light); }
@@ -71,11 +72,19 @@
   .tag.bad { background: var(--danger-light); color: var(--danger); }
   .tag.warn { background: var(--border); color: var(--slate); }
   .avatar { width: 64px; height: 64px; border-radius: 7px; object-fit: cover; background: var(--primary-light); }
-  .timeline { border-inline-start: 2px solid var(--border); margin: 0; padding-inline-start: 16px; list-style: none; }
-  .timeline li { margin-bottom: 12px; position: relative; }
-  .timeline li::before { content: ""; position: absolute; inset-inline-start: -22px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
-  .kv { display: grid; grid-template-columns: 150px 1fr; gap: 6px 12px; }
-  .kv span:nth-child(odd) { color: var(--muted); }
+  .timeline { margin: 0; padding: 0; list-style: none; }
+  .timeline li { padding-bottom: 14px; }
+  .timeline li::before { content: ""; display: block; width: 10px; height: 10px; margin: 0 auto 6px; border-radius: 7px; background: var(--primary); }
+  .timeline li:not(:last-child)::after { content: ""; display: block; width: 2px; height: 16px; margin: 10px auto 0; background: var(--border); }
+  .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+  .kv div { padding: 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); overflow-wrap: anywhere; }
+  .kv span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .kv b { color: var(--dark); font-weight: 400; }
+  .card > h2:first-child { margin-top: 0; }
+  .hero { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 22px 16px; }
+  .hero h1 { margin: 4px 0 0; }
+  .hero .avatar { width: 96px; height: 96px; display: flex; align-items: center; justify-content: center; color: var(--primary); }
+  .hero .avatar svg { width: 46px; height: 46px; }
   #toasts { position: fixed; top: 16px; left: 16px; z-index: 50; display: flex; flex-direction: column; gap: 8px; }
   .toast { background: var(--dark); color: #fff; padding: 12px 16px; border-radius: 7px; min-width: 240px; box-shadow: 0 6px 20px rgba(15, 23, 42, .25); border-inline-start: 4px solid var(--success); }
   .toast.error { border-inline-start-color: var(--danger); }
@@ -88,7 +97,6 @@
     aside .brand { display: none; }
     aside button { width: auto; white-space: nowrap; }
     aside .logout { margin-top: 0; border-top: 0; padding-top: 10px; }
-    .kv { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -267,6 +275,18 @@
     return wrap;
   }
 
+  function details(fields) {
+    const kv = el('div', undefined, 'kv');
+    fields.forEach(([label, value]) => {
+      const item = el('div');
+      const text = el('b');
+      text.append(value instanceof Node ? value : document.createTextNode(value ?? '—'));
+      item.append(el('span', label), text);
+      kv.append(item);
+    });
+    return kv;
+  }
+
   function pageHead(title, extra) {
     const head = el('div', undefined, 'page-head');
     head.append(el('h1', title));
@@ -439,33 +459,48 @@
     const { user } = data;
 
     const suspend = (value) => api('POST', '/admin/users/' + user.id + '/status', { suspend: value });
-    box.append(pageHead(user.full_name || 'حساب', user.status === 'suspended'
-      ? button('تفعيل الحساب', 'primary', () => suspend(false))
-      : button('إيقاف الحساب', 'danger', confirmed('إيقاف هذا الحساب؟', () => suspend(true)))));
+    const isLawyer = user.role === 'lawyer';
 
-    const card = el('div', undefined, 'card');
-    const top = el('div', undefined, 'row');
+    const hero = el('div', undefined, 'card hero');
     if (user.photo) {
       const image = el('img', undefined, 'avatar');
       image.src = user.photo;
-      top.append(image);
+      hero.append(image);
+    } else {
+      const avatar = el('div', undefined, 'avatar');
+      avatar.append(icon(isLawyer ? 'lawyer' : 'client'));
+      hero.append(avatar);
     }
-    top.append(accountTag(user.status));
-    if (user.role === 'lawyer') top.append(el('span', user.urgent_status === 'APPROVED' ? 'محامٍ معتمد' : 'غير معتمد', 'tag ' + (user.urgent_status === 'APPROVED' ? 'good' : 'warn')));
-    card.append(top);
+    hero.append(el('h1', user.full_name || 'حساب'));
 
-    const kv = el('div', undefined, 'kv');
-    kv.style.marginTop = '12px';
-    const fields = [
-      ['الهاتف', user.phone], ['الإيميل', user.email], ['تاريخ التسجيل', date(user.created_at)], ['الإنذارات', user.warnings_count],
-    ];
-    if (user.role === 'lawyer') {
-      fields.push(['رقم القيد', user.syndicate_number], ['التخصص', user.specialty], ['النبذة', user.bio],
-        ['التقييم', user.rating + ' (' + user.reviews_count + ')'], ['متاح الآن', user.is_available ? 'نعم' : 'لا'],
+    const tags = el('div', undefined, 'row');
+    tags.style.marginTop = '0';
+    tags.append(el('span', isLawyer ? 'محامٍ' : 'موكل', 'tag'), accountTag(user.status));
+    if (isLawyer) tags.append(el('span', user.urgent_status === 'APPROVED' ? 'معتمد' : 'غير معتمد', 'tag ' + (user.urgent_status === 'APPROVED' ? 'good' : 'warn')));
+    hero.append(tags);
+    if (isLawyer && user.bio) hero.append(el('p', user.bio, 'muted'));
+    hero.append(user.status === 'suspended'
+      ? button('تفعيل الحساب', 'primary', () => suspend(false))
+      : button('إيقاف الحساب', 'danger', confirmed('إيقاف هذا الحساب؟', () => suspend(true))));
+    box.append(hero);
+
+    const grid = el('div', undefined, 'grid');
+    const stats = [['الطلبات', data.orders.length], ['الشكاوى', data.complaints.length], ['الإنذارات', user.warnings_count]];
+    if (isLawyer) stats.unshift(['التقييم', Number(user.rating ?? 0).toFixed(1)], ['عدد التقييمات', user.reviews_count]);
+    stats.forEach(([title, value]) => {
+      const stat = el('div', title, 'stat');
+      stat.append(el('b', value));
+      grid.append(stat);
+    });
+    box.append(grid);
+
+    const fields = [['الهاتف', user.phone], ['الإيميل', user.email], ['تاريخ التسجيل', date(user.created_at)]];
+    if (isLawyer) {
+      fields.push(['رقم القيد', user.syndicate_number], ['التخصص', user.specialty], ['متاح الآن', user.is_available ? 'نعم' : 'لا'],
         ['سبب عدم الإتاحة', user.availability_off_reason], ['آخر تحديث للموقع', date(user.last_location_updated_at)]);
     }
-    fields.forEach(([label, value]) => kv.append(el('span', label), el('span', value ?? '—')));
-    card.append(kv);
+    const card = el('div', undefined, 'card');
+    card.append(el('h2', 'بيانات الحساب'), details(fields));
     box.append(card);
 
     box.append(el('h2', 'الطلبات'));
@@ -517,24 +552,18 @@
     const { order } = data;
     box.append(pageHead('طلب ' + order.order_number, tag(order.status)));
 
-    const card = el('div', undefined, 'card');
-    const kv = el('div', undefined, 'kv');
     const client = el('a', order.client_name + ' • ' + order.client_phone);
     client.addEventListener('click', () => open('user', order.client_id));
     const lawyer = el('a', order.lawyer_name + ' • ' + order.lawyer_phone);
     lawyer.addEventListener('click', () => open('user', order.lawyer_id));
-    [
+
+    const card = el('div', undefined, 'card');
+    card.append(el('h2', 'تفاصيل الطلب'), details([
       ['الموكل', client], ['المحامي', lawyer], ['المشكلة', order.problem_type], ['الوصف', order.problem_description],
       ['السعر', order.price + ' ج.م'], ['الضريبة', order.tax_percent + '%'], ['نسبة المنصة', order.commission_percent + '%'],
       ['صافي المحامي', order.lawyer_amount + ' ج.م'], ['حالة الأتعاب', PAYOUT[order.payout_status] || order.payout_status],
       ['القبول', date(order.accepted_at)], ['الدفع', date(order.paid_at)], ['الوصول', date(order.arrived_at)], ['الإنهاء', date(order.completed_at)],
-    ].forEach(([label, value]) => {
-      kv.append(el('span', label));
-      const cell = el('span');
-      cell.append(value instanceof Node ? value : document.createTextNode(value ?? '—'));
-      kv.append(cell);
-    });
-    card.append(kv);
+    ]));
     box.append(card);
 
     const life = el('div', undefined, 'card');
