@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../core/constants/legal_specialties.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_pressable.dart';
@@ -28,6 +29,8 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _syndicateNumberController = TextEditingController();
+  final _bioController = TextEditingController();
+  String? _specialty;
   final _passwordController = TextEditingController();
 
   final ImagePicker _imagePicker = ImagePicker();
@@ -59,6 +62,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
     _phoneController.dispose();
     _emailController.dispose();
     _syndicateNumberController.dispose();
+    _bioController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -285,6 +289,8 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
       password: _passwordController.text,
       syndicateNumber: _syndicateNumberController.text.trim(),
       syndicateCardPath: _syndicateCardPath,
+      specialty: _specialty,
+      bio: _bioController.text.trim(),
     );
 
     final result = await AuthService.registerUser(regData);
@@ -519,6 +525,44 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
               }
               return null;
             },
+          ),
+          const SizedBox(height: 18),
+
+          _buildInputLabel('التخصص', isRequired: true),
+          const SizedBox(height: 8),
+          Autocomplete<String>(
+            optionsViewOpenDirection: OptionsViewOpenDirection.up,
+            optionsBuilder: (value) {
+              final text = value.text.trim();
+              if (text.isEmpty) return const Iterable<String>.empty();
+              return legalSpecialties.where((item) => item.contains(text));
+            },
+            onSelected: (value) => _specialty = value,
+            fieldViewBuilder: (context, controller, focusNode, onSubmitted) => TextFormField(
+              controller: controller,
+              focusNode: focusNode,
+              style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 14),
+              decoration: _inputDecoration(
+                hintText: 'اكتب للبحث عن تخصصك',
+                prefixIcon: Icons.policy_outlined,
+              ),
+              onChanged: (_) => _specialty = null,
+              validator: (_) => _specialty == null ? 'اختار تخصصك من القائمة' : null,
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          _buildInputLabel('نبذة تعريفية قصيرة'),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _bioController,
+            maxLength: 150,
+            maxLines: 3,
+            style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 14),
+            decoration: _inputDecoration(
+              hintText: 'اكتب سطرين عن خبرتك',
+              prefixIcon: Icons.edit_note_rounded,
+            ),
           ),
           const SizedBox(height: 32),
 

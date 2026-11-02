@@ -8,8 +8,12 @@ const flavor = {
 };
 const arabicName = ['coalesce', ['get', 'name:ar'], ['get', 'name']];
 let ls = layers('protomaps', flavor, { lang: 'ar' });
-ls = ls.filter((l) => !(l.layout && l.layout['icon-image']) && !['pois', 'address_label'].includes(l.id));
+// City and village names keep their text, and only their icon is dropped
+ls = ls.filter((l) => l.id === 'places_locality' || (!(l.layout && l.layout['icon-image']) && !['pois', 'address_label'].includes(l.id)));
 for (const l of ls) {
+  if (l.id === 'places_locality') {
+    for (const key of Object.keys(l.layout)) if (key.startsWith('icon-')) delete l.layout[key];
+  }
   if (!l.layout || !l.layout['text-field']) continue;
   l.layout['text-field'] = arabicName;
   l.layout['text-font'] = [l.id.startsWith('places') ? 'Noto Sans Bold' : 'Noto Sans Regular'];

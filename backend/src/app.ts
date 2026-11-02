@@ -37,9 +37,27 @@ export function buildApp() {
   });
 
   // Rate Limiter
+  // Mobile networks put many phones behind one IP, so signed-in users count by account
   fastify.register(rateLimit, {
-    max: config.nodeEnv === 'test' ? 100000 : 120,
+    max: (_request, key) => {
+      if (config.nodeEnv === 'test') return 100000;
+      if (key.startsWith('auth:')) return 120;
+      return key.startsWith('user:') ? 300 : 600;
+    },
     timeWindow: '1 minute',
+    keyGenerator: (request) => {
+      if (request.url.startsWith('/api/v1/auth')) return `auth:${request.ip}`;
+
+      const token = request.headers.authorization?.replace(/^Bearer\s+/i, '');
+      if (token) {
+        try {
+          return `user:${fastify.jwt.verify<{ userId: string }>(token).userId}`;
+        } catch {
+          // An invalid token counts against the IP like any anonymous request
+        }
+      }
+      return request.ip;
+    },
   });
 
   // Multipart uploads (files up to 10MB)

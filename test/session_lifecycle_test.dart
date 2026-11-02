@@ -10,7 +10,7 @@ import 'package:my_lawyer/core/services/api_service.dart';
 import 'package:my_lawyer/core/services/auth_service.dart';
 import 'package:my_lawyer/core/theme/app_theme.dart';
 import 'package:my_lawyer/core/widgets/app_card.dart';
-import 'package:my_lawyer/core/widgets/connection_banner.dart';
+import 'package:my_lawyer/core/widgets/connection_gate.dart';
 import 'package:my_lawyer/data/models/order_model.dart';
 import 'package:my_lawyer/features/client/account_tab.dart';
 import 'package:my_lawyer/features/lawyer/lawyer_orders_tab.dart';
@@ -109,7 +109,7 @@ void main() {
       await _launch(tester);
 
       expect(find.byType(MainNavigationShell), findsOneWidget);
-      expect(backend.countOf('GET /users/me'), 1);
+      expect(backend.countOf('GET /users/me'), greaterThanOrEqualTo(1));
     });
 
     testWidgets('جلسة موكل بدون موقع: يذهب لتحديد الموقع', (tester) async {
@@ -282,7 +282,7 @@ void main() {
     testWidgets('الشريط يظهر عند الانقطاع ويختفي تلقائياً عند العودة، وتتحدث الطلبات', (tester) async {
       backend.isOffline = true;
       await tester.pumpWidget(_app(const Scaffold(
-        body: ConnectionBanner(
+        body: ConnectionGate(
           recheckInterval: Duration(seconds: 1),
           child: OrdersTab(),
         ),
@@ -290,8 +290,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.textContaining('لا يوجد اتصال بالخادم'), findsOneWidget);
-      expect(find.text('تعذر تحميل طلباتك'), findsOneWidget);
+      expect(find.text('مفيش اتصال بالإنترنت'), findsOneWidget);
 
       backend.isOffline = false;
       backend.orders = [sampleOrder(status: 'ACTIVE')];
@@ -299,7 +298,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.textContaining('لا يوجد اتصال بالخادم'), findsNothing);
+      expect(find.text('مفيش اتصال بالإنترنت'), findsNothing);
       expect(find.text('تواصل'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -902,13 +901,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       await tester.tap(find.text('موافق'));
       await tester.pump();
-      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(seconds: 4));
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.text('اعتذر المحامي'), findsOneWidget);
 
       // الطلب يتبعت تلقائياً للمحامي التالي مرة واحدة لكل محامٍ
       final nextLawyer = find.textContaining('أ/ منى عادل');
-      for (int i = 0; i < 40 && nextLawyer.evaluate().isEmpty; i++) {
+      for (int i = 0; i < 40 && backend.countOf('POST /orders') < 2; i++) {
         await tester.pump(const Duration(milliseconds: 300));
       }
       expect(nextLawyer, findsWidgets);

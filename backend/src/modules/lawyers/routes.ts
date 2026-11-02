@@ -88,11 +88,9 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
         lp.rating,
         lp.reviews_count,
         lp.experience_years,
-        lp.bio,
         lp.latitude,
         lp.longitude,
         lp.is_available,
-        lp.last_active_at,
         (
           6371.0 * acos(
             least(1.0::float8, greatest(-1.0::float8,
@@ -112,6 +110,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
         AND lp.latitude BETWEEN 22.0 AND 31.8
         AND lp.longitude BETWEEN 24.5 AND 37.0
         AND lp.suspended_until IS NULL
+        AND lp.urgent_status = 'APPROVED'
         AND NOT EXISTS (
           SELECT 1 FROM service_orders o
           WHERE o.lawyer_id = u.id AND o.status IN ('PENDING', 'ACCEPTED', 'ACTIVE')
@@ -148,11 +147,9 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
           experienceYears: Number(lawyer.experience_years) || 5,
           isOnline: lawyer.is_available === true,
           avatar: lawyer.profile_photo_path || null,
-          bio: lawyer.bio || '',
           // The exact place is shared with the client only after payment
           coordinates: [approximateCoordinate(Number(lawyer.latitude)), approximateCoordinate(Number(lawyer.longitude))],
           distanceKm: Number(Number(lawyer.distance_km).toFixed(1)),
-          lastActiveAt: lawyer.last_active_at,
         }));
 
       return reply.send({
@@ -223,7 +220,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
       `SELECT lp.id as profile_id, lp.full_name, lp.profile_photo_path, lp.approval_status,
               lp.syndicate_number, lp.specialty, lp.degree, lp.rating, lp.reviews_count,
               lp.experience_years, lp.bio, lp.is_available, lp.latitude, lp.longitude,
-              lp.last_location_updated_at, lp.last_active_at, lp.submitted_at, lp.approved_at,
+              lp.last_location_updated_at, lp.last_active_at, lp.availability_off_reason, lp.urgent_status, lp.urgent_rejection_reason, lp.submitted_at, lp.approved_at,
               lp.rejected_at, lp.rejection_reason,
               u.id as user_id, u.email, u.phone, u.status
        FROM lawyer_profiles lp
@@ -256,6 +253,20 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // POST /api/v1/lawyers/me/urgent-terms - The lawyer joins the urgent service
+  fastify.post('/me/urgent-terms', { preHandler: [requireLawyerAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedLawyer;
+    await query(
+      `UPDATE lawyer_profiles
+       SET urgent_terms_accepted_at = COALESCE(urgent_terms_accepted_at, NOW()), updated_at = NOW(),
+           urgent_status = CASE WHEN urgent_status = 'APPROVED' THEN urgent_status ELSE 'PENDING' END,
+           urgent_rejection_reason = NULL
+       WHERE user_id = $1`,
+      [userId]
+    );
+    return reply.send({ success: true, message: 'تم إرسال طلبك للإدارة' });
+  });
+
   // 3. POST /api/v1/lawyers/me/availability (Protected: Toggle online/offline status)
   fastify.post('/me/availability', { preHandler: [requireLawyerAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = request.user as AuthenticatedLawyer;
@@ -264,14 +275,18 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
     const rawVal = body.isAvailable !== undefined ? body.isAvailable : body.is_available;
     const isAvailable = Boolean(rawVal);
 
-    const suspensionRes = await query('SELECT suspended_until FROM lawyer_profiles WHERE user_id = $1', [userId]);
+    const suspensionRes = await query('SELECT suspended_until, urgent_status FROM lawyer_profiles WHERE user_id = $1', [userId]);
+    if (isAvailable && suspensionRes.rows[0]?.urgent_status !== 'APPROVED') {
+      return reply.status(403).send({ success: false, error: 'لازم الإدارة توافق على تقديمك للخدمة الأول' });
+    }
     if (isAvailable && suspensionRes.rows[0]?.suspended_until) {
       return reply.status(403).send({ success: false, error: 'حسابك موقوف مؤقتاً' });
     }
 
     const updateRes = await query(
       `UPDATE lawyer_profiles
-       SET is_available = $1, missed_orders = 0, last_active_at = NOW(), stale_reminder_sent = FALSE, updated_at = NOW()
+       SET is_available = $1, availability_off_reason = CASE WHEN $1 THEN NULL ELSE 'MANUAL' END,
+           missed_orders = 0, last_active_at = NOW(), updated_at = NOW()
        WHERE user_id = $2
        RETURNING id, is_available, last_active_at`,
       [isAvailable, userId]
@@ -310,9 +325,9 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
 
     const updateRes = await query(
       `UPDATE lawyer_profiles
-       SET latitude = $1, longitude = $2, last_location_updated_at = NOW(), last_active_at = NOW(), stale_reminder_sent = FALSE, updated_at = NOW()
+       SET latitude = $1, longitude = $2, last_location_updated_at = NOW(), last_active_at = NOW(), updated_at = NOW()
        WHERE user_id = $3
-       RETURNING id, latitude, longitude, last_location_updated_at`,
+       RETURNING id, latitude, longitude, last_location_updated_at, is_available`,
       [lat, lon, userId]
     );
 
@@ -327,6 +342,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
         latitude: Number(updateRes.rows[0].latitude),
         longitude: Number(updateRes.rows[0].longitude),
         lastLocationUpdatedAt: updateRes.rows[0].last_location_updated_at,
+        isAvailable: updateRes.rows[0].is_available,
       }
     });
   });

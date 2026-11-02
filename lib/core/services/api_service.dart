@@ -144,6 +144,24 @@ class ApiService {
     );
   }
 
+  /// رفع ملف صورة، ويمر بنفس تجديد الجلسة
+  static Future<ApiResponse<dynamic>> uploadFile(String endpoint, String filePath) {
+    final uri = Uri.parse('$_baseUrl$endpoint');
+
+    return _send(
+      endpoint,
+      (headers) async {
+        final request = http.MultipartRequest('POST', uri)
+          ..headers.addAll(headers..remove('Content-Type'))
+          ..files.add(await http.MultipartFile.fromPath('file', filePath));
+        return http.Response.fromStream(await _client.send(request));
+      },
+      customToken: null,
+      timeout: const Duration(seconds: 40),
+      timeoutError: 'انتهت مهلة رفع الصورة، حاول تاني',
+    );
+  }
+
   /// POST Request
   static Future<ApiResponse<dynamic>> post(
     String endpoint,

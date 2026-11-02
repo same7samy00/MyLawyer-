@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/repositories/lawyer_repository.dart';
 import '../constants/app_colors.dart';
+import '../services/notification_center.dart';
 import 'app_card.dart';
 
 /// زر حالة المحامي: الموكلون يشاهدون المحامي المتاح فقط
@@ -12,7 +13,6 @@ class LawyerAvailabilityCard extends StatefulWidget {
 }
 
 class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
-  bool? _isAvailable;
   bool _isSaving = false;
 
   @override
@@ -23,7 +23,7 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
 
   Future<void> _load() async {
     final available = await LawyerRepository.getAvailability();
-    if (mounted) setState(() => _isAvailable = available);
+    if (mounted && available != null) NotificationCenter.isAvailable.value = available;
   }
 
   Future<void> _toggle(bool value) async {
@@ -31,10 +31,8 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
     final res = await LawyerRepository.setAvailability(value);
     if (!mounted) return;
 
-    setState(() {
-      _isSaving = false;
-      if (res.isOk) _isAvailable = value;
-    });
+    setState(() => _isSaving = false);
+    if (res.isOk) NotificationCenter.isAvailable.value = value;
 
     if (!res.isOk) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -45,9 +43,16 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
 
   @override
   Widget build(BuildContext context) {
-    final isAvailable = _isAvailable;
-    if (isAvailable == null) return const SizedBox.shrink();
+    return ValueListenableBuilder<bool?>(
+      valueListenable: NotificationCenter.isAvailable,
+      builder: (context, isAvailable, _) {
+        if (isAvailable == null) return const SizedBox.shrink();
+        return _buildCard(isAvailable);
+      },
+    );
+  }
 
+  Widget _buildCard(bool isAvailable) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: AppCard(

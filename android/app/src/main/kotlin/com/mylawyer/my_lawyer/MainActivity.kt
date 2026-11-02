@@ -12,7 +12,7 @@ class MainActivity: FlutterActivity() {
 
         // إشعارات الطلبات تظهر فوق الشاشة وبصوت لأن المهلة 60 ثانية
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel("orders", "الطلبات", NotificationManager.IMPORTANCE_HIGH)
+            val channel = NotificationChannel("alerts", "الطلبات", NotificationManager.IMPORTANCE_HIGH).apply { enableVibration(true) }
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }
     }

@@ -11,6 +11,8 @@ export const registerSchema = z.object({
   role: z.enum(['client', 'lawyer'], { message: 'نوع الحساب يجب أن يكون client أو lawyer' }),
   fullName: z.string().optional(),
   syndicateNumber: z.string().optional(),
+  specialty: z.string().max(100).optional(),
+  bio: z.string().max(150).optional(),
   agreeTerms: z.boolean().refine(val => val === true, { message: 'يجب الموافقة على الشروط والأحكام' })
 }).refine(data => data.password === data.confirmPassword, {
   message: 'كلمة المرور وتأكيد كلمة المرور غير متطابقين',

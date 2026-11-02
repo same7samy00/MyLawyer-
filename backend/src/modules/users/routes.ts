@@ -1,4 +1,9 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import { pipeline } from 'stream/promises';
+import { config } from '../../config/index.js';
 import { query } from '../../database/index.js';
 import { hashPassword, verifyPassword, sanitizeText } from '../../utils/security.js';
 import { z } from 'zod';
@@ -19,7 +24,9 @@ export async function userRoutes(fastify: FastifyInstance) {
 
     const userRes = await query(
       `SELECT u.id, u.phone, u.email, u.role, u.status, u.email_verified_at, u.created_at,
-              COALESCE(lp.full_name, u.full_name) as full_name, lp.profile_photo_path, lp.approval_status, lp.bio, lp.syndicate_number
+              COALESCE(lp.full_name, u.full_name) as full_name, COALESCE(lp.profile_photo_path, u.profile_photo_path) as profile_photo_path,
+              u.warnings_count, lp.rating, lp.specialty, lp.urgent_status,
+              (SELECT COUNT(*)::int FROM service_orders o WHERE o.client_id = u.id AND o.status = 'COMPLETED') as client_completed, lp.approval_status, lp.bio, lp.syndicate_number
        FROM users u
        LEFT JOIN lawyer_profiles lp ON u.id = lp.user_id
        WHERE u.id = $1`,
@@ -46,8 +53,38 @@ export async function userRoutes(fastify: FastifyInstance) {
         bio: user.bio || null,
         syndicateNumber: user.syndicate_number || null,
         approvalStatus: user.approval_status || null,
+        specialty: user.specialty || null,
+        isApproved: user.urgent_status === 'APPROVED',
+        // A client starts at five and loses a point for each proven refusal
+        rating: user.role === 'lawyer' ? Number(user.rating ?? 0) : Math.max(1, 5 - Number(user.warnings_count ?? 0)),
+        completedOrders: user.client_completed,
       }
     });
+  });
+
+  // POST /api/v1/users/me/profile-photo
+  fastify.post('/me/profile-photo', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId, role } = request.user as { userId: string; role: string };
+
+    const data = await request.file();
+    if (!data || !['image/jpeg', 'image/png', 'image/webp'].includes(data.mimetype)) {
+      return reply.status(400).send({ success: false, error: 'اختار صورة JPG أو PNG أو WEBP' });
+    }
+
+    const ext = data.mimetype === 'image/png' ? '.png' : data.mimetype === 'image/webp' ? '.webp' : '.jpg';
+    const filename = `avatar_${crypto.randomUUID()}${ext}`;
+    const avatarsDir = path.join(config.publicStoragePath, 'avatars');
+    fs.mkdirSync(avatarsDir, { recursive: true });
+    await pipeline(data.file, fs.createWriteStream(path.join(avatarsDir, filename)));
+
+    const webPath = `/uploads/avatars/${filename}`;
+    await query(
+      role === 'lawyer'
+        ? 'UPDATE lawyer_profiles SET profile_photo_path = $1 WHERE user_id = $2'
+        : 'UPDATE users SET profile_photo_path = $1 WHERE id = $2',
+      [webPath, userId]
+    );
+    return reply.send({ success: true, data: { profilePhotoPath: webPath } });
   });
 
   // PATCH /api/v1/users/me
@@ -85,7 +122,7 @@ export async function userRoutes(fastify: FastifyInstance) {
 
     const parseResult = schema.safeParse(request.body);
     if (!parseResult.success) {
-      return reply.status(400).send({ success: false, error: parseResult.error.errors[0]?.message });
+      return reply.status(400).send({ success: false, error: parseResult.error.issues[0]?.message });
     }
 
     const { currentPassword, newPassword } = parseResult.data;

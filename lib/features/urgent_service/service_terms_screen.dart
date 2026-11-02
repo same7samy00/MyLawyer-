@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
-import '../../core/widgets/app_header.dart';
+import '../../core/widgets/auth_hero_header.dart';
+import '../../core/widgets/terms_accordion.dart';
 import 'tracking_screen.dart';
 
 /// شروط خدمة محاميك حالاً، ويوافق عليها الموكل قبل الدخول للخريطة في كل طلب
@@ -11,14 +11,37 @@ class ServiceTermsScreen extends StatelessWidget {
 
   const ServiceTermsScreen({super.key, this.problemTitle, this.problemDescription});
 
-  static const List<String> _terms = [
-    'السعر شامل الانتقال وأوراق الخدمة',
-    'الرسوم الحكومية والكفالات على الموكل',
-    'بعد الدفع هيظهرلك كود إنهاء المهمة',
-    'ادّي الكود للمحامي بعد تنفيذ المهمة فقط',
-    'تقدر تلغي وتسترد المبلغ قبل وصول المحامي',
-    'المبالغ المرتجعة بتنزل في رصيدك ولا تُسحب',
-    'لو حصلت مشكلة قدم شكوى خلال 24 ساعة من إنهاء المهمة',
+  static const List<TermsSection> _sections = [
+    TermsSection(
+      icon: Icons.verified_user_rounded,
+      title: 'السعر والمصاريف',
+      items: [
+        'السعر يشمل أتعاب المحامي وانتقالاته فقط، وشامل الضريبة',
+        'مفيش مصاريف زيادة، ولا التطبيق ولا المحامي من حقهم يطلبوا أي مبلغ إضافي',
+        'الرسوم الحكومية والكفالات لو مطلوبة تُدفع للجهة الرسمية',
+      ],
+    ),
+    TermsSection(
+      icon: Icons.security_rounded,
+      title: 'الدفع وكود الإنهاء',
+      items: [
+        'بعد الدفع هيظهرلك كود إنهاء المهمة',
+        'ادّي الكود للمحامي بعد تنفيذ المهمة فقط',
+      ],
+    ),
+    TermsSection(
+      icon: Icons.policy_rounded,
+      title: 'الإلغاء والاسترداد',
+      items: [
+        'تقدر تلغي وتسترد المبلغ قبل وصول المحامي',
+        'المبالغ المرتجعة بتنزل في رصيدك ولا تُسحب',
+      ],
+    ),
+    TermsSection(
+      icon: Icons.shield_rounded,
+      title: 'الشكاوى',
+      items: ['لو حصلت مشكلة قدم شكوى خلال 24 ساعة من إنهاء المهمة'],
+    ),
   ];
 
   void _accept(BuildContext context) {
@@ -36,28 +59,26 @@ class ServiceTermsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const AppHeader(title: 'شروط الخدمة', isInnerPage: true),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: ListView.separated(
+              child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(24),
-                itemCount: _terms.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 16),
-                itemBuilder: (context, index) => Text(
-                  _terms[index],
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 15,
-                    height: 1.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textMain,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AuthHeroHeader(
+                      title: 'شروط الخدمة',
+                      illustration: 'assets/images/terms_hero.svg',
+                      onBack: () => Navigator.of(context).maybePop(),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(20, 16, 20, 16),
+                      child: TermsAccordion(sections: _sections),
+                    ),
+                  ],
                 ),
               ),
             ),

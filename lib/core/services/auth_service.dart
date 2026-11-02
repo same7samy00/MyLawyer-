@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
+import 'background_location_service.dart';
 import 'device_permission_service.dart';
 import 'push_service.dart';
 
@@ -81,6 +83,8 @@ class RegistrationData {
   final String password;
   final String? syndicateNumber;
   final String? syndicateCardPath;
+  final String? specialty;
+  final String? bio;
 
   const RegistrationData({
     required this.accountType,
@@ -90,6 +94,8 @@ class RegistrationData {
     required this.password,
     this.syndicateNumber,
     this.syndicateCardPath,
+    this.specialty,
+    this.bio,
   });
 
   String get firstName {
@@ -369,6 +375,8 @@ class AuthService {
       'fullName': data.fullName.trim(),
       if (role == 'lawyer' && data.syndicateNumber != null)
         'syndicateNumber': data.syndicateNumber!.trim(),
+      if (role == 'lawyer' && data.specialty != null) 'specialty': data.specialty,
+      if (role == 'lawyer' && data.bio != null) 'bio': data.bio,
     });
 
     if (res.isOk) {
@@ -517,6 +525,8 @@ class AuthService {
   /// مسح كل بيانات الحساب من الجهاز عدا رقم الدخول حتى لا يطلع عليها حساب لاحق
   static Future<void> clearLocalSession() async {
     await ApiService.clearTokens();
+    // الخروج ما يستناش نظام الموبايل
+    unawaited(BackgroundLocationService.stop());
     final prefs = await SharedPreferences.getInstance();
     final loginPhone = prefs.getString(_prefLoginPhone);
     final permissionsAsked = await DevicePermissionService.instance.hasRequestedInitialPermissions();

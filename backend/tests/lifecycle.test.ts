@@ -137,7 +137,7 @@ beforeEach(async () => {
   }
   await sql('DELETE FROM service_orders');
   await sql(`UPDATE problem_prices SET min_price = 350, max_price = 350, commission_percent = 0`);
-  await sql(`UPDATE lawyer_profiles SET is_available = TRUE, missed_orders = 0, suspended_until = NULL, last_active_at = NOW() WHERE user_id = $1`, [lawyerId]);
+  await sql(`UPDATE lawyer_profiles SET is_available = TRUE, urgent_status = 'APPROVED', availability_off_reason = NULL, missed_orders = 0, suspended_until = NULL, last_active_at = NOW(), last_location_updated_at = NOW() WHERE user_id = $1`, [lawyerId]);
   await sql(`UPDATE users SET warnings_count = 0, status = 'active'::user_status WHERE id = $1`, [clientId]);
 });
 
@@ -508,6 +508,31 @@ describe('السعر قبل الطلب والنسبة', () => {
     assert.equal((await wallet()).heldBalance, 880);
   });
 
+  it('الضريبة تتخصم أولاً ونسبة المنصة من الصافي، وتثبت في الطلب', async () => {
+    await sql(`UPDATE problem_prices SET min_price = 1000, max_price = 1000, commission_percent = 30 WHERE problem_type = $1`, [PROBLEM]);
+    await sql('UPDATE platform_settings SET tax_percent = 10');
+    const order = await createArrivedOrder();
+    await sql('UPDATE platform_settings SET tax_percent = 0');
+
+    await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code: await clientCode(order.id) });
+    assert.equal((await wallet()).heldBalance, 630);
+  });
+
+  it('المحامي يظهر بعد موافقة الإدارة فقط، ويوصله إشعار', async () => {
+    await sql(`UPDATE lawyer_profiles SET urgent_status = 'NONE' WHERE user_id = $1`, [lawyerId]);
+    const visible = async () => (await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25', null)).body.data.some((l: any) => l.id === lawyerId);
+
+    assert.equal((await call('POST', '/lawyers/me/availability', lawyerToken, { isAvailable: true })).status, 403);
+    await call('POST', '/lawyers/me/urgent-terms', lawyerToken, {});
+    assert.equal(await visible(), false);
+
+    const decision = await call('POST', `/admin/urgent-applications/${lawyerId}/decision`, adminToken, { approve: true });
+    assert.equal(decision.status, 200);
+    assert.equal(await visible(), true);
+    const notes = await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'تمت الموافقة على تقديمك'`, [lawyerId]);
+    assert.equal(notes.length, 1);
+  });
+
   it('تغيير النسبة لا يأثر على طلب مفتوح', async () => {
     await sql(`UPDATE problem_prices SET min_price = 1000, max_price = 1000, commission_percent = 10 WHERE problem_type = $1`, [PROBLEM]);
     const order = await createArrivedOrder();
@@ -705,7 +730,7 @@ describe('ظهور المحامي على الخريطة', () => {
   it('المحامي المتاح يفضل ظاهر حتى لو التطبيق مقفول', async () => {
     const visible = async () => (await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25', null)).body.data.some((l: any) => l.id === lawyerId);
 
-    await sql(`UPDATE lawyer_profiles SET last_active_at = NOW() - INTERVAL '3 hours' WHERE user_id = $1`, [lawyerId]);
+    await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '30 minutes' WHERE user_id = $1`, [lawyerId]);
     await sweepLifecycle();
     assert.equal(await visible(), true);
 
@@ -713,20 +738,36 @@ describe('ظهور المحامي على الخريطة', () => {
     assert.equal(await visible(), false);
   });
 
-  it('الموقع القديم: تذكير بعد 4 ساعات ثم يختفي بعد 6', async () => {
+  it('توقف تحديث الموقع ساعة يخفي المحامي ويبلغه، والتحديث ما يرجعوش', async () => {
     const available = async () =>
       (await sql('SELECT is_available FROM lawyer_profiles WHERE user_id = $1', [lawyerId]))[0].is_available;
 
-    await sql(`UPDATE lawyer_profiles SET last_active_at = NOW() - INTERVAL '5 hours', stale_reminder_sent = FALSE WHERE user_id = $1`, [lawyerId]);
-    await sweepLifecycle();
+    await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '30 minutes' WHERE user_id = $1`, [lawyerId]);
     await sweepLifecycle();
     assert.equal(await available(), true);
-    const reminders = await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'لسه متاح؟'`, [lawyerId]);
-    assert.equal(reminders.length, 1);
 
-    await sql(`UPDATE lawyer_profiles SET last_active_at = NOW() - INTERVAL '7 hours' WHERE user_id = $1`, [lawyerId]);
+    await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '70 minutes' WHERE user_id = $1`, [lawyerId]);
     await sweepLifecycle();
     assert.equal(await available(), false);
+
+    const update = await call('POST', '/lawyers/me/location', lawyerToken, { latitude: 30.05, longitude: 31.25 });
+    assert.equal(update.body.data.isAvailable, false);
+    assert.equal(await available(), false);
+    const notes = await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'اتحولت لغير متاح'`, [lawyerId]);
+    assert.equal(notes.length, 1);
+  });
+
+  it('التحديث لا يرجع المحامي اللي قفل الزر بنفسه', async () => {
+    await call('POST', '/lawyers/me/availability', lawyerToken, { isAvailable: false });
+    const update = await call('POST', '/lawyers/me/location', lawyerToken, { latitude: 30.05, longitude: 31.25 });
+    assert.equal(update.body.data.isAvailable, false);
+  });
+
+  it('المحامي بدون موقع حقيقي لا يظهر على الخريطة', async () => {
+    await sql(`UPDATE lawyer_profiles SET latitude = NULL, longitude = NULL WHERE user_id = $1`, [lawyerId]);
+    const res = await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25&radius_km=1500', null);
+    await sql(`UPDATE lawyer_profiles SET latitude = 30.05, longitude = 31.25 WHERE user_id = $1`, [lawyerId]);
+    assert.equal(res.body.data.some((l: any) => l.id === lawyerId), false);
   });
 
   it('المحامي البعيد يظهر على الخريطة بنطاق مصر كلها', async () => {
@@ -762,8 +803,8 @@ describe('الترتيب والإشعارات والصلاحيات', () => {
     ];
     for (const [id, lat, lon, rating] of rows) {
       await sql(
-        `INSERT INTO lawyer_profiles (user_id, full_name, syndicate_number, approval_status, is_available, latitude, longitude, rating, last_active_at)
-         VALUES ($1, 'ترتيب', $2, 'approved'::lawyer_approval_status, TRUE, $3, $4, $5, NOW())`,
+        `INSERT INTO lawyer_profiles (user_id, full_name, syndicate_number, approval_status, is_available, latitude, longitude, rating, last_active_at, urgent_status)
+         VALUES ($1, 'ترتيب', $2, 'approved'::lawyer_approval_status, TRUE, $3, $4, $5, NOW(), 'APPROVED')`,
         [id, id.slice(0, 8), lat, lon, rating]
       );
     }

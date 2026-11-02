@@ -60,6 +60,18 @@ class LawyerRepository {
     return profile is Map<String, dynamic> ? profile['is_available'] == true : null;
   }
 
+  static Future<Map<String, dynamic>?> getProfile() async {
+    final res = await ApiService.get('/lawyers/me');
+    final data = res.data;
+    if (data is! Map<String, dynamic>) return null;
+    final profile = data['profile'] ?? data;
+    return profile is Map<String, dynamic> ? profile : null;
+  }
+
+  static Future<ApiResponse<dynamic>> acceptUrgentTerms() {
+    return ApiService.post('/lawyers/me/urgent-terms', {});
+  }
+
   static Future<ApiResponse<dynamic>> setAvailability(bool isAvailable) {
     return ApiService.post('/lawyers/me/availability', {'isAvailable': isAvailable});
   }

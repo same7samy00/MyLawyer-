@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/widgets/lawyer_availability_card.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/profile_home_card.dart';
 import 'lawyer_urgent_service_intro_screen.dart';
 
 /// الواجهة الرئيسية المستقلة للمحامي
@@ -18,8 +19,6 @@ class LawyerHomeTab extends StatefulWidget {
 }
 
 class _LawyerHomeTabState extends State<LawyerHomeTab> {
-  String _dualName = '';
-  String _syndicateNumber = '';
   String _locationName = 'تحديد الموقع';
 
   @override
@@ -32,20 +31,11 @@ class _LawyerHomeTabState extends State<LawyerHomeTab> {
   /// تحميل بيانات المحامي من التخزين المحلي واستخراج الاسم ثنائياً ورقم القيد
   Future<void> _loadLawyerData() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedName = prefs.getString('user_name');
-    final savedSyndicate = prefs.getString('syndicate_number');
     final savedLocation = prefs.getString('user_location_name');
 
     if (!mounted) return;
 
     setState(() {
-      if (savedName != null && savedName.trim().isNotEmpty) {
-        final words = savedName.trim().split(RegExp(r'\s+'));
-        _dualName = words.length >= 2 ? '${words[0]} ${words[1]}' : words[0];
-      }
-      if (savedSyndicate != null && savedSyndicate.trim().isNotEmpty) {
-        _syndicateNumber = savedSyndicate.trim();
-      }
       if (savedLocation != null && savedLocation.trim().isNotEmpty) {
         _locationName = savedLocation.trim();
       }
@@ -88,87 +78,7 @@ class _LawyerHomeTabState extends State<LawyerHomeTab> {
           children: [
             const LawyerAvailabilityCard(),
             // 1. كارت منسق لبيانات المحامي المهنية والعنوان الجغرافي (نص فقط دون أيقونة إشعارات مكررة)
-            AppCard(
-              padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
-              child: Row(
-                children: [
-                  // صورة/أيقونة الحساب (7.0px)
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(7.0),
-                      border: Border.all(color: AppColors.cardBorder, width: 1.0),
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.shield_rounded, color: AppColors.primary, size: 24),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // بيانات المحامي: اللقب أ/ + الاسم ثنائياً + رقم القيد بالنقابة
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'أ/ $_dualName',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: 'AppFont',
-                            fontFamilyFallback: appFontFallback,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.dark,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _syndicateNumber.isEmpty ? 'رقم القيد غير مسجل' : 'رقم القيد: $_syndicateNumber',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: 'AppFont',
-                            fontFamilyFallback: appFontFallback,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-
-                  // العنوان الجغرافي: نص فقط غير قابل للضغط ودون أيقونات توحي بأنه زر
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.location_on_rounded, size: 14, color: AppColors.textMuted),
-                      const SizedBox(width: 4),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 110),
-                        child: Text(
-                          _locationName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: 'AppFont',
-                            fontFamilyFallback: appFontFallback,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textMain,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            ProfileHomeCard(locationName: _locationName),
 
             const SizedBox(height: 24),
 

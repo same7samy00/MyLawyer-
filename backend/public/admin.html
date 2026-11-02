@@ -128,6 +128,30 @@
     }
   }
 
+  async function renderUrgent(box) {
+    const { data } = await api('GET', '/admin/urgent-applications');
+    if (data.length === 0) box.append(el('p', 'مفيش طلبات انضمام', 'muted'));
+
+    for (const item of data) {
+      const card = el('div', undefined, 'card');
+      card.append(el('strong', item.full_name + ' • قيد ' + (item.syndicate_number || 'غير مسجل')));
+      card.append(el('p', (item.specialty || '') + ' • ' + item.phone));
+      if (item.bio) card.append(el('p', item.bio, 'muted'));
+      const row = el('div', undefined, 'row');
+      const reason = el('input');
+      reason.placeholder = 'سبب الرفض';
+      row.append(button('موافقة', 'primary', async () => {
+        await api('POST', '/admin/urgent-applications/' + item.user_id + '/decision', { approve: true });
+        await load();
+      }), reason, button('رفض', async () => {
+        await api('POST', '/admin/urgent-applications/' + item.user_id + '/decision', { approve: false, reason: reason.value });
+        await load();
+      }));
+      card.append(row);
+      box.append(card);
+    }
+  }
+
   async function renderComplaints(box) {
     const { data } = await api('GET', '/admin/complaints');
     if (data.length === 0) box.append(el('p', 'مفيش شكاوى مفتوحة', 'muted'));
@@ -200,6 +224,16 @@
       await load();
     }));
     allCard.append(allRow, el('p', 'النسبة الجديدة تطبق على الطلبات الجديدة فقط', 'muted'));
+    const taxRes = await api('GET', '/admin/tax');
+    const taxPercent = el('input');
+    taxPercent.type = 'number';
+    taxPercent.value = taxRes.data.percent;
+    const taxRow = el('div', undefined, 'row');
+    taxRow.append(el('strong', 'نسبة الضريبة من سعر الخدمة'), taxPercent, button('حفظ', async () => {
+      await api('POST', '/admin/tax', { percent: Number(taxPercent.value) });
+      await load();
+    }));
+    allCard.append(taxRow, el('p', 'الضريبة تتخصم من السعر الأول، ونسبة المنصة من الصافي بعدها. التغيير للطلبات الجديدة فقط.', 'muted'));
     box.append(allCard);
 
     for (const item of data) {
@@ -256,6 +290,7 @@
     ['التذاكر', renderTickets],
     ['الشكاوى', renderComplaints],
     ['الاعتراضات', renderAppeals],
+    ['طلبات المحامين', renderUrgent],
     ['الأسعار', renderPrices],
     ['التعليقات', renderReviews],
   ];

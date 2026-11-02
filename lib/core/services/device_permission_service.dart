@@ -47,25 +47,5 @@ class DevicePermissionService {
       return false;
     }
   }
-
-  /// فحص ما إذا كان إذن الموقع مرفوضاً نهائياً ويتطلب التوجه لإعدادات الجهاز
-  Future<bool> isLocationPermanentlyDenied() async {
-    try {
-      final permission = await Geolocator.checkPermission();
-      return permission == LocationPermission.deniedForever;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// فتح شاشة إعدادات التطبيق في إعدادات النظام
-  Future<bool> openAppSettings() async {
-    return await Geolocator.openAppSettings();
-  }
-
-  /// فتح إعدادات خدمات الموقع في النظام
-  Future<bool> openLocationSettings() async {
-    return await Geolocator.openLocationSettings();
-  }
 }
 

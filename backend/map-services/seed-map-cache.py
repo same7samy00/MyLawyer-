@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Fills the map cache for populated areas, slowly enough to leave the server free
+# Fills the map cache for populated areas after a style change
 import math, ssl, sys, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
@@ -40,7 +40,7 @@ ctx.verify_mode = ssl.CERT_NONE
 
 def fetch(t):
     z, x, y = t
-    req = urllib.request.Request(f'https://127.0.0.1/map/v1/{z}/{x}/{y}.webp', headers={'Host': 'my-lawyer.online'})
+    req = urllib.request.Request(f'https://127.0.0.1/map/v2/{z}/{x}/{y}.webp', headers={'Host': 'my-lawyer.online'})
     with urllib.request.urlopen(req, context=ctx, timeout=60) as response:
         response.read()
 
@@ -48,7 +48,7 @@ def fetch(t):
 fails = 0
 done = 0
 started = time.time()
-with ThreadPoolExecutor(2) as pool:
+with ThreadPoolExecutor(8) as pool:
     for i in range(0, len(tiles), 40):
         batch = tiles[i:i + 40]
         for future in [pool.submit(fetch, t) for t in batch]:

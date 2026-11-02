@@ -1,9 +1,9 @@
 import nodemailer from 'nodemailer';
 import { config } from '../config/index.js';
 
-let transporter: nodemailer.Transporter | null = null;
+let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 
-export function getEmailTransporter(): nodemailer.Transporter {
+export function getEmailTransporter(): ReturnType<typeof nodemailer.createTransport> {
   if (!transporter) {
     const transportOptions: any = {
       host: config.smtp.host,
@@ -23,7 +23,7 @@ export function getEmailTransporter(): nodemailer.Transporter {
 
     transporter = nodemailer.createTransport(transportOptions);
   }
-  return transporter as nodemailer.Transporter;
+  return transporter as ReturnType<typeof nodemailer.createTransport>;
 }
 
 export async function sendOtpEmail(toEmail: string, otpCode: string, purpose: 'register' | 'reset_password'): Promise<boolean> {

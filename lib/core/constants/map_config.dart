@@ -3,7 +3,7 @@
 abstract class MapConfig {
   /// خادم البلاطات الأساسي (مستضاف ومخزن محلياً على أقراص NVMe فائقة السرعة)
   static const String serverTileUrl =
-      'https://my-lawyer.online/map/v1/{z}/{x}/{y}.webp';
+      'https://my-lawyer.online/map/v2/{z}/{x}/{y}.webp';
 
   /// خادم بديل أول (OpenStreetMap العالمي) في حال تعذر الاتصال بالخادم
   static const String fallbackTileUrl =

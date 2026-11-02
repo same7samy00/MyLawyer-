@@ -39,7 +39,7 @@ class _OrdersTabState extends State<OrdersTab> {
     ApiService.isServerReachable.addListener(_onReachabilityChanged);
     _loadOrders();
     // تحديث حالة الطلب الجاري من غير سحب الصفحة
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 20), (_) {
       if (_orders.any((order) => order.isOngoing)) _loadOrders();
     });
   }

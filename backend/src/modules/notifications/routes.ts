@@ -79,9 +79,17 @@ export async function notificationRoutes(fastify: FastifyInstance) {
       [userId]
     );
 
+    const availabilityRes = role === 'lawyer'
+      ? await query('SELECT is_available FROM lawyer_profiles WHERE user_id = $1', [userId])
+      : null;
+
     return reply.send({
       success: true,
-      data: { unread: unreadRes.rows[0].total, pendingOrders: ordersRes.rows[0].total },
+      data: {
+        unread: unreadRes.rows[0].total,
+        pendingOrders: ordersRes.rows[0].total,
+        isAvailable: availabilityRes?.rows[0]?.is_available,
+      },
     });
   });
 

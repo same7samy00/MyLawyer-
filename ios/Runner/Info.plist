@@ -48,7 +48,11 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>location</string>
+		<string>fetch</string>
 	</array>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>يستخدم My Lawyer موقعك والتطبيق مقفول طول ما أنت متاح، عشان تفضل ظاهر للموكلين القريبين منك.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>يحتاج تطبيق My Lawyer إلى إذن الموقع لتحديد مدينتك وعرض أقرب المحامين والخدمات القانونية المتاحة.</string>
 	<key>NSCameraUsageDescription</key>

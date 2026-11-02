@@ -15,8 +15,7 @@ export const LAWYER_RESPONSE_SECONDS = 120;
 export const PAYMENT_MINUTES = 10;
 export const ARRIVAL_RADIUS_KM = 0.5;
 const MAX_MISSED_ORDERS = 2;
-const LOCATION_REMINDER_HOURS = 4;
-const LOCATION_STALE_HOURS = 6;
+const LOCATION_SILENCE_MINUTES = 65;
 const APPROXIMATE_GRID_DEGREES = 0.01;
 const STRIKE_LIMIT = 3;
 const STRIKE_WINDOW_DAYS = 30;
@@ -53,11 +52,14 @@ export async function addClientCredit(db: Db, clientId: string, orderId: string,
 export interface ClientQuote {
   price: number;
   commissionPercent: number;
+  taxPercent: number;
   lawyerAmount: number;
 }
 
-export function lawyerShare(amount: number, commissionPercent: number): number {
-  return Math.round(amount * (100 - commissionPercent)) / 100;
+/// The price includes tax, and the platform share comes from what remains after it
+export function lawyerShare(amount: number, commissionPercent: number, taxPercent = 0): number {
+  const afterTax = amount * (100 - taxPercent) / 100;
+  return Math.round(afterTax * (100 - commissionPercent)) / 100;
 }
 
 /// Picks a random whole price inside the problem's range and keeps it for this client.
@@ -78,10 +80,13 @@ export async function resolveClientQuote(db: Db, clientId: string, problemType: 
   const min = Number(range.min_price);
   const max = Number(range.max_price);
   const commissionPercent = Number(range.commission_percent);
+  const settingsRes = await db.query('SELECT tax_percent FROM platform_settings LIMIT 1');
+  const taxPercent = Number(settingsRes.rows[0]?.tax_percent ?? 0);
   const quote = (price: number) => ({
     price,
     commissionPercent,
-    lawyerAmount: lawyerShare(price, commissionPercent),
+    taxPercent,
+    lawyerAmount: lawyerShare(price, commissionPercent, taxPercent),
   });
 
   const storedRes = await db.query(
@@ -132,7 +137,7 @@ export async function addLawyerStrike(db: Db, lawyerId: string, orderId: string,
   if (countRes.rows[0].total >= STRIKE_LIMIT) {
     await db.query(
       `UPDATE lawyer_profiles
-       SET suspended_until = NOW() + make_interval(days => $1), is_available = FALSE
+       SET suspended_until = NOW() + make_interval(days => $1), is_available = FALSE, availability_off_reason = 'SUSPENDED'
        WHERE user_id = $2`,
       [SUSPENSION_DAYS, lawyerId]
     );
@@ -188,7 +193,7 @@ async function closeUnansweredOrders() {
 
     if (missed.rows[0]?.missed_orders >= MAX_MISSED_ORDERS) {
       await dbPool.query(
-        'UPDATE lawyer_profiles SET is_available = FALSE, missed_orders = 0 WHERE user_id = $1',
+        `UPDATE lawyer_profiles SET is_available = FALSE, availability_off_reason = 'MISSED', missed_orders = 0 WHERE user_id = $1`,
         [order.lawyer_id]
       );
       await notify(dbPool, order.lawyer_id, 'اتحولت لغير متاح', 'ما رديتش على طلبين متتاليين، فعّل حالتك لما تكون جاهز', order.id);
@@ -222,33 +227,22 @@ async function liftSuspensions() {
   }
 }
 
-/// A closed app stops updating the lawyer's place, so an old pin must not stay on the map
-async function retireStaleLawyers() {
-  const openOrder = `EXISTS (
-    SELECT 1 FROM service_orders o
-    WHERE o.lawyer_id = lp.user_id AND o.status IN ('PENDING', 'ACCEPTED', 'ACTIVE')
-  )`;
-
-  const reminded = await dbPool.query(
-    `UPDATE lawyer_profiles lp SET stale_reminder_sent = TRUE
-     WHERE lp.is_available = TRUE AND lp.stale_reminder_sent = FALSE
-       AND lp.last_active_at <= NOW() - make_interval(hours => $1) AND NOT ${openOrder}
-     RETURNING lp.user_id`,
-    [LOCATION_REMINDER_HOURS]
-  );
-  for (const lawyer of reminded.rows) {
-    await notify(dbPool, lawyer.user_id, 'لسه متاح؟', 'افتح التطبيق عشان موقعك يتحدث وتفضل ظاهر للموكلين');
-  }
-
-  const retired = await dbPool.query(
-    `UPDATE lawyer_profiles lp SET is_available = FALSE, stale_reminder_sent = FALSE
+/// Two missed half-hour updates mean the phone is off the network
+async function hideSilentLawyers() {
+  const res = await dbPool.query(
+    `UPDATE lawyer_profiles lp SET is_available = FALSE, availability_off_reason = 'NO_LOCATION'
      WHERE lp.is_available = TRUE
-       AND lp.last_active_at <= NOW() - make_interval(hours => $1) AND NOT ${openOrder}
+       AND COALESCE(lp.last_location_updated_at, lp.last_active_at, lp.updated_at) <= NOW() - make_interval(mins => $1)
+       AND NOT EXISTS (
+         SELECT 1 FROM service_orders o
+         WHERE o.lawyer_id = lp.user_id AND o.status IN ('PENDING', 'ACCEPTED', 'ACTIVE')
+       )
      RETURNING lp.user_id`,
-    [LOCATION_STALE_HOURS]
+    [LOCATION_SILENCE_MINUTES]
   );
-  for (const lawyer of retired.rows) {
-    await notify(dbPool, lawyer.user_id, 'اتحولت لغير متاح', 'موقعك ما اتحدثش من 6 ساعات، فعّل حالتك لما تكون جاهز');
+
+  for (const lawyer of res.rows) {
+    await notify(dbPool, lawyer.user_id, 'اتحولت لغير متاح', 'موقعك ما وصلش من ساعة، افتح التطبيق وفعّل حالتك لما تكون جاهز');
   }
 }
 
@@ -333,7 +327,7 @@ export async function sweepLifecycle() {
   await closeUnansweredOrders();
   await closeUnpaidOrders();
   await liftSuspensions();
-  await retireStaleLawyers();
+  await hideSilentLawyers();
   await sendDeadlineReminders();
   await expireUnfinishedOrders();
   await releaseHeldPayouts();

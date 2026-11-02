@@ -7,6 +7,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/device_permission_service.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/profile_home_card.dart';
 import '../urgent_service/urgent_service_problem_screen.dart';
 import '../auth/location_permission_screen.dart';
 
@@ -19,7 +20,6 @@ class HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<HomeTab> {
   String _locationName = 'تحديد الموقع';
-  String _userName = 'العميل';
 
   @override
   void initState() {
@@ -31,14 +31,10 @@ class _HomeTabState extends State<HomeTab> {
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final savedLocation = prefs.getString('user_location_name');
-    final savedName = prefs.getString('user_name');
     if (mounted) {
       setState(() {
         if (savedLocation != null && savedLocation.trim().isNotEmpty) {
           _locationName = savedLocation.trim();
-        }
-        if (savedName != null && savedName.trim().isNotEmpty) {
-          _userName = savedName.trim();
         }
       });
     }
@@ -79,85 +75,7 @@ class _HomeTabState extends State<HomeTab> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 1. كارت منسق لبيانات الموكل والعنوان الجغرافي (نص فقط دون أيقونة إشعارات مكررة)
-            AppCard(
-              padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
-              child: Row(
-                children: [
-                  // صورة/أيقونة الحساب (7.0px)
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(7.0),
-                      border: Border.all(color: AppColors.cardBorder, width: 1.0),
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.person_rounded, color: AppColors.primary, size: 24),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // الاسم الخاص بالموكل
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'أهلاً بك،',
-                          style: TextStyle(
-                            fontFamily: 'AppFont',
-                            fontFamilyFallback: appFontFallback,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _userName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: 'AppFont',
-                            fontFamilyFallback: appFontFallback,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.dark,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-
-                  // العنوان الجغرافي: نص فقط غير قابل للضغط ودون أيقونات توحي بأنه زر
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.location_on_rounded, size: 14, color: AppColors.textMuted),
-                      const SizedBox(width: 4),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 115),
-                        child: Text(
-                          _locationName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: 'AppFont',
-                            fontFamilyFallback: appFontFallback,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textMain,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            ProfileHomeCard(locationName: _locationName),
             const SizedBox(height: 18),
 
             // 2. «محاميك حالاً» Banner with Global Team SVG Illustration

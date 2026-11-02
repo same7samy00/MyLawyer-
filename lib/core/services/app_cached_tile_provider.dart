@@ -25,7 +25,11 @@ class AppCachedTileProvider extends TileProvider {
     } catch (_) {
       baseDir = Directory.systemTemp;
     }
-    final cacheDir = Directory('${baseDir.path}/my_lawyer_map_tiles');
+    // رقم المجلد يتغير مع شكل الخريطة، فالموبايل ما يعرضش الصور القديمة
+    final oldCacheDir = Directory('${baseDir.path}/my_lawyer_map_tiles');
+    if (oldCacheDir.existsSync()) oldCacheDir.deleteSync(recursive: true);
+
+    final cacheDir = Directory('${baseDir.path}/my_lawyer_map_tiles_v2');
     if (!cacheDir.existsSync()) {
       cacheDir.createSync(recursive: true);
     }
@@ -126,7 +130,7 @@ class AppCachedMapImageProvider extends ImageProvider<AppCachedMapImageProvider>
     AppCachedMapImageProvider key,
     ImageDecoderCallback decode,
   ) async {
-    final fileName = 'map_v1_${coordinates.z}_${coordinates.x}_${coordinates.y}.tile';
+    final fileName = 'map_${coordinates.z}_${coordinates.x}_${coordinates.y}.tile';
 
     // 1. الفحص الفوري في التخزين الدائم على قرص الهاتف (Disk Cache Hit)
     try {

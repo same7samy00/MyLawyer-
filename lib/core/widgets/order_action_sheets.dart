@@ -74,14 +74,16 @@ class _SheetFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Stack(
         children: [
           const SheetLines(top: 16),
           SafeArea(
             top: false,
-            child: SingleChildScrollView(
+            child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

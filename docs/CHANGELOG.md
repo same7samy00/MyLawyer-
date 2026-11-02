@@ -1,5 +1,56 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.81] - 2026-11-02
+### Reliability and Lower Server Use
+- A full page replaces the connection notice whenever the connection is lost.
+- App polling is slower and stops while the app is in the background.
+- Updated vulnerable server packages, including sign-in tokens, email and validation.
+- Removed unused images and code, and corrected price wording.
+
+## [Phase 2.80] - 2026-11-02
+### Lawyer Approval and Profiles
+- Lawyers apply to the urgent service after ticking the terms, and the control page approves or rejects with a notification.
+- Home shows a profile card with photo, greeting, city, rating and reviews, plus lawyer details and approval status.
+- Lawyer registration adds a searchable specialty and a short bio, and clients get a rating from proven refusals.
+
+## [Phase 2.79] - 2026-11-02
+### Lawyer Availability, Terms and Tax
+- Available lawyers send their place in the background: the phone checks every 15 minutes and sends after 30 minutes or 3 km.
+- A lawyer becomes unavailable after two missed orders or an hour without a location update, and must turn it back on. The switch follows the server state.
+- Every notification plays sound and vibrates, including while the app is open.
+- Clients can cancel while waiting for a lawyer. Client and lawyer terms use expandable sections, and joining the urgent service requires accepting the lawyer terms.
+- Tax is set in the control page, taken from the price first, then the platform share from the remainder, both locked per order.
+
+## [Phase 2.78] - 2026-11-02
+### Place Names on the Server Map
+- City and village names returned to the map style
+- Bottom sheets now match their content height on every phone with no scrolling, except the reviews list, and a closed sheet shows only its title.
+- The phone cache moved to a new folder, so saved tiles without names are removed.
+- The lawyer place now updates every 30 minutes while the app is open, plus every time it opens and on accepting an order.
+- The connection notice checks every 15 seconds and stays visible until the connection returns., served from the new `/map/v2` tiles.
+
+## [Phase 2.77] - 2026-11-02
+### Back to the Server Map
+- Removed the offline map after phone tests showed freezes of up to 4 seconds, and returned to the server map.
+- Zoom now stays between 8 and 15, the camera stays inside Egypt, and any tile still loading shows a loading label.
+- Kept the cards, camera moves and real lawyer place fixes.
+
+## [Phase 2.76] - 2026-11-02
+### Real Lawyer Places Only
+- New lawyers no longer start at a fixed Cairo point. A lawyer appears on the map only after the phone sends a real place.
+- Existing accounts still on that point were cleared, and lawyers with no activity date now follow the same 6 hour rule.
+- The map draws each area once as an image for smoother movement.
+- City and village names appear at every zoom, and camera moves are single smooth animations that stop on touch.
+- Lawyers, clients and the user appear as cards that shrink when zooming out, with no pins.
+- The route line appears at once, and the time follows when the server answers.
+- Map zoom stops at 15 everywhere, including camera moves and buttons, and the screen stays inside Egypt.
+
+## [Phase 2.75] - 2026-11-02
+### Offline Egypt Map
+- The map is now drawn on the phone from a 40 MB Egypt file inside the app, with no tile requests and no gray tiles.
+- The lawyers list refreshes every 60 seconds and no longer carries unused fields.
+- Signed-in users are rate limited per account, so phones sharing a mobile network IP do not block each other.
+
 ## [Phase 2.74] - 2026-11-01
 ### Map Pins and Moving Lawyers
 - The map loads every available lawyer in Egypt, so pins no longer depend on camera movement. Each lawyer keeps a separate pin, and pins shrink when zooming out.

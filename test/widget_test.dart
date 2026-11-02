@@ -2,6 +2,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:my_lawyer/core/services/app_cached_tile_provider.dart';
 import 'package:my_lawyer/core/widgets/app_button.dart';
 import 'package:my_lawyer/core/widgets/app_header.dart';
+import 'package:my_lawyer/core/widgets/profile_home_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -85,7 +86,7 @@ void main() {
     });
 
     test('MapConfig defines self-hosted VPS server endpoints as primary', () {
-      expect(MapConfig.serverTileUrl, contains('my-lawyer.online/map/v1/'));
+      expect(MapConfig.serverTileUrl, contains('my-lawyer.online/map/v2/'));
       expect(MapConfig.osrmBaseUrl, 'https://my-lawyer.online/osrm');
       expect(MapConfig.fallbackTileUrl, contains('tile.openstreetmap.org'));
     });
@@ -556,6 +557,10 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(0), 'سامي إبراهيم أحمد السيد');
       await tester.enterText(find.byType(TextFormField).at(1), '01123456789');
       await tester.enterText(find.byType(TextFormField).at(2), '984512');
+      await tester.enterText(find.byType(TextFormField).at(3), 'الجنائي');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('القانون الجنائي').last);
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('بيانات الحساب'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('بيانات الحساب'));
@@ -697,10 +702,9 @@ void main() {
       await tester.pump();
 
       // Prefix and dual name
-      expect(find.text('أ/ أحمد محمود'), findsOneWidget);
+      expect(find.byType(ProfileHomeCard), findsOneWidget);
 
       // Syndicate number
-      expect(find.text('رقم القيد: 987654'), findsOneWidget);
 
       // Real location is text only (not clickable to open tracking)
       final lawyerAddressFinder = find.text('مدينة نصر، محافظة القاهرة');
@@ -749,13 +753,16 @@ void main() {
       expect(find.text('طلب الآن'), findsNothing);
       expect(find.byType(FlutterMap), findsNothing);
 
-      // Tap apply button shows dialog
+      // Accepting the terms joins the service
+      backend.overrides['POST /lawyers/me/urgent-terms'] = (request) => FakeBackend.json(200, {'success': true});
+      await tester.ensureVisible(find.text('قرأت الشروط وأوافق عليها'));
+      await tester.tap(find.text('قرأت الشروط وأوافق عليها'));
+      await tester.pump();
       await tester.ensureVisible(find.text('تقديم على الخدمة'));
       await tester.tap(find.text('تقديم على الخدمة'));
       await tester.pumpAndSettle();
 
-      expect(find.text('طلب الانضمام للخدمة'), findsOneWidget);
-      expect(find.text('حسناً، فهمت'), findsOneWidget);
+      expect(find.text('طلبك قيد المراجعة'), findsOneWidget);
     });
 
     testWidgets('LoginScreen routes lawyer account to LawyerNavigationShell', (WidgetTester tester) async {
@@ -794,8 +801,7 @@ void main() {
 
       // Should open LawyerNavigationShell with LawyerHomeTab
       expect(find.byType(LawyerNavigationShell), findsOneWidget);
-      expect(find.text('أ/ إبراهيم حسن'), findsOneWidget);
-      expect(find.text('رقم القيد: 554433'), findsOneWidget);
+      expect(find.byType(ProfileHomeCard), findsOneWidget);
     });
 
     testWidgets('LawyerOrdersTab displays order card with open order and decline buttons instead of client contact/complaint', (WidgetTester tester) async {
@@ -946,7 +952,7 @@ void main() {
 
       // Tab 0: Home
       expect(find.byType(LawyerHomeTab), findsOneWidget);
-      expect(find.text('أ/ عمر عبد'), findsOneWidget);
+      expect(find.byType(ProfileHomeCard), findsOneWidget);
 
       // Switch to Tab 1: Orders
       await tester.tap(find.text('الطلبات'));

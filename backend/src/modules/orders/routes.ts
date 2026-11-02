@@ -124,7 +124,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
     // Verify target lawyer exists, is active, approved, and available
     const lawyerRes = await query(
       `SELECT u.id as user_id, u.status, lp.full_name, lp.approval_status, lp.is_available, lp.latitude, lp.longitude,
-              lp.suspended_until
+              lp.suspended_until, lp.urgent_status
        FROM users u
        JOIN lawyer_profiles lp ON u.id = lp.user_id
        WHERE u.id = $1 AND u.role = 'lawyer'`,
@@ -139,7 +139,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
     if (targetLawyer.approval_status !== 'approved' || targetLawyer.status !== 'active') {
       return reply.status(400).send({ success: false, error: 'عذراً، المحامي المحدد ليس في حالة نشطة ومعتمدة حالياً' });
     }
-    if (!targetLawyer.is_available || targetLawyer.suspended_until || await lawyerHasOpenOrder(dbPool, targetLawyer.user_id)) {
+    if (targetLawyer.urgent_status !== 'APPROVED' || !targetLawyer.is_available || targetLawyer.suspended_until || await lawyerHasOpenOrder(dbPool, targetLawyer.user_id)) {
       return reply.status(409).send({ success: false, error: 'المحامي مشغول دلوقتي، اختار محامي تاني' });
     }
 
@@ -161,10 +161,10 @@ export async function orderRoutes(fastify: FastifyInstance) {
           order_number, client_id, lawyer_id, service_type,
           service_title, problem_type, problem_description,
           client_latitude, client_longitude, client_address,
-          lawyer_latitude, lawyer_longitude, price, commission_percent, lawyer_amount,
+          lawyer_latitude, lawyer_longitude, price, commission_percent, tax_percent, lawyer_amount,
           response_deadline, status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-          NOW() + make_interval(secs => $16), 'PENDING')
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+          NOW() + make_interval(secs => $17), 'PENDING')
         RETURNING *`,
         [
           orderNumber,
@@ -181,6 +181,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
           targetLawyer.longitude,
           quote.price,
           quote.commissionPercent,
+          quote.taxPercent,
           quote.lawyerAmount,
           LAWYER_RESPONSE_SECONDS,
         ]
@@ -408,6 +409,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
     }
     if (role !== 'admin') {
       delete order.commission_percent;
+      delete order.tax_percent;
       if (order.client_id === userId) delete order.lawyer_amount;
     }
 
@@ -485,8 +487,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
       if (hasFreshLocation) {
         await client.query(
           `UPDATE lawyer_profiles
-           SET latitude = $1, longitude = $2, last_location_updated_at = NOW(), last_active_at = NOW(),
-               stale_reminder_sent = FALSE
+           SET latitude = $1, longitude = $2, last_location_updated_at = NOW(), last_active_at = NOW()
            WHERE user_id = $3`,
           [lat, lon, userId]
         );

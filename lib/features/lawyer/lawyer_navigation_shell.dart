@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../core/services/background_location_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/notification_center.dart';
 import '../../core/services/push_service.dart';
 import '../../core/widgets/app_bottom_bar.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/background_location_sheet.dart';
 import '../../data/repositories/lawyer_repository.dart';
 import 'lawyer_account_tab.dart';
 import 'lawyer_home_tab.dart';
@@ -46,13 +48,14 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
     super.initState();
     _currentIndex = widget.initialIndex;
     _visitedTabs.add(_currentIndex);
-    NotificationCenter.start(interval: const Duration(seconds: 5));
+    NotificationCenter.start(interval: const Duration(seconds: 15));
     NotificationCenter.pendingOrders.addListener(_onPendingOrdersChanged);
+    NotificationCenter.isAvailable.addListener(_onAvailabilityChanged);
     WidgetsBinding.instance.addObserver(this);
     _syncLocation();
     PushService.start();
     // إشارة الحضور تبقي المحامي ظاهراً للموكلين بمكانه الحالي
-    _presenceTimer = Timer.periodic(const Duration(minutes: 1), (_) => _syncLocation());
+    _presenceTimer = Timer.periodic(const Duration(minutes: 30), (_) => _syncLocation());
   }
 
   @override
@@ -65,6 +68,7 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
     _presenceTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     NotificationCenter.pendingOrders.removeListener(_onPendingOrdersChanged);
+    NotificationCenter.isAvailable.removeListener(_onAvailabilityChanged);
     NotificationCenter.stop();
     _dataRefresh.dispose();
     super.dispose();
@@ -80,6 +84,20 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
     } catch (_) {
       // تعذر الموقع لا يوقف باقي التطبيق
     }
+  }
+
+  /// المحامي المتاح يفضل مكانه محدث والتطبيق مقفول، وغير المتاح ما يبعتش مكانه
+  Future<void> _onAvailabilityChanged() async {
+    final isAvailable = NotificationCenter.isAvailable.value;
+    if (isAvailable == null) return;
+
+    if (!isAvailable) {
+      await BackgroundLocationService.stop();
+      return;
+    }
+
+    if (mounted) await BackgroundLocationSheet.showIfNeeded(context);
+    await BackgroundLocationService.start();
   }
 
   void _onPendingOrdersChanged() {

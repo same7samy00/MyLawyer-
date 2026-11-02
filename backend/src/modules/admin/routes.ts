@@ -131,7 +131,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
 
     const complaintRes = await query(
-      `SELECT c.*, o.price, o.commission_percent, o.status as order_status, o.client_id as order_client
+      `SELECT c.*, o.price, o.commission_percent, o.tax_percent, o.status as order_status, o.client_id as order_client
        FROM complaints c JOIN service_orders o ON o.id = c.order_id
        WHERE c.id::text = $1 AND c.status = 'OPEN'`,
       [id]
@@ -165,7 +165,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       if (!complaint.filed_after_hold) {
         // The platform share follows what stays after the refund
-        const lawyerAmount = lawyerShare(price - refund, Number(complaint.commission_percent));
+        const lawyerAmount = lawyerShare(price - refund, Number(complaint.commission_percent), Number(complaint.tax_percent));
         await client.query(
           `UPDATE service_orders
            SET status = $1, payout_status = $2, payout_amount = $3, completion_code = NULL,
@@ -299,6 +299,58 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
     await query('UPDATE problem_prices SET commission_percent = $1, updated_at = NOW()', [percent]);
     return reply.send({ success: true, message: 'تم تطبيق النسبة على كل الخدمات' });
+  });
+
+  // GET /api/v1/admin/urgent-applications
+  fastify.get('/urgent-applications', async (_request: FastifyRequest, reply: FastifyReply) => {
+    const res = await query(
+      `SELECT lp.user_id, lp.full_name, lp.syndicate_number, lp.specialty, lp.bio, u.phone
+       FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id
+       WHERE lp.urgent_status = 'PENDING' ORDER BY lp.urgent_terms_accepted_at ASC`
+    );
+    return reply.send({ success: true, data: res.rows });
+  });
+
+  // POST /api/v1/admin/urgent-applications/:id/decision
+  fastify.post('/urgent-applications/:id/decision', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const body = (request.body || {}) as { approve?: boolean; reason?: string };
+    const approved = body.approve === true;
+    const reason = body.reason ? sanitizeText(body.reason, 500) : null;
+
+    const res = await query(
+      `UPDATE lawyer_profiles SET urgent_status = $1, urgent_rejection_reason = $2, updated_at = NOW()
+       WHERE user_id = $3 AND urgent_status = 'PENDING' RETURNING user_id`,
+      [approved ? 'APPROVED' : 'REJECTED', approved ? null : reason, id]
+    );
+    if (res.rows.length === 0) {
+      return reply.status(404).send({ success: false, error: 'الطلب غير موجود أو تم الفصل فيه' });
+    }
+
+    await notify(
+      dbPool,
+      id,
+      approved ? 'تمت الموافقة على تقديمك' : 'تم رفض تقديمك',
+      approved ? 'بقيت محامٍ معتمد، فعّل حالتك عشان تستقبل الطلبات' : reason || 'تقدر تراجع بياناتك وتقدم تاني'
+    );
+    return reply.send({ success: true, message: 'تم تسجيل القرار' });
+  });
+
+  // GET /api/v1/admin/tax
+  fastify.get('/tax', async (_request: FastifyRequest, reply: FastifyReply) => {
+    const res = await query('SELECT tax_percent FROM platform_settings LIMIT 1');
+    return reply.send({ success: true, data: { percent: Number(res.rows[0]?.tax_percent ?? 0) } });
+  });
+
+  // POST /api/v1/admin/tax - New orders only, open orders keep their locked tax
+  fastify.post('/tax', async (request: FastifyRequest, reply: FastifyReply) => {
+    const percent = Number(((request.body || {}) as { percent?: number }).percent);
+    if (!(percent >= 0 && percent < 100)) {
+      return reply.status(400).send({ success: false, error: 'نسبة الضريبة غير صالحة' });
+    }
+
+    await query('UPDATE platform_settings SET tax_percent = $1, updated_at = NOW()', [percent]);
+    return reply.send({ success: true, message: 'تم تحديث نسبة الضريبة' });
   });
 
   // GET /api/v1/admin/tickets - Everything waiting for a decision, oldest first

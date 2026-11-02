@@ -85,9 +85,4 @@ class LocationService {
   Future<bool> openAppSettings() async {
     return await Geolocator.openAppSettings();
   }
-
-  /// Open device location settings
-  Future<bool> openLocationSettings() async {
-    return await Geolocator.openLocationSettings();
-  }
 }

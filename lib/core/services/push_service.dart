@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api_service.dart';
 import 'notification_center.dart';
 
@@ -12,6 +13,16 @@ Future<void> _onBackgroundMessage(RemoteMessage message) async {}
 class PushService {
   PushService._();
 
+  static const AndroidNotificationDetails _alertDetails = AndroidNotificationDetails(
+    'alerts',
+    'الإشعارات',
+    importance: Importance.max,
+    priority: Priority.high,
+    playSound: true,
+    enableVibration: true,
+  );
+
+  static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   static bool _isListening = false;
   static String? _token;
 
@@ -38,16 +49,36 @@ class PushService {
       _isListening = true;
 
       FirebaseMessaging.onBackgroundMessage(_onBackgroundMessage);
+      await _localNotifications.initialize(const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(),
+      ));
+      await messaging.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
       messaging.onTokenRefresh.listen((token) {
         _token = token;
         _register(token);
       });
       // الطلب يظهر فوراً في التطبيق لو كان مفتوحاً أو اتفتح من الإشعار
-      FirebaseMessaging.onMessage.listen((_) => NotificationCenter.refresh());
+      FirebaseMessaging.onMessage.listen((message) {
+        NotificationCenter.refresh();
+        _showWhileOpen(message);
+      });
       FirebaseMessaging.onMessageOpenedApp.listen((_) => NotificationCenter.refresh());
     } catch (e) {
       debugPrint('Push setup error: $e');
     }
+  }
+
+  /// النظام ما يعرضش الإشعار والتطبيق مفتوح على أندرويد، فيتعرض بنفس الصوت والاهتزاز
+  static Future<void> _showWhileOpen(RemoteMessage message) async {
+    final notification = message.notification;
+    if (notification == null || defaultTargetPlatform != TargetPlatform.android) return;
+    await _localNotifications.show(
+      notification.hashCode,
+      notification.title,
+      notification.body,
+      const NotificationDetails(android: _alertDetails),
+    );
   }
 
   static Future<void> _register(String? token) async {

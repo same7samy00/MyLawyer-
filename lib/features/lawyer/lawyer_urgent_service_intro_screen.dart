@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/widgets/app_pressable.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/terms_accordion.dart';
+import '../../data/repositories/lawyer_repository.dart';
 
 /// صفحة تعريف خدمة «محاميك حالاً» الخاصة بالمحامي
 /// تقدم شرحاً شاملاً لدور المحامي وآلية الانضمام وتقديم الخدمة دون بدء طلب موكل أو عرض خرائط
@@ -16,74 +17,83 @@ class LawyerUrgentServiceIntroScreen extends StatefulWidget {
 }
 
 class _LawyerUrgentServiceIntroScreenState extends State<LawyerUrgentServiceIntroScreen> {
-  bool _isApplied = false;
+  static const List<TermsSection> _terms = [
+    TermsSection(
+      icon: Icons.verified_user_rounded,
+      title: 'السعر والأتعاب',
+      items: [
+        'السعر اللي بيدفعه الموكل بيشمل أتعابك وانتقالاتك والضريبة',
+        'مش من حقك تطلب من الموكل أي مبلغ زيادة',
+        'الضريبة بتتخصم الأول، وبعدها المنصة بتاخد نسبتها من الصافي',
+        'التطبيق بيعرضلك صافي أتعابك قبل قبول أي طلب',
+      ],
+    ),
+    TermsSection(
+      icon: Icons.location_on_rounded,
+      title: 'الحالة والموقع',
+      items: [
+        'طول ما أنت «متاح» موقعك بيتحدث حتى والتطبيق مقفول',
+        'لو ما رديتش على طلبين ورا بعض بتتحول لغير متاح',
+        'لو موقعك ما وصلش ساعة بتتحول لغير متاح، ولازم تفعّل حالتك بنفسك',
+      ],
+    ),
+    TermsSection(
+      icon: Icons.security_rounded,
+      title: 'تنفيذ المهمة',
+      items: [
+        'عندك دقيقتين لقبول الطلب',
+        'سجل «وصلت» عند الموكل، وخد الكود منه بعد تنفيذ المهمة',
+        'لازم تنهي المهمة بالكود خلال 24 ساعة من الدفع',
+      ],
+    ),
+    TermsSection(
+      icon: Icons.policy_rounded,
+      title: 'الأتعاب والمخالفات',
+      items: [
+        'أتعابك بتتحجز 24 ساعة بعد الإنهاء، والشكوى بتجمدها لحد قرار الإدارة',
+        'الاعتذار بعد الدفع بيرجع المبلغ للموكل وبيتسجل مخالفة',
+        '3 مخالفات من نفس النوع في 30 يوم بتوقف الحساب أسبوع',
+      ],
+    ),
+  ];
 
-  void _handleApply() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(7.0), // حواف 7.0px ملزمة للمربعات الحوارية
-          ),
-          backgroundColor: Colors.white,
-          title: const Row(
-            children: [
-              Icon(Icons.check_circle_rounded, color: AppColors.success, size: 24),
-              SizedBox(width: 8),
-              Text(
-                'طلب الانضمام للخدمة',
-                style: TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.dark,
-                ),
-              ),
-            ],
-          ),
-          content: const Text(
-            'تم تسجيل رغبتك في الانضمام إلى مقدمي خدمة «محاميك حالاً» بنجاح. سيتم مراجعة بيانات القيد والاعتماد والتواصل معك لتفعيل استقبال الطلبات.',
-            style: TextStyle(
-              fontFamily: 'AppFont',
-              fontFamilyFallback: appFontFallback,
-              fontSize: 13,
-              height: 1.5,
-              color: AppColors.textMain,
-            ),
-          ),
-          actions: [
-            AppPressable(
-              child: TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                setState(() {
-                  _isApplied = true;
-                });
-              },
-              style: TextButton.styleFrom(
-                overlayColor: Colors.transparent,
-                foregroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-              ),
-              child: const Text(
-                'حسناً، فهمت',
-                style: TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            ),
-          ],
-        );
-      },
+  /// NONE أو PENDING أو APPROVED أو REJECTED من الخادم
+  String _status = 'NONE';
+  String? _rejectionReason;
+  bool _accepted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final profile = await LawyerRepository.getProfile();
+    if (mounted && profile != null) {
+      setState(() {
+        _status = profile['urgent_status']?.toString() ?? 'NONE';
+        _rejectionReason = profile['urgent_rejection_reason']?.toString();
+      });
+    }
+  }
+
+  Future<void> _handleApply() async {
+    final res = await LawyerRepository.acceptUrgentTerms();
+    if (!mounted) return;
+
+    if (res.isOk) setState(() => _status = 'PENDING');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(res.isOk ? 'تم إرسال طلبك للإدارة' : (res.error ?? 'تعذر التقديم، حاول تاني'))),
     );
   }
+
+  String get _buttonText => switch (_status) {
+        'APPROVED' => 'أنت محامٍ معتمد في الخدمة',
+        'PENDING' => 'طلبك قيد المراجعة',
+        'REJECTED' => 'قدم مرة تانية',
+        _ => 'تقديم على الخدمة',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -231,15 +241,51 @@ class _LawyerUrgentServiceIntroScreenState extends State<LawyerUrgentServiceIntr
                 ),
               ),
 
+              const SizedBox(height: 16),
+              const TermsAccordion(sections: _terms),
               const SizedBox(height: 28),
 
-              // زر التقديم على الخدمة
+              if (_status == 'REJECTED' && _rejectionReason != null) ...[
+                Text(
+                  'سبب الرفض: $_rejectionReason',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'AppFont',
+                    fontFamilyFallback: appFontFallback,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.danger,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // الموافقة شرط لتفعيل زر التقديم
+              if (_status == 'NONE' || _status == 'REJECTED')
+                CheckboxListTile(
+                  value: _accepted,
+                  onChanged: (value) => setState(() => _accepted = value ?? false),
+                  contentPadding: EdgeInsets.zero,
+                  activeColor: AppColors.primary,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: const Text(
+                    'قرأت الشروط وأوافق عليها',
+                    style: TextStyle(
+                      fontFamily: 'AppFont',
+                      fontFamilyFallback: appFontFallback,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.dark,
+                    ),
+                  ),
+                ),
+
               AppButton(
-                text: _isApplied ? 'تم تقديم الطلب بنجاح' : 'تقديم على الخدمة',
-                icon: _isApplied ? Icons.check_circle_rounded : Icons.send_rounded,
-                backgroundColor: _isApplied ? AppColors.success : AppColors.primary,
+                text: _buttonText,
+                icon: _status == 'APPROVED' ? Icons.check_circle_rounded : Icons.send_rounded,
+                backgroundColor: _status == 'APPROVED' ? AppColors.success : AppColors.primary,
                 textColor: Colors.white,
-                onPressed: _isApplied ? null : _handleApply,
+                onPressed: _accepted && (_status == 'NONE' || _status == 'REJECTED') ? _handleApply : null,
               ),
 
               const SizedBox(height: 16),

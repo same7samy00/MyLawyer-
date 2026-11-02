@@ -5,13 +5,13 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:lottie/lottie.dart' hide Marker;
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/map_config.dart';
-import '../../core/services/app_cached_tile_provider.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_map_layer.dart';
 import '../../core/widgets/lawyer_profile_summary.dart';
 import '../../core/widgets/lawyer_reviews_panel.dart';
+import '../../core/widgets/map_cards.dart';
 import '../../core/widgets/sheet_lines.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/repositories/lawyer_repository.dart';
@@ -32,6 +32,7 @@ class NearbyLawyersShowcaseScreen extends StatefulWidget {
 
 class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScreen>
     with TickerProviderStateMixin {
+  double _mapZoom = 14.5;
   final MapController _mapController = MapController();
   AnimationController? _cameraAnimController;
 
@@ -117,7 +118,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
 
     final latTween = Tween<double>(begin: camera.center.latitude, end: destLocation.latitude);
     final lngTween = Tween<double>(begin: camera.center.longitude, end: destLocation.longitude);
-    final zoomTween = Tween<double>(begin: camera.zoom, end: destZoom);
+    final zoomTween = Tween<double>(begin: camera.zoom, end: destZoom.clamp(appMapMinZoom, appMapMaxZoom));
 
     final controller = AnimationController(
       duration: duration,
@@ -158,7 +159,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
 
     // حساب إزاحة مركز الكاميرا لتوسيط المحامي تماماً في المساحة المرئية فوق البوتن شيت (390px)
     // الإزاحة تعادل تحريك المركز جنوباً بما يقارب 160 بكسل (~0.0042 درجة) لرفع موقع المحامي في النصف العلوي المرئي
-    const double targetZoom = 15.2;
+    const double targetZoom = appMapMaxZoom;
     const double latShift = 0.0042;
     final targetCenter = LatLng(lawyer.position.latitude - latShift, lawyer.position.longitude);
 
@@ -207,8 +208,15 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
             options: MapOptions(
               initialCenter: centerLatLng,
               initialZoom: 14.5,
-              minZoom: 4.0,
-              maxZoom: 18.0,
+              minZoom: appMapMinZoom,
+              maxZoom: appMapMaxZoom,
+              cameraConstraint: appMapBounds,
+              onPositionChanged: (camera, _) {
+                if (camera.zoom.floor() != _mapZoom.floor()) {
+                  setState(() => _mapZoom = camera.zoom);
+                }
+              },
+              backgroundColor: appMapBackground,
               onTap: (_, __) {
                 if (_selectedLawyer != null) {
                   _closeLawyerProfile();
@@ -216,13 +224,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
               },
             ),
             children: [
-              TileLayer(
-                urlTemplate: MapConfig.serverTileUrl,
-                fallbackUrl: MapConfig.fallbackTileUrl,
-                userAgentPackageName: MapConfig.userAgentPackage,
-                tileProvider: AppCachedTileProvider.instance,
-                maxNativeZoom: 18,
-              ),
+              const AppMapLayer(),
 
               // علامات المحامين وعلامة المستخدم
               MarkerLayer(
@@ -230,24 +232,29 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
                   // نقطة موقع المستخدم
                   Marker(
                     point: centerLatLng,
-                    width: 32,
-                    height: 32,
-                    child: _buildUserLocationMarker(),
+                    width: 140 * mapCardScaleFor(_mapZoom),
+                    height: 52 * mapCardScaleFor(_mapZoom),
+                    alignment: Alignment.topCenter,
+                    child: const ScaledMapCard(width: 140, height: 52, child: MyLocationMapCard()),
                   ),
 
                   // علامات المحامين القريبين (بأبعاد متناسقة 140x52 لمنع الـ Overflow نهائياً)
                   for (final lawyer in _nearbyLawyers)
                     Marker(
                       point: lawyer.position,
-                      width: 140,
-                      height: 52,
+                      width: 140 * mapCardScaleFor(_mapZoom),
+                      height: 52 * mapCardScaleFor(_mapZoom),
                       alignment: Alignment.topCenter,
                       child: GestureDetector(
                         onTap: () => _onLawyerMarkerTapped(lawyer),
-                        child: _ShowcaseLawyerPin(
-                          lawyer: lawyer,
-                          isSelected: _selectedLawyer?.id == lawyer.id,
-                          isNearest: lawyer.id == _nearbyLawyers.firstOrNull?.id,
+                        child: ScaledMapCard(
+                          width: 140,
+                          height: 52,
+                          child: _ShowcaseLawyerPin(
+                            lawyer: lawyer,
+                            isSelected: _selectedLawyer?.id == lawyer.id,
+                            isNearest: lawyer.id == _nearbyLawyers.firstOrNull?.id,
+                          ),
                         ),
                       ),
                     ),
@@ -369,7 +376,6 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
               child: SafeArea(
                 top: false,
                 child: Container(
-                  height: _showReviews ? MediaQuery.sizeOf(context).height * 0.8 : 390.0,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -383,10 +389,10 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
                     ],
                   ),
                   child: Stack(
-                    fit: StackFit.expand,
                     children: [
                       const SheetLines(top: 86),
                       Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // مقبض السحب العلوي وزر الإغلاق
                       Padding(
@@ -446,76 +452,75 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
                       const SizedBox(height: 10),
 
                       // محتوى الملف التعريفي الكامل
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 14.0),
-                          child: _showReviews
-                              ? LawyerReviewsPanel(
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 14.0),
+                        child: _showReviews
+                            ? SizedBox(
+                                height: MediaQuery.sizeOf(context).height * 0.6,
+                                child: LawyerReviewsPanel(
                                   lawyerId: _selectedLawyer!.id,
                                   onClose: () => setState(() => _showReviews = false),
-                                )
-                              : Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // 1. ملخص الملف التعريفي الموحد مع TrackingScreen
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  physics: const BouncingScrollPhysics(),
-                                  child: LawyerProfileSummary(
-                                    avatar: _ShowcaseAvatarPhoto(
-                                      imageUrl: _selectedLawyer!.imageUrl,
-                                      initials: _selectedLawyer!.avatarInitials,
-                                      fallbackColor: _selectedLawyer!.avatarColor,
-                                      size: 56,
+                                ),
+                              )
+                            : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // 1. ملخص الملف التعريفي الموحد مع TrackingScreen
+                            SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              child: LawyerProfileSummary(
+                                avatar: _ShowcaseAvatarPhoto(
+                                  imageUrl: _selectedLawyer!.imageUrl,
+                                  initials: _selectedLawyer!.avatarInitials,
+                                  fallbackColor: _selectedLawyer!.avatarColor,
+                                  size: 56,
+                                ),
+                                name: _selectedLawyer!.name,
+                                title: _selectedLawyer!.title,
+                                specialization: _selectedLawyer!.specialization,
+                                rating: _selectedLawyer!.rating,
+                                reviewsCount: _selectedLawyer!.reviewsCount,
+                                experienceYears: _selectedLawyer!.experienceYears,
+                                distanceText: '${_selectedLawyer!.distanceMeters.round()} م',
+                                isNearest: _selectedLawyer!.id == _nearbyLawyers.firstOrNull?.id,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // 2. ملف Google والتقييمات جنب بعض
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: AppButton.outlined(
+                                    text: 'ملف Google',
+                                    customIcon: SvgPicture.asset(
+                                      'assets/images/google_logo.svg',
+                                      width: 18,
+                                      height: 18,
                                     ),
-                                    name: _selectedLawyer!.name,
-                                    title: _selectedLawyer!.title,
-                                    specialization: _selectedLawyer!.specialization,
-                                    rating: _selectedLawyer!.rating,
-                                    reviewsCount: _selectedLawyer!.reviewsCount,
-                                    experienceYears: _selectedLawyer!.experienceYears,
-                                    distanceText: '${_selectedLawyer!.distanceMeters.round()} م',
-                                    isNearest: _selectedLawyer!.id == _nearbyLawyers.firstOrNull?.id,
+                                    onPressed: _openGoogleProfile,
+                                    height: 44,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 10),
-
-                              // 2. ملف Google والتقييمات جنب بعض
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: AppButton.outlined(
-                                      text: 'ملف Google',
-                                      customIcon: SvgPicture.asset(
-                                        'assets/images/google_logo.svg',
-                                        width: 18,
-                                        height: 18,
-                                      ),
-                                      onPressed: _openGoogleProfile,
-                                      height: 44,
-                                    ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: AppButton.outlined(
+                                    text: 'التقييمات (${_selectedLawyer!.reviewsCount})',
+                                    onPressed: () => setState(() => _showReviews = true),
+                                    height: 44,
                                   ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: AppButton.outlined(
-                                      text: 'التقييمات (${_selectedLawyer!.reviewsCount})',
-                                      onPressed: () => setState(() => _showReviews = true),
-                                      height: 44,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
 
-                              // 3. زر المتابعة إلى الرئيسية
-                              AppButton.primary(
-                                text: 'المتابعة إلى الرئيسية',
-                                              onPressed: _proceedToMainApp,
-                                height: 44,
-                              ),
-                            ],
-                          ),
+                            // 3. زر المتابعة إلى الرئيسية
+                            AppButton.primary(
+                              text: 'المتابعة إلى الرئيسية',
+                                            onPressed: _proceedToMainApp,
+                              height: 44,
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -560,26 +565,6 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
         ],
       ),
     ),
-    );
-  }
-
-  Widget _buildUserLocationMarker() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 3),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.4),
-            blurRadius: 10,
-            spreadRadius: 3,
-          ),
-        ],
-      ),
-      child: const Center(
-        child: Icon(Icons.person_pin_circle_rounded, color: Colors.white, size: 16),
-      ),
     );
   }
 

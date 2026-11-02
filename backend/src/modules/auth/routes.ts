@@ -26,11 +26,11 @@ export async function authRoutes(fastify: FastifyInstance) {
     if (!parseResult.success) {
       return reply.status(400).send({
         success: false,
-        error: parseResult.error.errors[0]?.message || 'بيانات التسجيل غير صالحة'
+        error: parseResult.error.issues[0]?.message || 'بيانات التسجيل غير صالحة'
       });
     }
 
-    const { phone, email, password, role, fullName, syndicateNumber } = parseResult.data;
+    const { phone, email, password, role, fullName, syndicateNumber, specialty, bio } = parseResult.data;
 
     // Check unique phone and email
     const existing = await query(
@@ -82,9 +82,16 @@ export async function authRoutes(fastify: FastifyInstance) {
       if (role === 'lawyer') {
         const cleanName = sanitizeText(fullName || 'محامٍ جديد', 255);
         await client.query(
-          `INSERT INTO lawyer_profiles (user_id, full_name, syndicate_number, approval_status, is_available, latitude, longitude)
-           VALUES ($1, $2, $3, 'approved', TRUE, 30.0444, 31.2357)`,
-          [user.id, cleanName, syndicateNumber || null]
+          // No place until the phone sends a real one, so the lawyer stays off the map
+          `INSERT INTO lawyer_profiles (user_id, full_name, syndicate_number, specialty, bio, approval_status, is_available)
+           VALUES ($1, $2, $3, $4, $5, 'approved', FALSE)`,
+          [
+            user.id,
+            cleanName,
+            syndicateNumber || null,
+            specialty ? sanitizeText(specialty, 100) : null,
+            bio ? sanitizeText(bio, 150) : null,
+          ]
         );
       }
 
@@ -115,7 +122,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     if (!parseResult.success) {
       return reply.status(400).send({
         success: false,
-        error: parseResult.error.errors[0]?.message || 'البيانات غير صالحة'
+        error: parseResult.error.issues[0]?.message || 'البيانات غير صالحة'
       });
     }
 
@@ -253,7 +260,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     if (!parseResult.success) {
       return reply.status(400).send({
         success: false,
-        error: parseResult.error.errors[0]?.message || 'بيانات الدخول غير مكتملة'
+        error: parseResult.error.issues[0]?.message || 'بيانات الدخول غير مكتملة'
       });
     }
 
@@ -469,7 +476,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     if (!parseResult.success) {
       return reply.status(400).send({
         success: false,
-        error: parseResult.error.errors[0]?.message || 'البيانات غير صالحة'
+        error: parseResult.error.issues[0]?.message || 'البيانات غير صالحة'
       });
     }
 

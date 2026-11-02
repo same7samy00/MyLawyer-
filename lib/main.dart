@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/services/api_service.dart';
 import 'core/theme/app_theme.dart';
-import 'core/widgets/connection_banner.dart';
+import 'core/widgets/connection_gate.dart';
 import 'core/widgets/keyboard_dismiss_area.dart';
 import 'features/auth/session_router.dart';
 import 'features/auth/splash_screen.dart';
@@ -43,7 +43,7 @@ class MyLawyerApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       builder: (context, child) => KeyboardDismissArea(
-        child: ConnectionBanner(child: child ?? const SizedBox.shrink()),
+        child: ConnectionGate(child: child ?? const SizedBox.shrink()),
       ),
       home: const SplashScreen(),
     );

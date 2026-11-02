@@ -8,18 +8,19 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:lottie/lottie.dart' hide Marker;
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/map_config.dart';
 import '../../core/services/api_service.dart';
-import '../../core/services/app_cached_tile_provider.dart';
 import '../../core/services/external_navigation.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/routing_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/app_map_layer.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/lawyer_profile_summary.dart';
 import '../../core/widgets/lawyer_reviews_panel.dart';
+import '../../core/widgets/map_cards.dart';
+import '../../core/widgets/measured_size.dart';
 import '../../core/widgets/response_countdown.dart';
 import '../../core/widgets/sheet_lines.dart';
 import '../../data/models/map_lawyer.dart';
@@ -66,21 +67,27 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   bool _isLoading = true;
   bool _isInitialLoading = true;
 
-  static const double _cardsFromZoom = 14.0;
-  static const double _lawyerFocusZoom = 15.5;
+  static const double _cardWidth = 195.0;
+  static const double _cardHeight = 53.0;
   static const double _orderRadiusKm = 25.0;
   static const double _allEgyptRadiusKm = 1500.0;
   String? _lawyersError;
 
-  static const double _collapsedHeight = 74.0;
+  /// الشيت المقفول يظهر منه العنوان فقط
+  double get _collapsedHeight => 56.0 + MediaQuery.viewPaddingOf(context).bottom;
+
+  /// طول الشيت هو طول محتواه على أي موبايل
+  double? _sheetContentHeight;
   double get _expandedHeight {
-    final screenH = MediaQuery.sizeOf(context).height;
-    if (widget.isLawyerView) {
-      // تفاصيل الطلب تظهر كاملة من غير سكرول، والخريطة تفضل ظاهرة فوقها
-      return (screenH * 0.74).clamp(540.0, 680.0);
-    }
-    if (_showReviews) return screenH * 0.8;
-    return 390.0;
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.85;
+    return (_sheetContentHeight ?? 390.0).clamp(_collapsedHeight, maxHeight);
+  }
+
+  void _onSheetContentSized(Size size) {
+    if (!mounted || (size.height - (_sheetContentHeight ?? 0)).abs() < 1) return;
+    final isOpen = _sheetHeight > _collapsedHeight + 1;
+    _sheetContentHeight = size.height;
+    if (isOpen) _snapSheetTo(_expandedHeight, moveCamera: false);
   }
   // ارتفاع البوتن شيت منفصل عن حالة الشاشة: سحبه لا يعيد بناء الخريطة مع كل إطار
   final ValueNotifier<double> _sheetHeightNotifier = ValueNotifier<double>(390.0);
@@ -114,7 +121,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   bool _showReviews = false;
   bool _isSearchingAgain = false;
   Timer? _lawyersRefreshTimer;
-  double _mapZoom = 15.2;
+  double _mapZoom = appMapMaxZoom;
 
   /// المحامون اللي الطلب اتبعتلهم ولا ردوا، عشان البحث التلقائي ما يرجعلهمش
   final Set<String> _triedLawyerIds = {};
@@ -156,39 +163,40 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
     super.dispose();
   }
 
-  void _snapSheetTo(double targetHeight) {
+  /// الشيت والكاميرا يتحركوا مع بعض مرة واحدة، و[moveCamera] يتقفل لو الكاميرا اتحركت فعلاً
+  void _snapSheetTo(double targetHeight, {bool moveCamera = true}) {
+    final hasChanged = (targetHeight - _sheetHeight).abs() > 1;
     _sheetTween = Tween<double>(begin: _sheetHeight, end: targetHeight);
-    _sheetAnimController.forward(from: 0.0).then((_) {
-      if (mounted && _selectedLawyer != null && _currentPosition != null) {
-        _zoomFitRouteAndLawyer(
-          LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-          _selectedLawyer!.position,
-          sheetHeight: targetHeight,
-        );
-      }
-    });
+    _sheetAnimController.forward(from: 0.0);
+
+    final selected = _selectedLawyer;
+    if (moveCamera && hasChanged && selected != null) {
+      _zoomFitRouteAndLawyer(_searchCenter, selected.position, sheetHeight: targetHeight);
+    }
   }
 
-  /// تحريك كاميرا الخريطة بشكل سلس وتدريجي مع إلغاء أي حركة سابقة لمنع التداخل والقفز
+  /// كل حركات الكاميرا تمر من هنا: حركة واحدة تلغي اللي قبلها ومدتها حسب المسافة
   void _animatedMapMove(LatLng destLocation, double destZoom) {
-    _cameraAnimController?.dispose();
-    _cameraAnimController = null;
+    _stopCamera();
 
     final camera = _mapController.camera;
+    final targetZoom = destZoom.clamp(appMapMinZoom, appMapMaxZoom);
+    final zoomChange = (targetZoom - camera.zoom).abs();
+    final distanceKm = const Distance().as(LengthUnit.Kilometer, camera.center, destLocation);
+    final distanceMeters = const Distance().as(LengthUnit.Meter, camera.center, destLocation);
+    if (distanceMeters < 5 && zoomChange < 0.05) return;
+
     final latTween = Tween<double>(begin: camera.center.latitude, end: destLocation.latitude);
     final lngTween = Tween<double>(begin: camera.center.longitude, end: destLocation.longitude);
-    final zoomTween = Tween<double>(begin: camera.zoom, end: destZoom);
+    final zoomTween = Tween<double>(begin: camera.zoom, end: targetZoom);
 
     final controller = AnimationController(
-      duration: const Duration(milliseconds: 650),
+      duration: Duration(milliseconds: (350 + zoomChange * 90 + distanceKm * 4).clamp(350, 800).round()),
       vsync: this,
     );
     _cameraAnimController = controller;
 
-    final Animation<double> animation = CurvedAnimation(
-      parent: controller,
-      curve: Curves.easeInOutCubic,
-    );
+    final animation = CurvedAnimation(parent: controller, curve: Curves.easeOutCubic);
 
     controller.addListener(() {
       _mapController.move(
@@ -198,6 +206,19 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
     });
 
     controller.forward();
+  }
+
+  /// لمس الخريطة يوقف أي حركة تلقائية فوراً، فالتحكم يرجع للمستخدم
+  void _stopCamera() {
+    _cameraAnimController?.dispose();
+    _cameraAnimController = null;
+  }
+
+  /// يوضع النقطة في نص الجزء الظاهر من الخريطة فوق الشيت
+  void _focusPoint(LatLng point, double zoom) {
+    final camera = _mapController.camera;
+    final target = camera.project(point, zoom) + math.Point<double>(0, _sheetHeight / 2);
+    _animatedMapMove(camera.unproject(target, zoom), zoom);
   }
 
   /// حساب ورسم المسار بين المستخدم والمحامي والتأكد من اتصاله بمربع المحامي مباشرة
@@ -236,18 +257,20 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
 
   /// حساب الوقت والمسافة على الطرق بين نقطتين، ورسم خط الاتصال بينهما
   Future<void> _drawRoute(LatLng start, LatLng destination) async {
+    // الخط يظهر فوراً، والوقت يكمل لما الخادم يرد
+    setState(() {
+      _routePoints = _connectionLine(start, destination);
+      _isInitialLoading = false;
+    });
+
     final estimate = await _routingService.calculateDrivingRoute(
       start: start,
       destination: destination,
     );
 
     if (mounted) {
-      final finalPoints = _connectionLine(start, destination);
-
       setState(() {
         _routeEstimate = estimate;
-        _routePoints = finalPoints;
-        _isInitialLoading = false;
       });
     }
   }
@@ -270,8 +293,8 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
           left: 55.0,
           right: 55.0,
         ),
-        maxZoom: 16.5,
-        minZoom: 9.0, // زوم أوت مناسب مهما طالت المسافة
+        maxZoom: appMapMaxZoom,
+        minZoom: appMapMinZoom,
       );
 
       final fittedCamera = fit.fit(_mapController.camera);
@@ -290,38 +313,20 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
 
     _calculateRouteToLawyer(lawyer);
 
-    // إذا كان البوتن شيت مغلقاً أو مصغراً، يتم فتحه بسلاسة
-    if (_sheetHeight < _expandedHeight) {
-      _snapSheetTo(_expandedHeight);
-    }
-
     if (_orderFlowStage != _OrderFlowStage.idle) {
       _returnToLawyerProfile();
     }
 
-    // الضغط على الدبوس يقرب الكاميرا فيتحول لكارت المحامي
-    if (_mapController.camera.zoom < _cardsFromZoom) {
-      _zoomToLawyer(lawyer);
-      return;
+    // حركة كاميرا واحدة تضبط المحامي والموكل فوق ارتفاع الشيت النهائي
+    if (_sheetHeight < _expandedHeight) {
+      _snapSheetTo(_expandedHeight, moveCamera: false);
     }
-
-    final userPos = _currentPosition != null
-        ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
-        : const LatLng(30.0444, 31.2357);
-
-    _zoomFitRouteAndLawyer(userPos, lawyer.position, sheetHeight: _expandedHeight);
+    _zoomFitRouteAndLawyer(_searchCenter, lawyer.position, sheetHeight: _expandedHeight);
   }
 
   LatLng get _searchCenter => _currentPosition != null
       ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
       : const LatLng(30.0444, 31.2357);
-
-  void _zoomToLawyer(MapLawyer lawyer) {
-    final camera = _mapController.camera;
-    // الكارت يظهر فوق البوتن شيت، فمركز الكاميرا ينزل بنص ارتفاعها
-    final target = camera.project(lawyer.position, _lawyerFocusZoom) + math.Point<double>(0, _expandedHeight / 2 - 30);
-    _animatedMapMove(camera.unproject(target, _lawyerFocusZoom), _lawyerFocusZoom);
-  }
 
   /// زر «بحث جديد»: يبحث فعلياً من السيرفر ثم يعرض المحامي التالي أو يوضح أنه لا يوجد غيره
   Future<void> _searchForNewLawyer() async {
@@ -393,7 +398,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
       centerLatLng = LatLng(result.position!.latitude, result.position!.longitude);
 
       try {
-        _mapController.move(centerLatLng, 15.4);
+        _mapController.move(centerLatLng, appMapMaxZoom);
       } catch (_) {}
 
       final resolvedName = await GeoNamingService.instance.getCityAndGovernorate(
@@ -443,13 +448,13 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
 
     if (lawyers.isNotEmpty) {
       _currentLawyerIndex = 0;
-      await _calculateRouteToLawyer(lawyers.first);
+      _calculateRouteToLawyer(lawyers.first);
       _zoomFitRouteAndLawyer(centerLatLng, lawyers.first.position);
     }
 
     // المحامون يتحدثون وهو فاتح الخريطة ليظهر الموجود فعلاً فقط
     _lawyersRefreshTimer?.cancel();
-    _lawyersRefreshTimer = Timer.periodic(const Duration(seconds: 20), (_) => _loadAllLawyers());
+    _lawyersRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) => _loadAllLawyers());
     _loadAllLawyers();
   }
 
@@ -505,35 +510,23 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
         (lawyer) => const Distance().as(LengthUnit.Meter, _searchCenter, lawyer.position) < 40,
       );
 
-  /// الدبوس يصغر مع التصغير عشان ما يغطيش الخريطة
-  double _pinSizeFor(double zoom) => zoom < 8 ? 24 : (zoom < 11 ? 32 : 42);
-
-  Marker _buildLawyerPin(MapLawyer lawyer, double size) {
-    return Marker(
-      point: lawyer.position,
-      width: size,
-      height: size * 58 / 52,
-      alignment: Alignment.topCenter,
-      child: GestureDetector(
-        onTap: () => _onLawyerTapped(lawyer),
-        child: FittedBox(child: _LawyerMapPin(isSelected: _selectedLawyer?.id == lawyer.id)),
-      ),
-    );
-  }
-
-  /// التقريب يعرض كارت المحامي، والتصغير يعرض دبوس لكل محامٍ
+  /// كل محامٍ يظهر بكارته، والكروت تصغر مع تصغير الخريطة
   List<Marker> _buildLawyerMarkers(double zoom) {
-    if (zoom >= _cardsFromZoom) {
-      final nearestId = _nearestLawyerId;
-      return [
-        for (final lawyer in _nearbyLawyers)
-          Marker(
-            point: lawyer.position,
-            width: 195,
-            height: 53,
-            alignment: Alignment.topCenter,
-            child: GestureDetector(
-              onTap: () => _onLawyerTapped(lawyer),
+    final nearestId = _nearestLawyerId;
+    final scale = mapCardScaleFor(zoom);
+
+    return [
+      for (final lawyer in _nearbyLawyers)
+        Marker(
+          point: lawyer.position,
+          width: _cardWidth * scale,
+          height: _cardHeight * scale,
+          alignment: Alignment.topCenter,
+          child: GestureDetector(
+            onTap: () => _onLawyerTapped(lawyer),
+            child: ScaledMapCard(
+              width: _cardWidth,
+              height: _cardHeight,
               child: _LawyerMapSquareMarker(
                 lawyer: lawyer,
                 isSelected: _selectedLawyer?.id == lawyer.id,
@@ -541,11 +534,8 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
               ),
             ),
           ),
-      ];
-    }
-
-    final pinSize = _pinSizeFor(zoom);
-    return [for (final lawyer in _nearbyLawyers) _buildLawyerPin(lawyer, pinSize)];
+        ),
+    ];
   }
 
   /// مسار المحامي إلى موكله، من موقعه الحالي أو آخر موقع مسجل للطلب
@@ -567,7 +557,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
 
   /// متابعة طلب المحامي لحد ما يترد عليه أو يتقفل
   void _watchLawyerOrder() {
-    _lawyerOrderPollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+    _lawyerOrderPollTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
       final res = await OrderRepository.getOrderById(widget.lawyerOrder!.id);
       if (!mounted || !res.isOk) return;
 
@@ -581,10 +571,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   }
 
   void _centerMapOnCurrentPosition() {
-    final LatLng target = _currentPosition != null
-        ? LatLng(_currentPosition!.latitude - 0.0015, _currentPosition!.longitude)
-        : const LatLng(30.0444, 31.2357);
-    _animatedMapMove(target, 16.0);
+    _focusPoint(_searchCenter, appMapMaxZoom);
   }
 
   void _showMessage(String message) {
@@ -598,7 +585,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
     _orderPollTimer?.cancel();
     bool isChecking = false;
 
-    _orderPollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+    _orderPollTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
       if (!mounted || _orderFlowStage == _OrderFlowStage.idle) {
         timer.cancel();
         return;
@@ -829,19 +816,16 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
             mapController: _mapController,
             options: MapOptions(
               initialCenter: currentLatLng,
-              initialZoom: 15.2,
-              minZoom: 3.0,
-              maxZoom: 19.0,
+              initialZoom: appMapMaxZoom,
+              minZoom: appMapMinZoom,
+              maxZoom: appMapMaxZoom,
+              cameraConstraint: appMapBounds,
+              backgroundColor: appMapBackground,
               onPositionChanged: _onMapMoved,
+              onPointerDown: (_, __) => _stopCamera(),
             ),
             children: [
-              TileLayer(
-                urlTemplate: MapConfig.serverTileUrl,
-                fallbackUrl: MapConfig.fallbackTileUrl,
-                userAgentPackageName: MapConfig.userAgentPackage,
-                tileProvider: AppCachedTileProvider.instance,
-                maxNativeZoom: 18,
-              ),
+              const AppMapLayer(),
 
               if (_routePoints.isNotEmpty)
                 PolylineLayer(
@@ -862,19 +846,27 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                   if (!_isLawyerAtClientSpot)
                     Marker(
                       point: currentLatLng,
-                      width: 50,
-                      height: 56,
+                      width: _cardWidth * mapCardScaleFor(_mapZoom),
+                      height: _cardHeight * mapCardScaleFor(_mapZoom),
                       alignment: Alignment.topCenter,
-                      child: const _UserLocationPin(),
+                      child: const ScaledMapCard(
+                        width: _cardWidth,
+                        height: _cardHeight,
+                        child: MyLocationMapCard(),
+                      ),
                     ),
 
                   if (clientOrder != null)
                     Marker(
                       point: LatLng(clientOrder.clientLat, clientOrder.clientLon),
-                      width: 195,
-                      height: 53,
+                      width: _cardWidth * mapCardScaleFor(_mapZoom),
+                      height: _cardHeight * mapCardScaleFor(_mapZoom),
                       alignment: Alignment.topCenter,
-                      child: _ClientMapCard(order: clientOrder),
+                      child: ScaledMapCard(
+                        width: _cardWidth,
+                        height: _cardHeight,
+                        child: _ClientMapCard(order: clientOrder),
+                      ),
                     ),
 
                   ..._buildLawyerMarkers(_mapZoom),
@@ -998,37 +990,45 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                     ),
                   ],
                 ),
+                clipBehavior: Clip.antiAlias,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
                     const SheetLines(top: 62),
-                    SafeArea(
-                  top: false,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      sheetHeader!,
-
-                      // محتوى الملف التعريفي بمساحة ثابتة ومريحة لا تتغير أبعادها مع البحث أو تبديل المحامي
-                      if (sheetHeight > _collapsedHeight + 30)
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(18, 4, 18, 16),
-                            child: widget.isLawyerView
-                                ? _buildLawyerOrderReviewCard()
-                                : (_showReviews && _selectedLawyer != null
-                                    ? LawyerReviewsPanel(
-                                        lawyerId: _selectedLawyer!.id,
-                                        onClose: () => _setReviewsVisible(false),
-                                      )
-                                    : _orderFlowStage != _OrderFlowStage.idle
-                                        ? _buildOrderFlowContent()
-                                        : _buildLawyerProfileCard()),
+                    OverflowBox(
+                      alignment: Alignment.topCenter,
+                      minHeight: 0,
+                      maxHeight: double.infinity,
+                      child: MeasuredSize(
+                        onChange: _onSheetContentSized,
+                        child: SafeArea(
+                          top: false,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              sheetHeader!,
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(18, 4, 18, 16),
+                                child: widget.isLawyerView
+                                    ? _buildLawyerOrderReviewCard()
+                                    : (_showReviews && _selectedLawyer != null
+                                        ? SizedBox(
+                                            height: MediaQuery.sizeOf(context).height * 0.6,
+                                            child: LawyerReviewsPanel(
+                                              lawyerId: _selectedLawyer!.id,
+                                              onClose: () => _setReviewsVisible(false),
+                                            ),
+                                          )
+                                        : _orderFlowStage != _OrderFlowStage.idle
+                                            ? _buildOrderFlowContent()
+                                            : _buildLawyerProfileCard()),
+                              ),
+                            ],
                           ),
                         ),
-                    ],
-                  ),
-                ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1123,141 +1123,136 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (isPending) ...[
-                  ResponseCountdown(
-                    secondsLeft: _lawyerSecondsLeft,
-                    onFinished: () => setState(() => _lawyerResponseTimeOver = true),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-
-                // 1. بيانات الموكل ورقم المعاملة
-                Center(
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(7.0),
-                      border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-                    ),
-                    child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 26),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        clientName,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontFamily: 'AppFont',
-                          fontFamilyFallback: appFontFallback,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.dark,
-                        ),
-                        maxLines: 2,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.verified_user_rounded, color: AppColors.primary, size: 16),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'المعاملة: $ref',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 11,
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$price ج.م',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.success,
-                  ),
+        Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (isPending) ...[
+                ResponseCountdown(
+                  secondsLeft: _lawyerSecondsLeft,
+                  onFinished: () => setState(() => _lawyerResponseTimeOver = true),
                 ),
                 const SizedBox(height: 12),
-
-                // 2. تفاصيل ونوع المشكلة القانونية مباشرة دون حاويات
-                Text(
-                  problem,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.dark,
-                  ),
-                ),
-                if (desc.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    desc,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: 'AppFont',
-                      fontFamilyFallback: appFontFallback,
-                      fontSize: 12,
-                      color: AppColors.textMuted,
-                      height: 1.45,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 10),
-
-                // 3. نطاق موقع الموكل مباشرة دون حاوية
-                Text(
-                  location,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.dark,
-                  ),
-                ),
-                if (_routeEstimate?.isSuccess == true) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    '${_routeEstimate!.distanceText} • ${_routeEstimate!.arrivalRangeText}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: 'AppFont',
-                      fontFamilyFallback: appFontFallback,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 14),
-
               ],
-            ),
+
+              // 1. بيانات الموكل ورقم المعاملة
+              Center(
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(7.0),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                  ),
+                  child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 26),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      clientName,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: 'AppFont',
+                        fontFamilyFallback: appFontFallback,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.dark,
+                      ),
+                      maxLines: 2,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.verified_user_rounded, color: AppColors.primary, size: 16),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'المعاملة: $ref',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'AppFont',
+                  fontFamilyFallback: appFontFallback,
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$price ج.م',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'AppFont',
+                  fontFamilyFallback: appFontFallback,
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.success,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // 2. تفاصيل ونوع المشكلة القانونية مباشرة دون حاويات
+              Text(
+                problem,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'AppFont',
+                  fontFamilyFallback: appFontFallback,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.dark,
+                ),
+              ),
+              if (desc.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  desc,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'AppFont',
+                    fontFamilyFallback: appFontFallback,
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
+
+              // 3. نطاق موقع الموكل مباشرة دون حاوية
+              Text(
+                location,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'AppFont',
+                  fontFamilyFallback: appFontFallback,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.dark,
+                ),
+              ),
+              if (_routeEstimate?.isSuccess == true) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '${_routeEstimate!.distanceText} • ${_routeEstimate!.arrivalRangeText}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'AppFont',
+                    fontFamilyFallback: appFontFallback,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 14),
+
+            ],
           ),
-        ),
         const SizedBox(height: 12),
 
         if (isPaid)
@@ -1323,37 +1318,35 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SvgPicture.asset('assets/images/questions_rafiki.svg', height: 110, fit: BoxFit.contain),
-              const SizedBox(height: 14),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.danger,
-                ),
+        Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset('assets/images/questions_rafiki.svg', height: 110, fit: BoxFit.contain),
+            const SizedBox(height: 14),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'AppFont',
+                fontFamilyFallback: appFontFallback,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: AppColors.danger,
               ),
-              const SizedBox(height: 6),
-              const Text(
-                'الطلب اتقفل',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 13,
-                  color: AppColors.textMuted,
-                  fontWeight: FontWeight.w500,
-                ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'الطلب اتقفل',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'AppFont',
+                fontFamilyFallback: appFontFallback,
+                fontSize: 13,
+                color: AppColors.textMuted,
+                fontWeight: FontWeight.w500,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         AppButton.primary(
@@ -1488,113 +1481,104 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // مساحة الملف التعريفي / حالة التحميل الثابتة
-        Expanded(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
-            child: !_isLoading && _nearbyLawyers.isEmpty
-                ? SingleChildScrollView(
-                    key: const ValueKey('no_lawyers'),
-                    child: AppStateMessage(
-                      icon: _lawyersError != null ? Icons.wifi_off_rounded : Icons.person_search_rounded,
-                      title: _lawyersError != null ? 'تعذر تحميل المحامين' : 'لا يوجد محامون متاحون حالياً',
-                      message: _lawyersError,
-                      onRetry: _fetchCurrentLocation,
-                    ),
-                  )
-                : _selectedLawyer == null
-                ? Container(
-                    key: const ValueKey('loading_lawyer'),
-                    alignment: Alignment.center,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Lottie.asset(
-                          'assets/images/splash_gif.json',
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.contain,
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: !_isLoading && _nearbyLawyers.isEmpty
+              ? KeyedSubtree(key: const ValueKey('no_lawyers'), child: AppStateMessage(
+                  icon: _lawyersError != null ? Icons.wifi_off_rounded : Icons.person_search_rounded,
+                  title: _lawyersError != null ? 'تعذر تحميل المحامين' : 'لا يوجد محامون متاحون حالياً',
+                  message: _lawyersError,
+                  onRetry: _fetchCurrentLocation,
+                ))
+              : _selectedLawyer == null
+              ? Container(
+                  key: const ValueKey('loading_lawyer'),
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Lottie.asset(
+                        'assets/images/splash_gif.json',
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'جاري البحث عن أقرب محامٍ متاح',
+                        style: TextStyle(
+                          fontFamily: 'AppFont',
+                          fontFamilyFallback: appFontFallback,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.dark,
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'جاري البحث عن أقرب محامٍ متاح',
-                          style: TextStyle(
-                            fontFamily: 'AppFont',
-                            fontFamilyFallback: appFontFallback,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.dark,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : SingleChildScrollView(
-                    key: ValueKey(_selectedLawyer!.id),
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        LawyerProfileSummary(
-                          avatar: _LawyerAvatarPhoto(
-                            imageUrl: _selectedLawyer!.imageUrl,
-                            initials: _selectedLawyer!.avatarInitials,
-                            fallbackColor: _selectedLawyer!.avatarColor,
-                            size: 56,
-                          ),
-                          name: _selectedLawyer!.name,
-                          title: _selectedLawyer!.title,
-                          specialization: _selectedLawyer!.specialization,
-                          rating: _selectedLawyer!.rating,
-                          reviewsCount: _selectedLawyer!.reviewsCount,
-                          experienceYears: _selectedLawyer!.experienceYears,
-                          distanceText: _routeEstimate != null && _routeEstimate!.isSuccess
-                              ? _routeEstimate!.distanceText
-                              : '${_selectedLawyer!.distanceMeters.round()} م',
-                          distanceCaption: _routeEstimate != null && _routeEstimate!.isSuccess
-                              ? _routeEstimate!.arrivalRangeText
-                              : 'مسافة تقريبية',
-                          isNearest: _selectedLawyer!.id == _nearestLawyerId,
-                        ),
-                        const SizedBox(height: 12),
-
-                        // ملف Google والتقييمات جنب بعض
-                        Row(
-                          children: [
-                            Expanded(
-                              child: AppButton.outlined(
-                                text: 'ملف Google',
-                                height: 44,
-                                customIcon: SvgPicture.asset(
-                                  'assets/images/google_logo.svg',
-                                  width: 17,
-                                  height: 17,
-                                ),
-                                onPressed: () {
-                                  if (_selectedLawyer == null) return;
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => LawyerGoogleProfileScreen(
-                                        lawyer: _selectedLawyer!,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: AppButton.outlined(
-                                text: 'التقييمات (${_selectedLawyer!.reviewsCount})',
-                                height: 44,
-                                onPressed: () => _setReviewsVisible(true),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-          ),
+                )
+              : KeyedSubtree(key: ValueKey(_selectedLawyer!.id), child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    LawyerProfileSummary(
+                      avatar: _LawyerAvatarPhoto(
+                        imageUrl: _selectedLawyer!.imageUrl,
+                        initials: _selectedLawyer!.avatarInitials,
+                        fallbackColor: _selectedLawyer!.avatarColor,
+                        size: 56,
+                      ),
+                      name: _selectedLawyer!.name,
+                      title: _selectedLawyer!.title,
+                      specialization: _selectedLawyer!.specialization,
+                      rating: _selectedLawyer!.rating,
+                      reviewsCount: _selectedLawyer!.reviewsCount,
+                      experienceYears: _selectedLawyer!.experienceYears,
+                      distanceText: _routeEstimate != null && _routeEstimate!.isSuccess
+                          ? _routeEstimate!.distanceText
+                          : '${_selectedLawyer!.distanceMeters.round()} م',
+                      distanceCaption: _routeEstimate != null && _routeEstimate!.isSuccess
+                          ? _routeEstimate!.arrivalRangeText
+                          : 'مسافة تقريبية',
+                      isNearest: _selectedLawyer!.id == _nearestLawyerId,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // ملف Google والتقييمات جنب بعض
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppButton.outlined(
+                            text: 'ملف Google',
+                            height: 44,
+                            customIcon: SvgPicture.asset(
+                              'assets/images/google_logo.svg',
+                              width: 17,
+                              height: 17,
+                            ),
+                            onPressed: () {
+                              if (_selectedLawyer == null) return;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => LawyerGoogleProfileScreen(
+                                    lawyer: _selectedLawyer!,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: AppButton.outlined(
+                            text: 'التقييمات (${_selectedLawyer!.reviewsCount})',
+                            height: 44,
+                            onPressed: () => _setReviewsVisible(true),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                )),
         ),
         const SizedBox(height: 10),
 
@@ -1740,6 +1724,11 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
             ),
             const SizedBox(height: 12),
             ResponseCountdown(key: ValueKey(_activeOrderId), secondsLeft: _orderSecondsLeft),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: AppButton.outlined(text: 'إلغاء الطلب', height: 46, onPressed: _returnToLawyerProfile),
+            ),
           ],
         );
 
@@ -1856,7 +1845,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
               ),
             ),
             const Text(
-              'شامل الانتقال والأوراق',
+              'شامل أتعاب المحامي وانتقالاته والضريبة',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'AppFont',
@@ -1866,7 +1855,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                 color: AppColors.success,
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -1917,9 +1906,9 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                 color: AppColors.dark,
               ),
             ),
-            // نص شامل الانتقال موضوع تحت السعر
+            // نص السعر الشامل تحت الرقم
             const Text(
-              'شاملة الانتقال والمتابعة خلال 24 ساعة',
+              'شاملة أتعاب المحامي وانتقالاته والضريبة خلال 24 ساعة',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'AppFont',
@@ -1929,7 +1918,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                 color: AppColors.success,
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 16),
             // زر دفع وتأكيد الطلب ينقل لصفحة الدفع المنفصلة مع مؤشر تحميل مدمج
             AppButton.primary(
               text: 'دفع $_servicePrice ج.م وتأكيد الطلب',
@@ -2069,125 +2058,6 @@ class _LawyerAvatarPhoto extends StatelessWidget {
   }
 }
 
-/// دبوس خريطة حقيقي للمستخدم
-class _UserLocationPin extends StatelessWidget {
-  const _UserLocationPin();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 50,
-      height: 56,
-      child: Stack(
-        alignment: Alignment.topCenter,
-        children: [
-          Positioned(
-            bottom: 2,
-            child: Container(
-              width: 14,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.32),
-                borderRadius: const BorderRadius.all(Radius.elliptical(14, 5)),
-              ),
-            ),
-          ),
-          const Icon(
-            Icons.location_on_rounded,
-            size: 52,
-            color: AppColors.primary,
-          ),
-          Positioned(
-            top: 7,
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.person_rounded,
-                  size: 15,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// دبوس المحامي المربع الاحترافي على الخريطة
-/// دبوس المحامي عند تصغير الخريطة، والرسم كله من مركز واحد
-class _LawyerMapPin extends StatelessWidget {
-  final bool isSelected;
-
-  const _LawyerMapPin({required this.isSelected});
-
-  @override
-  Widget build(BuildContext context) {
-    final width = isSelected ? 46.0 : 38.0;
-    final height = width * 1.24;
-    final innerSize = width * 0.56;
-
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: CustomPaint(
-        painter: const _LawyerPinPainter(),
-        child: SizedBox(
-          width: width,
-          height: height,
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-              padding: EdgeInsets.only(top: (width - innerSize) / 2),
-              child: Container(
-                width: innerSize,
-                height: innerSize,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                child: Icon(Icons.person_rounded, size: innerSize * 0.74, color: AppColors.primary),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LawyerPinPainter extends CustomPainter {
-  const _LawyerPinPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final radius = size.width / 2;
-    final side = radius * math.sqrt1_2;
-
-    final path = Path()
-      ..moveTo(radius - side, radius + side)
-      ..arcTo(
-        Rect.fromCircle(center: Offset(radius, radius), radius: radius),
-        math.pi * 0.75,
-        math.pi * 1.5,
-        false,
-      )
-      ..quadraticBezierTo(radius + side * 0.45, size.height * 0.86, radius, size.height)
-      ..quadraticBezierTo(radius - side * 0.45, size.height * 0.86, radius - side, radius + side)
-      ..close();
-
-    canvas.drawShadow(path, Colors.black.withOpacity(0.35), 3.0, false);
-    canvas.drawPath(path, Paint()..color = AppColors.primary);
-  }
-
-  @override
-  bool shouldRepaint(covariant _LawyerPinPainter oldDelegate) => false;
-}
-
 /// كارت الموكل على خريطة المحامي، بنفس شكل كارت المحامي
 class _ClientMapCard extends StatelessWidget {
   final OrderModel order;
@@ -2206,13 +2076,16 @@ class _ClientMapCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 30,
-              height: 30,
               decoration: BoxDecoration(
-                color: Colors.white,
                 borderRadius: BorderRadius.circular(7.0),
+                border: Border.all(color: Colors.white, width: 1.2),
               ),
-              child: const Icon(Icons.person_rounded, size: 20, color: AppColors.primary),
+              child: _LawyerAvatarPhoto(
+                imageUrl: '',
+                initials: (order.clientName ?? 'الموكل').trim().characters.first,
+                fallbackColor: AppColors.primaryHover,
+                size: 28,
+              ),
             ),
             const SizedBox(width: 6),
             Column(

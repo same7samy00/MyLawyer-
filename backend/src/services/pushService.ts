@@ -11,7 +11,7 @@ interface ServiceAccount {
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const MESSAGING_SCOPE = 'https://www.googleapis.com/auth/firebase.messaging';
-const ORDERS_CHANNEL = 'orders';
+const ALERTS_CHANNEL = 'alerts';
 
 let account: ServiceAccount | null | undefined;
 let accessToken: { value: string; expiresAt: number } | null = null;
@@ -73,9 +73,15 @@ async function sendToDevice(service: ServiceAccount, bearer: string, token: stri
         data: orderId ? { orderId } : {},
         android: {
           priority: 'high',
-          ttl: '60s',
-          notification: { channel_id: ORDERS_CHANNEL, sound: 'default' },
+          ttl: '300s',
+          notification: {
+            channel_id: ALERTS_CHANNEL,
+            sound: 'default',
+            default_sound: true,
+            default_vibrate_timings: true,
+          },
         },
+        apns: { payload: { aps: { sound: 'default' } } },
       },
     }),
   });
