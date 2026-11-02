@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 3.01] - 2026-11-03
+### Review Cards
+- Every reviews view (my reviews page and the map sheets) now shows each review as a card: the reviewer photo on the right, then the short name, a "تجربة مؤكدة" mark, stars, comment, date and time.
+- `GET /lawyers/:id/reviews` returns the short name (`أحمد م.`), `authorPhoto` and `publishedAt`. The full name stays on the server because this route is open.
+
 ## [Phase 3.00] - 2026-11-02
 ### Wait for the Admin Reply
 - After sending, the client or lawyer cannot write again in the ticket until the admin replies, and cannot open a new ticket while one is under review. The app hides the reply box and the new ticket button with a short note.

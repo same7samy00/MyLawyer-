@@ -423,6 +423,10 @@ describe('التقييمات', () => {
     const reviews = await call('GET', `/lawyers/${lawyerId}/reviews`, null);
     assert.equal(reviews.body.data.length, 1);
     assert.equal(reviews.body.data[0].comment, 'خدمة ممتازة');
+    assert.ok(reviews.body.data[0].publishedAt);
+    assert.ok('authorPhoto' in reviews.body.data[0]);
+    await sql(`UPDATE users SET full_name = 'أحمد محمد علي' WHERE id = (SELECT client_id FROM reviews WHERE order_id = $1)`, [order.id]);
+    assert.equal((await call('GET', `/lawyers/${lawyerId}/reviews`, null)).body.data[0].authorName, 'أحمد م.');
     assert.equal(Number((await sql('SELECT rating FROM lawyer_profiles WHERE user_id = $1', [lawyerId]))[0].rating), 4);
   });
 

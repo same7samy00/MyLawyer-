@@ -30,6 +30,13 @@ interface AuthenticatedLawyer {
 // Clients can browse the map further than the area they can order from
 const MAX_MAP_RADIUS_KM = 1500;
 
+// "أحمد محمد علي" becomes "أحمد م."
+function shortenName(fullName: string | null): string {
+  const [first, second] = (fullName || '').trim().split(/\s+/);
+  if (!first) return 'عميل';
+  return second ? `${first} ${[...second][0]}.` : first;
+}
+
 export async function lawyerRoutes(fastify: FastifyInstance) {
   // Helper authentication hook for protected lawyer routes
   const requireLawyerAuth = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -166,9 +173,11 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
     }
 
     const res = await query(
-      `SELECT id, rating, comment, published_at FROM reviews
-       WHERE lawyer_id = $1 AND published_at IS NOT NULL AND is_hidden = FALSE
-       ORDER BY published_at DESC LIMIT 50`,
+      `SELECT r.id, r.rating, r.comment, r.published_at, u.full_name, u.profile_photo_path
+       FROM reviews r
+       JOIN users u ON u.id = r.client_id
+       WHERE r.lawyer_id = $1 AND r.published_at IS NOT NULL AND r.is_hidden = FALSE
+       ORDER BY r.published_at DESC LIMIT 50`,
       [id]
     );
 
@@ -178,8 +187,9 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
         id: row.id,
         rating: row.rating,
         comment: row.comment,
-        // Client names are not stored, so reviews show a neutral label
-        authorName: 'عميل استخدم الخدمة',
+        // This route is open, so only the short form of the name leaves the server
+        authorName: shortenName(row.full_name),
+        authorPhoto: row.profile_photo_path || null,
         publishedAt: row.published_at,
       })),
     });

@@ -4,12 +4,16 @@ class LawyerReview {
   final int rating;
   final String? comment;
   final String authorName;
+  final String? authorPhoto;
+  final DateTime? publishedAt;
 
   const LawyerReview({
     required this.id,
     required this.rating,
     this.comment,
     required this.authorName,
+    this.authorPhoto,
+    this.publishedAt,
   });
 
   factory LawyerReview.fromJson(Map<String, dynamic> json) {
@@ -17,7 +21,9 @@ class LawyerReview {
       id: json['id'].toString(),
       rating: (json['rating'] as num).toInt(),
       comment: json['comment']?.toString(),
-      authorName: json['authorName']?.toString() ?? 'عميل استخدم الخدمة',
+      authorName: json['authorName']?.toString() ?? 'عميل',
+      authorPhoto: json['authorPhoto']?.toString(),
+      publishedAt: DateTime.tryParse(json['publishedAt']?.toString() ?? '')?.toLocal(),
     );
   }
 }

@@ -4,6 +4,7 @@ import '../../data/repositories/lawyer_repository.dart';
 import '../constants/app_colors.dart';
 import 'app_button.dart';
 import 'app_state_message.dart';
+import 'review_card.dart';
 
 /// تقييمات وتعليقات المحامي داخل البوتن شيت الموسّع
 class LawyerReviewsPanel extends StatefulWidget {
@@ -65,54 +66,10 @@ class _LawyerReviewsPanelState extends State<LawyerReviewsPanel> {
 
     return ListView.separated(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(top: 60),
+      padding: EdgeInsets.zero,
       itemCount: _reviews.length,
-      separatorBuilder: (context, index) => const Divider(height: 22, color: AppColors.cardBorder),
-      itemBuilder: (context, index) {
-        final review = _reviews[index];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (int star = 1; star <= 5; star++)
-                  Icon(
-                    star <= review.rating ? Icons.star_rounded : Icons.star_border_rounded,
-                    color: const Color(0xFFEAB308),
-                    size: 16,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              review.authorName,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: AppColors.dark,
-              ),
-            ),
-            if (review.comment != null && review.comment!.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                review.comment!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 13,
-                  height: 1.45,
-                  color: AppColors.textMain,
-                ),
-              ),
-            ],
-          ],
-        );
-      },
+      separatorBuilder: (context, index) => const SizedBox(height: 10),
+      itemBuilder: (context, index) => ReviewCard(review: _reviews[index]),
     );
   }
 }
