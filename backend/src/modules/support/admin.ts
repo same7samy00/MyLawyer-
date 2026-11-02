@@ -95,7 +95,7 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
       return withTransaction(async (db) => {
         const ticket = (await db.query('SELECT * FROM support_tickets WHERE id::text = $1 FOR UPDATE', [id])).rows[0];
         if (!ticket) throw new TicketError(404, 'التذكرة غير موجودة');
-        if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة مقفولة');
+        if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة مغلقة');
         await addMessage(db, ticket.id, 'ADMIN', adminId, fields.body ?? '', images);
         await db.query(`UPDATE support_tickets SET status = 'OPEN' WHERE id = $1`, [ticket.id]);
         await notify(db, ticket.user_id, 'رد الدعم الفني', `الإدارة ردت على تذكرتك ${ticket.reference}`, { ticketId: ticket.id });
@@ -125,7 +125,7 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
     return handle(reply, () => withTransaction(async (db) => {
       const ticket = (await db.query('SELECT * FROM support_tickets WHERE id::text = $1 FOR UPDATE', [id])).rows[0];
       if (!ticket) throw new TicketError(404, 'التذكرة غير موجودة');
-      if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة مقفولة من قبل');
+      if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة مغلقة بالفعل');
 
       if (ticket.order_id) {
         const order = (await db.query('SELECT * FROM service_orders WHERE id = $1 FOR UPDATE', [ticket.order_id])).rows[0];
@@ -135,7 +135,7 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
         );
         if (order?.payout_status === 'FROZEN' && otherTicket.rows.length === 0) {
           if (!body.outcome || !OUTCOMES.includes(body.outcome)) {
-            throw new TicketError(400, 'أتعاب الطلب متوقفة على التذكرة دي، اختار الفلوس رايحة فين قبل القفل');
+            throw new TicketError(400, 'أتعاب الطلب موقوفة بسبب هذه التذكرة، فاختر القرار المالي قبل الإغلاق');
           }
           await applySettlement(db, order, body.outcome as SettlementOutcome, adminId, `قرار تذكرة ${ticket.reference}`);
         }
@@ -144,7 +144,7 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
       if (body.body && body.body.trim()) await addMessage(db, ticket.id, 'ADMIN', adminId, body.body, []);
       await db.query(`UPDATE support_tickets SET status = 'CLOSED', closed_at = NOW(), closed_by = $2, updated_at = NOW() WHERE id = $1`, [ticket.id, adminId]);
       await notify(db, ticket.user_id, 'التذكرة اتقفلت', `الإدارة قفلت تذكرتك ${ticket.reference}، ولو عندك مشكلة جديدة افتح تذكرة جديدة`, { ticketId: ticket.id });
-      return { message: 'تم قفل التذكرة' };
+      return { message: 'تم إغلاق التذكرة' };
     }));
   });
 }

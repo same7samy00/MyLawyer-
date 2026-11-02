@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 3.02] - 2026-11-03
+### Control Page Cleanup
+- Removed the suggested decision everywhere. The admin sees the facts and picks a decision, and all decisions look equal.
+- Each page keeps its actions in one "الإجراءات" section at its end. A ticket has one message box with send reply, close with the message, and close without a message, and internal notes stay as they were. A profile has a "الإجراءات" tab for account status, balance and warnings, and the accounts list only opens the profile.
+- Reduced the height and spacing of all containers, and rewrote the control page texts in formal Arabic.
+
 ## [Phase 3.01] - 2026-11-03
 ### Review Cards
 - Every reviews view (my reviews page and the map sheets) now shows each review as a card: the reviewer photo on the right, then the short name, a "تجربة مؤكدة" mark, stars, comment, date and time.
