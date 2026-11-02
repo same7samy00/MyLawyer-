@@ -23,10 +23,10 @@ class ServiceTermsScreen extends StatelessWidget {
     ),
     TermsSection(
       icon: Icons.security_rounded,
-      title: 'الدفع وكود الإنهاء',
+      title: 'الدفع وإنهاء المهمة',
       items: [
-        'بعد الدفع هيظهرلك كود إنهاء المهمة',
-        'ادّي الكود للمحامي بعد تنفيذ المهمة فقط',
+        'المحامي بيسجل وصوله وهو على بعد 50 متر منك، وده إثبات إنكم اتقابلتوا',
+        'لو المحامي ما وصلش، المبلغ بيرجعلك كامل',
       ],
     ),
     TermsSection(

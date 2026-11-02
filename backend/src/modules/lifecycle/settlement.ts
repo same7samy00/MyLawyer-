@@ -8,7 +8,6 @@ export const COMPLAINT_HOURS = 24;
 const WARNING_LIMIT = 3;
 const WARNING_WINDOW_DAYS = 30;
 const SUSPENSION_DAYS = 7;
-const CONFIRMED_COMPLAINTS_LIMIT = 3;
 
 export type SettlementOutcome = 'REFUND' | 'LAWYER' | 'SPLIT';
 
@@ -16,7 +15,7 @@ export interface Settlement {
   outcome: SettlementOutcome;
   clientAmount: number;
   lawyerArrived: boolean;
-  codeEntered: boolean;
+  taskCompleted: boolean;
   clientWarnings: number;
   lawyerWarnings: number;
   reason: string;
@@ -27,28 +26,17 @@ async function activeWarnings(db: Db, userId: string): Promise<number> {
   return res.rows[0].total;
 }
 
-/// Who gets the money depends on two facts the app records: the arrival and the completion code
+/// The meeting decides the money: no meeting refunds the client, a meeting pays the lawyer
 export async function evaluateSettlement(db: Db, order: any): Promise<Settlement> {
   const lawyerArrived = Boolean(order.arrived_at);
-  // The order reaches COMPLETED only through the client's code
-  const codeEntered = order.status === 'COMPLETED';
+  const taskCompleted = order.status === 'COMPLETED';
   const [clientWarnings, lawyerWarnings] = await Promise.all([activeWarnings(db, order.client_id), activeWarnings(db, order.lawyer_id)]);
-  const price = Number(order.price);
-  const base = { lawyerArrived, codeEntered, clientWarnings, lawyerWarnings };
+  const base = { lawyerArrived, taskCompleted, clientWarnings, lawyerWarnings };
 
   if (!lawyerArrived) {
-    return { ...base, outcome: 'REFUND', clientAmount: price, reason: 'لم يسجل المحامي وصوله، فيُرد المبلغ كاملًا إلى الموكل.' };
+    return { ...base, outcome: 'REFUND', clientAmount: Number(order.price), reason: 'لم يلتقِ المحامي بالموكل، إذ لم يسجّل وصوله على بعد 50 مترًا منه، فيُرد المبلغ كاملًا إلى الموكل.' };
   }
-  if (codeEntered) {
-    return { ...base, outcome: 'LAWYER', clientAmount: 0, reason: 'وصل المحامي وأُدخل كود الإنهاء، فتُصرف الأتعاب كاملة للمحامي.' };
-  }
-  if (clientWarnings >= CONFIRMED_COMPLAINTS_LIMIT && lawyerWarnings < CONFIRMED_COMPLAINTS_LIMIT) {
-    return { ...base, outcome: 'LAWYER', clientAmount: 0, reason: 'وصل المحامي ولم يُدخل الكود، وعلى الموكل 3 إنذارات أو أكثر، فتُصرف الأتعاب كاملة للمحامي.' };
-  }
-  if (lawyerWarnings >= CONFIRMED_COMPLAINTS_LIMIT && clientWarnings < CONFIRMED_COMPLAINTS_LIMIT) {
-    return { ...base, outcome: 'REFUND', clientAmount: price, reason: 'وصل المحامي ولم يُدخل الكود، وعلى المحامي 3 إنذارات أو أكثر، فيُرد المبلغ كاملًا إلى الموكل.' };
-  }
-  return { ...base, outcome: 'SPLIT', clientAmount: Math.round(price * 50) / 100, reason: 'وصل المحامي ولم يُدخل الكود، فيُقسم المبلغ مناصفة بين الطرفين.' };
+  return { ...base, outcome: 'LAWYER', clientAmount: 0, reason: 'التقى المحامي بالموكل وسجّل وصوله على بعد 50 مترًا منه، فتُصرف الأتعاب كاملة للمحامي.' };
 }
 
 export function outcomeAmount(outcome: SettlementOutcome, price: number): number {
@@ -72,7 +60,7 @@ export async function applySettlement(db: pg.PoolClient, order: any, outcome: Se
 
   await db.query(
     `UPDATE service_orders
-     SET status = $1, payout_status = $2, payout_amount = $3, completion_code = NULL,
+     SET status = $1, payout_status = $2, payout_amount = $3,
          completed_at = COALESCE(completed_at, NOW()), updated_at = NOW()
      WHERE id = $4`,
     [newStatus, lawyerAmount > 0 ? 'AVAILABLE' : 'REFUNDED', lawyerAmount, order.id]

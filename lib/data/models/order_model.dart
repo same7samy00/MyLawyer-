@@ -29,14 +29,12 @@ class OrderModel {
   final DateTime? expiresAt;
   final DateTime? holdUntil;
   final String? payoutStatus;
-  final String? completionCode;
   final bool hasReview;
   final bool hasComplaint;
   final bool hasOpenComplaint;
   final bool hasAppeal;
   final bool hasReport;
   final bool canEditReview;
-  final bool isCodeLocked;
   final DateTime? arrivedAt;
   final DateTime? paymentDeadline;
   final DateTime? acceptedAt;
@@ -72,14 +70,12 @@ class OrderModel {
     this.expiresAt,
     this.holdUntil,
     this.payoutStatus,
-    this.completionCode,
     this.hasReview = false,
     this.hasComplaint = false,
     this.hasOpenComplaint = false,
     this.hasAppeal = false,
     this.hasReport = false,
     this.canEditReview = false,
-    this.isCodeLocked = false,
     this.arrivedAt,
     this.paymentDeadline,
     this.acceptedAt,
@@ -130,14 +126,12 @@ class OrderModel {
       expiresAt: _toDate(json['expiresAt'] ?? json['expires_at']),
       holdUntil: _toDate(json['holdUntil'] ?? json['hold_until']),
       payoutStatus: json['payoutStatus']?.toString(),
-      completionCode: json['completionCode']?.toString(),
       hasReview: json['hasReview'] == true,
       hasComplaint: json['hasComplaint'] == true,
       hasOpenComplaint: json['hasOpenComplaint'] == true,
       hasAppeal: json['hasAppeal'] == true,
       hasReport: json['hasReport'] == true,
       canEditReview: json['canEditReview'] == true,
-      isCodeLocked: json['isCodeLocked'] == true,
       arrivedAt: _toDate(json['arrivedAt'] ?? json['arrived_at']),
       paymentDeadline: _toDate(json['paymentDeadline'] ?? json['payment_deadline']),
       acceptedAt: _toDate(json['acceptedAt'] ?? json['accepted_at']),

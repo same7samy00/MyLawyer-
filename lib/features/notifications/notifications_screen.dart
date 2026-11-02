@@ -132,7 +132,6 @@ const _successTitles = {
   'أتعابك جاهزة',
   'رجعت فلوسك',
   'انتهى الإيقاف',
-  'تم فتح الكود',
 };
 
 const _dangerTitles = {

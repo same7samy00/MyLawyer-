@@ -81,8 +81,8 @@
 | `/orders/:id/accept` و`/orders/:id/reject` | `POST` | محامٍ | الرد على الطلب خلال دقيقتين |
 | `/orders/:id/confirm-payment` | `POST` | موكل | الدفع خلال 10 دقايق، و`method: wallet` من الرصيد لو كفاية |
 | `/orders/:id/cancel` | `POST` | أطراف الطلب | قبل الدفع، وللموكل بعد الدفع في أول 5 دقايق بس وقبل الوصول |
-| `/orders/:id/arrive` | `POST` | محامٍ | تسجيل الوصول أيا كان موقع المحامي |
-| `/orders/:id/complete` | `POST` | محامٍ | إنهاء المهمة بكود الموكل |
+| `/orders/:id/arrive` | `POST` | محامٍ | تسجيل الوصول، ومقبول بس على بعد 50 متر من الموكل |
+| `/orders/:id/complete` | `POST` | محامٍ | إنهاء المهمة بعد تسجيل الوصول، من غير كود |
 | `/orders/:id/withdraw` | `POST` | محامٍ | الاعتذار بعد الدفع، والمبلغ يرجع للموكل ونقطة على المحامي |
 | `/orders/:id/complaint` | `POST` | موكل | `kind`: `MONEY` أو `BEHAVIOR`، و`reason` اختياري. أثناء المهمة ولحد 24 ساعة بعدها |
 | `/orders/:id/report` | `POST` | محامٍ | نفس الشكوى من ناحية المحامي |
@@ -110,16 +110,15 @@
 | `/admin/warnings/:id/revoke` | `POST` | إلغاء إنذار |
 | `/admin/orders?q=&status=` | `GET` | البحث في الطلبات |
 | `/admin/orders/:id` | `GET` | الطلب وأطرافه ودورة حياته وشكاواه وتقييمه |
-| `/admin/orders/:id/settlement` | `GET` | القرار المقترح وأدلته: الوصول، والكود، وإنذارات الطرفين |
+| `/admin/orders/:id/settlement` | `GET` | القرار المقترح وأدلته: الوصول، وإنهاء المهمة، وإنذارات الطرفين |
 | `/admin/orders/:id/settle` | `POST` | تنفيذ القرار المقترح، أو `outcome` تاني: `REFUND` أو `LAWYER` أو `SPLIT` |
 | `/admin/orders/:id/freeze` | `POST` | `freeze: true/false` لتجميد أتعاب الطلب أو فكها |
-| `/admin/orders/:id/unlock-code` | `POST` | فتح كود الإنهاء بعد 5 محاولات خاطئة |
 | `/admin/complaints` | `GET` | شكاوى الموكلين المفتوحة ونوعها |
 | `/admin/complaints/:id/close` | `POST` | إغلاق شكوى التعامل، و`warn: true` يوجه إنذار للمحامي |
 | `/admin/reports` | `GET` | شكاوى المحامين المفتوحة ونوعها |
 | `/admin/reports/:id/close` | `POST` | إغلاق شكوى التعامل، و`warn: true` يوجه إنذار للموكل |
 | `/admin/appeals` و`/admin/appeals/:id/resolve` | `GET`/`POST` | اعتراضات الطلبات القديمة |
-| `/admin/tickets` | `GET` | كل ما ينتظر قرار، واللوحة بتاخد منه الأكواد المقفولة |
+| `/admin/tickets` | `GET` | كل ما ينتظر قرار |
 | `/admin/urgent-applications` | `GET` | طلبات الانضمام بالصورة الشخصية وبيانات الكارنيه |
 | `/admin/urgent-applications/:id/decision` | `POST` | الموافقة على طلب الانضمام أو رفضه بسبب |
 | `/admin/reviews` و`/admin/reviews/reported` | `GET` | كل التقييمات، والمبلغ عنها |

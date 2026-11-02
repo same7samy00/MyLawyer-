@@ -9,10 +9,10 @@ export const HOLD_HOURS = 24;
 export const ORDER_DEADLINE_HOURS = 24;
 export const REVIEW_WINDOW_DAYS = 7;
 export const APPEAL_WINDOW_DAYS = 7;
-export const MAX_CODE_ATTEMPTS = 5;
 export const LAWYER_RESPONSE_SECONDS = 120;
 export const PAYMENT_MINUTES = 10;
-export const ARRIVAL_RADIUS_KM = 0.5;
+/// The lawyer and the client must really meet, so arrival is accepted within 50 meters only
+export const ARRIVAL_RADIUS_KM = 0.05;
 const MAX_MISSED_ORDERS = 2;
 const LOCATION_SILENCE_MINUTES = 65;
 const APPROXIMATE_GRID_DEGREES = 0.01;
@@ -25,10 +25,6 @@ const FALLBACK_PROBLEM = 'مشكلة قانونية أخرى';
 /// Exact places stay private until payment, so public positions move to a coarse grid
 export function approximateCoordinate(value: number): number {
   return Math.round(value / APPROXIMATE_GRID_DEGREES) * APPROXIMATE_GRID_DEGREES;
-}
-
-export function generateCompletionCode(): string {
-  return crypto.randomInt(1000, 10000).toString();
 }
 
 export async function notify(db: Db, userId: string, title: string, body: string, orderId?: string) {

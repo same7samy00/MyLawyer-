@@ -120,7 +120,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
               const SizedBox(height: 6),
               const Center(
                 child: Text(
-                  'المحامي في طريقه إليك\nكود إنهاء المهمة في صفحة الطلبات',
+                  'المحامي في طريقه إليك\nتابع طلبك من صفحة الطلبات',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'AppFont',

@@ -202,27 +202,24 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   Future<void> _markArrived() async {
+    // The arrival proves the meeting, so it needs the lawyer's real location
     final location = await LocationService.instance.checkAndRequestPermission(fresh: true);
     final position = location.position;
     if (!mounted) return;
-
-    final lat = position?.latitude ?? _order.clientLat;
-    final lon = position?.longitude ?? _order.clientLon;
+    if (position == null) {
+      _showNotice('شغّل الموقع عشان نتأكد إنك على بعد 50 متر من الموكل');
+      return;
+    }
 
     await _run(
-      () => OrderRepository.markArrived(_order.id, lat, lon),
+      () => OrderRepository.markArrived(_order.id, position.latitude, position.longitude),
       'تم تسجيل وصولك',
     );
   }
 
   Future<void> _openCompletion() async {
-    final finished = await OrderActionSheets.completion(
-      context,
-      onSubmit: (code) => OrderRepository.completeOrder(_order.id, code),
-    );
-    if (!finished || !mounted) return;
-    _showNotice('تم إنهاء المهمة، والصافي هيتاح بعد 24 ساعة');
-    await _load();
+    if (!await _confirm('إنهاء المهمة', 'خلصت المهمة مع الموكل؟', 'إنهاء')) return;
+    await _run(() => OrderRepository.completeOrder(_order.id), 'تم إنهاء المهمة، والصافي هيتاح بعد 24 ساعة');
   }
 
   Future<void> _withdraw() async {
@@ -274,10 +271,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               ),
               const SizedBox(height: 12),
               _buildDetailsCard(order),
-              if (!widget.isLawyer && order.isActive && order.completionCode != null) ...[
-                const SizedBox(height: 12),
-                _buildCompletionCode(order.completionCode!),
-              ],
               const SizedBox(height: 16),
               if (widget.isLawyer) ..._buildLawyerActions(order) else ..._buildClientActions(order),
             ],
@@ -368,33 +361,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 
-  /// الكود إجباري لإنهاء المهمة ويظهر للموكل فقط
-  Widget _buildCompletionCode(String code) {
-    return AppCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text('كود إنهاء المهمة', textAlign: TextAlign.center, style: _labelStyle),
-          const SizedBox(height: 2),
-          Text(
-            code,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: 'AppFont',
-              fontFamilyFallback: appFontFallback,
-              fontSize: 30,
-              letterSpacing: 8,
-              fontWeight: FontWeight.w900,
-              color: AppColors.primary,
-            ),
-          ),
-          const Text('ادّيه للمحامي بعد تنفيذ المهمة', textAlign: TextAlign.center, style: _labelStyle),
-        ],
-      ),
-    );
-  }
-
   Widget _action(String text, VoidCallback onPressed, {bool isDanger = false, IconData? icon}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -467,11 +433,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         if (order.clientPhone != null)
           _action('اتصل بالموكل', () => _call(order.clientPhone), icon: Icons.call_rounded),
         _action('افتح مكان الموكل في Google Maps', _openDirections, icon: Icons.navigation_rounded),
-        if (order.isCodeLocked) _statusNote('الكود مقفول، الإدارة هتراجع الطلب'),
         if (!order.hasOpenComplaint) ...[
+          // Finishing stays hidden until the lawyer arrives within 50 meters of the client
           if (order.arrivedAt == null)
             _primaryAction('وصلت', _markArrived)
-          else if (!order.isCodeLocked)
+          else
             _primaryAction('إنهاء المهمة', _openCompletion),
           _action('اعتذار', _withdraw, isDanger: true),
         ],

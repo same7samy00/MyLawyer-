@@ -74,21 +74,16 @@ async function createPaidOrder() {
   return order;
 }
 
-async function clientCode(orderId: string) {
-  const list = await call('GET', '/orders', clientToken);
-  return list.body.data.find((o: any) => o.orderId === orderId).completionCode as string;
-}
-
 async function createArrivedOrder() {
   const order = await createPaidOrder();
-  const arrived = await call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.051, longitude: 31.25 });
+  const arrived = await call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.0502, longitude: 31.25 });
   assert.equal(arrived.status, 200, JSON.stringify(arrived.body));
   return order;
 }
 
 async function createCompletedOrder() {
   const order = await createArrivedOrder();
-  const done = await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code: await clientCode(order.id) });
+  const done = await call('POST', `/orders/${order.id}/complete`, lawyerToken, {});
   assert.equal(done.status, 200, JSON.stringify(done.body));
   return order;
 }
@@ -214,7 +209,7 @@ describe('مهلة رد المحامي', () => {
   });
 });
 
-describe('الدفع والإنهاء بالكود', () => {
+describe('الدفع والإنهاء بعد الالتقاء', () => {
   it('لا دفع قبل موافقة المحامي', async () => {
     const order = await createOrder();
     const res = await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, {});
@@ -224,44 +219,28 @@ describe('الدفع والإنهاء بالكود', () => {
   it('لا إنهاء لطلب لم يُدفع', async () => {
     const order = await createOrder();
     await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
-    const res = await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code: '1234' });
-    assert.equal(res.status, 400);
-  });
-
-  it('الكود يظهر للموكل فقط', async () => {
-    const order = await createPaidOrder();
-    assert.match(await clientCode(order.id), /^\d{4}$/);
-
-    const lawyerList = await call('GET', '/orders', lawyerToken);
-    assert.equal(lawyerList.body.data[0].completionCode, null);
-
-    const lawyerDetails = await call('GET', `/orders/${order.id}`, lawyerToken);
-    assert.equal(lawyerDetails.body.data.order.completion_code, undefined);
-  });
-
-  it('لا إنهاء قبل تسجيل الوصول، ولا تُحسب محاولة كود', async () => {
-    const order = await createPaidOrder();
-    const code = await clientCode(order.id);
-
-    const early = await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code });
-    assert.equal(early.status, 409);
-    assert.equal((await sql('SELECT code_attempts FROM service_orders WHERE id = $1', [order.id]))[0].code_attempts, 0);
-
-    await call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.051, longitude: 31.25 });
-    assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code })).status, 200);
-  });
-
-  it('لا إنهاء من غير كود صحيح، والمحاولات محدودة', async () => {
-    const order = await createArrivedOrder();
-    const code = await clientCode(order.id);
-
     assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, {})).status, 400);
-    for (let i = 0; i < 4; i++) {
-      await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code: '0000' });
-    }
+  });
 
-    const blocked = await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code });
-    assert.equal(blocked.status, 429);
+  it('الوصول بيتسجل في حدود 50 متر بس، والإنهاء بعده من غير كود', async () => {
+    const order = await createPaidOrder();
+    assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, {})).status, 409);
+
+    // About 110 meters away is too far
+    const far = await call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.051, longitude: 31.25 });
+    assert.equal(far.status, 400);
+    assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, {})).status, 409);
+
+    assert.equal((await call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.0502, longitude: 31.25 })).status, 200);
+    assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, {})).status, 200);
+    assert.equal((await wallet()).heldBalance, 350);
+  });
+
+  it('الطلب مش بيرجع كود لأي حد', async () => {
+    const order = await createPaidOrder();
+    const list = await call('GET', '/orders', clientToken);
+    assert.equal(list.body.data[0].completionCode, undefined);
+    assert.equal((await call('GET', `/orders/${order.id}`, lawyerToken)).body.data.order.completion_code, undefined);
   });
 
   it('الإلغاء بعد الدفع للموكل فقط في أول 5 دقايق، والمبلغ يرجع كامل', async () => {
@@ -275,26 +254,9 @@ describe('الدفع والإنهاء بالكود', () => {
     assert.equal((await call('POST', `/orders/${late.id}/cancel`, clientToken, {})).status, 400);
   });
 
-  it('الوصول يتسجل أيا كان موقع المحامي ويمنع الإلغاء', async () => {
-    const order = await createPaidOrder();
-    const far = await call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.2, longitude: 31.25 });
-    assert.equal(far.status, 200);
-    assert.equal((await call('POST', `/orders/${order.id}/cancel`, clientToken, {})).status, 400);
-  });
-
-  it('الإدارة تفك قفل الكود', async () => {
+  it('بعد الوصول الإلغاء ممنوع', async () => {
     const order = await createArrivedOrder();
-    const code = await clientCode(order.id);
-    for (let i = 0; i < 5; i++) {
-      await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code: '0000' });
-    }
-    assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code })).status, 429);
-
-    const tickets = await call('GET', '/admin/tickets', adminToken);
-    assert.equal(tickets.body.data.filter((t: any) => t.type === 'locked').length, 1);
-
-    await call('POST', `/admin/orders/${order.id}/unlock-code`, adminToken, {});
-    assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code })).status, 200);
+    assert.equal((await call('POST', `/orders/${order.id}/cancel`, clientToken, {})).status, 400);
   });
 });
 
@@ -316,7 +278,7 @@ describe('المحفظة', () => {
   });
 });
 
-describe('الشكاوى والتسوية', () => {
+describe('الشكاوى والتسوية بالالتقاء', () => {
   const settlement = async (orderId: string) => (await call('GET', `/admin/orders/${orderId}/settlement`, adminToken)).body.data;
   const settle = (orderId: string, body: object = {}) => call('POST', `/admin/orders/${orderId}/settle`, adminToken, body);
 
@@ -330,7 +292,7 @@ describe('الشكاوى والتسوية', () => {
     assert.equal((await wallet()).availableBalance, 0);
   });
 
-  it('المحامي وصل والكود اتكتب: الأتعاب للمحامي حتى لو فيه شكوى فلوس', async () => {
+  it('المحامي أنهى المهمة: الأتعاب للمحامي حتى لو فيه شكوى فلوس', async () => {
     const order = await createCompletedOrder();
     await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'MONEY' });
     assert.equal((await wallet()).frozenBalance, 350);
@@ -341,29 +303,29 @@ describe('الشكاوى والتسوية', () => {
     assert.equal(await clientBalance(), 0);
   });
 
-  it('المحامي وصل والكود ما اتكتبش: نص ونص، والنسبة على نصيب المحامي', async () => {
+  it('المحامي وصل وما أنهاش المهمة: الأتعاب للمحامي، والنسبة على نصيبه', async () => {
     await sql(`UPDATE problem_prices SET min_price = 1000, max_price = 1000, commission_percent = 20 WHERE problem_type = $1`, [PROBLEM]);
     const order = await createArrivedOrder();
     await call('POST', `/orders/${order.id}/report`, lawyerToken, { kind: 'MONEY' });
-    assert.equal((await settlement(order.id)).outcome, 'SPLIT');
+    assert.equal((await settlement(order.id)).outcome, 'LAWYER');
 
     await settle(order.id);
-    assert.equal(await clientBalance(), 500);
-    assert.equal((await wallet()).availableBalance, 400);
+    assert.equal(await clientBalance(), 0);
+    assert.equal((await wallet()).availableBalance, 800);
     assert.equal((await call('GET', '/admin/reports', adminToken)).body.data.length, 0);
   });
 
-  it('3 إنذارات على الموكل تقلب النص ونص لصالح المحامي', async () => {
-    for (let i = 0; i < 3; i++) await sql(`INSERT INTO account_warnings (user_id, reason) VALUES ($1, 'إنذار سابق')`, [clientId]);
+  it('الإدارة تقدر تختار التقسيم مناصفة بنفسها', async () => {
     const order = await createArrivedOrder();
-    assert.equal((await settlement(order.id)).outcome, 'LAWYER');
+    assert.equal((await settle(order.id, { outcome: 'SPLIT' })).status, 200);
+    assert.equal(await clientBalance(), 175);
+    assert.equal((await wallet()).availableBalance, 175);
   });
 
-  it('شكوى الفلوس توقف الكود والمهلة لحد القرار', async () => {
+  it('شكوى الفلوس توقف الإنهاء والمهلة لحد القرار', async () => {
     const order = await createArrivedOrder();
-    const code = await clientCode(order.id);
     await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'MONEY' });
-    assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code })).status, 409);
+    assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, {})).status, 409);
 
     await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
     await sweepLifecycle();
@@ -416,13 +378,13 @@ describe('مهلة المهمة', () => {
     assert.equal((await wallet()).availableBalance, 0);
   });
 
-  it('المهلة خلصت والمحامي وصل: نص ونص لوحده', async () => {
+  it('المهلة خلصت والمحامي وصل: الأتعاب للمحامي لوحدها', async () => {
     const order = await createArrivedOrder();
     await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
     await sweepLifecycle();
 
-    assert.equal(await clientBalance(), 175);
-    assert.equal((await wallet()).availableBalance, 175);
+    assert.equal(await clientBalance(), 0);
+    assert.equal((await wallet()).availableBalance, 350);
   });
 });
 
@@ -520,7 +482,7 @@ describe('السعر قبل الطلب والنسبة', () => {
     const order = await createArrivedOrder();
     await sql('UPDATE platform_settings SET tax_percent = 0');
 
-    await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code: await clientCode(order.id) });
+    await call('POST', `/orders/${order.id}/complete`, lawyerToken, {});
     assert.equal((await wallet()).heldBalance, 630);
   });
 
@@ -574,7 +536,7 @@ describe('السعر قبل الطلب والنسبة', () => {
     const order = await createArrivedOrder();
     await call('POST', '/admin/commission', adminToken, { percent: 50 });
 
-    await call('POST', `/orders/${order.id}/complete`, lawyerToken, { code: await clientCode(order.id) });
+    await call('POST', `/orders/${order.id}/complete`, lawyerToken, {});
     assert.equal((await wallet()).heldBalance, 900);
   });
 

@@ -208,9 +208,9 @@ class OrderRepository {
     });
   }
 
-  /// إنهاء المهمة بالكود الذي يعطيه الموكل للمحامي
-  static Future<ApiResponse<dynamic>> completeOrder(String orderId, String code) {
-    return ApiService.post('/orders/$orderId/complete', {'code': code});
+  /// المحامي ينهي المهمة بعد ما يسجل وصوله على بعد 50 متر من الموكل
+  static Future<ApiResponse<dynamic>> completeOrder(String orderId) {
+    return ApiService.post('/orders/$orderId/complete', {});
   }
 
   static Future<ApiResponse<dynamic>> submitComplaint(String orderId, String kind, String details) {

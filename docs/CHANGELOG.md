@@ -1,5 +1,13 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.92] - 2026-11-02
+### Meeting Rule Without a Code
+- Removed the completion code everywhere: the client sees no code, the lawyer types no code, and the admin code unlock is gone.
+- The lawyer's "وصلت" is accepted only within 50 meters of the client, using the phone's real location with no fallback. This is the proof that they met.
+- "إنهاء المهمة" stays hidden until the arrival, then the lawyer finishes with a simple confirmation.
+- Money rule: no arrival refunds the client, arrival pays the lawyer. The admin can still pick another decision by hand.
+- Updated the app texts, the control page, and the tests.
+
 ## [Phase 2.91] - 2026-11-02
 ### Nearest First Across Egypt
 - Every available lawyer in Egypt is listed from the nearest to the farthest, instead of distance groups ranked by rating.

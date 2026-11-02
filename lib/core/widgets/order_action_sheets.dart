@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 import '../services/api_service.dart';
 import 'app_button.dart';
@@ -22,7 +21,7 @@ const TextStyle _subtitleStyle = TextStyle(
   color: AppColors.textMuted,
 );
 
-/// نوافذ إجراءات الطلب: كود الإنهاء، الشكوى، الاعتراض، والتقييم
+/// نوافذ إجراءات الطلب: الشكوى، الاعتراض، والتقييم
 /// كل نافذة تعيد true عندما يقبل الخادم الإجراء
 class OrderActionSheets {
   OrderActionSheets._();
@@ -38,10 +37,6 @@ class OrderActionSheets {
       builder: (context) => child,
     );
     return result ?? false;
-  }
-
-  static Future<bool> completion(BuildContext context, {required Future<ApiResponse<dynamic>> Function(String code) onSubmit}) {
-    return _show(context, _CompletionCodeSheet(onSubmit: onSubmit));
   }
 
   static Future<bool> text(
@@ -140,77 +135,6 @@ class _ErrorText extends StatelessWidget {
           color: AppColors.danger,
         ),
       ),
-    );
-  }
-}
-
-class _CompletionCodeSheet extends StatefulWidget {
-  final Future<ApiResponse<dynamic>> Function(String code) onSubmit;
-
-  const _CompletionCodeSheet({required this.onSubmit});
-
-  @override
-  State<_CompletionCodeSheet> createState() => _CompletionCodeSheetState();
-}
-
-class _CompletionCodeSheetState extends State<_CompletionCodeSheet> {
-  final _controller = TextEditingController();
-  String? _error;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final code = _controller.text.trim();
-    if (code.length != 4) {
-      setState(() => _error = 'اكتب الكود كامل من 4 أرقام');
-      return;
-    }
-
-    final navigator = Navigator.of(context);
-    final res = await widget.onSubmit(code);
-    if (!mounted) return;
-
-    if (res.isOk) {
-      navigator.pop(true);
-    } else {
-      setState(() => _error = res.error ?? 'تعذر إنهاء المهمة');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _SheetFrame(
-      children: [
-        const Text('إنهاء المهمة', textAlign: TextAlign.center, style: _titleStyle),
-        const SizedBox(height: 4),
-        const Text('اكتب الكود اللي مع الموكل', textAlign: TextAlign.center, style: _subtitleStyle),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _controller,
-          autofocus: true,
-          textAlign: TextAlign.center,
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(4),
-          ],
-          style: const TextStyle(
-            fontFamily: 'AppFont',
-            fontFamilyFallback: appFontFallback,
-            fontSize: 26,
-            letterSpacing: 10,
-            fontWeight: FontWeight.w900,
-            color: AppColors.dark,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _ErrorText(_error),
-        AppButton.primary(text: 'إنهاء المهمة', onPressed: _submit),
-      ],
     );
   }
 }

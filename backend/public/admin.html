@@ -6155,7 +6155,6 @@ body .custom-switch-toggle.active.sm .switch-knob {
     price: 'M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6',
     logout: 'M10 4H5v16h5M15 8l4 4-4 4M19 12H9',
     search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4',
-    unlock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 7.5-2',
     check: 'M5 12.5l4.5 4.5L19 7.5',
     open: 'M14 4h6v6M20 4l-9 9M18 14v6H4V6h6',
     phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2',
@@ -6685,7 +6684,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
     const facts = details([
       ['وصول المحامي', data.lawyerArrived ? badge('سُجّل الوصول', 'green') : badge('لم يُسجّل الوصول', 'red')],
-      ['كود الإنهاء', data.codeEntered ? badge('أُدخل الكود', 'green') : badge('لم يُدخل الكود', 'red')],
+      ['إنهاء المهمة', data.taskCompleted ? badge('أنهى المحامي المهمة', 'green') : badge('لم تُنهَ المهمة', 'red')],
       ['إنذارات الموكل السارية', data.clientWarnings], ['إنذارات المحامي السارية', data.lawyerWarnings],
       ['قيمة الطلب', data.price + ' ج.م'],
     ]);
@@ -6693,8 +6692,8 @@ body .custom-switch-toggle.active.sm .switch-knob {
     decision.append(el('strong', 'القرار المقترح: ' + OUTCOMES[data.outcome][0]), el('p', data.reason));
 
     const parts = [
-      guide('القاعدة الثابتة: إذا لم يسجّل المحامي وصوله يُرد المبلغ كاملًا إلى الموكل. وإذا وصل وأُدخل كود الإنهاء تُصرف الأتعاب كاملة للمحامي.',
-        'وإذا وصل المحامي ولم يُدخل الكود يُقسم المبلغ مناصفة، إلا إذا كان على أحد الطرفين 3 إنذارات سارية أو أكثر، فيُحكم للطرف الآخر.'),
+      guide('القاعدة الثابتة: الالتقاء هو الفيصل. لا يُسجَّل وصول المحامي إلا إذا كان على بعد 50 مترًا من الموكل، ولا يظهر له زر إنهاء المهمة إلا بعد ذلك.',
+        'إذا لم يسجّل المحامي وصوله يُرد المبلغ كاملًا إلى الموكل، وإذا سجّله تُصرف الأتعاب كاملة للمحامي. ويمكنك اختيار قرار آخر يدويًا عند الحاجة.'),
       facts, decision,
     ];
     if (data.open) {
@@ -6811,28 +6810,26 @@ body .custom-switch-toggle.active.sm .switch-knob {
     report: ['شكوى على موكل', 'red', 'report'],
     appeal: ['اعتراض على المهلة', 'amber', 'appeal'],
     review: ['بلاغ عن تقييم', 'purple', 'reviewReport'],
-    locked: ['كود مقفول', 'blue', 'locked'],
   };
 
   async function reportsPage(box) {
-    const [reports, appeals, reviews, tickets] = await Promise.all([
-      api('GET', '/admin/reports'), api('GET', '/admin/appeals'), api('GET', '/admin/reviews/reported'), api('GET', '/admin/tickets'),
+    const [reports, appeals, reviews] = await Promise.all([
+      api('GET', '/admin/reports'), api('GET', '/admin/appeals'), api('GET', '/admin/reviews/reported'),
     ]);
     const lawyerCell = (item) => personCell(item.lawyer_name, item.lawyer_phone);
     const items = [
       ...reports.data.map((item) => ({ kind: 'report', item, order: item.order_number, lawyer: lawyerCell(item), details: (item.kind === 'BEHAVIOR' ? 'على التعامل: ' : 'على الفلوس: ') + item.reason, at: item.created_at })),
       ...appeals.data.map((item) => ({ kind: 'appeal', item, order: item.order_number, lawyer: lawyerCell(item), details: item.reason, at: item.created_at })),
       ...reviews.data.map((item) => ({ kind: 'review', item, order: '-', lawyer: personCell(item.lawyer_name), details: item.report_reason, at: item.reported_at })),
-      ...tickets.data.filter((item) => item.type === 'locked').map((item) => ({ kind: 'locked', item, order: item.order_number, lawyer: '-', details: item.details, at: item.created_at })),
     ].sort((a, b) => new Date(a.at) - new Date(b.at));
     const shown = applyFilters(items, (entry) => entry.at, (entry) => entry.kind);
 
     const count = (kind) => items.filter((entry) => entry.kind === kind).length;
     box.append(summaryBar([
       ['شكاوى على موكلين', count('report'), 'complaint', 'red'], ['اعتراضات', count('appeal'), 'appeal', 'amber'],
-      ['بلاغات تقييمات', count('review'), 'review', 'blue'], ['أكواد مقفولة', count('locked'), 'unlock', 'brand'],
+      ['بلاغات تقييمات', count('review'), 'review', 'blue'],
     ]));
-    box.append(guide('تظهر هنا شكاوى المحامين على الموكلين واعتراضاتهم وبلاغاتهم والأكواد المقفولة.',
+    box.append(guide('تظهر هنا شكاوى المحامين على الموكلين واعتراضاتهم وبلاغاتهم.',
       'يمكنك مراجعة الشكوى والرد عليها ليصل الرد في إشعار للمحامي وتُغلق الشكوى. وإذا استدعت الشكوى أي إجراء، يمكنك تطبيقه مباشرة من صفحة بروفايل الحساب المعني.'));
     box.append(controlsBar([stateFilter([['', 'كل الأنواع'], ...Object.entries(LAWYER_ITEMS).map(([key, [label]]) => [key, label])]), ...dateFilters()]));
     box.append(table(['النوع', 'رقم الطلب', 'المحامي', 'التفاصيل', 'التاريخ', 'الإجراءات'], shown.map((entry) => {
@@ -6857,19 +6854,6 @@ body .custom-switch-toggle.active.sm .switch-knob {
       actionRow(
         button('إخفاء التعليق', 'btn-outline-danger', () => moderate(true), 'تم إخفاء التعليق'),
         button('إبقاء التعليق', 'btn-primary', () => moderate(false), 'تم إبقاء التعليق', 'check'))));
-  }
-
-  async function lockedPage(box) {
-    const item = current.param;
-    pageHead('كود مقفول في طلب ' + item.order_number);
-    box.append(hero(avatarBox(null, 'unlock'), 'كود إنهاء مقفول', [badge('محتاج مراجعة', 'blue')],
-      [['orders', 'طلب ' + item.order_number], ['calendar', date(item.created_at)], ['money', item.price + ' ج.م']],
-      [link('تفاصيل الطلب', () => open('order', item.id), 'btn-outline', 'orders')]));
-    box.append(section('التفاصيل', el('p', item.details)));
-    box.append(section('القرار',
-      el('p', 'يعيد فتح الكود للمحامي محاولات إدخاله ليتمكن من إنهاء المهمة.', 'muted'),
-      actionRow(button('فتح الكود', 'btn-primary', () => decideAndReturn(() =>
-        api('POST', '/admin/orders/' + item.id + '/unlock-code', {})), 'تم فتح الكود', 'unlock'))));
   }
 
   async function reportPage(box) {
@@ -7347,11 +7331,11 @@ body .custom-switch-toggle.active.sm .switch-knob {
     reviews: ['التقييمات', 'review', reviewsPage],
     prices: ['الأسعار والنسب', 'price', pricesPage],
   };
-  const INNER = { user: userPage, order: orderPage, application: applicationPage, complaint: complaintPage, report: reportPage, appeal: appealPage, reviewReport: reviewReportPage, locked: lockedPage };
-  const INNER_TITLES = { user: 'بروفايل الحساب', order: 'تفاصيل الطلب', application: 'طلب انضمام', complaint: 'شكوى موكل', report: 'شكوى محامي', appeal: 'اعتراض محامي', reviewReport: 'بلاغ عن تقييم', locked: 'كود مقفول' };
+  const INNER = { user: userPage, order: orderPage, application: applicationPage, complaint: complaintPage, report: reportPage, appeal: appealPage, reviewReport: reviewReportPage };
+  const INNER_TITLES = { user: 'بروفايل الحساب', order: 'تفاصيل الطلب', application: 'طلب انضمام', complaint: 'شكوى موكل', report: 'شكوى محامي', appeal: 'اعتراض محامي', reviewReport: 'بلاغ عن تقييم' };
   const SUBTITLES = {
     overview: 'ملخص الحسابات والطلبات', complaints: 'كل ما يرد من الموكلين ويحتاج إلى قرار', reports: 'شكاوى المحامين واعتراضاتهم وبلاغاتهم التي تحتاج إلى قرار',
-    reviewReport: 'مراجعة التعليق والقرار', locked: 'مراجعة الطلب وفتح الكود', complaint: 'مراجعة الشكوى والقرار', report: 'مراجعة الشكوى والقرار', appeal: 'مراجعة الاعتراض والقرار', applications: 'محامون تقدموا للانضمام إلى الخدمة', lawyers: 'كل حسابات المحامين',
+    reviewReport: 'مراجعة التعليق والقرار', complaint: 'مراجعة الشكوى والقرار', report: 'مراجعة الشكوى والقرار', appeal: 'مراجعة الاعتراض والقرار', applications: 'محامون تقدموا للانضمام إلى الخدمة', lawyers: 'كل حسابات المحامين',
     clients: 'كل حسابات الموكلين', orders: 'البحث في الطلبات ومتابعة حالتها', reviews: 'تقييمات الموكلين للمحامين',
     prices: 'أسعار الخدمات ونسبة المنصة والضريبة', application: 'مراجعة بيانات المحامي والقرار', user: 'البيانات والطلبات والتقييمات', order: 'البيانات ودورة حياة الطلب',
   };

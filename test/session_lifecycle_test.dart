@@ -834,14 +834,11 @@ void main() {
       expect(check.status, SessionStatus.accountSuspended);
     });
 
-    testWidgets('الموكل يشوف كود الإنهاء في طلبه النشط', (tester) async {
-      backend.orders = [
-        {...sampleOrder(status: 'ACTIVE'), 'completionCode': '4821'},
-      ];
+    testWidgets('الموكل ما بيشوفش أي كود في طلبه النشط', (tester) async {
+      backend.orders = [sampleOrder(status: 'ACTIVE')];
       await _openDetails(tester);
 
-      expect(find.text('كود إنهاء المهمة'), findsOneWidget);
-      expect(find.text('4821'), findsOneWidget);
+      expect(find.text('كود إنهاء المهمة'), findsNothing);
       expect(find.text('ORD-1001'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -868,34 +865,27 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
 
-    testWidgets('المحامي ينهي المهمة بالكود فقط، والكود الغلط يظهر خطأ', (tester) async {
+    testWidgets('المحامي ينهي المهمة بعد الوصول بتأكيد من غير كود', (tester) async {
       backend.overrides['POST /orders/order-1/complete'] = (request) {
-        final code = (jsonDecode(request.body) as Map<String, dynamic>)['code'];
-        return code == '4821'
-            ? FakeBackend.json(200, {'success': true, 'data': {'status': 'COMPLETED'}})
-            : FakeBackend.json(400, {'success': false, 'error': 'كود الإنهاء غير صحيح'});
+        expect((jsonDecode(request.body) as Map<String, dynamic>).containsKey('code'), isFalse);
+        return FakeBackend.json(200, {'success': true, 'data': {'status': 'COMPLETED'}});
       };
       backend.orders = [
         {...sampleOrder(status: 'ACTIVE'), 'arrivedAt': DateTime.now().toIso8601String()},
       ];
 
       await _openDetails(tester, isLawyer: true);
+      expect(find.text('وصلت'), findsNothing);
 
       await tester.ensureVisible(find.text('إنهاء المهمة'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('إنهاء المهمة'));
       await _settleAsync(tester);
 
-      await tester.enterText(find.byType(TextField), '0000');
-      await tester.tap(find.widgetWithText(ElevatedButton, 'إنهاء المهمة').last);
-      await _settleAsync(tester);
-      expect(find.text('كود الإنهاء غير صحيح'), findsOneWidget);
-
-      await tester.enterText(find.byType(TextField), '4821');
-      await tester.tap(find.widgetWithText(ElevatedButton, 'إنهاء المهمة').last);
-      await _settleAsync(tester);
       expect(find.byType(TextField), findsNothing);
-      expect(backend.countOf('POST /orders/order-1/complete'), 2);
+      await tester.tap(find.text('إنهاء').last);
+      await _settleAsync(tester);
+      expect(backend.countOf('POST /orders/order-1/complete'), 1);
 
       await tester.pumpWidget(const SizedBox.shrink());
     });

@@ -7,11 +7,10 @@ import {
   addLawyerStrike,
   approximateCoordinate,
   APPEAL_WINDOW_DAYS,
-  generateCompletionCode,
+  ARRIVAL_RADIUS_KM,
   HOLD_HOURS,
   LAWYER_RESPONSE_SECONDS,
   lawyerHasOpenOrder,
-  MAX_CODE_ATTEMPTS,
   notify,
   ORDER_DEADLINE_HOURS,
   refreshLawyerRating,
@@ -357,9 +356,6 @@ export async function orderRoutes(fastify: FastifyInstance) {
         hasAppeal: o.has_appeal,
         canEditReview: o.review_editable,
         hasReport: o.has_report,
-        isCodeLocked: o.code_attempts >= MAX_CODE_ATTEMPTS,
-        // The code proves the client's approval, so only the client ever receives it
-        completionCode: role === 'client' && o.status === 'ACTIVE' ? o.completion_code : null,
       };
     });
 
@@ -626,10 +622,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
 
       await client.query(
         `UPDATE service_orders
-         SET status = 'ACTIVE', paid_at = NOW(), completion_code = $2,
-             expires_at = NOW() + make_interval(hours => $3), updated_at = NOW()
+         SET status = 'ACTIVE', paid_at = NOW(), expires_at = NOW() + make_interval(hours => $2), updated_at = NOW()
          WHERE id = $1`,
-        [order.id, generateCompletionCode(), ORDER_DEADLINE_HOURS]
+        [order.id, ORDER_DEADLINE_HOURS]
       );
 
       await client.query(
@@ -674,36 +669,27 @@ export async function orderRoutes(fastify: FastifyInstance) {
       return reply.status(409).send({ success: false, error: 'سجل وصولك الأول عند الموكل' });
     }
 
+    // A money complaint waits for the admin decision before the task can close
     const openComplaint = await query(
-      `SELECT 1 FROM complaints WHERE order_id = $1 AND status = 'OPEN'`,
+      `SELECT 1 FROM complaints WHERE order_id = $1 AND status = 'OPEN' AND kind = 'MONEY'`,
       [order.id]
     );
     if (openComplaint.rows.length > 0) {
       return reply.status(409).send({ success: false, error: 'الطلب قيد مراجعة شكوى من الإدارة' });
     }
 
-    if (order.code_attempts >= MAX_CODE_ATTEMPTS) {
-      return reply.status(429).send({ success: false, error: 'تم تجاوز عدد المحاولات، الإدارة هتراجع الطلب' });
-    }
-
-    const body = (request.body || {}) as { code?: string };
-    if (String(body.code ?? '').trim() !== order.completion_code) {
-      await query('UPDATE service_orders SET code_attempts = code_attempts + 1 WHERE id = $1', [order.id]);
-      return reply.status(400).send({ success: false, error: 'كود الإنهاء غير صحيح' });
-    }
-
     const completedOrder = await withTransaction(async (client) => {
       const res = await client.query(
         `UPDATE service_orders
          SET status = 'COMPLETED', completed_at = NOW(), payout_status = 'HELD', payout_amount = lawyer_amount,
-             hold_until = NOW() + make_interval(hours => $2), completion_code = NULL, updated_at = NOW()
+             hold_until = NOW() + make_interval(hours => $2), updated_at = NOW()
          WHERE id = $1 RETURNING hold_until`,
         [order.id, HOLD_HOURS]
       );
 
       await client.query(
         `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)
-         VALUES ($1, $2, $3, 'COMPLETED', 'تم إنهاء المهمة بكود الموكل')`,
+         VALUES ($1, $2, $3, 'COMPLETED', 'أنهى المحامي المهمة بعد الالتقاء بالموكل')`,
         [order.id, userId, order.status]
       );
 
@@ -992,7 +978,11 @@ export async function orderRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: 'لا يمكن تسجيل الوصول لهذا الطلب' });
     }
 
-// قبول وصول المحامي أيا كان موقعه بناء على طلب المنصة
+    // The arrival is the proof that the two really met
+    const distance = distanceKm(lat, lon, Number(order.client_latitude), Number(order.client_longitude));
+    if (distance > ARRIVAL_RADIUS_KM) {
+      return reply.status(400).send({ success: false, error: 'لازم تكون على بعد 50 متر من الموكل عشان تسجل وصولك' });
+    }
 
     await withTransaction(async (client) => {
       await client.query(

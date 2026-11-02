@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { registerAdminDirectory, userStats } from './directory.js';
 import { sanitizeText } from '../../utils/security.js';
-import { addClientCredit, MAX_CODE_ATTEMPTS, notify, refreshLawyerRating, warnClient } from '../lifecycle/service.js';
+import { addClientCredit, notify, refreshLawyerRating, warnClient } from '../lifecycle/service.js';
 
 export async function adminRoutes(fastify: FastifyInstance) {
   // Strict admin authorization hook
@@ -218,15 +218,12 @@ export async function adminRoutes(fastify: FastifyInstance) {
          UNION ALL
          SELECT 'report', 'بلاغ من محامي', r.id::text, o.order_number, r.reason, r.created_at, o.price
          FROM lawyer_reports r JOIN service_orders o ON o.id = r.order_id WHERE r.status = 'OPEN'
-         UNION ALL
-         SELECT 'locked', 'كود مقفول', o.id::text, o.order_number, 'المحامي تجاوز عدد محاولات الكود', o.updated_at, o.price
-         FROM service_orders o WHERE o.status = 'ACTIVE' AND o.code_attempts >= $1
+
          UNION ALL
          SELECT 'review', 'تعليق مبلغ عنه', r.id::text, o.order_number, r.report_reason, r.reported_at, o.price
          FROM reviews r JOIN service_orders o ON o.id = r.order_id WHERE r.reported_at IS NOT NULL AND r.is_hidden = FALSE
        ) tickets
-       ORDER BY created_at ASC`,
-      [MAX_CODE_ATTEMPTS]
+       ORDER BY created_at ASC`
     );
 
     return reply.send({
@@ -236,23 +233,6 @@ export async function adminRoutes(fastify: FastifyInstance) {
         isOverdue: Date.now() - new Date(row.created_at).getTime() > 86400000,
       })),
     });
-  });
-
-  // POST /api/v1/admin/orders/:id/unlock-code
-  fastify.post('/orders/:id/unlock-code', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { id } = request.params as { id: string };
-    const res = await query(
-      `UPDATE service_orders SET code_attempts = 0
-       WHERE id::text = $1 AND status = 'ACTIVE' RETURNING lawyer_id, id`,
-      [id]
-    );
-
-    if (res.rows.length === 0) {
-      return reply.status(404).send({ success: false, error: 'الطلب غير موجود' });
-    }
-
-    await notify(dbPool, res.rows[0].lawyer_id, 'تم فتح الكود', 'تقدر تكتب كود الموكل تاني', res.rows[0].id);
-    return reply.send({ success: true, message: 'تم فتح الكود' });
   });
 
   // GET /api/v1/admin/reviews/reported
