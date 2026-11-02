@@ -275,13 +275,10 @@ describe('الدفع والإنهاء بالكود', () => {
     assert.equal((await call('POST', `/orders/${late.id}/cancel`, clientToken, {})).status, 400);
   });
 
-  it('الوصول يتسجل قرب الموكل فقط ويمنع الإلغاء', async () => {
+  it('الوصول يتسجل أيا كان موقع المحامي ويمنع الإلغاء', async () => {
     const order = await createPaidOrder();
     const far = await call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.2, longitude: 31.25 });
-    assert.equal(far.status, 400);
-
-    const near = await call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.051, longitude: 31.25 });
-    assert.equal(near.status, 200);
+    assert.equal(far.status, 200);
     assert.equal((await call('POST', `/orders/${order.id}/cancel`, clientToken, {})).status, 400);
   });
 
@@ -839,7 +836,7 @@ describe('ظهور المحامي على الخريطة', () => {
 });
 
 describe('الترتيب والإشعارات والصلاحيات', () => {
-  it('القريب أولاً، وجوه الشريحة الأعلى تقييماً', async () => {
+  it('كل المحامين بالترتيب من الأقرب للأبعد', async () => {
     const near = await createUser('01000000011', 'lawyer');
     const nearTop = await createUser('01000000012', 'lawyer');
     const far = await createUser('01000000013', 'lawyer');
@@ -857,7 +854,7 @@ describe('الترتيب والإشعارات والصلاحيات', () => {
     }
 
     const res = await call('GET', '/lawyers/nearby?lat=28.0&lon=33.0&radius_km=50', null);
-    assert.deepEqual(res.body.data.map((l: any) => l.id), [nearTop, near, far]);
+    assert.deepEqual(res.body.data.map((l: any) => l.id), [near, nearTop, far]);
   });
 
   it('عداد الطلبات للمحامي وقراءة الإشعارات', async () => {

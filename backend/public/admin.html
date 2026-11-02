@@ -6498,6 +6498,18 @@ body .custom-switch-toggle.active.sm .switch-knob {
     return node;
   }
 
+  function textarea(value, placeholder, className) {
+    const node = el('textarea', undefined, 'field-input ' + (className || ''));
+    if (value !== undefined) node.value = value;
+    if (placeholder) node.placeholder = placeholder;
+    node.style.minHeight = '95px';
+    node.style.width = '100%';
+    node.style.resize = 'vertical';
+    node.style.lineHeight = '1.6';
+    node.style.padding = '0.65rem 0.85rem';
+    return node;
+  }
+
   /// Top card for a profile or an order, like view-hero-card
   function hero(avatar, title, badges, pills, buttons) {
     const card = el('div', undefined, 'view-hero-card');
@@ -6753,8 +6765,8 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['على التعامل', data.filter((item) => item.kind === 'BEHAVIOR').length, 'appeal', 'blue'],
       ['قيمة الطلبات المعنية', sumOf(data, 'price') + ' ج.م', 'money', 'brand'],
     ]));
-    box.append(guide('تظهر هنا شكاوى الموكلين المفتوحة. الشكوى على الفلوس تُحسم بالتسوية المالية وفق قاعدة ثابتة، والشكوى على التعامل تُحسم بتوجيه إنذار أو بالإغلاق دون إجراء.',
-      'تُجمّد أتعاب الطلب تلقائيًا عند تقديم شكوى على الفلوس حتى صدور القرار.'));
+    box.append(guide('تظهر هنا شكاوى الموكلين المفتوحة. يمكنك مراجعة الشكوى والرد عليها ليصل الرد للموكل في إشعار وتُغلق الشكوى.',
+      'إذا استدعت الشكوى أي إجراء (مثل الإنذار أو إضافة/خصم رصيد أو تجميد أتعاب)، يمكنك تطبيقه مباشرة من صفحة بروفايل الحساب المعني.'));
     box.append(controlsBar([stateFilter([['', 'كل الأنواع'], ['MONEY', 'على الفلوس'], ['BEHAVIOR', 'على التعامل']]), ...dateFilters()]));
     box.append(table(['النوع', 'رقم الطلب', 'الموكل', 'المحامي', 'التفاصيل', 'المبلغ', 'التاريخ', 'الإجراءات'], shown.map((item) => ({
       item,
@@ -6768,10 +6780,9 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
   async function complaintPage(box) {
     const item = current.param;
-    const isMoney = item.kind !== 'BEHAVIOR';
     pageHead('شكوى على طلب ' + item.order_number);
 
-    box.append(hero(avatarBox(null, 'complaint'), 'شكوى موكل', [badge('مفتوحة', 'red'), kindBadge(item.kind)],
+    box.append(hero(avatarBox(null, 'complaint'), 'شكوى موكل', [badge('مفتوحة', 'red'), kindBadge(item.kind), tag(item.order_status)],
       [['orders', 'طلب ' + item.order_number], ['calendar', date(item.created_at)], ['money', item.price + ' ج.م']],
       [link('تفاصيل الطلب', () => open('order', item.order_id), 'btn-outline', 'orders')]));
     box.append(section('نص الشكوى', el('p', item.reason)));
@@ -6779,19 +6790,21 @@ body .custom-switch-toggle.active.sm .switch-knob {
       personCard('الموكل', item.client_name, item.client_phone, item.client_id, statsOf(item, 'client'), item.client_email),
       personCard('المحامي', item.lawyer_name, item.lawyer_phone, item.lawyer_id, statsOf(item, 'lawyer'), item.lawyer_email))));
 
-    if (isMoney) {
-      box.append(await settlementSection(item.order_id, true));
-      return;
-    }
-    const note = input('', 'سبب الإنذار أو ملاحظة الإغلاق');
-    note.style.minWidth = '280px';
-    const close = (warn) => decideAndReturn(() => api('POST', '/admin/complaints/' + item.id + '/close', { warn, note: note.value }));
-    box.append(section('القرار',
-      guide('الشكوى على التعامل لا تؤثر في الفلوس. وجّه إنذارًا للمحامي إذا ثبتت المخالفة أو تكررت من موكلين مختلفين، أو أغلق الشكوى دون إجراء.',
-        '3 إنذارات سارية خلال 30 يومًا توقف الحساب أسبوعًا تلقائيًا.'),
-      actionRow(note,
-        button('توجيه إنذار للمحامي', 'btn-outline-danger', confirmed('توجيه إنذار للمحامي وإغلاق الشكوى؟', () => close(true)), 'تم توجيه الإنذار'),
-        button('إغلاق دون إجراء', 'btn-outline', () => close(false), 'تم إغلاق الشكوى'))));
+    const reply = textarea('', 'اكتب رد الإدارة على الشكوى هنا...');
+    const sendReply = () => {
+      const text = reply.value.trim();
+      if (!text) {
+        toast('يرجى كتابة رد الإدارة أولاً', true);
+        return;
+      }
+      return decideAndReturn(() => api('POST', '/admin/complaints/' + item.id + '/close', { note: text }));
+    };
+
+    box.append(section('رد الإدارة على الشكوى',
+      guide('اكتب رد الإدارة ليصل مباشرة إلى الموكل في إشعار، وسيتم إغلاق الشكوى فور الإرسال.',
+        'إذا استدعت الشكوى أي إجراء (مثل الإنذار أو إضافة/خصم رصيد أو تجميد أتعاب)، يمكنك فتح بروفايل الحساب من بطاقة الأطراف أعلاه وتطبيق الإجراء من هناك.'),
+      reply,
+      actionRow(button('إرسال الرد وإغلاق الشكوى', 'btn-primary', sendReply, 'تم إرسال الرد وإغلاق الشكوى', 'check'))));
   }
 
   const LAWYER_ITEMS = {
@@ -6819,8 +6832,8 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['شكاوى على موكلين', count('report'), 'complaint', 'red'], ['اعتراضات', count('appeal'), 'appeal', 'amber'],
       ['بلاغات تقييمات', count('review'), 'review', 'blue'], ['أكواد مقفولة', count('locked'), 'unlock', 'brand'],
     ]));
-    box.append(guide('تظهر هنا شكاوى المحامين على الموكلين، واعتراضاتهم السابقة على انتهاء المهلة، وبلاغاتهم عن التقييمات، والأكواد المقفولة.',
-      'افتح أي بند لمراجعة الأدلة واتخاذ القرار. الشكوى على الفلوس تُحسم بالتسوية المالية، والشكوى على التعامل تُحسم بإنذار للموكل أو بالإغلاق.'));
+    box.append(guide('تظهر هنا شكاوى المحامين على الموكلين واعتراضاتهم وبلاغاتهم والأكواد المقفولة.',
+      'يمكنك مراجعة الشكوى والرد عليها ليصل الرد في إشعار للمحامي وتُغلق الشكوى. وإذا استدعت الشكوى أي إجراء، يمكنك تطبيقه مباشرة من صفحة بروفايل الحساب المعني.'));
     box.append(controlsBar([stateFilter([['', 'كل الأنواع'], ...Object.entries(LAWYER_ITEMS).map(([key, [label]]) => [key, label])]), ...dateFilters()]));
     box.append(table(['النوع', 'رقم الطلب', 'المحامي', 'التفاصيل', 'التاريخ', 'الإجراءات'], shown.map((entry) => {
       const [label, color, page] = LAWYER_ITEMS[entry.kind];
@@ -6861,7 +6874,6 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
   async function reportPage(box) {
     const item = current.param;
-    const isMoney = item.kind !== 'BEHAVIOR';
     pageHead('شكوى محامٍ على طلب ' + item.order_number);
 
     box.append(hero(avatarBox(null, 'complaint'), 'شكوى محامٍ', [badge('مفتوحة', 'red'), kindBadge(item.kind), tag(item.order_status)],
@@ -6872,18 +6884,21 @@ body .custom-switch-toggle.active.sm .switch-knob {
       personCard('المحامي', item.lawyer_name, item.lawyer_phone, item.lawyer_id, statsOf(item, 'lawyer'), item.lawyer_email),
       personCard('الموكل', item.client_name, item.client_phone, item.client_id, statsOf(item, 'client'), item.client_email))));
 
-    if (isMoney) {
-      box.append(await settlementSection(item.order_id, true));
-      return;
-    }
-    const note = input('', 'سبب الإنذار أو ملاحظة الإغلاق');
-    note.style.minWidth = '280px';
-    const close = (warn) => decideAndReturn(() => api('POST', '/admin/reports/' + item.id + '/close', { warn, note: note.value }));
-    box.append(section('القرار',
-      guide('الشكوى على التعامل لا تؤثر في الفلوس. وجّه إنذارًا للموكل إذا ثبتت المخالفة أو تكررت من محامين مختلفين، أو أغلق الشكوى دون إجراء.'),
-      actionRow(note,
-        button('توجيه إنذار للموكل', 'btn-outline-danger', confirmed('توجيه إنذار للموكل وإغلاق الشكوى؟', () => close(true)), 'تم توجيه الإنذار'),
-        button('إغلاق دون إجراء', 'btn-outline', () => close(false), 'تم إغلاق الشكوى'))));
+    const reply = textarea('', 'اكتب رد الإدارة على الشكوى هنا...');
+    const sendReply = () => {
+      const text = reply.value.trim();
+      if (!text) {
+        toast('يرجى كتابة رد الإدارة أولاً', true);
+        return;
+      }
+      return decideAndReturn(() => api('POST', '/admin/reports/' + item.id + '/close', { note: text }));
+    };
+
+    box.append(section('رد الإدارة على الشكوى',
+      guide('اكتب رد الإدارة ليصل مباشرة إلى المحامي في إشعار، وسيتم إغلاق الشكوى فور الإرسال.',
+        'إذا استدعت الشكوى أي إجراء (مثل الإنذار أو تعديل الرصيد)، يمكنك فتح بروفايل الحساب من بطاقة الأطراف أعلاه وتطبيق الإجراء من هناك.'),
+      reply,
+      actionRow(button('إرسال الرد وإغلاق الشكوى', 'btn-primary', sendReply, 'تم إرسال الرد وإغلاق الشكوى', 'check'))));
   }
 
   async function appealPage(box) {

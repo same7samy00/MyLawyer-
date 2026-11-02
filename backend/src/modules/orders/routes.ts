@@ -7,7 +7,6 @@ import {
   addLawyerStrike,
   approximateCoordinate,
   APPEAL_WINDOW_DAYS,
-  ARRIVAL_RADIUS_KM,
   generateCompletionCode,
   HOLD_HOURS,
   LAWYER_RESPONSE_SECONDS,
@@ -993,10 +992,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: 'لا يمكن تسجيل الوصول لهذا الطلب' });
     }
 
-    const distance = distanceKm(lat, lon, Number(order.client_latitude), Number(order.client_longitude));
-    if (distance > ARRIVAL_RADIUS_KM) {
-      return reply.status(400).send({ success: false, error: 'لسه بعيد عن موقع الموكل' });
-    }
+// قبول وصول المحامي أيا كان موقعه بناء على طلب المنصة
 
     await withTransaction(async (client) => {
       await client.query(

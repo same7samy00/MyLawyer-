@@ -263,7 +263,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     return reply.send({ success: true, message: 'تم تنفيذ القرار', data: result });
   });
 
-  // POST /api/v1/admin/complaints/:id/close - Closes a conduct complaint, with or without a warning
+  // POST /api/v1/admin/complaints/:id/close - Closes a complaint and sends admin reply in notification
   fastify.post('/complaints/:id/close', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId: adminId } = request.user as { userId: string };
     const { id } = request.params as { id: string };
@@ -273,20 +273,38 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     const done = await withTransaction(async (client) => {
       const res = await client.query(
         `UPDATE complaints SET status = 'RESOLVED', resolution = $1, admin_note = $2, resolved_by = $3, resolved_at = NOW()
-         WHERE id::text = $4 AND status = 'OPEN' RETURNING order_id, client_id, lawyer_id`,
-        [body.warn ? 'WARNING' : 'CLOSED', note, adminId, id]
+         WHERE id::text = $4 AND status = 'OPEN' RETURNING order_id, client_id, lawyer_id, kind`,
+        [body.warn ? 'WARNING' : 'RESOLVED', note, adminId, id]
       );
       const row = res.rows[0];
       if (!row) return false;
       if (body.warn) await addWarning(client, row.lawyer_id, note || 'إنذار بسبب شكوى من موكل على التعامل', row.order_id, adminId);
-      await notify(client, row.client_id, 'قرار الشكوى', body.warn ? 'راجعت الإدارة شكواك ووجهت إنذارًا للمحامي' : 'راجعت الإدارة شكواك وأغلقتها', row.order_id);
+      const notifyMessage = note || (body.warn ? 'راجعت الإدارة شكواك ووجهت إنذارًا للمحامي' : 'راجعت الإدارة شكواك وتم إغلاقها');
+      await notify(client, row.client_id, 'رد الإدارة على شكواك', notifyMessage, row.order_id);
+
+      if (row.kind === 'MONEY') {
+        const otherRes = await client.query(
+          `SELECT 1 FROM complaints WHERE order_id = $1 AND status = 'OPEN' AND kind = 'MONEY'
+           UNION ALL
+           SELECT 1 FROM lawyer_reports WHERE order_id = $1 AND status = 'OPEN' AND kind = 'MONEY'`,
+          [row.order_id]
+        );
+        if (otherRes.rows.length === 0) {
+          await client.query(
+            `UPDATE service_orders SET payout_status = CASE WHEN hold_until > NOW() THEN 'HELD' ELSE 'AVAILABLE' END
+             WHERE id = $1 AND payout_status = 'FROZEN'`,
+            [row.order_id]
+          );
+        }
+      }
+
       return true;
     });
     if (!done) return reply.status(404).send({ success: false, error: 'الشكوى غير موجودة أو مغلقة' });
-    return reply.send({ success: true, message: body.warn ? 'تم توجيه الإنذار وإغلاق الشكوى' : 'تم إغلاق الشكوى' });
+    return reply.send({ success: true, message: body.warn ? 'تم توجيه الإنذار وإغلاق الشكوى' : 'تم إرسال الرد وإغلاق الشكوى' });
   });
 
-  // POST /api/v1/admin/reports/:id/close - Closes a lawyer's conduct complaint, with or without a warning
+  // POST /api/v1/admin/reports/:id/close - Closes a lawyer's complaint and sends admin reply in notification
   fastify.post('/reports/:id/close', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId: adminId } = request.user as { userId: string };
     const { id } = request.params as { id: string };
@@ -296,17 +314,35 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     const done = await withTransaction(async (client) => {
       const res = await client.query(
         `UPDATE lawyer_reports SET status = 'RESOLVED', resolution = $1, admin_note = $2, resolved_by = $3, resolved_at = NOW()
-         WHERE id::text = $4 AND status = 'OPEN' RETURNING order_id, client_id, lawyer_id`,
-        [body.warn ? 'WARNING' : 'CLOSED', note, adminId, id]
+         WHERE id::text = $4 AND status = 'OPEN' RETURNING order_id, client_id, lawyer_id, kind`,
+        [body.warn ? 'WARNING' : 'RESOLVED', note, adminId, id]
       );
       const row = res.rows[0];
       if (!row) return false;
       if (body.warn) await addWarning(client, row.client_id, note || 'إنذار بسبب شكوى من محامٍ على التعامل', row.order_id, adminId);
-      await notify(client, row.lawyer_id, 'قرار الشكوى', body.warn ? 'راجعت الإدارة شكواك ووجهت إنذارًا للموكل' : 'راجعت الإدارة شكواك وأغلقتها', row.order_id);
+      const notifyMessage = note || (body.warn ? 'راجعت الإدارة شكواك ووجهت إنذارًا للموكل' : 'راجعت الإدارة شكواك وتم إغلاقها');
+      await notify(client, row.lawyer_id, 'رد الإدارة على شكواك', notifyMessage, row.order_id);
+
+      if (row.kind === 'MONEY') {
+        const otherRes = await client.query(
+          `SELECT 1 FROM complaints WHERE order_id = $1 AND status = 'OPEN' AND kind = 'MONEY'
+           UNION ALL
+           SELECT 1 FROM lawyer_reports WHERE order_id = $1 AND status = 'OPEN' AND kind = 'MONEY'`,
+          [row.order_id]
+        );
+        if (otherRes.rows.length === 0) {
+          await client.query(
+            `UPDATE service_orders SET payout_status = CASE WHEN hold_until > NOW() THEN 'HELD' ELSE 'AVAILABLE' END
+             WHERE id = $1 AND payout_status = 'FROZEN'`,
+            [row.order_id]
+          );
+        }
+      }
+
       return true;
     });
     if (!done) return reply.status(404).send({ success: false, error: 'الشكوى غير موجودة أو مغلقة' });
-    return reply.send({ success: true, message: body.warn ? 'تم توجيه الإنذار وإغلاق الشكوى' : 'تم إغلاق الشكوى' });
+    return reply.send({ success: true, message: body.warn ? 'تم توجيه الإنذار وإغلاق الشكوى' : 'تم إرسال الرد وإغلاق الشكوى' });
   });
 
   // POST /api/v1/admin/users/:id/balance - Adds to or deducts from a balance with a reason

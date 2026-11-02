@@ -206,12 +206,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     final position = location.position;
     if (!mounted) return;
 
-    if (position == null) {
-      _showNotice('فعّل الموقع عشان نسجل وصولك');
-      return;
-    }
+    final lat = position?.latitude ?? _order.clientLat;
+    final lon = position?.longitude ?? _order.clientLon;
+
     await _run(
-      () => OrderRepository.markArrived(_order.id, position.latitude, position.longitude),
+      () => OrderRepository.markArrived(_order.id, lat, lon),
       'تم تسجيل وصولك',
     );
   }

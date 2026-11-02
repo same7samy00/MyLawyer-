@@ -55,7 +55,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
 
     const userLat = parseFloat(queryParams.lat || '');
     const userLon = parseFloat(queryParams.lon || '');
-    const radiusKm = Math.min(Math.max(parseFloat(queryParams.radius_km || '25') || 25, 1), MAX_MAP_RADIUS_KM);
+    const radiusKm = Math.min(Math.max(parseFloat(queryParams.radius_km || String(MAX_MAP_RADIUS_KM)) || MAX_MAP_RADIUS_KM, 1), MAX_MAP_RADIUS_KM);
 
     // If client coordinates are missing or invalid
     if (isNaN(userLat) || isNaN(userLon)) {
@@ -76,7 +76,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
 
     // Query ONLY approved, active, online lawyers with valid Egyptian coordinates
     // Haversine formula calculation directly in PostgreSQL with explicit float8 casts
-    // Nearby lawyers are grouped by distance, and each group starts with the highest rated
+    // Every available lawyer in Egypt, the nearest first
     const sql = `
       SELECT * FROM (
       SELECT
@@ -117,16 +117,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
           WHERE o.lawyer_id = u.id AND o.status IN ('PENDING', 'ACCEPTED', 'ACTIVE')
         )
       ) lp
-      ORDER BY
-        CASE
-          WHEN (distance_km) <= 2 THEN 1
-          WHEN (distance_km) <= 5 THEN 2
-          WHEN (distance_km) <= 10 THEN 3
-          WHEN (distance_km) <= 25 THEN 4
-          ELSE 5
-        END,
-        lp.rating DESC,
-        distance_km ASC
+      ORDER BY distance_km ASC, lp.rating DESC
       LIMIT 1000;
     `;
 

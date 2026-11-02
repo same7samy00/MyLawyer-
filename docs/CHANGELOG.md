@@ -1,5 +1,30 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.91] - 2026-11-02
+### Nearest First Across Egypt
+- Every available lawyer in Egypt is listed from the nearest to the farthest, instead of distance groups ranked by rating.
+- Removed the admin password that was written in `docs/ANTIGRAVITY_REPORT.md`. It stays only in `admin-credentials.txt` on the computer.
+
+## [Phase 2.90] - 2026-11-02
+### Lawyer Arrival Unrestricted by Location
+- The "وصلت" (I arrived) button now accepts arrival from anywhere regardless of the lawyer's distance to the client.
+- Removed the 500-meter proximity restriction (`ARRIVAL_RADIUS_KM = 0.5`) in `POST /api/v1/orders/:id/arrive`.
+- Added resilient coordinate fallback in `order_details_screen.dart` so arrival succeeds smoothly even if device GPS is delayed or unavailable.
+- Updated lifecycle test suite to verify that arrival is registered and accepted from any coordinate.
+
+## [Phase 2.89] - 2026-11-02
+### Nationwide Lawyer Selection and Unrestricted Search
+- Removed the 25 km ordering restriction: clients can now request any available lawyer visible on the map across the entire country.
+- The "بحث جديد" (New Search) button now queries across all of Egypt (1500 km radius) and cycles through all registered available lawyers.
+- Updated default search radius in `LawyerRepository` and `/lawyers/nearby` endpoint to 1500 km.
+
+## [Phase 2.88] - 2026-11-02
+### Simple Complaints Workflow
+- Complaints and reports in the control page are now direct and simple: review the complaint, write the admin reply, and submit to send the reply in an in-app notification to the complainant and close the complaint.
+- Removed embedded settlement procedures and forced actions from the complaint and report screens.
+- All disciplinary and financial actions (warnings, balance additions/deductions, fee freezes) remain accessible directly within the lawyer and client profile pages, allowing the admin to apply custom actions manually from the accounts as needed.
+- Closing a money complaint unfreezes the order payout if no other open money complaints remain on that order.
+
 ## [Phase 2.87] - 2026-11-02
 ### Cleanup and Documentation
 - Removed admin routes nothing uses anymore: the old account approval list and decision, and the old complaint and report decisions. The settlement and close routes replace them.

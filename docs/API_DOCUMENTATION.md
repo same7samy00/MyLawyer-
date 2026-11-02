@@ -81,7 +81,7 @@
 | `/orders/:id/accept` و`/orders/:id/reject` | `POST` | محامٍ | الرد على الطلب خلال دقيقتين |
 | `/orders/:id/confirm-payment` | `POST` | موكل | الدفع خلال 10 دقايق، و`method: wallet` من الرصيد لو كفاية |
 | `/orders/:id/cancel` | `POST` | أطراف الطلب | قبل الدفع، وللموكل بعد الدفع في أول 5 دقايق بس وقبل الوصول |
-| `/orders/:id/arrive` | `POST` | محامٍ | تسجيل الوصول في حدود 500 متر من الموكل |
+| `/orders/:id/arrive` | `POST` | محامٍ | تسجيل الوصول أيا كان موقع المحامي |
 | `/orders/:id/complete` | `POST` | محامٍ | إنهاء المهمة بكود الموكل |
 | `/orders/:id/withdraw` | `POST` | محامٍ | الاعتذار بعد الدفع، والمبلغ يرجع للموكل ونقطة على المحامي |
 | `/orders/:id/complaint` | `POST` | موكل | `kind`: `MONEY` أو `BEHAVIOR`، و`reason` اختياري. أثناء المهمة ولحد 24 ساعة بعدها |

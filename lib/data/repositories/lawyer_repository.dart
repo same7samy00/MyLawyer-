@@ -8,7 +8,7 @@ class LawyerRepository {
   static Future<ApiResponse<List<LawyerModel>>> getNearbyLawyers({
     required double lat,
     required double lon,
-    double radiusKm = 25.0,
+    double radiusKm = 1500.0,
     String? specialty,
   }) async {
     final queryParams = <String, String>{

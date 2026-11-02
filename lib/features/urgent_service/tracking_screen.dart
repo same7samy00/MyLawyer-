@@ -63,7 +63,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
 
   static const double _cardWidth = 195.0;
   static const double _cardHeight = 53.0;
-  static const double _orderRadiusKm = 25.0;
   static const double _allEgyptRadiusKm = 1500.0;
   String? _lawyersError;
 
@@ -325,7 +324,11 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
       _isSearchingAgain = true;
     });
 
-    final res = await LawyerRepository.getNearbyLawyers(lat: _searchCenter.latitude, lon: _searchCenter.longitude);
+    final res = await LawyerRepository.getNearbyLawyers(
+      lat: _searchCenter.latitude,
+      lon: _searchCenter.longitude,
+      radiusKm: _allEgyptRadiusKm,
+    );
     if (!mounted) return;
 
     setState(() {
@@ -348,12 +351,12 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
     });
 
     if (lawyers.isEmpty) {
-      _showMessage('مفيش محامين متاحين حواليك دلوقتي');
+      _showMessage('مفيش محامين متاحين دلوقتي');
       return;
     }
 
     if (lawyers.length == 1 && lawyers.first.id == currentId) {
-      _showMessage('مفيش محامي تاني متاح دلوقتي، ده أقرب محامي ليك');
+      _showMessage('مفيش محامي تاني متاح دلوقتي، ده المحامي الوحيد المتاح');
       return;
     }
 
@@ -631,13 +634,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   Future<void> _startOrderFlow() async {
     final selected = _selectedLawyer;
     if (selected == null) return;
-
-    // الخريطة بتعرض محامين أبعد، لكن الخدمة العاجلة في نطاق الموكل
-    final distanceKm = const Distance().as(LengthUnit.Kilometer, _searchCenter, selected.position);
-    if (distanceKm > _orderRadiusKm) {
-      _showMessage('المحامي ده بعيد عن موقعك، اختار محامي قريب منك');
-      return;
-    }
 
     _triedLawyerIds.clear();
     setState(() {
