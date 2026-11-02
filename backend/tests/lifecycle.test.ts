@@ -725,12 +725,28 @@ describe('الدعم الفني', () => {
     assert.equal((await get(lawyerToken)).statusCode, 404);
   });
 
+  it('ما يبعتش حاجة تانية لحد ما الإدارة ترد: لا رد في نفس التذكرة ولا تذكرة جديدة', async () => {
+    const first = (await openTicket(clientToken, null, 'OTHER')).body.data;
+    assert.equal(first.awaitingReply, true);
+    assert.equal((await call('POST', `/support/tickets/${first.id}/messages`, clientToken, { body: 'نسيت أقول' })).status, 409);
+    assert.equal((await openTicket(clientToken, null, 'OTHER')).status, 409);
+
+    await call('POST', `/admin/support/${first.id}/reply`, adminToken, { body: 'تحت أمرك' });
+    assert.equal((await call('GET', '/support/tickets', clientToken)).body.data[0].awaitingReply, false);
+    assert.equal((await call('POST', `/support/tickets/${first.id}/messages`, clientToken, { body: 'تمام' })).status, 201);
+    assert.equal((await call('POST', `/support/tickets/${first.id}/messages`, clientToken, { body: 'تاني' })).status, 409);
+  });
+
   it('أقصى 3 تذاكر مفتوحة، وتذكرة مفتوحة واحدة على نفس الطلب', async () => {
+    const reply = async (res: any) => {
+      await call('POST', `/admin/support/${res.body.data.id}/reply`, adminToken, { body: 'وصلنا' });
+      return res;
+    };
     const order = await createCompletedOrder();
-    assert.equal((await openTicket(clientToken, order.id, 'ORDER')).status, 201);
+    assert.equal((await reply(await openTicket(clientToken, order.id, 'ORDER'))).status, 201);
     assert.equal((await openTicket(clientToken, order.id, 'ORDER')).status, 409);
-    assert.equal((await openTicket(clientToken, null, 'OTHER')).status, 201);
-    assert.equal((await openTicket(clientToken, null, 'OTHER')).status, 201);
+    assert.equal((await reply(await openTicket(clientToken, null, 'OTHER'))).status, 201);
+    assert.equal((await reply(await openTicket(clientToken, null, 'OTHER'))).status, 201);
     assert.equal((await openTicket(clientToken, null, 'OTHER')).status, 409);
   });
 

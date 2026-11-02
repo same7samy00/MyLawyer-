@@ -10,6 +10,7 @@ class SupportTicket {
   final String? orderNumber;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final bool awaitingReply;
   final List<TicketMessage> messages;
 
   const SupportTicket({
@@ -21,6 +22,7 @@ class SupportTicket {
     this.orderNumber,
     this.createdAt,
     this.updatedAt,
+    this.awaitingReply = false,
     this.messages = const [],
   });
 
@@ -52,6 +54,7 @@ class SupportTicket {
       orderNumber: json['orderNumber']?.toString(),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '')?.toLocal(),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '')?.toLocal(),
+      awaitingReply: json['awaitingReply'] == true,
       messages: (json['messages'] as List<dynamic>? ?? const [])
           .whereType<Map<String, dynamic>>()
           .map(TicketMessage.fromJson)

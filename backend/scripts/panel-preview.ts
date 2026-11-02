@@ -85,6 +85,8 @@ await call(`/orders/${done.id}/confirm-payment`, c1);
 await call(`/orders/${done.id}/arrive`, l1, { latitude: 30.0501, longitude: 31.25 });
 await call(`/orders/${done.id}/complete`, l1, {});
 await call(`/orders/${done.id}/review`, c1, { rating: 5, comment: 'محامي محترم ووصل بسرعة' });
+// A ticket on the finished order, so its fees wait for a money decision
+await call('/support/tickets', c1, { category: 'ORDER', orderId: done.id, title: 'الورق ناقص', body: 'المحامي ما سلمنيش صورة المحضر بعد المهمة' });
 
 // Active with an open money ticket
 const active = await order(c2, lawyer1, 'محضر في قسم الشرطة');

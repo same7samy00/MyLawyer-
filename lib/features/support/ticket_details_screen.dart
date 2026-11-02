@@ -116,6 +116,13 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                         child: Text('التذكرة دي اتقفلت، لو عندك مشكلة جديدة افتح تذكرة جديدة',
                             textAlign: TextAlign.center, style: supportMutedStyle),
                       )
+                    // After each message the sender waits for the admin before writing again
+                    else if (ticket.awaitingReply)
+                      const AppCard(
+                        padding: EdgeInsets.all(14),
+                        child: Text('رسالتك وصلت، استنى رد الإدارة وبعدها تقدر ترد',
+                            textAlign: TextAlign.center, style: supportMutedStyle),
+                      )
                     else ...[
                       TextField(
                         controller: _reply,

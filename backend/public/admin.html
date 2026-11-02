@@ -6674,6 +6674,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     LAWYER: ['صرف الأتعاب كاملة للمحامي', 'btn-outline'],
     SPLIT: ['تقسيم المبلغ مناصفة', 'btn-outline'],
   };
+  const outcomeLabel = (outcome) => (OUTCOMES[outcome] || [outcome || '-'])[0];
 
   /// The fixed decision for an order, built from the arrival and the completion code
   async function settlementSection(orderId, returnAfter) {
@@ -6692,7 +6693,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['قيمة الطلب', data.price + ' ج.م'],
     ]);
     const decision = el('div', undefined, 'decision-box');
-    decision.append(el('strong', 'القرار المقترح: ' + OUTCOMES[data.outcome][0]), el('p', data.reason));
+    decision.append(el('strong', 'القرار المقترح: ' + outcomeLabel(data.outcome)), el('p', data.reason));
 
     const parts = [
       guide('القاعدة الثابتة: الالتقاء هو الفيصل. لا يُسجَّل وصول المحامي إلا إذا كان على بعد 50 مترًا من الموكل، ولا يظهر له زر إنهاء المهمة إلا بعد ذلك.',
@@ -6703,7 +6704,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
       const others = Object.entries(OUTCOMES).filter(([key]) => key !== data.outcome).map(([key, [label, style]]) =>
         button(label, style, confirmed('هذا القرار يخالف القرار المقترح. هل تريد تنفيذ «' + label + '»؟', () => settle(key)), 'تم تنفيذ القرار'));
       parts.push(actionRow(note,
-        button('تنفيذ القرار المقترح', 'btn-primary', confirmed('سيُنفذ القرار: ' + OUTCOMES[data.outcome][0] + '. هل تريد المتابعة؟', () => settle(data.outcome)), 'تم تنفيذ القرار', 'check')),
+        button('تنفيذ القرار المقترح', 'btn-primary', confirmed('سيُنفذ القرار: ' + outcomeLabel(data.outcome) + '. هل تريد المتابعة؟', () => settle(data.outcome)), 'تم تنفيذ القرار', 'check')),
         el('p', 'قرارات أخرى عند الحاجة، بعد التواصل مع الطرفين:', 'muted'), actionRow(...others));
     } else {
       parts.push(el('p', 'تمت تسوية هذا الطلب، ولا يمكن تنفيذ قرار مالي جديد عليه.', 'muted'));
@@ -6850,9 +6851,9 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const parts = [guide('اقفل التذكرة بعد حل المشكلة فقط. بعد القفل لا يستطيع صاحبها الرد عليها، ويفتح تذكرة جديدة إن احتاج.'), closing];
     if (data.needsDecision) {
       const suggestion = el('div', undefined, 'decision-box');
-      suggestion.append(el('strong', 'أتعاب الطلب متوقفة بسبب هذه التذكرة. القرار المقترح: ' + OUTCOMES[data.suggestion.outcome][0]), el('p', data.suggestion.reason));
+      suggestion.append(el('strong', 'أتعاب الطلب متوقفة بسبب هذه التذكرة. القرار المقترح: ' + outcomeLabel(data.suggestion?.outcome)), el('p', data.suggestion.reason));
       parts.push(suggestion, actionRow(...Object.entries(OUTCOMES).map(([key, [label, style]]) =>
-        button('قفل مع: ' + label, key === data.suggestion.outcome ? 'btn-primary' : style,
+        button('قفل مع: ' + label, key === data.suggestion?.outcome ? 'btn-primary' : style,
           confirmed('سيُنفذ القرار «' + label + '» وتُقفل التذكرة. هل تريد المتابعة؟', () => close(key)), 'تم تنفيذ القرار وقفل التذكرة'))));
     } else {
       parts.push(actionRow(button('قفل التذكرة', 'btn-outline-danger', confirmed('هل تريد قفل التذكرة؟ لن يستطيع صاحبها الرد بعد ذلك.', () => close()), 'تم قفل التذكرة', 'check')));
@@ -7360,6 +7361,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     $('login').hidden = true;
     $('app').hidden = false;
     renderNav();
+    if (!INNER[current.page] && !PAGES[current.page]) current = { page: 'overview' };
     $('page-title').textContent = INNER_TITLES[current.page] || PAGES[current.page][0];
     $('page-subtitle').textContent = SUBTITLES[current.page] || '';
     $('back-button').hidden = trail.length === 0;
@@ -7372,6 +7374,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
       $('content').replaceChildren(page);
       $('content').scrollTop = 0;
     } catch (err) {
+      console.error(err);
       if (session) toast(err.message, true);
     }
   }

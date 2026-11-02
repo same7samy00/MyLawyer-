@@ -30,6 +30,8 @@ const listItem = (row: any) => ({
   orderId: row.order_id,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
+  // The sender waits for the admin after every message, so nothing more goes out until a reply
+  awaitingReply: row.status !== 'CLOSED' && row.last_author !== 'ADMIN',
 });
 
 /// Technical support for clients and lawyers: open a ticket, read the replies, and answer until an admin closes it
@@ -56,7 +58,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
   fastify.get('/tickets', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = request.user as AuthenticatedUser;
     const res = await query(
-      `SELECT t.*, o.order_number FROM support_tickets t LEFT JOIN service_orders o ON o.id = t.order_id
+      `SELECT t.*, o.order_number, (SELECT m.author FROM ticket_messages m WHERE m.ticket_id = t.id AND m.author <> 'NOTE' ORDER BY m.created_at DESC LIMIT 1) AS last_author FROM support_tickets t LEFT JOIN service_orders o ON o.id = t.order_id
        WHERE t.user_id = $1 ORDER BY t.updated_at DESC LIMIT 100`,
       [userId]
     );
@@ -79,6 +81,10 @@ export async function supportRoutes(fastify: FastifyInstance) {
       return withTransaction(async (db) => {
         // One sender at a time, so the open tickets count stays right
         await db.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
+        const waiting = await db.query(`SELECT reference FROM support_tickets WHERE user_id = $1 AND status = 'UNDER_REVIEW' LIMIT 1`, [userId]);
+        if (waiting.rows.length > 0) {
+          throw new TicketError(409, `تذكرتك ${waiting.rows[0].reference} لسه تحت المراجعة، استنى رد الإدارة الأول`);
+        }
         const open = await db.query(`SELECT COUNT(*)::int AS count FROM support_tickets WHERE user_id = $1 AND status <> 'CLOSED'`, [userId]);
         if (open.rows[0].count >= MAX_OPEN_TICKETS) {
           throw new TicketError(409, `عندك ${MAX_OPEN_TICKETS} تذاكر مفتوحة، استنى لما واحدة منهم تتقفل`);
@@ -113,7 +119,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
 
         return {
           status: 201,
-          data: listItem({ ...row, order_number: order?.order_number ?? null }),
+          data: listItem({ ...row, order_number: order?.order_number ?? null, last_author: 'USER' }),
           message: `استلمنا تذكرتك رقم ${row.reference}، والإدارة هترد عليك`,
         };
       });
@@ -125,7 +131,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
     const { userId } = request.user as AuthenticatedUser;
     const { id } = request.params as { id: string };
     const res = await query(
-      `SELECT t.*, o.order_number FROM support_tickets t LEFT JOIN service_orders o ON o.id = t.order_id
+      `SELECT t.*, o.order_number, (SELECT m.author FROM ticket_messages m WHERE m.ticket_id = t.id AND m.author <> 'NOTE' ORDER BY m.created_at DESC LIMIT 1) AS last_author FROM support_tickets t LEFT JOIN service_orders o ON o.id = t.order_id
        WHERE (t.id::text = $1 OR t.reference = $1) AND t.user_id = $2`,
       [id, userId]
     );
@@ -148,6 +154,11 @@ export async function supportRoutes(fastify: FastifyInstance) {
         const ticket = res.rows[0];
         if (!ticket) throw new TicketError(404, 'التذكرة غير موجودة');
         if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة دي اتقفلت، لو عندك مشكلة جديدة افتح تذكرة جديدة');
+        const last = await db.query(
+          `SELECT author FROM ticket_messages WHERE ticket_id = $1 AND author <> 'NOTE' ORDER BY created_at DESC LIMIT 1`,
+          [ticket.id]
+        );
+        if (last.rows[0]?.author !== 'ADMIN') throw new TicketError(409, 'استنى رد الإدارة الأول، وبعدها تقدر ترد');
         await addMessage(db, ticket.id, 'USER', userId, fields.body ?? '', images);
         return { status: 201, data: { messages: await ticketMessages(db, ticket.id, false) }, message: 'تم إرسال ردك' };
       });

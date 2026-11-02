@@ -65,7 +65,7 @@
 ## 5. الفحوص الحالية
 - `flutter analyze`: بدون مشاكل.
 - `flutter test`: 121 نجحوا و3 متخطين.
-- `cd backend && npm test`: 71 نجحوا.
+- `cd backend && npm test`: 72 نجحوا.
 - `npx tsc --noEmit`: بدون أخطاء.
 
 ## 6. وضع الإنتاج

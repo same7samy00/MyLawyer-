@@ -63,11 +63,16 @@ class _SupportScreenState extends State<SupportScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    AppButton.primary(
-                      text: 'تذكرة جديدة',
-                      icon: Icons.add_rounded,
-                      onPressed: () => _open(const NewTicketScreen()),
-                    ),
+                    // A ticket under review waits for the admin before anything new goes out
+                    if (tickets.any((ticket) => ticket.isUnderReview))
+                      const Text('عندك تذكرة تحت المراجعة، تقدر تفتح تذكرة جديدة بعد رد الإدارة',
+                          textAlign: TextAlign.center, style: supportMutedStyle)
+                    else
+                      AppButton.primary(
+                        text: 'تذكرة جديدة',
+                        icon: Icons.add_rounded,
+                        onPressed: () => _open(const NewTicketScreen()),
+                      ),
                     const SizedBox(height: 16),
                     if (tickets.isEmpty)
                       const Padding(

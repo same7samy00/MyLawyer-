@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 3.00] - 2026-11-02
+### Wait for the Admin Reply
+- After sending, the client or lawyer cannot write again in the ticket until the admin replies, and cannot open a new ticket while one is under review. The app hides the reply box and the new ticket button with a short note.
+- The control page logs any page error to the browser console, and its decision labels and page titles no longer break on an unexpected value.
+
 ## [Phase 2.99] - 2026-11-02
 ### Notification Fixes
 - Rewrote the notifications that still talked about the completion code, and fixed the saved ones (migration `016`). Removed the unused client code warning.
