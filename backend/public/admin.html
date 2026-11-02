@@ -14,7 +14,8 @@
     --muted: #64748B; --border: #E2E8F0; --bg: #F8FAFC; --danger: #DC2626; --success: #16A34A;
     --success-light: rgba(22, 163, 74, .12); --danger-light: rgba(220, 38, 38, .1);
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; font-family: "AppDigits", "FlatJooza", sans-serif; }
+  ::placeholder { font-family: "AppDigits", "FlatJooza", sans-serif; }
   body { margin: 0; background: var(--bg); color: var(--text); font-family: "AppDigits", "FlatJooza", sans-serif; font-size: 14px; }
   h1 { font-size: 20px; margin: 0; color: var(--dark); }
   h2 { font-size: 15px; margin: 18px 0 10px; color: var(--dark); }
@@ -80,7 +81,14 @@
   .kv div { padding: 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); overflow-wrap: anywhere; }
   .kv span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
   .kv b { color: var(--dark); font-weight: 400; }
-  .card > h2:first-child { margin-top: 0; }
+  .card > h2 { margin: 0 0 12px; padding-bottom: 10px; border-bottom: 1px dashed var(--border); }
+  .actions, .inner { margin-top: 12px; padding: 12px; border: 1px dashed var(--border); border-radius: 7px; background: var(--bg); }
+  .inner:first-of-type { margin-top: 0; }
+  .actions h3 { margin: 0; font-size: 13px; font-weight: 400; color: var(--muted); }
+  .stat { background: var(--bg) !important; }
+  .card .grid { margin-bottom: 0; }
+  #dialog { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15, 23, 42, .5); }
+  #dialog .box { width: 100%; max-width: 340px; padding: 20px; border-radius: 7px; background: #fff; text-align: center; }
   .hero { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 22px 16px; }
   .hero h1 { margin: 4px 0 0; }
   .hero .avatar { width: 96px; height: 96px; display: flex; align-items: center; justify-content: center; color: var(--primary); }
@@ -126,12 +134,14 @@
   <main id="content"></main>
 </div>
 <div id="toasts"></div>
+<div id="dialog" hidden></div>
 
 <script>
   const API = '/api/v1';
   const STORE_KEY = 'my-lawyer-admin';
   let session = readSession();
   let refreshing = null;
+  const CANCELLED = Symbol('cancelled');
   const $ = (id) => document.getElementById(id);
 
   const ICONS = {
@@ -184,7 +194,7 @@
   }
 
   function date(value) {
-    return value ? new Date(value).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+    return value ? new Date(value).toLocaleString('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
   }
 
   async function refreshSession() {
@@ -231,6 +241,7 @@
       node.disabled = true;
       try {
         const res = await onClick();
+        if (res === CANCELLED) return;
         toast(success || res?.message || 'تم الحفظ');
         await render();
       } catch (err) {
@@ -242,9 +253,19 @@
     return node;
   }
 
+  function askConfirm(message) {
+    return new Promise((resolve) => {
+      const close = (answer) => { $('dialog').hidden = true; resolve(answer); };
+      const box = el('div', undefined, 'box');
+      box.append(el('p', message), actionRow(link('تأكيد', () => close(true), 'danger'), link('تراجع', () => close(false))));
+      $('dialog').replaceChildren(box);
+      $('dialog').hidden = false;
+    });
+  }
+
   function confirmed(message, action) {
     return async () => {
-      if (!window.confirm(message)) throw new Error('تم الإلغاء');
+      if (!await askConfirm(message)) return CANCELLED;
       return action();
     };
   }
@@ -255,7 +276,7 @@
   }
 
   function table(headers, rows, onClick) {
-    const wrap = el('div', undefined, 'table-wrap card');
+    const wrap = el('div', undefined, 'table-wrap');
     const node = el('table');
     const head = el('tr');
     headers.forEach((title) => head.append(el('th', title)));
@@ -265,7 +286,7 @@
       const line = el('tr', undefined, onClick ? 'click' : '');
       row.cells.forEach((cell) => {
         const td = el('td');
-        td.append(cell instanceof Node ? cell : document.createTextNode(cell ?? '—'));
+        td.append(cell instanceof Node ? cell : document.createTextNode(cell ?? '-'));
         line.append(td);
       });
       if (onClick) line.addEventListener('click', () => onClick(row.item));
@@ -275,12 +296,46 @@
     return wrap;
   }
 
+  function section(title, ...nodes) {
+    const card = el('div', undefined, 'card');
+    card.append(el('h2', title), ...nodes);
+    return card;
+  }
+
+  function actionRow(...nodes) {
+    const row = el('div', undefined, 'row');
+    row.append(...nodes);
+    return row;
+  }
+
+  function actions(...nodes) {
+    const block = el('div', undefined, 'actions');
+    block.append(el('h3', 'الإجراءات'), actionRow(...nodes));
+    return block;
+  }
+
+  function link(text, onClick, className) {
+    const node = el('button', text, 'btn ' + (className || ''));
+    node.addEventListener('click', onClick);
+    return node;
+  }
+
+  function statGrid(items) {
+    const grid = el('div', undefined, 'grid');
+    items.forEach(([title, value]) => {
+      const stat = el('div', title, 'stat');
+      stat.append(el('b', value));
+      grid.append(stat);
+    });
+    return grid;
+  }
+
   function details(fields) {
     const kv = el('div', undefined, 'kv');
     fields.forEach(([label, value]) => {
       const item = el('div');
       const text = el('b');
-      text.append(value instanceof Node ? value : document.createTextNode(value ?? '—'));
+      text.append(value instanceof Node ? value : document.createTextNode(value ?? '-'));
       item.append(el('span', label), text);
       kv.append(item);
     });
@@ -313,119 +368,105 @@
   async function overviewPage(box) {
     const { data } = await api('GET', '/admin/overview');
     box.append(pageHead('نظرة عامة'));
-    const grid = el('div', undefined, 'grid');
-    [
+    box.append(section('الحسابات', statGrid([
       ['الموكلون', data.clients], ['المحامون', data.lawyers], ['محامون متاحون', data.available_lawyers],
-      ['طلبات انضمام', data.pending_lawyers], ['طلبات مفتوحة', data.open_orders], ['طلبات مكتملة', data.completed_orders],
-      ['شكاوى مفتوحة', data.open_complaints], ['اعتراضات مفتوحة', data.open_appeals],
+    ])));
+    box.append(section('الطلبات', statGrid([
+      ['طلبات مفتوحة', data.open_orders], ['طلبات مكتملة', data.completed_orders],
       ['قيمة الطلبات المكتملة', Number(data.completed_value) + ' ج.م'],
-    ].forEach(([title, value]) => {
-      const stat = el('div', title, 'stat');
-      stat.append(el('b', value));
-      grid.append(stat);
-    });
-    box.append(grid);
+    ])));
+    box.append(section('محتاج متابعة', statGrid([
+      ['طلبات انضمام', data.pending_lawyers], ['شكاوى مفتوحة', data.open_complaints], ['اعتراضات مفتوحة', data.open_appeals],
+    ])));
   }
 
   async function ticketsPage(box) {
     const { data } = await api('GET', '/admin/tickets');
     box.append(pageHead('التذاكر'));
-    if (data.length === 0) box.append(el('p', 'مفيش تذاكر مفتوحة', 'muted'));
+    if (data.length === 0) box.append(section('التذاكر المفتوحة', el('p', 'مفيش تذاكر مفتوحة', 'muted')));
 
     for (const item of data) {
-      const card = el('div', undefined, 'card');
-      card.append(el('strong', item.label + ' • ' + item.order_number + (item.isOverdue ? ' • متأخرة' : '')));
-      card.append(el('p', item.details || ''));
-
-      const row = el('div', undefined, 'row');
+      const buttons = [];
       if (item.type === 'locked') {
-        row.append(button('فتح الكود', 'primary', () => api('POST', '/admin/orders/' + item.id + '/unlock-code', {}), 'تم فتح الكود'));
+        buttons.push(button('فتح الكود', 'primary', () => api('POST', '/admin/orders/' + item.id + '/unlock-code', {}), 'تم فتح الكود'));
       } else if (item.type === 'report') {
-        row.append(button('إغلاق البلاغ', 'primary', () => api('POST', '/admin/reports/' + item.id + '/resolve', {}), 'تم إغلاق البلاغ'));
+        buttons.push(button('إغلاق البلاغ', 'primary', () => api('POST', '/admin/reports/' + item.id + '/resolve', {}), 'تم إغلاق البلاغ'));
       } else {
         const target = { complaint: 'complaints', appeal: 'appeals', review: 'reviews' }[item.type];
-        const go = el('button', 'فتح', 'btn primary');
-        go.addEventListener('click', () => open(target));
-        row.append(go);
+        buttons.push(link('فتح', () => open(target), 'primary'));
       }
-      card.append(row);
-      box.append(card);
+      box.append(section(item.label + ' - ' + item.order_number + (item.isOverdue ? ' - متأخرة' : ''),
+        el('p', item.details || ''), actions(...buttons)));
     }
   }
 
   async function complaintsPage(box) {
     const { data } = await api('GET', '/admin/complaints');
     box.append(pageHead('الشكاوى'));
-    if (data.length === 0) box.append(el('p', 'مفيش شكاوى مفتوحة', 'muted'));
+    if (data.length === 0) box.append(section('الشكاوى المفتوحة', el('p', 'مفيش شكاوى مفتوحة', 'muted')));
 
     for (const item of data) {
-      const card = el('div', undefined, 'card');
-      const title = el('a', item.order_number + ' • ' + item.service_title);
-      title.addEventListener('click', () => open('order', item.order_id));
-      card.append(title, el('p', item.reason));
-      card.append(el('p', 'الموكل ' + item.client_phone + ' (' + item.client_complaints + ' شكوى) • ' +
-        item.lawyer_name + ' ' + item.lawyer_phone + ' (' + item.lawyer_complaints + ' شكوى)', 'muted'));
-      card.append(el('p', 'المبلغ ' + item.price + ' ج.م' + (item.filed_after_hold ? ' • بعد انتهاء 24 ساعة' : ''), 'muted'));
-
       const note = el('input');
       note.placeholder = 'ملاحظة القرار';
-      const row = el('div', undefined, 'row');
-      row.append(note);
-
       const resolve = (resolution, refundAmount) =>
         api('POST', '/admin/complaints/' + item.id + '/resolve', { resolution, refundAmount, note: note.value });
 
+      const buttons = [note];
       if (!item.filed_after_hold) {
         const amount = el('input');
         amount.type = 'number';
         amount.className = 'small';
         amount.placeholder = 'مبلغ جزئي';
-        row.append(button('رد كامل', 'danger', confirmed('رد المبلغ كامل للموكل؟', () => resolve('REFUND_FULL')), 'تم رد المبلغ'));
-        row.append(amount, button('رد جزئي', '', () => resolve('REFUND_PARTIAL', Number(amount.value)), 'تم الرد الجزئي'));
+        buttons.push(button('رد كامل', 'danger', confirmed('رد المبلغ كامل للموكل؟', () => resolve('REFUND_FULL')), 'تم رد المبلغ'));
+        buttons.push(amount, button('رد جزئي', '', () => resolve('REFUND_PARTIAL', Number(amount.value)), 'تم الرد الجزئي'));
       }
-      row.append(button(item.filed_after_hold ? 'إغلاق الشكوى' : 'تحويل للمحامي', 'primary', () => resolve('RELEASE'), 'تم تسجيل القرار'));
-      card.append(row);
-      box.append(card);
+      buttons.push(button(item.filed_after_hold ? 'إغلاق الشكوى' : 'تحويل للمحامي', 'primary', () => resolve('RELEASE'), 'تم تسجيل القرار'));
+      buttons.push(link('تفاصيل الطلب', () => open('order', item.order_id)));
+
+      box.append(section('طلب ' + item.order_number,
+        details([
+          ['الشكوى', item.reason], ['الخدمة', item.service_title], ['المبلغ', item.price + ' ج.م'],
+          ['الموكل', item.client_phone + ' (' + item.client_complaints + ' شكوى)'],
+          ['المحامي', item.lawyer_name + ' ' + item.lawyer_phone + ' (' + item.lawyer_complaints + ' شكوى)'],
+          ['التوقيت', item.filed_after_hold ? 'بعد انتهاء 24 ساعة' : 'خلال 24 ساعة'],
+        ]),
+        actions(...buttons)));
     }
   }
 
   async function appealsPage(box) {
     const { data } = await api('GET', '/admin/appeals');
     box.append(pageHead('الاعتراضات'));
-    if (data.length === 0) box.append(el('p', 'مفيش اعتراضات مفتوحة', 'muted'));
+    if (data.length === 0) box.append(section('الاعتراضات المفتوحة', el('p', 'مفيش اعتراضات مفتوحة', 'muted')));
 
     for (const item of data) {
-      const card = el('div', undefined, 'card');
-      card.append(el('strong', item.order_number + ' • ' + item.lawyer_name));
-      card.append(el('p', item.reason), el('p', 'المبلغ ' + item.price + ' ج.م', 'muted'));
       const resolve = (approve) => api('POST', '/admin/appeals/' + item.id + '/resolve', { approve });
-      const row = el('div', undefined, 'row');
-      row.append(button('قبول', 'primary', () => resolve(true), 'تم قبول الاعتراض'));
-      row.append(button('رفض', 'danger', () => resolve(false), 'تم رفض الاعتراض'));
-      card.append(row);
-      box.append(card);
+      box.append(section('طلب ' + item.order_number,
+        details([['المحامي', item.lawyer_name], ['الاعتراض', item.reason], ['المبلغ', item.price + ' ج.م']]),
+        actions(
+          button('قبول', 'primary', () => resolve(true), 'تم قبول الاعتراض'),
+          button('رفض', 'danger', () => resolve(false), 'تم رفض الاعتراض'))));
     }
   }
 
   async function applicationsPage(box) {
     const { data } = await api('GET', '/admin/urgent-applications');
     box.append(pageHead('طلبات المحامين'));
-    if (data.length === 0) box.append(el('p', 'مفيش طلبات انضمام', 'muted'));
+    if (data.length === 0) box.append(section('طلبات الانضمام', el('p', 'مفيش طلبات انضمام', 'muted')));
 
     for (const item of data) {
-      const card = el('div', undefined, 'card');
-      const name = el('a', item.full_name + ' • قيد ' + (item.syndicate_number || 'غير مسجل'));
-      name.addEventListener('click', () => open('user', item.user_id));
-      card.append(name, el('p', (item.specialty || 'بدون تخصص') + ' • ' + item.phone));
-      if (item.bio) card.append(el('p', item.bio, 'muted'));
-
       const reason = el('input');
       reason.placeholder = 'سبب الرفض';
       const decide = (approve) => api('POST', '/admin/urgent-applications/' + item.user_id + '/decision', { approve, reason: reason.value });
-      const row = el('div', undefined, 'row');
-      row.append(button('موافقة', 'primary', () => decide(true), 'تمت الموافقة'), reason, button('رفض', 'danger', () => decide(false), 'تم الرفض'));
-      card.append(row);
-      box.append(card);
+      box.append(section(item.full_name,
+        details([
+          ['رقم القيد', item.syndicate_number || 'غير مسجل'], ['التخصص', item.specialty || 'بدون تخصص'],
+          ['الهاتف', item.phone], ['النبذة', item.bio],
+        ]),
+        actions(
+          button('موافقة', 'primary', () => decide(true), 'تمت الموافقة'), reason,
+          button('رفض', 'danger', () => decide(false), 'تم الرفض'),
+          link('بروفايل المحامي', () => open('user', item.user_id)))));
     }
   }
 
@@ -433,7 +474,8 @@
     return async (box) => {
       const q = current.search || '';
       const { data } = await api('GET', '/admin/users?role=' + role + '&q=' + encodeURIComponent(q));
-      box.append(pageHead(title, searchBox(q, 'ابحث بالاسم أو الهاتف أو الإيميل', (value) => { current.search = value; render(); })));
+      box.append(pageHead(title));
+      box.append(section('البحث', searchBox(q, 'ابحث بالاسم أو الهاتف أو الإيميل', (value) => { current.search = value; render(); })));
 
       const headers = role === 'lawyer'
         ? ['الاسم', 'الهاتف', 'رقم القيد', 'التخصص', 'التقييم', 'الخدمة', 'الحالة', 'الطلبات']
@@ -441,10 +483,12 @@
       const rows = data.map((item) => ({
         item,
         cells: role === 'lawyer'
-          ? [item.full_name, item.phone, item.syndicate_number, item.specialty, item.rating, item.urgent_status === 'APPROVED' ? 'معتمد' : (item.urgent_status === 'PENDING' ? 'بانتظار المراجعة' : 'غير معتمد'), accountTag(item.status), item.orders_count]
+          ? [item.full_name, item.phone, item.syndicate_number, item.specialty, item.rating,
+              item.urgent_status === 'APPROVED' ? 'معتمد' : (item.urgent_status === 'PENDING' ? 'بانتظار المراجعة' : 'غير معتمد'),
+              accountTag(item.status), item.orders_count]
           : [item.full_name, item.phone, item.email, item.warnings_count, accountTag(item.status), item.orders_count],
       }));
-      box.append(table(headers, rows, (item) => open('user', item.id)));
+      box.append(section('الحسابات المسجلة', table(headers, rows, (item) => open('user', item.id))));
     };
   }
 
@@ -457,9 +501,8 @@
   async function userPage(box) {
     const { data } = await api('GET', '/admin/users/' + current.param);
     const { user } = data;
-
-    const suspend = (value) => api('POST', '/admin/users/' + user.id + '/status', { suspend: value });
     const isLawyer = user.role === 'lawyer';
+    const suspend = (value) => api('POST', '/admin/users/' + user.id + '/status', { suspend: value });
 
     const hero = el('div', undefined, 'card hero');
     if (user.photo) {
@@ -478,52 +521,45 @@
     tags.append(el('span', isLawyer ? 'محامٍ' : 'موكل', 'tag'), accountTag(user.status));
     if (isLawyer) tags.append(el('span', user.urgent_status === 'APPROVED' ? 'معتمد' : 'غير معتمد', 'tag ' + (user.urgent_status === 'APPROVED' ? 'good' : 'warn')));
     hero.append(tags);
-    if (isLawyer && user.bio) hero.append(el('p', user.bio, 'muted'));
-    hero.append(user.status === 'suspended'
-      ? button('تفعيل الحساب', 'primary', () => suspend(false))
-      : button('إيقاف الحساب', 'danger', confirmed('إيقاف هذا الحساب؟', () => suspend(true))));
     box.append(hero);
 
-    const grid = el('div', undefined, 'grid');
+    box.append(section('الإجراءات', actionRow(user.status === 'suspended'
+      ? button('تفعيل الحساب', 'primary', () => suspend(false))
+      : button('إيقاف الحساب', 'danger', confirmed('إيقاف هذا الحساب؟', () => suspend(true))))));
+
     const stats = [['الطلبات', data.orders.length], ['الشكاوى', data.complaints.length], ['الإنذارات', user.warnings_count]];
     if (isLawyer) stats.unshift(['التقييم', Number(user.rating ?? 0).toFixed(1)], ['عدد التقييمات', user.reviews_count]);
-    stats.forEach(([title, value]) => {
-      const stat = el('div', title, 'stat');
-      stat.append(el('b', value));
-      grid.append(stat);
-    });
-    box.append(grid);
+    box.append(section('الإحصائيات', statGrid(stats)));
 
-    const fields = [['الهاتف', user.phone], ['الإيميل', user.email], ['تاريخ التسجيل', date(user.created_at)]];
+    box.append(section('بيانات الحساب', details([
+      ['الهاتف', user.phone], ['الإيميل', user.email], ['تاريخ التسجيل', date(user.created_at)],
+    ])));
     if (isLawyer) {
-      fields.push(['رقم القيد', user.syndicate_number], ['التخصص', user.specialty], ['متاح الآن', user.is_available ? 'نعم' : 'لا'],
-        ['سبب عدم الإتاحة', user.availability_off_reason], ['آخر تحديث للموقع', date(user.last_location_updated_at)]);
+      box.append(section('البيانات المهنية', details([
+        ['رقم القيد', user.syndicate_number], ['التخصص', user.specialty], ['النبذة', user.bio],
+      ])));
+      box.append(section('الإتاحة والموقع', details([
+        ['متاح الآن', user.is_available ? 'نعم' : 'لا'], ['سبب عدم الإتاحة', user.availability_off_reason],
+        ['آخر تحديث للموقع', date(user.last_location_updated_at)],
+      ])));
     }
-    const card = el('div', undefined, 'card');
-    card.append(el('h2', 'بيانات الحساب'), details(fields));
-    box.append(card);
 
-    box.append(el('h2', 'الطلبات'));
-    box.append(table(['رقم الطلب', 'المشكلة', 'المبلغ', 'الحالة', 'التاريخ'], data.orders.map((item) => ({
+    box.append(section('الطلبات', table(['رقم الطلب', 'المشكلة', 'المبلغ', 'الحالة', 'التاريخ'], data.orders.map((item) => ({
       item, cells: [item.order_number, item.problem_type, item.price + ' ج.م', tag(item.status), date(item.created_at)],
-    })), (item) => open('order', item.id)));
+    })), (item) => open('order', item.id))));
 
-    box.append(el('h2', 'التقييمات'));
-    box.append(table(['رقم الطلب', 'التقييم', 'التعليق', 'التاريخ'], data.reviews.map((item) => ({
+    box.append(section('التقييمات', table(['رقم الطلب', 'التقييم', 'التعليق', 'التاريخ'], data.reviews.map((item) => ({
       item, cells: [item.order_number, item.rating + ' / 5', item.comment, date(item.created_at)],
-    })), (item) => open('order', item.order_id)));
+    })), (item) => open('order', item.order_id))));
 
-    box.append(el('h2', 'الشكاوى'));
-    box.append(table(['رقم الطلب', 'الشكوى', 'الحالة', 'القرار', 'التاريخ'], data.complaints.map((item) => ({
+    box.append(section('الشكاوى', table(['رقم الطلب', 'الشكوى', 'الحالة', 'القرار', 'التاريخ'], data.complaints.map((item) => ({
       item, cells: [item.order_number, item.reason, REQUEST[item.status] || item.status, item.resolution, date(item.created_at)],
-    })), (item) => open('order', item.order_id)));
+    })), (item) => open('order', item.order_id))));
 
-    if (user.role === 'lawyer') {
-      box.append(el('h2', 'المخالفات'));
-      box.append(table(['النوع', 'التاريخ'], data.strikes.map((item) => ({ item, cells: [item.kind, date(item.created_at)] }))));
+    if (isLawyer) {
+      box.append(section('المخالفات', table(['النوع', 'التاريخ'], data.strikes.map((item) => ({ item, cells: [item.kind, date(item.created_at)] })))));
     } else {
-      box.append(el('h2', 'حركات الرصيد'));
-      box.append(table(['المبلغ', 'السبب', 'التاريخ'], data.credits.map((item) => ({ item, cells: [item.amount + ' ج.م', item.reason, date(item.created_at)] }))));
+      box.append(section('حركات الرصيد', table(['المبلغ', 'السبب', 'التاريخ'], data.credits.map((item) => ({ item, cells: [item.amount + ' ج.م', item.reason, date(item.created_at)] })))));
     }
   }
 
@@ -532,19 +568,17 @@
     const status = current.status || '';
     const { data } = await api('GET', '/admin/orders?q=' + encodeURIComponent(q) + '&status=' + status);
 
-    const filters = el('div', undefined, 'row');
-    filters.style.marginTop = '0';
     const select = el('select');
     select.append(new Option('كل الحالات', ''));
     Object.entries(STATUS).forEach(([key, [label]]) => select.append(new Option(label, key)));
     select.value = status;
     select.addEventListener('change', () => { current.status = select.value; render(); });
-    filters.append(searchBox(q, 'ابحث برقم الطلب أو الاسم أو الهاتف', (value) => { current.search = value; render(); }), select);
-    box.append(pageHead('الطلبات', filters));
 
-    box.append(table(['رقم الطلب', 'الموكل', 'المحامي', 'المشكلة', 'المبلغ', 'الحالة', 'التاريخ'], data.map((item) => ({
+    box.append(pageHead('الطلبات'));
+    box.append(section('البحث والتصفية', actionRow(searchBox(q, 'ابحث برقم الطلب أو الاسم أو الهاتف', (value) => { current.search = value; render(); }), select)));
+    box.append(section('قائمة الطلبات', table(['رقم الطلب', 'الموكل', 'المحامي', 'المشكلة', 'المبلغ', 'الحالة', 'التاريخ'], data.map((item) => ({
       item, cells: [item.order_number, item.client_name, item.lawyer_name, item.problem_type, item.price + ' ج.م', tag(item.status), date(item.created_at)],
-    })), (item) => open('order', item.id)));
+    })), (item) => open('order', item.id))));
   }
 
   async function orderPage(box) {
@@ -552,44 +586,46 @@
     const { order } = data;
     box.append(pageHead('طلب ' + order.order_number, tag(order.status)));
 
-    const client = el('a', order.client_name + ' • ' + order.client_phone);
-    client.addEventListener('click', () => open('user', order.client_id));
-    const lawyer = el('a', order.lawyer_name + ' • ' + order.lawyer_phone);
-    lawyer.addEventListener('click', () => open('user', order.lawyer_id));
+    const buttons = [
+      link('بروفايل الموكل', () => open('user', order.client_id)),
+      link('بروفايل المحامي', () => open('user', order.lawyer_id)),
+    ];
+    if (data.complaints.some((item) => item.status === 'OPEN')) buttons.push(link('مراجعة الشكوى', () => open('complaints'), 'primary'));
+    box.append(section('الإجراءات', actionRow(...buttons)));
 
-    const card = el('div', undefined, 'card');
-    card.append(el('h2', 'تفاصيل الطلب'), details([
-      ['الموكل', client], ['المحامي', lawyer], ['المشكلة', order.problem_type], ['الوصف', order.problem_description],
+    box.append(section('أطراف الطلب', details([
+      ['الموكل', order.client_name], ['هاتف الموكل', order.client_phone],
+      ['المحامي', order.lawyer_name], ['هاتف المحامي', order.lawyer_phone],
+    ])));
+    box.append(section('تفاصيل المشكلة', details([['المشكلة', order.problem_type], ['الوصف', order.problem_description]])));
+    box.append(section('المبالغ', details([
       ['السعر', order.price + ' ج.م'], ['الضريبة', order.tax_percent + '%'], ['نسبة المنصة', order.commission_percent + '%'],
       ['صافي المحامي', order.lawyer_amount + ' ج.م'], ['حالة الأتعاب', PAYOUT[order.payout_status] || order.payout_status],
+    ])));
+    box.append(section('المواعيد', details([
       ['القبول', date(order.accepted_at)], ['الدفع', date(order.paid_at)], ['الوصول', date(order.arrived_at)], ['الإنهاء', date(order.completed_at)],
-    ]));
-    box.append(card);
+    ])));
 
-    const life = el('div', undefined, 'card');
-    life.append(el('h2', 'دورة حياة الطلب'));
     const list = el('ul', undefined, 'timeline');
     data.logs.forEach((log) => {
       const item = el('li');
       item.append(el('strong', (STATUS[log.new_status] || [log.new_status])[0]), el('div', log.note, 'muted'), el('div', date(log.created_at), 'muted'));
       list.append(item);
     });
-    life.append(data.logs.length ? list : el('p', 'لا توجد أحداث', 'muted'));
-    box.append(life);
+    box.append(section('دورة حياة الطلب', data.logs.length ? list : el('p', 'لا توجد أحداث', 'muted')));
 
     if (data.complaints.length) {
-      box.append(el('h2', 'الشكاوى'));
-      box.append(table(['الشكوى', 'الحالة', 'القرار', 'الرد', 'ملاحظة'], data.complaints.map((item) => ({
+      box.append(section('الشكاوى', table(['الشكوى', 'الحالة', 'القرار', 'الرد', 'ملاحظة'], data.complaints.map((item) => ({
         item, cells: [item.reason, REQUEST[item.status] || item.status, item.resolution, item.refund_amount, item.admin_note],
-      }))));
+      })))));
     }
     if (data.appeals.length) {
-      box.append(el('h2', 'الاعتراضات'));
-      box.append(table(['الاعتراض', 'الحالة', 'ملاحظة'], data.appeals.map((item) => ({ item, cells: [item.reason, REQUEST[item.status] || item.status, item.admin_note] }))));
+      box.append(section('الاعتراضات', table(['الاعتراض', 'الحالة', 'ملاحظة'], data.appeals.map((item) => ({
+        item, cells: [item.reason, REQUEST[item.status] || item.status, item.admin_note],
+      })))));
     }
     if (data.reviews.length) {
-      box.append(el('h2', 'التقييم'));
-      box.append(table(['التقييم', 'التعليق'], data.reviews.map((item) => ({ item, cells: [item.rating + ' / 5', item.comment] }))));
+      box.append(section('التقييم', table(['التقييم', 'التعليق'], data.reviews.map((item) => ({ item, cells: [item.rating + ' / 5', item.comment] })))));
     }
   }
 
@@ -597,50 +633,46 @@
     const [all, reported] = await Promise.all([api('GET', '/admin/reviews'), api('GET', '/admin/reviews/reported')]);
     box.append(pageHead('التقييمات'));
 
-    if (reported.data.length) box.append(el('h2', 'مبلغ عنها'));
     for (const item of reported.data) {
-      const card = el('div', undefined, 'card');
-      card.append(el('strong', item.lawyer_name + ' • ' + item.rating + ' نجوم'));
-      card.append(el('p', item.comment || 'بدون تعليق'), el('p', 'سبب البلاغ: ' + item.report_reason, 'muted'));
       const moderate = (hide) => api('POST', '/admin/reviews/' + item.id + '/moderate', { hide });
-      const row = el('div', undefined, 'row');
-      row.append(button('إخفاء', 'danger', () => moderate(true), 'تم إخفاء التعليق'), button('إبقاء', '', () => moderate(false), 'تم إبقاء التعليق'));
-      card.append(row);
-      box.append(card);
+      box.append(section('تقييم مبلغ عنه',
+        details([
+          ['المحامي', item.lawyer_name], ['التقييم', item.rating + ' / 5'],
+          ['التعليق', item.comment || 'بدون تعليق'], ['سبب البلاغ', item.report_reason],
+        ]),
+        actions(
+          button('إخفاء', 'danger', () => moderate(true), 'تم إخفاء التعليق'),
+          button('إبقاء', '', () => moderate(false), 'تم إبقاء التعليق'))));
     }
 
-    box.append(el('h2', 'كل التقييمات'));
-    box.append(table(['المحامي', 'التقييم', 'التعليق', 'رقم الطلب', 'الحالة', 'التاريخ'], all.data.map((item) => ({
+    box.append(section('كل التقييمات', table(['المحامي', 'التقييم', 'التعليق', 'رقم الطلب', 'الحالة', 'التاريخ'], all.data.map((item) => ({
       item, cells: [item.lawyer_name, item.rating + ' / 5', item.comment, item.order_number, item.is_hidden ? 'مخفي' : 'ظاهر', date(item.created_at)],
-    })), (item) => open('order', item.order_id)));
+    })), (item) => open('order', item.order_id))));
   }
 
   async function pricesPage(box) {
     const [prices, tax] = await Promise.all([api('GET', '/admin/prices'), api('GET', '/admin/tax')]);
     box.append(pageHead('الأسعار والنسب'));
 
-    const card = el('div', undefined, 'card');
     const percent = el('input');
     percent.type = 'number';
     percent.className = 'small';
     percent.placeholder = 'النسبة %';
-    const allRow = el('div', undefined, 'row');
-    allRow.append(el('strong', 'نسبة المنصة لكل الخدمات'), percent,
-      button('تطبيق على الكل', 'primary', () => api('POST', '/admin/commission', { percent: Number(percent.value) })));
-
     const taxInput = el('input');
     taxInput.type = 'number';
     taxInput.className = 'small';
     taxInput.value = tax.data.percent;
-    const taxRow = el('div', undefined, 'row');
-    taxRow.append(el('strong', 'نسبة الضريبة'), taxInput,
-      button('حفظ', 'primary', () => api('POST', '/admin/tax', { percent: Number(taxInput.value) })));
-    card.append(allRow, taxRow, el('p', 'الضريبة تتخصم من السعر الأول، ونسبة المنصة من الصافي بعدها. التغيير للطلبات الجديدة فقط.', 'muted'));
-    box.append(card);
 
+    box.append(section('النسب العامة',
+      el('p', 'الضريبة تتخصم من السعر الأول، ونسبة المنصة من الصافي بعدها. التغيير للطلبات الجديدة فقط.', 'muted'),
+      actionRow(el('span', 'نسبة المنصة لكل الخدمات'), percent,
+        button('تطبيق على الكل', 'primary', () => api('POST', '/admin/commission', { percent: Number(percent.value) }))),
+      actionRow(el('span', 'نسبة الضريبة'), taxInput,
+        button('حفظ', 'primary', () => api('POST', '/admin/tax', { percent: Number(taxInput.value) })))));
+
+    const list = section('أسعار الخدمات');
     for (const item of prices.data) {
-      const line = el('div', undefined, 'card');
-      line.append(el('strong', item.problem_type));
+      const line = el('div', undefined, 'inner');
       const min = el('input');
       const max = el('input');
       const commission = el('input');
@@ -648,17 +680,16 @@
       min.value = Number(item.min_price);
       max.value = Number(item.max_price);
       commission.value = Number(item.commission_percent);
-      const row = el('div', undefined, 'row');
-      row.append(el('span', 'من', 'muted'), min, el('span', 'إلى', 'muted'), max, el('span', 'نسبة المنصة %', 'muted'), commission,
+      line.append(el('strong', item.problem_type), actionRow(el('span', 'من', 'muted'), min, el('span', 'إلى', 'muted'), max, el('span', 'نسبة المنصة %', 'muted'), commission,
         button('حفظ', 'primary', () => api('PUT', '/admin/prices', {
           problemType: item.problem_type,
           minPrice: Number(min.value),
           maxPrice: Number(max.value),
           commissionPercent: Number(commission.value),
-        })));
-      line.append(row);
-      box.append(line);
+        }))));
+      list.append(line);
     }
+    box.append(list);
   }
 
   const PAGES = {

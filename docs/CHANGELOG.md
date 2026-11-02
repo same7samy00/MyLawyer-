@@ -7,7 +7,7 @@
 - **Account:** the photo is uploaded from the personal data page, which also shows the account data. The availability card moved under the profile card.
 - **Photo upload:** the server now reads the file itself, because phones often send no image type.
 - **Notifications:** tapping a push notification opens the Orders page.
-- **Control page look:** it now uses the app font and colors, and every corner is 7 pixels. Pages are centered, and account profiles and order details use organized cards.
+- **Control page look:** it now uses the app font and colors, and every corner is 7 pixels. Pages are centered, and every page is split into titled sections such as data and actions. Confirmations use an in-page box so the app font applies to all text.
 - **Control page:** a side menu with icons, pages for lawyers, clients, orders, reviews, complaints, and appeals, full account profiles, order search, and each order's full history. Saved and deleted actions show clear messages, expired sign-ins renew automatically, and the favicon error is gone.
 
 ## [Phase 2.82] - 2026-11-02
