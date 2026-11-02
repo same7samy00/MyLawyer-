@@ -50,6 +50,7 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
     _currentIndex = widget.initialIndex;
     _visitedTabs.add(_currentIndex);
     NotificationCenter.openRequest.addListener(_onOpenRequest);
+    _onOpenRequest();
     NotificationCenter.start(interval: const Duration(seconds: 15));
     NotificationCenter.pendingOrders.addListener(_onPendingOrdersChanged);
     NotificationCenter.isAvailable.addListener(_onAvailabilityChanged);
@@ -107,13 +108,16 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
     _dataRefresh.value++;
   }
 
-  /// لمس إشعار يفتح صفحته، والإشعار اللي مش مربوط بصفحة يفتح الطلبات
-  Future<void> _onOpenRequest() async {
-    final target = NotificationCenter.openRequest.value;
-    if (target == null || !mounted) return;
-    NotificationCenter.openRequest.value = null;
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    if (!await NotificationRouter.open(context, target) && mounted) _onTabSelected(1);
+  /// لمس إشعار يفتح صفحته، والإشعار اللي مش مربوط بصفحة يفتح الطلبات.
+  /// بيستنى لحد ما الصفحة تترسم، عشان الإشعار ممكن يوصل والتطبيق لسه بيفتح
+  void _onOpenRequest() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final target = NotificationCenter.openRequest.value;
+      if (target == null || !mounted) return;
+      NotificationCenter.openRequest.value = null;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      if (!await NotificationRouter.open(context, target) && mounted) _onTabSelected(1);
+    });
   }
 
   void _onTabSelected(int index) {

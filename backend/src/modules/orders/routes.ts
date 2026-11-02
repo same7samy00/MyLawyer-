@@ -605,7 +605,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
         [order.id, userId, order.status]
       );
 
-      await notify(client, order.lawyer_id, 'الموكل دفع', 'ابدأ المهمة، وفي الآخر هتحتاج كود الموكل لإنهائها', order.id);
+      await notify(client, order.lawyer_id, 'الموكل دفع', 'ابدأ المهمة، ودوس «وصلت» لما تكون جنب الموكل، وبعدها أنهِ المهمة', order.id);
     });
 
     return reply.send({
@@ -662,7 +662,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
         [order.id, userId, order.status]
       );
 
-      await notify(client, order.client_id, 'المهمة اتقفلت', 'قيّم المحامي، ولو فيه مشكلة قدم شكوى خلال 24 ساعة', order.id);
+      await notify(client, order.client_id, 'المهمة اتقفلت', 'قيّم المحامي، ولو فيه مشكلة دوس «عندك مشكلة؟» في الطلب', order.id);
 
       return res.rows[0];
     });

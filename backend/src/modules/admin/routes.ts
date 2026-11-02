@@ -3,7 +3,7 @@ import { dbPool, query, withTransaction } from '../../database/index.js';
 import { registerAdminDirectory, userStats } from './directory.js';
 import { registerAdminSupport } from '../support/admin.js';
 import { sanitizeText } from '../../utils/security.js';
-import { addClientCredit, notify, refreshLawyerRating, warnClient } from '../lifecycle/service.js';
+import { notify, refreshLawyerRating } from '../lifecycle/service.js';
 
 export async function adminRoutes(fastify: FastifyInstance) {
   // Strict admin authorization hook

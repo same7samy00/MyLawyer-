@@ -1,5 +1,12 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.99] - 2026-11-02
+### Notification Fixes
+- Rewrote the notifications that still talked about the completion code, and fixed the saved ones (migration `016`). Removed the unused client code warning.
+- Tapping a notification from outside the app now opens its page even when the app was fully closed: the tap is caught before the permission and device steps, and the page opens after the first frame.
+- In the notifications page, a notification linked to an order or a ticket shows an arrow and opens it.
+- "تعليم الكل كمقروء" is now a small text link on the side instead of a full button.
+
 ## [Phase 2.98] - 2026-11-02
 ### One Path for Problems, and Notifications That Open Their Page
 - Any ticket on an order, of any type and at any time, holds the order's fees, its finish, and its automatic settlement until the admin decides.

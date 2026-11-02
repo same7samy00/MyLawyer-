@@ -26,6 +26,7 @@ import 'package:my_lawyer/features/client/nearby_lawyers_showcase_screen.dart';
 import 'package:my_lawyer/features/client/orders_tab.dart';
 import 'package:my_lawyer/features/client/wallet_tab.dart';
 import 'package:my_lawyer/features/support/support_screen.dart';
+import 'package:my_lawyer/core/services/notification_center.dart';
 import 'package:my_lawyer/features/urgent_service/payment_screen.dart';
 import 'package:my_lawyer/features/urgent_service/payment_success_screen.dart';
 import 'package:my_lawyer/features/auth/account_suspended_screen.dart';
@@ -512,6 +513,32 @@ void main() {
   });
 
   group('الرجوع والتنقل', () {
+    testWidgets('إشعار اتلمس والتطبيق بيفتح بيودّي على التذكرة بتاعته', (tester) async {
+      SharedPreferences.setMockInitialValues({'user_location_name': 'المعادي'});
+      backend.overrides['GET /support/tickets/t-5'] = (request) => FakeBackend.json(200, {
+            'success': true,
+            'data': {
+              'id': 't-5',
+              'reference': 'ML-TKT-100005',
+              'category': 'OTHER',
+              'title': 'سؤال',
+              'status': 'OPEN',
+              'messages': [
+                {'author': 'ADMIN', 'body': 'ردنا عليك', 'images': []},
+              ],
+            },
+          });
+      NotificationCenter.openRequest.value = const NotificationTarget(ticketId: 't-5');
+
+      await tester.pumpWidget(_app(const MainNavigationShell(initialIndex: 0)));
+      await _settleAsync(tester);
+
+      expect(find.text('ردنا عليك'), findsOneWidget);
+      expect(NotificationCenter.openRequest.value, isNull);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
     testWidgets('زر رجوع الهاتف في تبويب داخلي يعود للرئيسية ثم يسمح بالخروج', (tester) async {
       SharedPreferences.setMockInitialValues({'user_location_name': 'المعادي'});
       await tester.pumpWidget(_app(const MainNavigationShell(initialIndex: 2)));

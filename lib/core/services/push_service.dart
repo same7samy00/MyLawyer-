@@ -40,45 +40,51 @@ class PushService {
   static Future<void> start() async {
     try {
       await Firebase.initializeApp();
+      // لمس الإشعار يتسجل الأول، قبل الإذن وتسجيل الجهاز اللي ممكن يتأخروا أو يفشلوا مع النت
+      await _listen();
+
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission();
-
       _token = await messaging.getToken();
       await _register(_token);
-
-      if (_isListening) return;
-      _isListening = true;
-
-      FirebaseMessaging.onBackgroundMessage(_onBackgroundMessage);
-      await _localNotifications.initialize(
-        const InitializationSettings(
-          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-          iOS: DarwinInitializationSettings(),
-        ),
-        onDidReceiveNotificationResponse: (response) => _openPayload(response.payload),
-      );
-      await messaging.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
-      messaging.onTokenRefresh.listen((token) {
-        _token = token;
-        _register(token);
-      });
-      // الطلب يظهر فوراً في التطبيق لو كان مفتوحاً أو اتفتح من الإشعار
-      FirebaseMessaging.onMessage.listen((message) {
-        NotificationCenter.refresh();
-        _showWhileOpen(message);
-      });
-      FirebaseMessaging.onMessageOpenedApp.listen((message) => _open(message.data));
-
-      // التطبيق كان مقفول واتفتح بلمس الإشعار
-      final launchDetails = await _localNotifications.getNotificationAppLaunchDetails();
-      final initialMessage = await messaging.getInitialMessage();
-      if (initialMessage != null) {
-        _open(initialMessage.data);
-      } else if (launchDetails?.didNotificationLaunchApp == true) {
-        _openPayload(launchDetails?.notificationResponse?.payload);
-      }
     } catch (e) {
       debugPrint('Push setup error: $e');
+    }
+  }
+
+  static Future<void> _listen() async {
+    if (_isListening) return;
+    _isListening = true;
+    final messaging = FirebaseMessaging.instance;
+
+    FirebaseMessaging.onBackgroundMessage(_onBackgroundMessage);
+    await _localNotifications.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(),
+      ),
+      onDidReceiveNotificationResponse: (response) => _openPayload(response.payload),
+    );
+    await messaging.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
+    messaging.onTokenRefresh.listen((token) {
+      _token = token;
+      _register(token);
+    });
+    // الطلب يظهر فوراً في التطبيق لو كان مفتوحاً
+    FirebaseMessaging.onMessage.listen((message) {
+      NotificationCenter.refresh();
+      _showWhileOpen(message);
+    });
+    // التطبيق كان في الخلفية واتفتح بلمس الإشعار
+    FirebaseMessaging.onMessageOpenedApp.listen((message) => _open(message.data));
+
+    // التطبيق كان مقفول خالص واتفتح بلمس الإشعار
+    final initialMessage = await messaging.getInitialMessage();
+    final launchDetails = await _localNotifications.getNotificationAppLaunchDetails();
+    if (initialMessage != null) {
+      _open(initialMessage.data);
+    } else if (launchDetails?.didNotificationLaunchApp == true) {
+      _openPayload(launchDetails?.notificationResponse?.payload);
     }
   }
 

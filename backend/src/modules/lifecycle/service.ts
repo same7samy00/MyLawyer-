@@ -18,7 +18,6 @@ const APPROXIMATE_GRID_DEGREES = 0.01;
 const STRIKE_LIMIT = 3;
 const STRIKE_WINDOW_DAYS = 30;
 const SUSPENSION_DAYS = 7;
-const MAX_CLIENT_WARNINGS = 2;
 const FALLBACK_PROBLEM = 'مشكلة قانونية أخرى';
 
 /// Exact places stay private until payment, so public positions move to a coarse grid
@@ -146,21 +145,6 @@ export async function addLawyerStrike(db: Db, lawyerId: string, orderId: string,
   }
 }
 
-/// One warning per proven code refusal, and the second one suspends the client.
-export async function warnClient(db: Db, clientId: string) {
-  const res = await db.query(
-    'UPDATE users SET warnings_count = warnings_count + 1 WHERE id = $1 RETURNING warnings_count',
-    [clientId]
-  );
-
-  if (res.rows[0].warnings_count >= MAX_CLIENT_WARNINGS) {
-    await db.query(`UPDATE users SET status = 'suspended'::user_status WHERE id = $1`, [clientId]);
-    await notify(db, clientId, 'تم إيقاف حسابك', 'تكرر رفض إعطاء كود إنهاء المهمة بعد تنفيذها');
-  } else {
-    await notify(db, clientId, 'إنذار', 'ثبت رفض إعطاء الكود بعد تنفيذ المهمة، والتكرار يوقف حسابك');
-  }
-}
-
 /// Rebuilds a lawyer's public rating from published, visible reviews.
 export async function refreshLawyerRating(db: Db, lawyerId: string) {
   await db.query(
@@ -285,7 +269,7 @@ async function expireUnfinishedOrders() {
       await applySettlement(client, fresh.rows[0], settlement.outcome, order.lawyer_id, 'انتهت مهلة المهمة');
       // They met, so the client can rate the lawyer like any finished task
       if (fresh.rows[0].arrived_at && settlement.outcome !== 'REFUND') {
-        await notify(client, order.client_id, 'المهمة اتقفلت', 'قيّم المحامي، ولو فيه مشكلة قدم شكوى خلال 24 ساعة', order.id);
+        await notify(client, order.client_id, 'المهمة اتقفلت', 'قيّم المحامي، ولو فيه مشكلة دوس «عندك مشكلة؟» في الطلب', order.id);
       }
     });
   }
@@ -316,7 +300,7 @@ async function releaseHeldPayouts() {
   );
 
   for (const order of res.rows) {
-    await notify(dbPool, order.lawyer_id, 'أتعابك جاهزة', 'تقدر تسحب أتعاب المهمة دلوقتي', order.id);
+    await notify(dbPool, order.lawyer_id, 'أتعابك جاهزة', 'أتعاب المهمة بقت متاحة في محفظتك', order.id);
   }
 }
 

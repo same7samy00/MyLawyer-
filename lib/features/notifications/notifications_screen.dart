@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/notification_center.dart';
-import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../data/models/lifecycle_models.dart';
@@ -104,15 +103,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          if (hasUnread) ...[
-            AppButton.outlined(
-              text: 'تعليم الكل كمقروء',
-              height: 40,
-              fontSize: 12,
-              onPressed: _markAllRead,
+          if (hasUnread)
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton(
+                onPressed: _markAllRead,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  'تعليم الكل كمقروء',
+                  style: TextStyle(
+                    fontFamily: 'AppFont',
+                    fontFamilyFallback: appFontFallback,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-          ],
+          if (hasUnread) const SizedBox(height: 6),
           for (final item in _items) ...[
             GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -248,6 +261,11 @@ class _NotificationCard extends StatelessWidget {
                     height: 9,
                     decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                   ),
+                ],
+                // The arrow shows the notification opens a page
+                if (item.orderId != null || item.ticketId != null) ...[
+                  const SizedBox(width: 6),
+                  const Icon(Icons.keyboard_arrow_left_rounded, color: AppColors.textMuted, size: 20),
                 ],
               ],
             ),
