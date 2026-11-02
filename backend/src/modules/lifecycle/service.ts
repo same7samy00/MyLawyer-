@@ -308,20 +308,6 @@ async function releaseHeldPayouts() {
   }
 }
 
-async function publishDueReviews() {
-  const res = await dbPool.query(
-    `UPDATE reviews r SET published_at = NOW()
-     WHERE r.published_at IS NULL AND r.publish_at <= NOW()
-       AND NOT EXISTS (SELECT 1 FROM complaints c WHERE c.order_id = r.order_id AND c.status = 'OPEN')
-     RETURNING r.lawyer_id`
-  );
-
-  const lawyers = new Set<string>(res.rows.map((row) => row.lawyer_id));
-  for (const lawyerId of lawyers) {
-    await refreshLawyerRating(dbPool, lawyerId);
-  }
-}
-
 /// Time-based steps of the order lifecycle. Each step is safe to run repeatedly.
 export async function sweepLifecycle() {
   await closeUnansweredOrders();
@@ -331,5 +317,4 @@ export async function sweepLifecycle() {
   await sendDeadlineReminders();
   await expireUnfinishedOrders();
   await releaseHeldPayouts();
-  await publishDueReviews();
 }

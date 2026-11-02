@@ -13,6 +13,12 @@ class NotificationCenter {
   /// حالة المحامي من الخادم، فالزر يتبع القواعد تلقائياً
   static final ValueNotifier<bool?> isAvailable = ValueNotifier<bool?>(null);
 
+  /// لمس إشعار من خارج التطبيق يفتح صفحة الطلبات
+  static final ValueNotifier<int> openOrdersRequest = ValueNotifier<int>(0);
+
+  /// يتغير بعد تعديل صورة الحساب فتتحدث الكروت المفتوحة
+  static final ValueNotifier<int> profileChanged = ValueNotifier<int>(0);
+
   static Timer? _timer;
   static AppLifecycleListener? _lifecycle;
 

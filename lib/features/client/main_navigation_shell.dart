@@ -46,6 +46,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _visitedTabs.add(_currentIndex);
+    NotificationCenter.openOrdersRequest.addListener(_openOrdersTab);
     NotificationCenter.start();
     PushService.start();
     _promptPendingReview();
@@ -54,6 +55,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   @override
   void dispose() {
     NotificationCenter.stop();
+    NotificationCenter.openOrdersRequest.removeListener(_openOrdersTab);
     _dataRefresh.dispose();
     super.dispose();
   }
@@ -76,6 +78,12 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       onSubmit: (rating, comment) => OrderRepository.submitReview(order.id, rating, comment),
     );
     _dataRefresh.value++;
+  }
+
+  void _openOrdersTab() {
+    if (!mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    _onTabSelected(1);
   }
 
   void _onTabSelected(int index) {

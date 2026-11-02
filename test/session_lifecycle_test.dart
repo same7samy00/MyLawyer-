@@ -67,6 +67,19 @@ Future<void> _launch(WidgetTester tester) async {
 }
 
 /// تمرير الوقت على دفعات حتى تكتمل العمليات المتتابعة في الشاشات ذات الخرائط
+/// يفتح صفحة تفاصيل الطلب الوحيد من صفحة الطلبات
+Future<void> _openDetails(WidgetTester tester, {bool isLawyer = false}) async {
+  tester.view.physicalSize = const Size(800, 3000);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(_app(Scaffold(body: isLawyer ? const LawyerOrdersTab() : const OrdersTab())));
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(find.text('عرض التفاصيل'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('عرض التفاصيل'));
+  await tester.pumpAndSettle();
+}
+
 Future<void> _settleAsync(WidgetTester tester) async {
   for (int i = 0; i < 12; i++) {
     await tester.pump(const Duration(milliseconds: 500));
@@ -299,7 +312,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('مفيش اتصال بالإنترنت'), findsNothing);
-      expect(find.text('تواصل'), findsOneWidget);
+      expect(find.text('عرض التفاصيل'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
     });
@@ -787,21 +800,34 @@ void main() {
       backend.orders = [
         {...sampleOrder(status: 'ACTIVE'), 'completionCode': '4821'},
       ];
-      await tester.pumpWidget(_app(const Scaffold(body: OrdersTab())));
-      await tester.pumpAndSettle();
+      await _openDetails(tester);
 
       expect(find.text('كود إنهاء المهمة'), findsOneWidget);
       expect(find.text('4821'), findsOneWidget);
+      expect(find.text('ORD-1001'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('رقم الطلب ظاهر في الكارت والإجراءات في صفحة التفاصيل فقط', (tester) async {
+      backend.orders = [sampleOrder(status: 'CANCELLED')];
+
+      await tester.pumpWidget(_app(const Scaffold(body: OrdersTab())));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('ORD-1001'), findsOneWidget);
+      expect(find.text('إلغاء الطلب'), findsNothing);
     });
 
     testWidgets('زر الإنهاء لا يظهر للمحامي قبل تسجيل الوصول', (tester) async {
       backend.orders = [sampleOrder(status: 'ACTIVE')];
 
-      await tester.pumpWidget(_app(const Scaffold(body: LawyerOrdersTab())));
-      await tester.pumpAndSettle();
+      await _openDetails(tester, isLawyer: true);
 
       expect(find.text('وصلت'), findsOneWidget);
       expect(find.text('إنهاء المهمة'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
     });
 
     testWidgets('المحامي ينهي المهمة بالكود فقط، والكود الغلط يظهر خطأ', (tester) async {
@@ -815,8 +841,7 @@ void main() {
         {...sampleOrder(status: 'ACTIVE'), 'arrivedAt': DateTime.now().toIso8601String()},
       ];
 
-      await tester.pumpWidget(_app(const Scaffold(body: LawyerOrdersTab())));
-      await tester.pumpAndSettle();
+      await _openDetails(tester, isLawyer: true);
 
       await tester.ensureVisible(find.text('إنهاء المهمة'));
       await tester.pumpAndSettle();
@@ -833,6 +858,8 @@ void main() {
       await _settleAsync(tester);
       expect(find.byType(TextField), findsNothing);
       expect(backend.countOf('POST /orders/order-1/complete'), 2);
+
+      await tester.pumpWidget(const SizedBox.shrink());
     });
 
     testWidgets('الطلب المكتمل يعرض التقييم والشكوى', (tester) async {
@@ -842,8 +869,7 @@ void main() {
         {...sampleOrder(status: 'COMPLETED'), 'completedAt': DateTime.now().toIso8601String()},
       ];
 
-      await tester.pumpWidget(_app(const Scaffold(body: OrdersTab())));
-      await tester.pumpAndSettle();
+      await _openDetails(tester);
 
       expect(find.text('قيّم المحامي'), findsOneWidget);
       await tester.ensureVisible(find.text('عندك مشكلة؟'));
@@ -856,6 +882,8 @@ void main() {
       await _settleAsync(tester);
 
       expect(backend.countOf('POST /orders/order-1/complaint'), 1);
+
+      await tester.pumpWidget(const SizedBox.shrink());
     });
 
     testWidgets('اعتذار المحامي يظهر في الشيت ثم يتبعت الطلب للمحامي التالي', (tester) async {

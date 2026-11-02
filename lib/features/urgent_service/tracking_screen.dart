@@ -9,7 +9,6 @@ import 'package:latlong2/latlong.dart' hide Path;
 import 'package:lottie/lottie.dart' hide Marker;
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
-import '../../core/services/external_navigation.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/routing_service.dart';
@@ -24,7 +23,6 @@ import '../../core/widgets/measured_size.dart';
 import '../../core/widgets/response_countdown.dart';
 import '../../core/widgets/sheet_lines.dart';
 import '../../data/models/map_lawyer.dart';
-import '../../data/models/order_model.dart';
 import '../../data/repositories/lawyer_repository.dart';
 import '../../data/repositories/order_repository.dart';
 import 'payment_screen.dart';
@@ -33,15 +31,11 @@ import 'lawyer_google_profile_screen.dart';
 class TrackingScreen extends StatefulWidget {
   final String? problemTitle;
   final String? problemDescription;
-  final bool isLawyerView;
-  final OrderModel? lawyerOrder;
 
   const TrackingScreen({
     super.key,
     this.problemTitle,
     this.problemDescription,
-    this.isLawyerView = false,
-    this.lawyerOrder,
   });
 
   @override
@@ -110,10 +104,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   Timer? _stageTimer;
   String? _activeOrderId;
   String? _activeOrderNumber;
-  late String? _lawyerOrderStatus = widget.lawyerOrder?.status;
-  late int _lawyerSecondsLeft = widget.lawyerOrder?.responseSecondsLeft ?? 0;
-  bool _lawyerResponseTimeOver = false;
-  Timer? _lawyerOrderPollTimer;
 
   int _servicePrice = 0;
   int _orderSecondsLeft = 120;
@@ -138,7 +128,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
       _sheetHeight = _sheetTween.evaluate(_sheetCurve);
     });
     _fetchCurrentLocation();
-    if (widget.isLawyerView && _lawyerOrderStatus == 'PENDING') _watchLawyerOrder();
   }
 
   @override
@@ -153,7 +142,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   @override
   void dispose() {
     _orderPollTimer?.cancel();
-    _lawyerOrderPollTimer?.cancel();
     _lawyersRefreshTimer?.cancel();
     _stageTimer?.cancel();
     _cameraAnimController?.dispose();
@@ -421,16 +409,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
 
     if (!mounted) return;
 
-    // المحامي يتابع موقع موكله في طلبه المفتوح ولا يبحث عن محامين آخرين
-    if (widget.isLawyerView) {
-      setState(() {
-        _isLoading = false;
-        _isInitialLoading = false;
-      });
-      await _showRouteToClient();
-      return;
-    }
-
     final res = await LawyerRepository.getNearbyLawyers(
       lat: centerLatLng.latitude,
       lon: centerLatLng.longitude,
@@ -536,38 +514,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
           ),
         ),
     ];
-  }
-
-  /// مسار المحامي إلى موكله، من موقعه الحالي أو آخر موقع مسجل للطلب
-  Future<void> _showRouteToClient() async {
-    final order = widget.lawyerOrder;
-    if (order == null) return;
-
-    final LatLng? lawyerPos = _currentPosition != null
-        ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
-        : order.lawyerLat != null && order.lawyerLon != null
-            ? LatLng(order.lawyerLat!, order.lawyerLon!)
-            : null;
-    if (lawyerPos == null) return;
-
-    final clientPos = LatLng(order.clientLat, order.clientLon);
-    await _drawRoute(lawyerPos, clientPos);
-    if (mounted) _zoomFitRouteAndLawyer(lawyerPos, clientPos);
-  }
-
-  /// متابعة طلب المحامي لحد ما يترد عليه أو يتقفل
-  void _watchLawyerOrder() {
-    _lawyerOrderPollTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
-      final res = await OrderRepository.getOrderById(widget.lawyerOrder!.id);
-      if (!mounted || !res.isOk) return;
-
-      final order = res.data!;
-      if (order.status != 'PENDING') timer.cancel();
-      setState(() {
-        _lawyerOrderStatus = order.status;
-        _lawyerSecondsLeft = order.responseSecondsLeft;
-      });
-    });
   }
 
   void _centerMapOnCurrentPosition() {
@@ -795,8 +741,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
         ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
         : const LatLng(30.0444, 31.2357);
 
-    final clientOrder = widget.lawyerOrder;
-
     // الرجوع أثناء مراحل الطلب يعود لملف المحامي أولاً قبل مغادرة الخريطة
     return PopScope(
       canPop: _orderFlowStage == _OrderFlowStage.idle,
@@ -805,10 +749,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
       },
       child: Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppHeader(
-        title: widget.isLawyerView ? 'تفاصيل الطلب' : 'محاميك حالاً',
-        isInnerPage: true,
-      ),
+      appBar: const AppHeader(title: 'محاميك حالاً', isInnerPage: true),
       body: Stack(
         children: [
           // 1. خريطة تفاعلية مستضافة على السيرفر
@@ -853,19 +794,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                         width: _cardWidth,
                         height: _cardHeight,
                         child: MyLocationMapCard(),
-                      ),
-                    ),
-
-                  if (clientOrder != null)
-                    Marker(
-                      point: LatLng(clientOrder.clientLat, clientOrder.clientLon),
-                      width: _cardWidth * mapCardScaleFor(_mapZoom),
-                      height: _cardHeight * mapCardScaleFor(_mapZoom),
-                      alignment: Alignment.topCenter,
-                      child: ScaledMapCard(
-                        width: _cardWidth,
-                        height: _cardHeight,
-                        child: _ClientMapCard(order: clientOrder),
                       ),
                     ),
 
@@ -1010,19 +938,17 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                               sheetHeader!,
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(18, 4, 18, 16),
-                                child: widget.isLawyerView
-                                    ? _buildLawyerOrderReviewCard()
-                                    : (_showReviews && _selectedLawyer != null
-                                        ? SizedBox(
-                                            height: MediaQuery.sizeOf(context).height * 0.6,
-                                            child: LawyerReviewsPanel(
-                                              lawyerId: _selectedLawyer!.id,
-                                              onClose: () => _setReviewsVisible(false),
-                                            ),
-                                          )
-                                        : _orderFlowStage != _OrderFlowStage.idle
-                                            ? _buildOrderFlowContent()
-                                            : _buildLawyerProfileCard()),
+                                child: _showReviews && _selectedLawyer != null
+                                    ? SizedBox(
+                                        height: MediaQuery.sizeOf(context).height * 0.6,
+                                        child: LawyerReviewsPanel(
+                                          lawyerId: _selectedLawyer!.id,
+                                          onClose: () => _setReviewsVisible(false),
+                                        ),
+                                      )
+                                    : _orderFlowStage != _OrderFlowStage.idle
+                                        ? _buildOrderFlowContent()
+                                        : _buildLawyerProfileCard(),
                               ),
                             ],
                           ),
@@ -1080,13 +1006,11 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
             // عنوان البوتن شيت في المنتصف تماماً كنص فقط بدون أيقونة وبدون زر تصغير
             Center(
               child: Text(
-                widget.isLawyerView
-                    ? 'تفاصيل الطلب العاجل'
-                    : (_showReviews
-                        ? 'التقييمات'
-                        : _orderFlowStage == _OrderFlowStage.idle
-                            ? 'أقرب المحامين إليك'
-                            : 'متابعة الطلب'),
+                _showReviews
+                    ? 'التقييمات'
+                    : _orderFlowStage == _OrderFlowStage.idle
+                        ? 'أقرب المحامين إليك'
+                        : 'متابعة الطلب',
                 style: const TextStyle(
                   fontFamily: 'AppFont',
                   fontFamilyFallback: appFontFallback,
@@ -1103,375 +1027,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildLawyerOrderReviewCard() {
-    final order = widget.lawyerOrder!;
-    final clientName = order.clientName ?? 'الموكل';
-    final ref = order.orderNumber;
-    final problem = order.problemType ?? order.serviceTitle;
-    final desc = order.problemDescription;
-    final isPaid = _lawyerOrderStatus == 'ACTIVE';
-    final location = order.clientAddress ?? '';
-    final price = order.priceText;
-    final isPending = _lawyerOrderStatus == 'PENDING' && !_lawyerResponseTimeOver;
-
-    if (_isLawyerOrderOver) return _buildLawyerOrderEnded();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (isPending) ...[
-                ResponseCountdown(
-                  secondsLeft: _lawyerSecondsLeft,
-                  onFinished: () => setState(() => _lawyerResponseTimeOver = true),
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              // 1. بيانات الموكل ورقم المعاملة
-              Center(
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(7.0),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-                  ),
-                  child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 26),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: Text(
-                      clientName,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'AppFont',
-                        fontFamilyFallback: appFontFallback,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.dark,
-                      ),
-                      maxLines: 2,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.verified_user_rounded, color: AppColors.primary, size: 16),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'المعاملة: $ref',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 11,
-                  color: AppColors.textMuted,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '$price ج.م',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 15.5,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.success,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // 2. تفاصيل ونوع المشكلة القانونية مباشرة دون حاويات
-              Text(
-                problem,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.dark,
-                ),
-              ),
-              if (desc.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  desc,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                    height: 1.45,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 10),
-
-              // 3. نطاق موقع الموكل مباشرة دون حاوية
-              Text(
-                location,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.dark,
-                ),
-              ),
-              if (_routeEstimate?.isSuccess == true) ...[
-                const SizedBox(height: 4),
-                Text(
-                  '${_routeEstimate!.distanceText} • ${_routeEstimate!.arrivalRangeText}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 14),
-
-            ],
-          ),
-        const SizedBox(height: 12),
-
-        if (isPaid)
-          AppButton.primary(
-            text: 'افتح مكان الموكل في Google Maps',
-            icon: Icons.navigation_rounded,
-            fontSize: 14,
-            onPressed: () {
-              _openGoogleMaps(order);
-            },
-          ),
-
-        // 4. أزرار التعامل مع الطلب: قبول الطلب أساسي + اعتذار ثانوي، وتظهر فقط لطلب لم يُرد عليه
-        if (isPending)
-          Row(
-            children: [
-              // قبول الطلب (الرئيسي)
-              Expanded(
-                flex: 6,
-                child: AppButton.primary(
-                  text: 'قبول الطلب',
-                  icon: Icons.check_circle_rounded,
-                  fontSize: 14,
-                  onPressed: _acceptLawyerOrder,
-                ),
-              ),
-              const SizedBox(width: 10),
-
-              // اعتذار (ثانوي 24.0px)
-              Expanded(
-                flex: 4,
-                child: AppButton.outlined(
-                  text: 'اعتذار',
-                  icon: Icons.cancel_outlined,
-                  height: 50,
-                  textColor: AppColors.danger,
-                  borderColor: AppColors.danger.withOpacity(0.35),
-                  onPressed: _confirmLawyerDecline,
-                ),
-              ),
-            ],
-          ),
-      ],
-    );
-  }
-
-  Future<void> _openGoogleMaps(OrderModel order) async {
-    final opened = await ExternalNavigation.openDirections(order.clientLat, order.clientLon);
-    if (!opened && mounted) _showMessage('تعذر فتح الخرائط');
-  }
-
-  bool get _isLawyerOrderOver =>
-      _lawyerResponseTimeOver || !const ['PENDING', 'ACCEPTED', 'ACTIVE', 'COMPLETED'].contains(_lawyerOrderStatus);
-
-  /// شاشة انتهاء الطلب عند المحامي بدل أزرار القبول والاعتذار
-  Widget _buildLawyerOrderEnded() {
-    final title = _lawyerOrderStatus == 'CANCELLED'
-        ? 'الموكل لغى الطلب'
-        : _lawyerOrderStatus == 'PENDING' || _lawyerOrderStatus == 'NO_RESPONSE'
-            ? 'انتهى وقت الرد'
-            : 'الطلب انتهى';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset('assets/images/questions_rafiki.svg', height: 110, fit: BoxFit.contain),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: AppColors.danger,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'الطلب اتقفل',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 13,
-                color: AppColors.textMuted,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        AppButton.primary(
-          text: 'رجوع للطلبات',
-          fontSize: 14,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _acceptLawyerOrder() async {
-    // تعذر الموقع لا يمنع القبول، والموكل يشوف وقت آخر مكان معروف
-    final location = await LocationService.instance.checkAndRequestPermission(fresh: true);
-    if (!mounted) return;
-
-    final res = await OrderRepository.acceptOrder(
-      widget.lawyerOrder!.id,
-      lat: location.position?.latitude,
-      lon: location.position?.longitude,
-    );
-    if (!mounted) return;
-
-    if (!res.isOk) {
-      _showMessage(res.error ?? 'تعذر قبول الطلب، يرجى المحاولة مرة أخرى.');
-      return;
-    }
-
-    _lawyerOrderPollTimer?.cancel();
-    setState(() {
-      _lawyerOrderStatus = 'ACCEPTED';
-    });
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(7.0),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle_rounded, color: AppColors.success, size: 22),
-            SizedBox(width: 8),
-            Text(
-              'قبول الطلب',
-              style: TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-        content: const Text(
-          'تم تسجيل موافقتك على تولي هذا الطلب، يمكنك الآن التواصل مع الموكل والتوجه لموقعه.',
-          style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 13, height: 1.45),
-        ),
-        actions: [
-          AppPressable(
-            child: TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('حسناً', style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontWeight: FontWeight.w700)),
-          ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmLawyerDecline() {
-    final screenNavigator = Navigator.of(context);
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.0),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.cancel_outlined, color: AppColors.danger, size: 22),
-            SizedBox(width: 8),
-            Text(
-              'تأكيد الاعتذار',
-              style: TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-        content: const Text(
-          'هل أنت متأكد من الاعتذار عن قبول هذا الطلب؟',
-          style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 13),
-        ),
-        actions: [
-          AppPressable(
-            child: TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('تراجع', style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback)),
-          ),
-          ),
-          AppButton.outlined(
-            text: 'اعتذار',
-            width: 96,
-            height: 40,
-            textColor: AppColors.danger,
-            borderColor: AppColors.danger.withOpacity(0.35),
-            onPressed: () async {
-              final dialogNavigator = Navigator.of(ctx);
-              final res = await OrderRepository.rejectOrder(widget.lawyerOrder!.id);
-              dialogNavigator.pop();
-              if (!mounted) return;
-
-              if (res.isOk) {
-                screenNavigator.pop();
-              } else {
-                _showMessage(res.error ?? 'تعذر الاعتذار عن الطلب، يرجى المحاولة مرة أخرى.');
-              }
-            },
-          ),
-        ],
       ),
     );
   }
@@ -2059,70 +1614,6 @@ class _LawyerAvatarPhoto extends StatelessWidget {
 }
 
 /// كارت الموكل على خريطة المحامي، بنفس شكل كارت المحامي
-class _ClientMapCard extends StatelessWidget {
-  final OrderModel order;
-
-  const _ClientMapCard({required this.order});
-
-  @override
-  Widget build(BuildContext context) {
-    final completed = order.clientCompletedOrders;
-
-    return CustomPaint(
-      painter: _LawyerBubblePainter(color: AppColors.primary, borderColor: Colors.white, hasBorder: false),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(6, 4, 6, 13),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(7.0),
-                border: Border.all(color: Colors.white, width: 1.2),
-              ),
-              child: _LawyerAvatarPhoto(
-                imageUrl: '',
-                initials: (order.clientName ?? 'الموكل').trim().characters.first,
-                fallbackColor: AppColors.primaryHover,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  order.clientName ?? 'الموكل',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  completed > 0 ? '$completed طلب مكتمل' : 'موكل جديد',
-                  style: const TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _LawyerMapSquareMarker extends StatelessWidget {
   final MapLawyer lawyer;
   final bool isSelected;

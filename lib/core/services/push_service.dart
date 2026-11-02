@@ -49,10 +49,13 @@ class PushService {
       _isListening = true;
 
       FirebaseMessaging.onBackgroundMessage(_onBackgroundMessage);
-      await _localNotifications.initialize(const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        iOS: DarwinInitializationSettings(),
-      ));
+      await _localNotifications.initialize(
+        const InitializationSettings(
+          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+          iOS: DarwinInitializationSettings(),
+        ),
+        onDidReceiveNotificationResponse: (_) => _openOrders(),
+      );
       await messaging.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
       messaging.onTokenRefresh.listen((token) {
         _token = token;
@@ -63,10 +66,20 @@ class PushService {
         NotificationCenter.refresh();
         _showWhileOpen(message);
       });
-      FirebaseMessaging.onMessageOpenedApp.listen((_) => NotificationCenter.refresh());
+      FirebaseMessaging.onMessageOpenedApp.listen((_) => _openOrders());
+
+      // التطبيق كان مقفول واتفتح بلمس الإشعار
+      final launchDetails = await _localNotifications.getNotificationAppLaunchDetails();
+      final initialMessage = await messaging.getInitialMessage();
+      if (initialMessage != null || launchDetails?.didNotificationLaunchApp == true) _openOrders();
     } catch (e) {
       debugPrint('Push setup error: $e');
     }
+  }
+
+  static void _openOrders() {
+    NotificationCenter.refresh();
+    NotificationCenter.openOrdersRequest.value++;
   }
 
   /// النظام ما يعرضش الإشعار والتطبيق مفتوح على أندرويد، فيتعرض بنفس الصوت والاهتزاز

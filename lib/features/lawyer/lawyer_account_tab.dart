@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/api_service.dart';
+import '../../core/services/notification_center.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/logout_confirmation_sheet.dart';
+import '../../core/widgets/profile_photo.dart';
+import '../account/personal_data_screen.dart';
 import '../auth/session_router.dart';
 
 /// تبويب الحساب الشخصي للمحامي
@@ -18,11 +22,27 @@ class _LawyerAccountTabState extends State<LawyerAccountTab> {
   String _lawyerName = '';
   String _syndicateNumber = '';
   String _userPhone = '';
+  String? _photoPath;
 
   @override
   void initState() {
     super.initState();
+    NotificationCenter.profileChanged.addListener(_loadPhoto);
     _loadLawyerData();
+    _loadPhoto();
+  }
+
+  @override
+  void dispose() {
+    NotificationCenter.profileChanged.removeListener(_loadPhoto);
+    super.dispose();
+  }
+
+  Future<void> _loadPhoto() async {
+    final res = await ApiService.get('/users/me');
+    if (mounted && res.data is Map<String, dynamic>) {
+      setState(() => _photoPath = (res.data as Map<String, dynamic>)['profilePhotoPath']?.toString());
+    }
   }
 
   Future<void> _loadLawyerData() async {
@@ -70,16 +90,7 @@ class _LawyerAccountTabState extends State<LawyerAccountTab> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(7.0),
-                      border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-                    ),
-                    child: const Icon(Icons.shield_rounded, color: AppColors.primary, size: 28),
-                  ),
+                  ProfilePhoto(path: _photoPath, size: 52),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
@@ -133,8 +144,12 @@ class _LawyerAccountTabState extends State<LawyerAccountTab> {
                   _buildMenuItem(
                     icon: Icons.badge_outlined,
                     title: 'البيانات المهنية والتراخيص',
-                    subtitle: 'تعديل وثائق القيد والدرجة القضائية',
-                    onTap: () => _showComingSoon('البيانات المهنية والتراخيص'),
+                    subtitle: 'صورتك وبيانات حسابك المسجلة',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => const PersonalDataScreen()),
+                      );
+                    },
                   ),
                   const Divider(height: 1, color: AppColors.cardBorder, indent: 16, endIndent: 16),
                   _buildMenuItem(

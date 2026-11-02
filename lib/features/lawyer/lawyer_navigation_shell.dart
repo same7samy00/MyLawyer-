@@ -48,6 +48,7 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
     super.initState();
     _currentIndex = widget.initialIndex;
     _visitedTabs.add(_currentIndex);
+    NotificationCenter.openOrdersRequest.addListener(_openOrdersTab);
     NotificationCenter.start(interval: const Duration(seconds: 15));
     NotificationCenter.pendingOrders.addListener(_onPendingOrdersChanged);
     NotificationCenter.isAvailable.addListener(_onAvailabilityChanged);
@@ -67,6 +68,7 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
   void dispose() {
     _presenceTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    NotificationCenter.openOrdersRequest.removeListener(_openOrdersTab);
     NotificationCenter.pendingOrders.removeListener(_onPendingOrdersChanged);
     NotificationCenter.isAvailable.removeListener(_onAvailabilityChanged);
     NotificationCenter.stop();
@@ -102,6 +104,12 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
 
   void _onPendingOrdersChanged() {
     _dataRefresh.value++;
+  }
+
+  void _openOrdersTab() {
+    if (!mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    _onTabSelected(1);
   }
 
   void _onTabSelected(int index) {

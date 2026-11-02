@@ -16,6 +16,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:my_lawyer/features/auth/login_screen.dart';
 import 'package:my_lawyer/features/client/orders_tab.dart';
 import 'package:my_lawyer/features/urgent_service/payment_screen.dart';
+import 'package:my_lawyer/features/urgent_service/order_details_screen.dart';
 import 'package:my_lawyer/features/urgent_service/tracking_screen.dart';
 import 'package:my_lawyer/features/urgent_service/urgent_service_problem_screen.dart';
 import 'package:my_lawyer/features/auth/splash_screen.dart';
@@ -222,7 +223,7 @@ void main() {
       expect(find.text('فودافون كاش ومحافظ المحمول الإلكترونية'), findsOneWidget);
     });
 
-    testWidgets('OrdersTab renders active order card with contact and complaint buttons', (WidgetTester tester) async {
+    testWidgets('OrdersTab renders a summary card and keeps actions on the details page', (WidgetTester tester) async {
       backend.orders = [sampleOrder(status: 'ACTIVE')];
       await tester.pumpWidget(
         MaterialApp(
@@ -240,8 +241,9 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('تواصل'), findsOneWidget);
-      expect(find.text('شكوى'), findsOneWidget);
+      expect(find.text('طلب رقم ORD-1001'), findsOneWidget);
+      expect(find.text('عرض التفاصيل'), findsOneWidget);
+      expect(find.text('عندك مشكلة؟'), findsNothing);
     });
     testWidgets('AppHeader renders centered title, action icons without container boxes in RTL', (WidgetTester tester) async {
       await tester.pumpWidget(
@@ -806,7 +808,7 @@ void main() {
       expect(find.byType(ProfileHomeCard), findsOneWidget);
     });
 
-    testWidgets('LawyerOrdersTab displays order card with open order and decline buttons instead of client contact/complaint', (WidgetTester tester) async {
+    testWidgets('LawyerOrdersTab displays a summary card without actions instead of client contact/complaint', (WidgetTester tester) async {
       backend.orders = [sampleOrder(status: 'PENDING')];
       await tester.pumpWidget(
         MaterialApp(
@@ -823,23 +825,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Card details
-      expect(find.text('الموكل: 01099990000'), findsOneWidget);
-      expect(find.text('ORD-1001'), findsOneWidget);
+      expect(find.text('طلب رقم ORD-1001'), findsOneWidget);
       expect(find.text('محضر في قسم الشرطة'), findsAtLeastNWidgets(1));
-      expect(find.text('قصر النيل، محافظة القاهرة'), findsOneWidget);
+      expect(find.textContaining('الموكل: 01099990000'), findsOneWidget);
       expect(find.textContaining('350 ج.م'), findsOneWidget);
+      expect(find.text('عرض التفاصيل'), findsOneWidget);
 
-      // Lawyer Action Buttons
-      expect(find.text('فتح الطلب'), findsOneWidget);
-      expect(find.text('اعتذار'), findsOneWidget);
-
-      // Strictly NO client contact or complaint buttons
-      expect(find.text('تواصل'), findsNothing);
-      expect(find.text('شكوى'), findsNothing);
+      // Actions live on the details page
+      expect(find.text('قبول الطلب'), findsNothing);
+      expect(find.text('اعتذار'), findsNothing);
     });
 
-    testWidgets('Tapping open order in LawyerOrdersTab navigates to TrackingScreen with lawyer bottom sheet', (WidgetTester tester) async {
+    testWidgets('Opening an order in LawyerOrdersTab shows its details and actions without a map', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 3000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       backend.orders = [sampleOrder(status: 'PENDING')];
       await tester.pumpWidget(
         MaterialApp(
@@ -856,22 +856,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap open order
-      await tester.tap(find.text('فتح الطلب'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text('عرض التفاصيل'));
+      await tester.pumpAndSettle();
 
-      // TrackingScreen opens with Lawyer Bottom Sheet
-      expect(find.byType(TrackingScreen), findsOneWidget);
-      expect(find.text('تفاصيل الطلب العاجل'), findsOneWidget);
+      expect(find.byType(OrderDetailsScreen), findsOneWidget);
+      expect(find.byType(TrackingScreen), findsNothing);
+      expect(find.text('ORD-1001'), findsOneWidget);
       expect(find.text('قبول الطلب'), findsOneWidget);
-      expect(find.text('اعتذار'), findsAtLeastNWidgets(1));
+      expect(find.text('اعتذار'), findsOneWidget);
 
-      // Strictly NO client order buttons
-      expect(find.text('طلب الآن'), findsNothing);
-
-      // انتهاء مهلة تحديد الموقع قبل إغلاق الاختبار
-      await tester.pump(const Duration(seconds: 11));
+      await tester.pumpWidget(const SizedBox.shrink());
     });
 
     testWidgets('LawyerWalletTab and LawyerAccountTab render lawyer data properly', (WidgetTester tester) async {

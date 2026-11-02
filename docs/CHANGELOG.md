@@ -1,5 +1,14 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.83] - 2026-11-02
+### Order Details and Full Control Page
+- **Order details:** a new page holds all details and actions for the client and the lawyer. Order cards are now summaries, and the order number always shows. The lawyer no longer opens orders on the map.
+- **Reviews:** a review shows on the lawyer profile immediately and updates the rating. The 24-hour publishing step was removed.
+- **Account:** the photo is uploaded from the personal data page, which also shows the account data. The availability card moved under the profile card.
+- **Photo upload:** the server now reads the file itself, because phones often send no image type.
+- **Notifications:** tapping a push notification opens the Orders page.
+- **Control page:** a side menu with icons, pages for lawyers, clients, orders, reviews, complaints, and appeals, full account profiles, order search, and each order's full history. Saved and deleted actions show clear messages, expired sign-ins renew automatically, and the favicon error is gone.
+
 ## [Phase 2.82] - 2026-11-02
 ### Production Reset
 - Lawyer specialty is chosen from a separate page with its own drawing.

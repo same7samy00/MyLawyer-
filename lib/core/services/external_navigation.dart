@@ -12,6 +12,10 @@ class ExternalNavigation {
     });
   }
 
+  static Future<bool> call(String phone) {
+    return launchUrl(Uri(scheme: 'tel', path: phone));
+  }
+
   static Future<bool> openDirections(double lat, double lon) {
     return launchUrl(directionsUri(lat, lon), mode: LaunchMode.externalApplication);
   }

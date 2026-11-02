@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/api_service.dart';
+import '../../core/services/notification_center.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_pressable.dart';
 import '../../core/widgets/logout_confirmation_sheet.dart';
+import '../../core/widgets/profile_photo.dart';
+import '../account/personal_data_screen.dart';
 import '../auth/session_router.dart';
 
 class AccountTab extends StatefulWidget {
@@ -14,21 +17,25 @@ class AccountTab extends StatefulWidget {
 }
 
 class _AccountTabState extends State<AccountTab> {
-  String _userPhone = '';
+  Map<String, dynamic>? _profile;
 
   @override
   void initState() {
     super.initState();
-    _loadUserPhone();
+    NotificationCenter.profileChanged.addListener(_load);
+    _load();
   }
 
-  Future<void> _loadUserPhone() async {
-    final prefs = await SharedPreferences.getInstance();
-    final phone = prefs.getString('user_phone');
-    if (phone != null && mounted) {
-      setState(() {
-        _userPhone = phone;
-      });
+  @override
+  void dispose() {
+    NotificationCenter.profileChanged.removeListener(_load);
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final res = await ApiService.get('/users/me');
+    if (mounted && res.data is Map<String, dynamic>) {
+      setState(() => _profile = res.data as Map<String, dynamic>);
     }
   }
 
@@ -54,23 +61,15 @@ class _AccountTabState extends State<AccountTab> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(7.0),
-                    ),
-                    child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 30),
-                  ),
+                  ProfilePhoto(path: _profile?['profilePhotoPath']?.toString(), size: 52),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'عميل المنصة',
-                          style: TextStyle(
+                        Text(
+                          _profile?['fullName']?.toString() ?? '',
+                          style: const TextStyle(
                             fontFamily: 'AppFont',
                             fontFamilyFallback: appFontFallback,
                             fontSize: 16,
@@ -80,7 +79,7 @@ class _AccountTabState extends State<AccountTab> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          _userPhone,
+                          _profile?['phone']?.toString() ?? '',
                           style: const TextStyle(
                             fontFamily: 'AppFont',
                             fontFamilyFallback: appFontFallback,
@@ -101,7 +100,11 @@ class _AccountTabState extends State<AccountTab> {
             _buildSettingItem(
               title: 'البيانات الشخصية',
               icon: Icons.badge_outlined,
-              onTap: () {},
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const PersonalDataScreen()),
+                );
+              },
             ),
             _buildSettingItem(
               title: 'تغيير كلمة المرور',

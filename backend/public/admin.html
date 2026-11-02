@@ -4,67 +4,174 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>لوحة تحكم My Lawyer</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231D4ED8' d='M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5z'/%3E%3C/svg%3E">
 <style>
-  :root { --primary: #1D4ED8; --dark: #0F172A; --muted: #64748B; --border: #E2E8F0; --bg: #F8FAFC; --danger: #DC2626; }
+  :root {
+    --primary: #1D4ED8; --primary-light: #EFF6FF; --dark: #0F172A; --slate: #1E293B; --text: #334155;
+    --muted: #64748B; --border: #E2E8F0; --bg: #F8FAFC; --danger: #DC2626; --success: #16A34A; --warn: #D97706;
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--dark); font-family: system-ui, "Segoe UI", Tahoma, sans-serif; }
-  header { background: #fff; border-bottom: 1px solid var(--border); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
-  h1 { font-size: 18px; margin: 0; }
-  h2 { font-size: 16px; margin: 0 0 12px; }
-  main { max-width: 860px; margin: 0 auto; padding: 16px; }
-  nav { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-  button { font: inherit; border: 1px solid var(--border); background: #fff; border-radius: 12px; padding: 8px 14px; cursor: pointer; }
-  button.primary, nav button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
-  button.danger { color: var(--danger); border-color: var(--danger); }
-  .card { background: #fff; border: 1px solid var(--border); border-radius: 7px; padding: 14px; margin-bottom: 12px; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, "Segoe UI", Tahoma, sans-serif; font-size: 14px; }
+  h1 { font-size: 20px; margin: 0; color: var(--dark); }
+  h2 { font-size: 15px; margin: 0 0 10px; color: var(--dark); }
+  a { color: var(--primary); cursor: pointer; text-decoration: none; }
+
+  #login { max-width: 360px; margin: 12vh auto; background: #fff; border: 1px solid var(--border); border-radius: 7px; padding: 24px; }
+  #login h1 { text-align: center; margin-bottom: 18px; color: var(--primary); }
+
+  #app { display: flex; min-height: 100vh; }
+  aside { width: 240px; background: var(--dark); color: #CBD5E1; padding: 18px 12px; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
+  aside .brand { color: #fff; font-size: 18px; font-weight: 800; padding: 4px 10px 18px; }
+  aside button { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; color: inherit; padding: 10px; border-radius: 7px; font: inherit; cursor: pointer; text-align: start; margin-bottom: 2px; }
+  aside button:hover { background: var(--slate); color: #fff; }
+  aside button.active { background: var(--primary); color: #fff; }
+  aside svg { width: 19px; height: 19px; flex-shrink: 0; }
+  aside .badge { margin-inline-start: auto; background: var(--danger); color: #fff; border-radius: 10px; padding: 0 7px; font-size: 12px; }
+  aside .logout { margin-top: 16px; border-top: 1px solid var(--slate); border-radius: 0; padding-top: 14px; }
+
+  main { flex: 1; min-width: 0; padding: 22px; }
+  .page-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 7px; padding: 16px; margin-bottom: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .stat { background: #fff; border: 1px solid var(--border); border-radius: 7px; padding: 14px; }
+  .stat b { display: block; font-size: 24px; color: var(--dark); margin-top: 4px; }
   .muted { color: var(--muted); font-size: 13px; }
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
-  input { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; width: 110px; }
+  button.btn { font: inherit; border: 1px solid var(--border); background: #fff; color: var(--text); border-radius: 12px; padding: 8px 14px; cursor: pointer; }
+  button.btn:hover { border-color: var(--primary); }
+  button.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  button.danger { color: var(--danger); border-color: var(--danger); }
+  input, select { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: #fff; }
+  input.small { width: 110px; }
   input.wide { width: 100%; margin-bottom: 10px; }
+  input.search { min-width: 260px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: start; color: var(--muted); font-size: 12px; font-weight: 600; padding: 8px; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr.click { cursor: pointer; }
+  tr.click:hover { background: var(--primary-light); }
+  .table-wrap { overflow-x: auto; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 7px; font-size: 12px; background: var(--primary-light); color: var(--primary); }
+  .tag.good { background: #DCFCE7; color: var(--success); }
+  .tag.bad { background: #FEE2E2; color: var(--danger); }
+  .tag.warn { background: #FEF3C7; color: var(--warn); }
+  .avatar { width: 64px; height: 64px; border-radius: 7px; object-fit: cover; background: var(--primary-light); }
+  .timeline { border-inline-start: 2px solid var(--border); margin: 0; padding-inline-start: 16px; list-style: none; }
+  .timeline li { margin-bottom: 12px; position: relative; }
+  .timeline li::before { content: ""; position: absolute; inset-inline-start: -22px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+  .kv { display: grid; grid-template-columns: 150px 1fr; gap: 6px 12px; }
+  .kv span:nth-child(odd) { color: var(--muted); }
+  #toasts { position: fixed; top: 16px; left: 16px; z-index: 50; display: flex; flex-direction: column; gap: 8px; }
+  .toast { background: var(--dark); color: #fff; padding: 12px 16px; border-radius: 7px; min-width: 240px; box-shadow: 0 6px 20px rgba(15, 23, 42, .25); border-inline-start: 4px solid var(--success); }
+  .toast.error { border-inline-start-color: var(--danger); }
   .error { color: var(--danger); font-size: 13px; min-height: 18px; }
-  #login { max-width: 340px; margin: 60px auto; }
+  @media (max-width: 760px) {
+    #app { flex-direction: column; }
+    aside { width: 100%; height: auto; position: static; display: flex; overflow-x: auto; }
+    aside .brand { display: none; }
+    aside button { width: auto; white-space: nowrap; }
+    aside .logout { margin-top: 0; border-top: 0; padding-top: 10px; }
+    .kv { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>لوحة تحكم My Lawyer</h1>
-  <button id="logout" hidden>خروج</button>
-</header>
-<main>
-  <section id="login" class="card">
-    <h2>تسجيل دخول الإدارة</h2>
-    <input class="wide" id="identifier" placeholder="البريد أو الهاتف" autocomplete="username">
-    <input class="wide" id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password">
-    <p class="error" id="login-error"></p>
-    <button class="primary" id="login-button">دخول</button>
-  </section>
+<section id="login">
+  <h1>My Lawyer</h1>
+  <input class="wide" id="identifier" placeholder="البريد أو الهاتف" autocomplete="username">
+  <input class="wide" id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password">
+  <p class="error" id="login-error"></p>
+  <button class="btn primary" id="login-button" style="width:100%">دخول</button>
+</section>
 
-  <section id="panel" hidden>
-    <nav id="tabs"></nav>
-    <p class="error" id="panel-error"></p>
-    <div id="content"></div>
-  </section>
-</main>
+<div id="app" hidden>
+  <aside id="nav"></aside>
+  <main id="content"></main>
+</div>
+<div id="toasts"></div>
 
 <script>
   const API = '/api/v1';
-  let token = null;
+  const STORE_KEY = 'my-lawyer-admin';
+  let session = readSession();
+  let refreshing = null;
   const $ = (id) => document.getElementById(id);
+
+  const ICONS = {
+    home: 'M3 11.5 12 4l9 7.5M5 10v10h14V10',
+    ticket: 'M4 7h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4zM10 7v12',
+    complaint: 'M12 3 2 21h20zM12 10v5M12 18h.01',
+    appeal: 'M4 5h16v11H8l-4 4zM9 10h6',
+    apply: 'M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6zM9 12l2 2 4-4',
+    lawyer: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 4-6 8-6s8 2 8 6',
+    client: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2 20c0-3.5 3-5 7-5s7 1.500 7 5M16 4.500a3.500 3.500 0 0 1 0 6.500M18 15c2.500.5 4 2 4 5',
+    orders: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6',
+    review: 'm12 3 2.800 5.800 6.200.900-4.500 4.400 1 6.200L12 17.400 6.500 20.300l1-6.200L3 9.700l6.200-.900z',
+    price: 'M12 2v20M17 6H9.500a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6',
+    logout: 'M10 4H5v16h5M15 8l4 4-4 4M19 12H9',
+  };
+
+  const STATUS = {
+    PENDING: ['بانتظار المحامي', 'warn'], ACCEPTED: ['بانتظار الدفع', 'warn'], ACTIVE: ['قيد التنفيذ', ''],
+    COMPLETED: ['مكتمل', 'good'], CANCELLED: ['ملغي', 'bad'], REJECTED: ['اعتذر المحامي', 'bad'],
+    NO_RESPONSE: ['بدون رد', 'bad'], PAYMENT_EXPIRED: ['انتهت مهلة الدفع', 'bad'],
+    EXPIRED: ['انتهت المهلة', 'bad'], REFUNDED: ['تم الرد', 'bad'],
+  };
+
+  const PAYOUT = { HELD: 'محجوزة 24 ساعة', AVAILABLE: 'متاحة', FROZEN: 'مجمدة', REFUNDED: 'مردودة' };
+  const REQUEST = { OPEN: 'مفتوحة', RESOLVED: 'مغلقة', APPROVED: 'مقبولة', REJECTED: 'مرفوضة' };
+
+  function readSession() {
+    try { return JSON.parse(sessionStorage.getItem(STORE_KEY)); } catch { return null; }
+  }
+
+  function saveSession(next) {
+    session = next;
+    try {
+      if (next) sessionStorage.setItem(STORE_KEY, JSON.stringify(next));
+      else sessionStorage.removeItem(STORE_KEY);
+    } catch { /* the page still works for this visit */ }
+  }
 
   function el(tag, text, className) {
     const node = document.createElement(tag);
-    if (text !== undefined) node.textContent = text;
+    if (text !== undefined && text !== null) node.textContent = text;
     if (className) node.className = className;
     return node;
   }
 
-  async function api(method, path, body) {
+  function toast(message, isError) {
+    const node = el('div', message, 'toast' + (isError ? ' error' : ''));
+    $('toasts').append(node);
+    setTimeout(() => node.remove(), isError ? 6000 : 3500);
+  }
+
+  function date(value) {
+    return value ? new Date(value).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+  }
+
+  async function refreshSession() {
+    refreshing ??= fetch(API + '/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: session?.refreshToken }),
+    }).then(async (res) => {
+      const json = await res.json();
+      if (!res.ok || !json.data?.accessToken) return false;
+      saveSession({ accessToken: json.data.accessToken, refreshToken: json.data.refreshToken || session.refreshToken });
+      return true;
+    }).catch(() => false).finally(() => { refreshing = null; });
+    return refreshing;
+  }
+
+  async function api(method, path, body, isRetry) {
     const res = await fetch(API + path, {
       method,
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session?.accessToken },
       body: body ? JSON.stringify(body) : undefined,
     });
     if (res.status === 401) {
+      if (!isRetry && await refreshSession()) return api(method, path, body, true);
       showLogin('انتهت الجلسة، سجل الدخول مرة أخرى');
       throw new Error('انتهت الجلسة');
     }
@@ -74,30 +181,106 @@
   }
 
   function showLogin(message) {
-    token = null;
+    saveSession(null);
     $('login').hidden = false;
-    $('panel').hidden = true;
-    $('logout').hidden = true;
+    $('app').hidden = true;
     $('login-error').textContent = message || '';
   }
 
-  async function act(action) {
-    $('panel-error').textContent = '';
-    try {
-      await action();
-    } catch (err) {
-      $('panel-error').textContent = err.message;
-    }
-  }
-
-  function button(text, className, onClick) {
-    const node = el('button', text, className);
-    node.addEventListener('click', () => act(onClick));
+  /// Every action shows a clear result and redraws the page
+  function button(text, className, onClick, success) {
+    const node = el('button', text, 'btn ' + className);
+    node.addEventListener('click', async () => {
+      node.disabled = true;
+      try {
+        const res = await onClick();
+        toast(success || res?.message || 'تم الحفظ');
+        await render();
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        node.disabled = false;
+      }
+    });
     return node;
   }
 
-  async function renderTickets(box) {
+  function confirmed(message, action) {
+    return async () => {
+      if (!window.confirm(message)) throw new Error('تم الإلغاء');
+      return action();
+    };
+  }
+
+  function tag(status) {
+    const [label, kind] = STATUS[status] || [status, ''];
+    return el('span', label, 'tag ' + kind);
+  }
+
+  function table(headers, rows, onClick) {
+    const wrap = el('div', undefined, 'table-wrap card');
+    const node = el('table');
+    const head = el('tr');
+    headers.forEach((title) => head.append(el('th', title)));
+    node.append(head);
+
+    rows.forEach((row) => {
+      const line = el('tr', undefined, onClick ? 'click' : '');
+      row.cells.forEach((cell) => {
+        const td = el('td');
+        td.append(cell instanceof Node ? cell : document.createTextNode(cell ?? '—'));
+        line.append(td);
+      });
+      if (onClick) line.addEventListener('click', () => onClick(row.item));
+      node.append(line);
+    });
+    wrap.append(rows.length ? node : el('p', 'لا توجد بيانات', 'muted'));
+    return wrap;
+  }
+
+  function pageHead(title, extra) {
+    const head = el('div', undefined, 'page-head');
+    head.append(el('h1', title));
+    if (extra) head.append(extra);
+    return head;
+  }
+
+  function searchBox(value, placeholder, onSearch) {
+    const input = el('input');
+    input.className = 'search';
+    input.placeholder = placeholder;
+    input.value = value || '';
+    input.addEventListener('keydown', (event) => { if (event.key === 'Enter') onSearch(input.value.trim()); });
+    return input;
+  }
+
+  function open(page, param) {
+    current = { page, param };
+    render();
+  }
+
+  // Pages
+
+  async function overviewPage(box) {
+    const { data } = await api('GET', '/admin/overview');
+    box.append(pageHead('نظرة عامة'));
+    const grid = el('div', undefined, 'grid');
+    [
+      ['الموكلون', data.clients], ['المحامون', data.lawyers], ['محامون متاحون', data.available_lawyers],
+      ['طلبات انضمام', data.pending_lawyers], ['طلبات مفتوحة', data.open_orders], ['طلبات مكتملة', data.completed_orders],
+      ['شكاوى مفتوحة', data.open_complaints], ['اعتراضات مفتوحة', data.open_appeals],
+      ['قيمة الطلبات المكتملة', Number(data.completed_value) + ' ج.م'],
+    ].forEach(([title, value]) => {
+      const stat = el('div', title, 'stat');
+      stat.append(el('b', value));
+      grid.append(stat);
+    });
+    box.append(grid);
+  }
+
+  async function ticketsPage(box) {
     const { data } = await api('GET', '/admin/tickets');
+    box.append(pageHead('التذاكر'));
     if (data.length === 0) box.append(el('p', 'مفيش تذاكر مفتوحة', 'muted'));
 
     for (const item of data) {
@@ -107,210 +290,377 @@
 
       const row = el('div', undefined, 'row');
       if (item.type === 'locked') {
-        row.append(button('فتح الكود', 'primary', async () => {
-          await api('POST', '/admin/orders/' + item.id + '/unlock-code', {});
-          await load();
-        }));
+        row.append(button('فتح الكود', 'primary', () => api('POST', '/admin/orders/' + item.id + '/unlock-code', {}), 'تم فتح الكود'));
       } else if (item.type === 'report') {
-        row.append(button('إغلاق البلاغ', 'primary', async () => {
-          await api('POST', '/admin/reports/' + item.id + '/resolve', {});
-          await load();
-        }));
+        row.append(button('إغلاق البلاغ', 'primary', () => api('POST', '/admin/reports/' + item.id + '/resolve', {}), 'تم إغلاق البلاغ'));
       } else {
-        const target = { complaint: 1, appeal: 2, review: 4 }[item.type];
-        row.append(button('فتح', 'primary', async () => {
-          activeTab = target;
-          await load();
-        }));
+        const target = { complaint: 'complaints', appeal: 'appeals', review: 'reviews' }[item.type];
+        const go = el('button', 'فتح', 'btn primary');
+        go.addEventListener('click', () => open(target));
+        row.append(go);
       }
       card.append(row);
       box.append(card);
     }
   }
 
-  async function renderUrgent(box) {
-    const { data } = await api('GET', '/admin/urgent-applications');
-    if (data.length === 0) box.append(el('p', 'مفيش طلبات انضمام', 'muted'));
-
-    for (const item of data) {
-      const card = el('div', undefined, 'card');
-      card.append(el('strong', item.full_name + ' • قيد ' + (item.syndicate_number || 'غير مسجل')));
-      card.append(el('p', (item.specialty || '') + ' • ' + item.phone));
-      if (item.bio) card.append(el('p', item.bio, 'muted'));
-      const row = el('div', undefined, 'row');
-      const reason = el('input');
-      reason.placeholder = 'سبب الرفض';
-      row.append(button('موافقة', 'primary', async () => {
-        await api('POST', '/admin/urgent-applications/' + item.user_id + '/decision', { approve: true });
-        await load();
-      }), reason, button('رفض', async () => {
-        await api('POST', '/admin/urgent-applications/' + item.user_id + '/decision', { approve: false, reason: reason.value });
-        await load();
-      }));
-      card.append(row);
-      box.append(card);
-    }
-  }
-
-  async function renderComplaints(box) {
+  async function complaintsPage(box) {
     const { data } = await api('GET', '/admin/complaints');
+    box.append(pageHead('الشكاوى'));
     if (data.length === 0) box.append(el('p', 'مفيش شكاوى مفتوحة', 'muted'));
 
     for (const item of data) {
       const card = el('div', undefined, 'card');
-      card.append(el('strong', item.order_number + ' • ' + item.service_title));
-      card.append(el('p', item.reason));
+      const title = el('a', item.order_number + ' • ' + item.service_title);
+      title.addEventListener('click', () => open('order', item.order_id));
+      card.append(title, el('p', item.reason));
       card.append(el('p', 'الموكل ' + item.client_phone + ' (' + item.client_complaints + ' شكوى) • ' +
         item.lawyer_name + ' ' + item.lawyer_phone + ' (' + item.lawyer_complaints + ' شكوى)', 'muted'));
-      card.append(el('p', 'المبلغ ' + item.price + ' ج.م • حالة الطلب ' + item.order_status +
-        (item.filed_after_hold ? ' • بعد انتهاء 24 ساعة' : ''), 'muted'));
+      card.append(el('p', 'المبلغ ' + item.price + ' ج.م' + (item.filed_after_hold ? ' • بعد انتهاء 24 ساعة' : ''), 'muted'));
 
       const note = el('input');
-      note.placeholder = 'ملاحظة';
+      note.placeholder = 'ملاحظة القرار';
       const row = el('div', undefined, 'row');
       row.append(note);
 
-      const resolve = async (resolution, refundAmount) => {
-        await api('POST', '/admin/complaints/' + item.id + '/resolve', { resolution, refundAmount, note: note.value });
-        await load();
-      };
+      const resolve = (resolution, refundAmount) =>
+        api('POST', '/admin/complaints/' + item.id + '/resolve', { resolution, refundAmount, note: note.value });
 
       if (!item.filed_after_hold) {
         const amount = el('input');
         amount.type = 'number';
+        amount.className = 'small';
         amount.placeholder = 'مبلغ جزئي';
-        row.append(button('رد كامل', 'danger', () => resolve('REFUND_FULL')));
-        row.append(amount);
-        row.append(button('رد جزئي', '', () => resolve('REFUND_PARTIAL', Number(amount.value))));
+        row.append(button('رد كامل', 'danger', confirmed('رد المبلغ كامل للموكل؟', () => resolve('REFUND_FULL')), 'تم رد المبلغ'));
+        row.append(amount, button('رد جزئي', '', () => resolve('REFUND_PARTIAL', Number(amount.value)), 'تم الرد الجزئي'));
       }
-      row.append(button(item.filed_after_hold ? 'إغلاق الشكوى' : 'تحويل للمحامي', 'primary', () => resolve('RELEASE')));
+      row.append(button(item.filed_after_hold ? 'إغلاق الشكوى' : 'تحويل للمحامي', 'primary', () => resolve('RELEASE'), 'تم تسجيل القرار'));
       card.append(row);
       box.append(card);
     }
   }
 
-  async function renderAppeals(box) {
+  async function appealsPage(box) {
     const { data } = await api('GET', '/admin/appeals');
+    box.append(pageHead('الاعتراضات'));
     if (data.length === 0) box.append(el('p', 'مفيش اعتراضات مفتوحة', 'muted'));
 
     for (const item of data) {
       const card = el('div', undefined, 'card');
       card.append(el('strong', item.order_number + ' • ' + item.lawyer_name));
-      card.append(el('p', item.reason));
-      card.append(el('p', 'المبلغ ' + item.price + ' ج.م', 'muted'));
-
-      const resolve = async (approve) => {
-        await api('POST', '/admin/appeals/' + item.id + '/resolve', { approve });
-        await load();
-      };
+      card.append(el('p', item.reason), el('p', 'المبلغ ' + item.price + ' ج.م', 'muted'));
+      const resolve = (approve) => api('POST', '/admin/appeals/' + item.id + '/resolve', { approve });
       const row = el('div', undefined, 'row');
-      row.append(button('قبول', 'primary', () => resolve(true)));
-      row.append(button('رفض', 'danger', () => resolve(false)));
+      row.append(button('قبول', 'primary', () => resolve(true), 'تم قبول الاعتراض'));
+      row.append(button('رفض', 'danger', () => resolve(false), 'تم رفض الاعتراض'));
       card.append(row);
       box.append(card);
     }
   }
 
-  async function renderPrices(box) {
-    const { data } = await api('GET', '/admin/prices');
-
-    const allCard = el('div', undefined, 'card');
-    const allPercent = el('input');
-    allPercent.type = 'number';
-    allPercent.placeholder = 'النسبة %';
-    const allRow = el('div', undefined, 'row');
-    allRow.append(el('strong', 'نسبة واحدة لكل الخدمات'), allPercent, button('تطبيق على الكل', 'primary', async () => {
-      await api('POST', '/admin/commission', { percent: Number(allPercent.value) });
-      await load();
-    }));
-    allCard.append(allRow, el('p', 'النسبة الجديدة تطبق على الطلبات الجديدة فقط', 'muted'));
-    const taxRes = await api('GET', '/admin/tax');
-    const taxPercent = el('input');
-    taxPercent.type = 'number';
-    taxPercent.value = taxRes.data.percent;
-    const taxRow = el('div', undefined, 'row');
-    taxRow.append(el('strong', 'نسبة الضريبة من سعر الخدمة'), taxPercent, button('حفظ', async () => {
-      await api('POST', '/admin/tax', { percent: Number(taxPercent.value) });
-      await load();
-    }));
-    allCard.append(taxRow, el('p', 'الضريبة تتخصم من السعر الأول، ونسبة المنصة من الصافي بعدها. التغيير للطلبات الجديدة فقط.', 'muted'));
-    box.append(allCard);
+  async function applicationsPage(box) {
+    const { data } = await api('GET', '/admin/urgent-applications');
+    box.append(pageHead('طلبات المحامين'));
+    if (data.length === 0) box.append(el('p', 'مفيش طلبات انضمام', 'muted'));
 
     for (const item of data) {
       const card = el('div', undefined, 'card');
-      card.append(el('strong', item.problem_type));
+      const name = el('a', item.full_name + ' • قيد ' + (item.syndicate_number || 'غير مسجل'));
+      name.addEventListener('click', () => open('user', item.user_id));
+      card.append(name, el('p', (item.specialty || 'بدون تخصص') + ' • ' + item.phone));
+      if (item.bio) card.append(el('p', item.bio, 'muted'));
 
+      const reason = el('input');
+      reason.placeholder = 'سبب الرفض';
+      const decide = (approve) => api('POST', '/admin/urgent-applications/' + item.user_id + '/decision', { approve, reason: reason.value });
+      const row = el('div', undefined, 'row');
+      row.append(button('موافقة', 'primary', () => decide(true), 'تمت الموافقة'), reason, button('رفض', 'danger', () => decide(false), 'تم الرفض'));
+      card.append(row);
+      box.append(card);
+    }
+  }
+
+  function usersPage(role, title) {
+    return async (box) => {
+      const q = current.search || '';
+      const { data } = await api('GET', '/admin/users?role=' + role + '&q=' + encodeURIComponent(q));
+      box.append(pageHead(title, searchBox(q, 'ابحث بالاسم أو الهاتف أو الإيميل', (value) => { current.search = value; render(); })));
+
+      const headers = role === 'lawyer'
+        ? ['الاسم', 'الهاتف', 'رقم القيد', 'التخصص', 'التقييم', 'الخدمة', 'الحالة', 'الطلبات']
+        : ['الاسم', 'الهاتف', 'الإيميل', 'الإنذارات', 'الحالة', 'الطلبات'];
+      const rows = data.map((item) => ({
+        item,
+        cells: role === 'lawyer'
+          ? [item.full_name, item.phone, item.syndicate_number, item.specialty, item.rating, item.urgent_status === 'APPROVED' ? 'معتمد' : (item.urgent_status === 'PENDING' ? 'بانتظار المراجعة' : 'غير معتمد'), accountTag(item.status), item.orders_count]
+          : [item.full_name, item.phone, item.email, item.warnings_count, accountTag(item.status), item.orders_count],
+      }));
+      box.append(table(headers, rows, (item) => open('user', item.id)));
+    };
+  }
+
+  function accountTag(status) {
+    const map = { active: ['نشط', 'good'], suspended: ['موقوف', 'bad'], rejected: ['مرفوض', 'bad'] };
+    const [label, kind] = map[status] || ['بانتظار التفعيل', 'warn'];
+    return el('span', label, 'tag ' + kind);
+  }
+
+  async function userPage(box) {
+    const { data } = await api('GET', '/admin/users/' + current.param);
+    const { user } = data;
+
+    const suspend = (value) => api('POST', '/admin/users/' + user.id + '/status', { suspend: value });
+    box.append(pageHead(user.full_name || 'حساب', user.status === 'suspended'
+      ? button('تفعيل الحساب', 'primary', () => suspend(false))
+      : button('إيقاف الحساب', 'danger', confirmed('إيقاف هذا الحساب؟', () => suspend(true)))));
+
+    const card = el('div', undefined, 'card');
+    const top = el('div', undefined, 'row');
+    if (user.photo) {
+      const image = el('img', undefined, 'avatar');
+      image.src = user.photo;
+      top.append(image);
+    }
+    top.append(accountTag(user.status));
+    if (user.role === 'lawyer') top.append(el('span', user.urgent_status === 'APPROVED' ? 'محامٍ معتمد' : 'غير معتمد', 'tag ' + (user.urgent_status === 'APPROVED' ? 'good' : 'warn')));
+    card.append(top);
+
+    const kv = el('div', undefined, 'kv');
+    kv.style.marginTop = '12px';
+    const fields = [
+      ['الهاتف', user.phone], ['الإيميل', user.email], ['تاريخ التسجيل', date(user.created_at)], ['الإنذارات', user.warnings_count],
+    ];
+    if (user.role === 'lawyer') {
+      fields.push(['رقم القيد', user.syndicate_number], ['التخصص', user.specialty], ['النبذة', user.bio],
+        ['التقييم', user.rating + ' (' + user.reviews_count + ')'], ['متاح الآن', user.is_available ? 'نعم' : 'لا'],
+        ['سبب عدم الإتاحة', user.availability_off_reason], ['آخر تحديث للموقع', date(user.last_location_updated_at)]);
+    }
+    fields.forEach(([label, value]) => kv.append(el('span', label), el('span', value ?? '—')));
+    card.append(kv);
+    box.append(card);
+
+    box.append(el('h2', 'الطلبات'));
+    box.append(table(['رقم الطلب', 'المشكلة', 'المبلغ', 'الحالة', 'التاريخ'], data.orders.map((item) => ({
+      item, cells: [item.order_number, item.problem_type, item.price + ' ج.م', tag(item.status), date(item.created_at)],
+    })), (item) => open('order', item.id)));
+
+    box.append(el('h2', 'التقييمات'));
+    box.append(table(['رقم الطلب', 'التقييم', 'التعليق', 'التاريخ'], data.reviews.map((item) => ({
+      item, cells: [item.order_number, item.rating + ' / 5', item.comment, date(item.created_at)],
+    })), (item) => open('order', item.order_id)));
+
+    box.append(el('h2', 'الشكاوى'));
+    box.append(table(['رقم الطلب', 'الشكوى', 'الحالة', 'القرار', 'التاريخ'], data.complaints.map((item) => ({
+      item, cells: [item.order_number, item.reason, REQUEST[item.status] || item.status, item.resolution, date(item.created_at)],
+    })), (item) => open('order', item.order_id)));
+
+    if (user.role === 'lawyer') {
+      box.append(el('h2', 'المخالفات'));
+      box.append(table(['النوع', 'التاريخ'], data.strikes.map((item) => ({ item, cells: [item.kind, date(item.created_at)] }))));
+    } else {
+      box.append(el('h2', 'حركات الرصيد'));
+      box.append(table(['المبلغ', 'السبب', 'التاريخ'], data.credits.map((item) => ({ item, cells: [item.amount + ' ج.م', item.reason, date(item.created_at)] }))));
+    }
+  }
+
+  async function ordersPage(box) {
+    const q = current.search || '';
+    const status = current.status || '';
+    const { data } = await api('GET', '/admin/orders?q=' + encodeURIComponent(q) + '&status=' + status);
+
+    const filters = el('div', undefined, 'row');
+    filters.style.marginTop = '0';
+    const select = el('select');
+    select.append(new Option('كل الحالات', ''));
+    Object.entries(STATUS).forEach(([key, [label]]) => select.append(new Option(label, key)));
+    select.value = status;
+    select.addEventListener('change', () => { current.status = select.value; render(); });
+    filters.append(searchBox(q, 'ابحث برقم الطلب أو الاسم أو الهاتف', (value) => { current.search = value; render(); }), select);
+    box.append(pageHead('الطلبات', filters));
+
+    box.append(table(['رقم الطلب', 'الموكل', 'المحامي', 'المشكلة', 'المبلغ', 'الحالة', 'التاريخ'], data.map((item) => ({
+      item, cells: [item.order_number, item.client_name, item.lawyer_name, item.problem_type, item.price + ' ج.م', tag(item.status), date(item.created_at)],
+    })), (item) => open('order', item.id)));
+  }
+
+  async function orderPage(box) {
+    const { data } = await api('GET', '/admin/orders/' + current.param);
+    const { order } = data;
+    box.append(pageHead('طلب ' + order.order_number, tag(order.status)));
+
+    const card = el('div', undefined, 'card');
+    const kv = el('div', undefined, 'kv');
+    const client = el('a', order.client_name + ' • ' + order.client_phone);
+    client.addEventListener('click', () => open('user', order.client_id));
+    const lawyer = el('a', order.lawyer_name + ' • ' + order.lawyer_phone);
+    lawyer.addEventListener('click', () => open('user', order.lawyer_id));
+    [
+      ['الموكل', client], ['المحامي', lawyer], ['المشكلة', order.problem_type], ['الوصف', order.problem_description],
+      ['السعر', order.price + ' ج.م'], ['الضريبة', order.tax_percent + '%'], ['نسبة المنصة', order.commission_percent + '%'],
+      ['صافي المحامي', order.lawyer_amount + ' ج.م'], ['حالة الأتعاب', PAYOUT[order.payout_status] || order.payout_status],
+      ['القبول', date(order.accepted_at)], ['الدفع', date(order.paid_at)], ['الوصول', date(order.arrived_at)], ['الإنهاء', date(order.completed_at)],
+    ].forEach(([label, value]) => {
+      kv.append(el('span', label));
+      const cell = el('span');
+      cell.append(value instanceof Node ? value : document.createTextNode(value ?? '—'));
+      kv.append(cell);
+    });
+    card.append(kv);
+    box.append(card);
+
+    const life = el('div', undefined, 'card');
+    life.append(el('h2', 'دورة حياة الطلب'));
+    const list = el('ul', undefined, 'timeline');
+    data.logs.forEach((log) => {
+      const item = el('li');
+      item.append(el('strong', (STATUS[log.new_status] || [log.new_status])[0]), el('div', log.note, 'muted'), el('div', date(log.created_at), 'muted'));
+      list.append(item);
+    });
+    life.append(data.logs.length ? list : el('p', 'لا توجد أحداث', 'muted'));
+    box.append(life);
+
+    if (data.complaints.length) {
+      box.append(el('h2', 'الشكاوى'));
+      box.append(table(['الشكوى', 'الحالة', 'القرار', 'الرد', 'ملاحظة'], data.complaints.map((item) => ({
+        item, cells: [item.reason, REQUEST[item.status] || item.status, item.resolution, item.refund_amount, item.admin_note],
+      }))));
+    }
+    if (data.appeals.length) {
+      box.append(el('h2', 'الاعتراضات'));
+      box.append(table(['الاعتراض', 'الحالة', 'ملاحظة'], data.appeals.map((item) => ({ item, cells: [item.reason, REQUEST[item.status] || item.status, item.admin_note] }))));
+    }
+    if (data.reviews.length) {
+      box.append(el('h2', 'التقييم'));
+      box.append(table(['التقييم', 'التعليق'], data.reviews.map((item) => ({ item, cells: [item.rating + ' / 5', item.comment] }))));
+    }
+  }
+
+  async function reviewsPage(box) {
+    const [all, reported] = await Promise.all([api('GET', '/admin/reviews'), api('GET', '/admin/reviews/reported')]);
+    box.append(pageHead('التقييمات'));
+
+    if (reported.data.length) box.append(el('h2', 'مبلغ عنها'));
+    for (const item of reported.data) {
+      const card = el('div', undefined, 'card');
+      card.append(el('strong', item.lawyer_name + ' • ' + item.rating + ' نجوم'));
+      card.append(el('p', item.comment || 'بدون تعليق'), el('p', 'سبب البلاغ: ' + item.report_reason, 'muted'));
+      const moderate = (hide) => api('POST', '/admin/reviews/' + item.id + '/moderate', { hide });
+      const row = el('div', undefined, 'row');
+      row.append(button('إخفاء', 'danger', () => moderate(true), 'تم إخفاء التعليق'), button('إبقاء', '', () => moderate(false), 'تم إبقاء التعليق'));
+      card.append(row);
+      box.append(card);
+    }
+
+    box.append(el('h2', 'كل التقييمات'));
+    box.append(table(['المحامي', 'التقييم', 'التعليق', 'رقم الطلب', 'الحالة', 'التاريخ'], all.data.map((item) => ({
+      item, cells: [item.lawyer_name, item.rating + ' / 5', item.comment, item.order_number, item.is_hidden ? 'مخفي' : 'ظاهر', date(item.created_at)],
+    })), (item) => open('order', item.order_id)));
+  }
+
+  async function pricesPage(box) {
+    const [prices, tax] = await Promise.all([api('GET', '/admin/prices'), api('GET', '/admin/tax')]);
+    box.append(pageHead('الأسعار والنسب'));
+
+    const card = el('div', undefined, 'card');
+    const percent = el('input');
+    percent.type = 'number';
+    percent.className = 'small';
+    percent.placeholder = 'النسبة %';
+    const allRow = el('div', undefined, 'row');
+    allRow.append(el('strong', 'نسبة المنصة لكل الخدمات'), percent,
+      button('تطبيق على الكل', 'primary', () => api('POST', '/admin/commission', { percent: Number(percent.value) })));
+
+    const taxInput = el('input');
+    taxInput.type = 'number';
+    taxInput.className = 'small';
+    taxInput.value = tax.data.percent;
+    const taxRow = el('div', undefined, 'row');
+    taxRow.append(el('strong', 'نسبة الضريبة'), taxInput,
+      button('حفظ', 'primary', () => api('POST', '/admin/tax', { percent: Number(taxInput.value) })));
+    card.append(allRow, taxRow, el('p', 'الضريبة تتخصم من السعر الأول، ونسبة المنصة من الصافي بعدها. التغيير للطلبات الجديدة فقط.', 'muted'));
+    box.append(card);
+
+    for (const item of prices.data) {
+      const line = el('div', undefined, 'card');
+      line.append(el('strong', item.problem_type));
       const min = el('input');
       const max = el('input');
       const commission = el('input');
-      min.type = max.type = commission.type = 'number';
+      [min, max, commission].forEach((input) => { input.type = 'number'; input.className = 'small'; });
       min.value = Number(item.min_price);
       max.value = Number(item.max_price);
       commission.value = Number(item.commission_percent);
-
       const row = el('div', undefined, 'row');
-      row.append(el('span', 'من', 'muted'), min, el('span', 'إلى', 'muted'), max, el('span', 'نسبة المنصة %', 'muted'), commission);
-      row.append(button('حفظ', 'primary', async () => {
-        await api('PUT', '/admin/prices', {
+      row.append(el('span', 'من', 'muted'), min, el('span', 'إلى', 'muted'), max, el('span', 'نسبة المنصة %', 'muted'), commission,
+        button('حفظ', 'primary', () => api('PUT', '/admin/prices', {
           problemType: item.problem_type,
           minPrice: Number(min.value),
           maxPrice: Number(max.value),
           commissionPercent: Number(commission.value),
-        });
-        await load();
-      }));
-      card.append(row);
-      box.append(card);
+        })));
+      line.append(row);
+      box.append(line);
     }
   }
 
-  async function renderReviews(box) {
-    const { data } = await api('GET', '/admin/reviews/reported');
-    if (data.length === 0) box.append(el('p', 'مفيش تعليقات مبلغ عنها', 'muted'));
+  const PAGES = {
+    overview: ['نظرة عامة', 'home', overviewPage],
+    tickets: ['التذاكر', 'ticket', ticketsPage],
+    complaints: ['الشكاوى', 'complaint', complaintsPage],
+    appeals: ['الاعتراضات', 'appeal', appealsPage],
+    applications: ['طلبات المحامين', 'apply', applicationsPage],
+    lawyers: ['المحامون', 'lawyer', usersPage('lawyer', 'المحامون')],
+    clients: ['الموكلون', 'client', usersPage('client', 'الموكلون')],
+    orders: ['الطلبات', 'orders', ordersPage],
+    reviews: ['التقييمات', 'review', reviewsPage],
+    prices: ['الأسعار والنسب', 'price', pricesPage],
+  };
+  const INNER = { user: userPage, order: orderPage };
+  let current = { page: 'overview' };
 
-    for (const item of data) {
-      const card = el('div', undefined, 'card');
-      card.append(el('strong', item.lawyer_name + ' • ' + item.rating + ' نجوم'));
-      card.append(el('p', item.comment || 'بدون تعليق'));
-      card.append(el('p', 'سبب البلاغ: ' + item.report_reason, 'muted'));
-
-      const moderate = async (hide) => {
-        await api('POST', '/admin/reviews/' + item.id + '/moderate', { hide });
-        await load();
-      };
-      const row = el('div', undefined, 'row');
-      row.append(button('إخفاء', 'danger', () => moderate(true)));
-      row.append(button('إبقاء', '', () => moderate(false)));
-      card.append(row);
-      box.append(card);
-    }
+  function icon(name) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '1.8');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', ICONS[name]);
+    svg.append(path);
+    return svg;
   }
 
-  const TABS = [
-    ['التذاكر', renderTickets],
-    ['الشكاوى', renderComplaints],
-    ['الاعتراضات', renderAppeals],
-    ['طلبات المحامين', renderUrgent],
-    ['الأسعار', renderPrices],
-    ['التعليقات', renderReviews],
-  ];
-  let activeTab = 0;
-
-  async function load() {
-    const tabs = $('tabs');
-    tabs.replaceChildren();
-    TABS.forEach(([title], index) => {
-      const node = el('button', title, index === activeTab ? 'active' : '');
-      node.addEventListener('click', () => { activeTab = index; act(load); });
-      tabs.append(node);
+  function renderNav() {
+    const nav = $('nav');
+    nav.replaceChildren(el('div', 'My Lawyer', 'brand'));
+    Object.entries(PAGES).forEach(([key, [title, name]]) => {
+      const item = el('button', undefined, key === current.page ? 'active' : '');
+      item.append(icon(name), el('span', title));
+      item.addEventListener('click', () => open(key));
+      nav.append(item);
     });
-
-    const box = el('div');
-    await TABS[activeTab][1](box);
-    $('content').replaceChildren(box);
+    const out = el('button', undefined, 'logout');
+    out.append(icon('logout'), el('span', 'خروج'));
+    out.addEventListener('click', () => showLogin());
+    nav.append(out);
   }
 
-  $('login-button').addEventListener('click', async () => {
+  async function render() {
+    $('login').hidden = true;
+    $('app').hidden = false;
+    renderNav();
+    const box = el('div');
+    try {
+      await (INNER[current.page] || PAGES[current.page][2])(box);
+      $('content').replaceChildren(box);
+    } catch (err) {
+      if (session) toast(err.message, true);
+    }
+  }
+
+  async function signIn() {
     $('login-error').textContent = '';
     const res = await fetch(API + '/auth/login', {
       method: 'POST',
@@ -324,15 +674,15 @@
       return;
     }
 
-    token = json.data.accessToken;
+    saveSession({ accessToken: json.data.accessToken, refreshToken: json.data.refreshToken });
     $('password').value = '';
-    $('login').hidden = true;
-    $('panel').hidden = false;
-    $('logout').hidden = false;
-    act(load);
-  });
+    toast('أهلاً بيك');
+    render();
+  }
 
-  $('logout').addEventListener('click', () => showLogin());
+  $('login-button').addEventListener('click', signIn);
+  $('password').addEventListener('keydown', (event) => { if (event.key === 'Enter') signIn(); });
+  if (session) render();
 </script>
 </body>
 </html>

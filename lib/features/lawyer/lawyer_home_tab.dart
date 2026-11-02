@@ -76,11 +76,12 @@ class _LawyerHomeTabState extends State<LawyerHomeTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const LawyerAvailabilityCard(),
             // 1. كارت منسق لبيانات المحامي المهنية والعنوان الجغرافي (نص فقط دون أيقونة إشعارات مكررة)
             ProfileHomeCard(locationName: _locationName),
+            const SizedBox(height: 14),
+            const LawyerAvailabilityCard(),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 10),
 
             // عنوان قسم الخدمات القانونية المتاحة للمحامي
             const Text(

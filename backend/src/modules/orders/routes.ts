@@ -15,6 +15,7 @@ import {
   MAX_CODE_ATTEMPTS,
   notify,
   ORDER_DEADLINE_HOURS,
+  refreshLawyerRating,
   PAYMENT_MINUTES,
   resolveClientQuote,
   REVIEW_WINDOW_DAYS,
@@ -243,7 +244,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
              EXISTS (SELECT 1 FROM complaints c WHERE c.order_id = o.id AND c.status = 'OPEN') as has_open_complaint,
              EXISTS (SELECT 1 FROM order_appeals a WHERE a.order_id = o.id) as has_appeal,
              EXISTS (SELECT 1 FROM lawyer_reports lr WHERE lr.order_id = o.id) as has_report,
-             EXISTS (SELECT 1 FROM reviews r WHERE r.order_id = o.id AND r.published_at IS NULL AND r.edited = FALSE) as review_editable
+             EXISTS (SELECT 1 FROM reviews r WHERE r.order_id = o.id AND r.edited = FALSE) as review_editable
       FROM service_orders o
       JOIN users u_client ON o.client_id = u_client.id
       JOIN users u_lawyer ON o.lawyer_id = u_lawyer.id
@@ -899,16 +900,17 @@ export async function orderRoutes(fastify: FastifyInstance) {
 
     const comment = body.comment ? sanitizeText(body.comment, 1000) : null;
     const res = await query(
-      `INSERT INTO reviews (order_id, client_id, lawyer_id, rating, comment, publish_at)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO reviews (order_id, client_id, lawyer_id, rating, comment, publish_at, published_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
        ON CONFLICT (order_id) DO NOTHING RETURNING id`,
-      [order.id, userId, order.lawyer_id, rating, comment, order.hold_until]
+      [order.id, userId, order.lawyer_id, rating, comment]
     );
 
     if (res.rows.length === 0) {
       return reply.status(409).send({ success: false, error: 'تم تقييم هذا الطلب من قبل' });
     }
 
+    await refreshLawyerRating(dbPool, order.lawyer_id);
     return reply.status(201).send({ success: true, message: 'شكراً لتقييمك' });
   });
 
@@ -1085,8 +1087,8 @@ export async function orderRoutes(fastify: FastifyInstance) {
       `UPDATE reviews r SET rating = $1, comment = $2, edited = TRUE
        FROM service_orders o
        WHERE r.order_id = o.id AND (o.id::text = $3 OR o.order_number = $3) AND r.client_id = $4
-         AND r.published_at IS NULL AND r.edited = FALSE
-       RETURNING r.id`,
+         AND r.edited = FALSE
+       RETURNING r.id, r.lawyer_id`,
       [rating, body.comment ? sanitizeText(body.comment, 1000) : null, id, userId]
     );
 
@@ -1094,6 +1096,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: 'لا يمكن تعديل هذا التقييم' });
     }
 
+    await refreshLawyerRating(dbPool, res.rows[0].lawyer_id);
     return reply.send({ success: true, message: 'تم تعديل تقييمك' });
   });
 }

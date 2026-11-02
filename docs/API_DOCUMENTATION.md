@@ -100,6 +100,13 @@
 | `/admin/tickets` | `GET` | الإدارة | كل ما ينتظر قرار، والأقدم أولاً |
 | `/admin/orders/:id/unlock-code` | `POST` | الإدارة | فتح كود مقفول بعد 5 محاولات خاطئة |
 | `/admin/reports/:id/resolve` | `POST` | الإدارة | إغلاق بلاغ محامي |
+| `/admin/overview` | `GET` | إدارة | أرقام عامة عن الحسابات والطلبات |
+| `/admin/users?role=&q=` | `GET` | إدارة | قائمة المحامين أو الموكلين والبحث فيهم |
+| `/admin/users/:id` | `GET` | إدارة | بروفايل كامل بالطلبات والتقييمات والشكاوى |
+| `/admin/users/:id/status` | `POST` | إدارة | إيقاف الحساب أو تفعيله |
+| `/admin/orders?q=&status=` | `GET` | إدارة | البحث في الطلبات |
+| `/admin/orders/:id` | `GET` | إدارة | الطلب ودورة حياته كاملة |
+| `/admin/reviews` | `GET` | إدارة | كل التقييمات |
 | `/admin-panel` | `GET` | عام | صفحة لوحة التحكم، وبياناتها تتطلب حساب إدارة |
 | `/admin/reviews/reported`، `/admin/reviews/:id/moderate` | `GET`/`POST` | الإدارة | مراجعة التعليقات |
 | `/orders/:id/cancel` | `POST` | أطراف الطلب | إلغاء قبل الدفع، وللموكل بعد الدفع قبل وصول المحامي مع رد المبلغ لرصيده |

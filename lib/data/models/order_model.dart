@@ -192,6 +192,9 @@ class OrderModel {
   /// الإلغاء بعد الدفع مسموح قبل وصول المحامي فقط
   bool get canCancelAfterPayment => isActive && arrivedAt == null;
 
+  /// الموكل يلغي قبل الدفع، وبعده قبل وصول المحامي فقط
+  bool get canCancel => isPending || isAccepted || canCancelAfterPayment;
+
   /// الدقائق الباقية لدفع طلب وافق عليه المحامي
   int get paymentMinutesLeft {
     final deadline = paymentDeadline;
@@ -259,6 +262,14 @@ class OrderModel {
       default:
         return 'طلب وارد';
     }
+  }
+
+  /// نص الحالة من ناحية المحامي لما يختلف عن نص الموكل
+  String? get lawyerStatusLabel {
+    if (isPending) return 'طلب جديد';
+    if (isAccepted) return 'تم قبول الطلب • بانتظار دفع الموكل';
+    if (isNoResponse) return 'انتهى وقت الرد';
+    return null;
   }
 
   String get priceText => price == price.roundToDouble() ? price.toInt().toString() : price.toStringAsFixed(2);

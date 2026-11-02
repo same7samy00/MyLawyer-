@@ -445,15 +445,9 @@ describe('التقييمات', () => {
     assert.equal((await call('PUT', `/orders/${order.id}/review`, clientToken, { rating: 5 })).status, 400);
   });
 
-  it('التقييم ينزل بعد الـ 24 ساعة ويحسب تقييم المحامي', async () => {
+  it('التقييم يظهر فوراً ويحسب تقييم المحامي', async () => {
     const order = await createCompletedOrder();
     await call('POST', `/orders/${order.id}/review`, clientToken, { rating: 4, comment: 'خدمة ممتازة' });
-
-    await sweepLifecycle();
-    assert.equal((await call('GET', `/lawyers/${lawyerId}/reviews`, null)).body.data.length, 0);
-
-    await sql(`UPDATE reviews SET publish_at = NOW() - INTERVAL '1 minute'`);
-    await sweepLifecycle();
 
     const reviews = await call('GET', `/lawyers/${lawyerId}/reviews`, null);
     assert.equal(reviews.body.data.length, 1);
@@ -461,21 +455,26 @@ describe('التقييمات', () => {
     assert.equal(Number((await sql('SELECT rating FROM lawyer_profiles WHERE user_id = $1', [lawyerId]))[0].rating), 4);
   });
 
-  it('الشكوى المفتوحة توقف نشر التقييم', async () => {
+  it('لوحة التحكم تعرض الحساب وطلباته ودورة حياة الطلب والبحث', async () => {
     const order = await createCompletedOrder();
-    await call('POST', `/orders/${order.id}/review`, clientToken, { rating: 1 });
-    await call('POST', `/orders/${order.id}/complaint`, clientToken, { reason: 'شكوى مفتوحة قيد المراجعة' });
-    await sql(`UPDATE reviews SET publish_at = NOW() - INTERVAL '1 minute'`);
-    await sweepLifecycle();
 
-    assert.equal((await call('GET', `/lawyers/${lawyerId}/reviews`, null)).body.data.length, 0);
+    const profile = await call('GET', `/admin/users/${lawyerId}`, adminToken);
+    assert.equal(profile.status, 200);
+    assert.equal(profile.body.data.orders.some((o: any) => o.id === order.id), true);
+
+    const life = await call('GET', `/admin/orders/${order.id}`, adminToken);
+    assert.equal(life.status, 200);
+    assert.equal(life.body.data.order.completion_code, undefined);
+    assert.equal(life.body.data.logs.length > 0, true);
+
+    const found = await call('GET', `/admin/orders?q=${encodeURIComponent(life.body.data.order.order_number)}`, adminToken);
+    assert.equal(found.body.data.length, 1);
+    assert.equal((await call('GET', '/admin/overview', clientToken)).status, 403);
   });
 
   it('المحامي يبلغ والإدارة تخفي التعليق', async () => {
     const order = await createCompletedOrder();
     await call('POST', `/orders/${order.id}/review`, clientToken, { rating: 1, comment: 'تعليق مسيء' });
-    await sql(`UPDATE reviews SET publish_at = NOW() - INTERVAL '1 minute'`);
-    await sweepLifecycle();
 
     const review = (await call('GET', `/lawyers/${lawyerId}/reviews`, null)).body.data[0];
     await call('POST', `/lawyers/me/reviews/${review.id}/report`, lawyerToken, { reason: 'إساءة' });

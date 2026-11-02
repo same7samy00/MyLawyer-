@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
+import { registerAdminDirectory } from './directory.js';
 import { sanitizeText } from '../../utils/security.js';
 import { addClientCredit, addLawyerStrike, lawyerShare, MAX_CODE_ATTEMPTS, notify, refreshLawyerRating, warnClient } from '../lifecycle/service.js';
 
@@ -16,6 +17,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ success: false, error: 'غير مصرح: يرجى تسجيل الدخول كمسؤول' });
     }
   });
+
+  await registerAdminDirectory(fastify);
 
   // GET /api/v1/admin/lawyers/pending
   fastify.get('/lawyers/pending', async (_request: FastifyRequest, reply: FastifyReply) => {

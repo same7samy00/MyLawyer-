@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import '../constants/app_colors.dart';
 import '../services/api_service.dart';
 import '../services/notification_center.dart';
 import 'app_button.dart';
 import 'app_card.dart';
 import 'lawyer_reviews_panel.dart';
+import 'profile_photo.dart';
 
 /// كارت الحساب في الرئيسية للمحامي والموكل، وبياناته من الخادم
 class ProfileHomeCard extends StatefulWidget {
@@ -19,7 +19,6 @@ class ProfileHomeCard extends StatefulWidget {
 
 class _ProfileHomeCardState extends State<ProfileHomeCard> {
   Map<String, dynamic>? _profile;
-  bool _isUploading = false;
   late final AppLifecycleListener _lifecycle;
 
   @override
@@ -28,12 +27,14 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
     _load();
     // التقييم يتحدث مع وصول أي إشعار جديد، ومع رجوع المستخدم للتطبيق
     NotificationCenter.unread.addListener(_load);
+    NotificationCenter.profileChanged.addListener(_load);
     _lifecycle = AppLifecycleListener(onResume: _load);
   }
 
   @override
   void dispose() {
     NotificationCenter.unread.removeListener(_load);
+    NotificationCenter.profileChanged.removeListener(_load);
     _lifecycle.dispose();
     super.dispose();
   }
@@ -51,24 +52,6 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
   }
 
   bool get _isLawyer => _profile?['role'] == 'lawyer';
-
-  Future<void> _pickPhoto() async {
-    final image = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 800, imageQuality: 85);
-    if (image == null || !mounted) return;
-
-    setState(() => _isUploading = true);
-    final res = await ApiService.uploadFile('/users/me/profile-photo', image.path);
-    if (!mounted) return;
-
-    setState(() => _isUploading = false);
-    if (res.isOk) {
-      await _load();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(res.error ?? 'تعذر رفع الصورة')),
-      );
-    }
-  }
 
   void _openReviews() {
     final lawyerId = _profile!['id'].toString();
@@ -108,8 +91,6 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
     final profile = _profile;
     if (profile == null) return const SizedBox(height: 150);
 
-    final photo = profile['profilePhotoPath']?.toString() ?? '';
-    final origin = ApiService.baseUrl.replaceAll('/api/v1', '');
     final rating = profile['rating'] ?? 0;
     final bio = profile['bio']?.toString() ?? '';
 
@@ -120,24 +101,7 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
         children: [
           Row(
             children: [
-              InkWell(
-                onTap: _isUploading ? null : _pickPhoto,
-                borderRadius: BorderRadius.circular(7.0),
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(7.0),
-                  ),
-                  child: _isUploading
-                      ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
-                      : photo.isEmpty
-                          ? const Icon(Icons.add_a_photo_rounded, color: AppColors.primary, size: 26)
-                          : Image.network('$origin$photo', fit: BoxFit.cover),
-                ),
-              ),
+              ProfilePhoto(path: profile['profilePhotoPath']?.toString()),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
