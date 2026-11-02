@@ -9,7 +9,6 @@ export const HOLD_HOURS = 24;
 export const ORDER_DEADLINE_HOURS = 24;
 export const REVIEW_WINDOW_DAYS = 7;
 export const APPEAL_WINDOW_DAYS = 7;
-export const COMPLAINT_WINDOW_DAYS = 7;
 export const MAX_CODE_ATTEMPTS = 5;
 export const LAWYER_RESPONSE_SECONDS = 120;
 export const PAYMENT_MINUTES = 10;

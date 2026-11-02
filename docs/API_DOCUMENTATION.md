@@ -35,100 +35,103 @@
 
 ## 🚀 2. خريطة المسارات المعتمدة (Endpoint Registry)
 
-### 🏥 أ. فحص صحة النظام (Health & System Diagnostics)
+كل المسارات تحت `/api/v1`، والقائمة دي مطابقة للكود في `backend/src/modules`.
+
+### أ. النظام
 | المسار | الطريقة | الصلاحية | الوظيفة |
 | :--- | :---: | :---: | :--- |
-| `/health` | `GET` | عام (Public) | فحص سلامة السيرفر وقاعدة بيانات PostgreSQL وهجرة الجداول |
+| `/health` | `GET` | عام | حالة السيرفر وقاعدة البيانات والتحديثات المطبقة |
+| `/admin-panel` | `GET` | عام | صفحة لوحة التحكم، وكل بياناتها محتاجة حساب إدارة |
 
----
-
-### 🔐 ب. المصادقة والحسابات (Authentication & Accounts)
+### ب. الحسابات
 | المسار | الطريقة | الصلاحية | الوظيفة |
 | :--- | :---: | :---: | :--- |
-| `/auth/register` | `POST` | عام | تسجيل حساب جديد لموكل أو محامٍ (تفعيل فوري للمحامي) |
-| `/auth/verify-otp` | `POST` | عام | التحقق من كود البريد الإلكتروني وتفعيل الحساب |
-| `/auth/resend-otp` | `POST` | عام | إعادة إرسال كود التحقق |
-| `/auth/login` | `POST` | عام | تسجيل الدخول بالهاتف وكلمة المرور والحصول على JWT |
-| `/auth/refresh` | `POST` | عام | تجديد الـ Access Token عبر الـ Refresh Token مع تدوير الـ Refresh Token |
-| `/auth/logout` | `POST` | عام | إنهاء الجلسة وإلغاء الـ Refresh Token |
-| `/auth/forgot-password` | `POST` | عام | طلب رمز استعادة كلمة المرور على البريد |
-| `/auth/reset-password` | `POST` | عام | تعيين كلمة مرور جديدة بالرمز وإلغاء كل الجلسات |
-| `/users/me` | `GET` | مصرح | بيانات الحساب الحالي، ويعتمد عليها فحص الجلسة عند فتح التطبيق |
+| `/auth/register` | `POST` | عام | تسجيل موكل أو محامٍ |
+| `/auth/verify-otp` و`/auth/resend-otp` | `POST` | عام | تأكيد البريد بالكود وإعادة إرساله |
+| `/auth/login` | `POST` | عام | الدخول بالهاتف أو البريد، والحساب الموقوف يرجع `data.status = suspended` |
+| `/auth/refresh` | `POST` | عام | تجديد الجلسة مع تدوير الـ Refresh Token |
+| `/auth/logout` | `POST` | عام | إنهاء الجلسة |
+| `/auth/forgot-password` و`/auth/reset-password` | `POST` | عام | استعادة كلمة المرور بكود على البريد |
+| `/users/me` | `GET`/`PATCH` | مصرح | بيانات الحساب وتعديلها |
+| `/users/me/profile-photo` | `POST` | مصرح | رفع الصورة الشخصية، ونوعها يتعرف من الملف نفسه |
+| `/users/me/change-password` | `POST` | مصرح | تغيير كلمة المرور |
 
----
+**إيقاف الحساب:** أي طلب من حساب موقوف بيرجع `403` و`data.status = suspended`، ما عدا `/notifications/device-token/remove`.
 
-### 👨‍⚖️ ج. خدمات المحامين والبحث الجغرافي (Lawyers & Geo Queries)
+### ج. المحامي
 | المسار | الطريقة | الصلاحية | الوظيفة |
 | :--- | :---: | :---: | :--- |
-| `/lawyers/nearby` | `GET` | عام | استعلام المحامين الأقرب في النطاق الجغرافي المتاحين فعلياً |
-| `/lawyers/profile` | `GET` | محامٍ | جلب بيانات الملف الشخصي للمحامي المسجل حالياً |
-| `/lawyers/profile` | `PUT` | محامٍ | تحديث بيانات الملف الشخصي للمحامي |
-| `/lawyers/me/location` | `POST` | محامٍ | تحديث الموقع الجغرافي اللحظي وحالة التوفر للمحامي |
-| `/lawyers/avatar` | `POST` | محامٍ | رفع الصورة الشخصية للمحامي |
-| `/lawyers/documents` | `POST` | محامٍ | رفع مستندات القيد والكارنيه |
+| `/lawyers/nearby` | `GET` | عام | المحامون المتاحون على الخريطة بمكان تقريبي |
+| `/lawyers/:id/reviews` | `GET` | عام | التقييمات الظاهرة |
+| `/lawyers/me` | `GET` | محامٍ | الملف المهني والمستندات |
+| `/lawyers/me/urgent-terms` | `POST` | محامٍ | التقديم على «محاميك حالاً»، ومرفوض من غير صورة شخصية وكارنيه |
+| `/lawyers/me/availability` | `POST` | محامٍ | تفعيل الإتاحة أو قفلها، والتفعيل محتاج موافقة الإدارة |
+| `/lawyers/me/location` | `POST` | محامٍ | تحديث الموقع من التطبيق أو الخلفية |
+| `/lawyers/me/profile-photo` | `POST` | محامٍ | رفع صورة الملف المهني |
+| `/lawyers/me/documents` | `POST` | محامٍ | رفع صورة الكارنيه (صورة أو PDF) في مخزن محمي |
+| `/lawyers/documents/:id` | `GET` | المحامي صاحبه أو الإدارة | فتح ملف الكارنيه |
+| `/lawyers/me/reviews/:reviewId/report` | `POST` | محامٍ | بلاغ عن تعليق في تقييم |
 
----
-
-### ⚡ د. خدمة «محاميك حالاً» والطلبات (Urgent Legal Orders)
+### د. الطلبات
 | المسار | الطريقة | الصلاحية | الوظيفة |
 | :--- | :---: | :---: | :--- |
-| `/orders` | `POST` | موكل | إنشاء طلب استشارة/تمثيل عاجل جديد وربطه بالمحامي |
-| `/orders` | `GET` | مصرح | استرجاع قائمة طلبات المستخدم (موكل أو محامٍ) |
-| `/orders/:id` | `GET` | أطراف الطلب | جلب التفاصيل الكاملة للطلب والحالة اللحظية (Polling) |
-| `/orders/:id/accept` | `POST` | محامٍ | قبول الطلب من المحامي المستهدف (محمي من التكرار) |
-| `/orders/:id/reject` | `POST` | محامٍ | اعتذار المحامي عن المهمة مع تسجيل السبب |
-| `/orders/:id/confirm-payment` | `POST` | موكل | تأكيد السداد بعد موافقة المحامي وخلال 10 دقايق، و`{method: "wallet"}` للدفع من الرصيد |
-| `/orders/:id/complete` | `POST` | المحامي | إنهاء المهمة بكود الموكل `{code}` فقط، بعد الدفع وتسجيل الوصول، وإلا يرجع `409` |
-| `/orders/:id/complaint` | `POST` | الموكل | تقديم شكوى `{reason}` أثناء المهمة أو بعدها |
-| `/orders/:id/review` | `POST`/`PUT` | الموكل | تقييم خلال 7 أيام، وتعديل واحد قبل النشر |
-| `/orders/:id/appeal` | `POST` | المحامي | اعتراض `{reason}` خلال 7 أيام من انتهاء المهلة |
-| `/orders/quote` | `POST` | موكل | السعر قبل إرسال الطلب `{problemType}` |
-| `/orders/:id/arrive` | `POST` | المحامي | تسجيل الوصول `{latitude, longitude}` في نطاق 500 متر من الموكل |
-| `/orders/:id/withdraw` | `POST` | المحامي | الاعتذار بعد الدفع، والمبلغ يرجع للموكل وتُسجل نقطة |
-| `/orders/:id/report` | `POST` | المحامي | بلاغ `{reason}` عن مشكلة مع الموكل |
-| `/orders/wallet/me` | `GET` | مصرح | أرصدة المحامي، أو رصيد الموكل المرتجع |
-| `/lawyers/:id/reviews` | `GET` | عام | التقييمات المنشورة |
-| `/lawyers/me/reviews/:reviewId/report` | `POST` | المحامي | الإبلاغ عن تعليق |
-| `/notifications` | `GET` | مصرح | آخر الإشعارات |
-| `/notifications/summary` | `GET` | مصرح | عداد غير المقروء والطلبات |
-| `/notifications/read-all` | `POST` | مصرح | تعليم الكل كمقروء |
-| `/admin/complaints`، `/admin/complaints/:id/resolve` | `GET`/`POST` | الإدارة | مراجعة الشكاوى والفصل فيها |
-| `/admin/appeals`، `/admin/appeals/:id/resolve` | `GET`/`POST` | الإدارة | مراجعة الاعتراضات |
-| `/notifications/device-token` | `POST` | مصرح | تسجيل جهاز المستخدم لإشعارات الموبايل، و`/remove` لإلغائه |
-| `/admin/prices` | `GET`/`PUT` | الإدارة | نطاق السعر ونسبة المنصة لكل مشكلة، والحفظ يلغي الأسعار المحفوظة للموكلين في نفس المشكلة |
-| `/admin/commission` | `POST` | الإدارة | نسبة واحدة لكل الخدمات، للطلبات الجديدة فقط |
-| `/admin/tickets` | `GET` | الإدارة | كل ما ينتظر قرار، والأقدم أولاً |
-| `/admin/orders/:id/unlock-code` | `POST` | الإدارة | فتح كود مقفول بعد 5 محاولات خاطئة |
-| `/admin/reports/:id/resolve` | `POST` | الإدارة | إغلاق بلاغ محامي |
-| `/lawyers/me/urgent-terms` | `POST` | محامٍ | التقديم على «محاميك حالاً»، ومرفوض لو مفيش صورة شخصية وكارنيه |
-| `/lawyers/me/documents` | `POST` | محامٍ | رفع صورة كارنيه النقابة (صورة أو PDF)، ونوع الملف بيتعرف من الملف نفسه |
-| `/admin/urgent-applications` | `GET` | إدارة | طلبات الانضمام ومعاها `photo` و`card_id` و`card_mime`، والكارنيه بيتفتح من `/lawyers/documents/:id` |
-| `/orders/:id/complaint` | `POST` | موكل | `kind`: `MONEY` أو `BEHAVIOR`، و`reason` اختياري. متاحة أثناء المهمة ولحد 24 ساعة بعدها |
+| `/orders/quote` | `POST` | موكل | السعر قبل إرسال الطلب |
+| `/orders` | `POST`/`GET` | موكل / مصرح | إنشاء طلب، وقائمة طلبات المستخدم |
+| `/orders/:id` | `GET` | أطراف الطلب | تفاصيل الطلب |
+| `/orders/:id/accept` و`/orders/:id/reject` | `POST` | محامٍ | الرد على الطلب خلال دقيقتين |
+| `/orders/:id/confirm-payment` | `POST` | موكل | الدفع خلال 10 دقايق، و`method: wallet` من الرصيد لو كفاية |
+| `/orders/:id/cancel` | `POST` | أطراف الطلب | قبل الدفع، وللموكل بعد الدفع في أول 5 دقايق بس وقبل الوصول |
+| `/orders/:id/arrive` | `POST` | محامٍ | تسجيل الوصول في حدود 500 متر من الموكل |
+| `/orders/:id/complete` | `POST` | محامٍ | إنهاء المهمة بكود الموكل |
+| `/orders/:id/withdraw` | `POST` | محامٍ | الاعتذار بعد الدفع، والمبلغ يرجع للموكل ونقطة على المحامي |
+| `/orders/:id/complaint` | `POST` | موكل | `kind`: `MONEY` أو `BEHAVIOR`، و`reason` اختياري. أثناء المهمة ولحد 24 ساعة بعدها |
 | `/orders/:id/report` | `POST` | محامٍ | نفس الشكوى من ناحية المحامي |
-| `/admin/orders/:id/settlement` | `GET` | إدارة | القرار المقترح وأدلته: الوصول والكود والإنذارات |
-| `/admin/orders/:id/settle` | `POST` | إدارة | تنفيذ القرار المقترح أو `outcome` تاني: `REFUND` أو `LAWYER` أو `SPLIT` |
-| `/admin/orders/:id/freeze` | `POST` | إدارة | `freeze`: تجميد أتعاب الطلب أو فكها |
-| `/admin/complaints/:id/close` و`/admin/reports/:id/close` | `POST` | إدارة | إغلاق شكوى التعامل، و`warn` يوجه إنذار للطرف التاني |
-| `/admin/users/:id/balance` | `POST` | إدارة | إضافة أو خصم رصيد: `amount` موجب أو سالب، و`reason` إلزامي، و`orderNumber` اختياري |
-| `/admin/users/:id/warnings` و`/admin/warnings/:id/revoke` | `POST` | إدارة | توجيه إنذار بسبب، أو إلغاؤه |
-| `/admin/overview` | `GET` | إدارة | أرقام عامة عن الحسابات والطلبات |
-| `/admin/users?role=&q=` | `GET` | إدارة | قائمة المحامين أو الموكلين والبحث فيهم |
-| `/admin/users/:id` | `GET` | إدارة | بروفايل كامل بالطلبات والتقييمات والشكاوى |
-| `/admin/users/:id/status` | `POST` | إدارة | إيقاف الحساب أو تفعيله، والحساب الموقوف ياخد 403 و`data.status = suspended` في كل الطلبات |
-| `/admin/orders?q=&status=` | `GET` | إدارة | البحث في الطلبات |
-| `/admin/orders/:id` | `GET` | إدارة | الطلب ودورة حياته كاملة |
-| `/admin/reviews` | `GET` | إدارة | كل التقييمات |
-| `/admin/reports` | `GET` | إدارة | بلاغات المحامين المفتوحة عن الموكلين |
-| `/admin-panel` | `GET` | عام | صفحة لوحة التحكم، وبياناتها تتطلب حساب إدارة |
-| `/admin/reviews/reported`، `/admin/reviews/:id/moderate` | `GET`/`POST` | الإدارة | مراجعة التعليقات |
-| `/orders/:id/cancel` | `POST` | أطراف الطلب | إلغاء قبل الدفع، وللموكل بعد الدفع قبل وصول المحامي مع رد المبلغ لرصيده |
+| `/orders/:id/review` | `POST`/`PUT` | موكل | التقييم خلال 7 أيام، وتعديل واحد |
+| `/orders/:id/appeal` | `POST` | محامٍ | اعتراض على طلب قديم انتهى بحالة `EXPIRED`، والطلبات الجديدة بتتسوى لوحدها |
+| `/orders/wallet/me` | `GET` | مصرح | رصيد الموكل، أو أتعاب المحامي المحجوزة والمجمدة والمتاحة (شاملة حركات الإدارة) |
 
----
-
-### 🛡️ هـ. إدارة النظام ومراجعة الاعتماد (Admin Management)
+### هـ. الإشعارات
 | المسار | الطريقة | الصلاحية | الوظيفة |
 | :--- | :---: | :---: | :--- |
-| `/admin/lawyers/pending` | `GET` | مسؤول (Admin) | استعراض المحامين قيد المراجعة |
-| `/admin/lawyers/:id/approve` | `POST` | مسؤول (Admin) | اعتماد وترقية حساب المحامي يدوياً |
-| `/admin/lawyers/:id/reject` | `POST` | مسؤول (Admin) | رفض اعتماد المحامي مع تدوين السبب |
+| `/notifications` | `GET` | مصرح | آخر الإشعارات |
+| `/notifications/summary` | `GET` | مصرح | عدد غير المقروء والطلبات وحالة الإتاحة |
+| `/notifications/read-all` | `POST` | مصرح | تعليم الكل كمقروء |
+| `/notifications/device-token` و`/device-token/remove` | `POST` | مصرح | تسجيل الجهاز لإشعارات الموبايل أو إلغاؤه |
 
+### و. الإدارة (كل المسارات محتاجة حساب `admin`)
+| المسار | الطريقة | الوظيفة |
+| :--- | :---: | :--- |
+| `/admin/overview` | `GET` | أرقام الحسابات والطلبات واللي محتاج متابعة |
+| `/admin/users?role=&q=` | `GET` | المحامون أو الموكلون والبحث فيهم، ومع كل حساب عدد طلباته والشكاوى ضده واللي قدمها |
+| `/admin/users/:id` | `GET` | البروفايل الكامل: الطلبات، التقييمات، الشكاوى، المخالفات، حركات الرصيد، الإنذارات، الرصيد |
+| `/admin/users/:id/status` | `POST` | إيقاف الحساب أو تفعيله، والإيقاف اليدوي ما بيخلصش لوحده |
+| `/admin/users/:id/balance` | `POST` | إضافة أو خصم رصيد: `amount` موجب أو سالب، و`reason` إلزامي، و`orderNumber` اختياري |
+| `/admin/users/:id/warnings` | `POST` | توجيه إنذار بسبب إلزامي |
+| `/admin/warnings/:id/revoke` | `POST` | إلغاء إنذار |
+| `/admin/orders?q=&status=` | `GET` | البحث في الطلبات |
+| `/admin/orders/:id` | `GET` | الطلب وأطرافه ودورة حياته وشكاواه وتقييمه |
+| `/admin/orders/:id/settlement` | `GET` | القرار المقترح وأدلته: الوصول، والكود، وإنذارات الطرفين |
+| `/admin/orders/:id/settle` | `POST` | تنفيذ القرار المقترح، أو `outcome` تاني: `REFUND` أو `LAWYER` أو `SPLIT` |
+| `/admin/orders/:id/freeze` | `POST` | `freeze: true/false` لتجميد أتعاب الطلب أو فكها |
+| `/admin/orders/:id/unlock-code` | `POST` | فتح كود الإنهاء بعد 5 محاولات خاطئة |
+| `/admin/complaints` | `GET` | شكاوى الموكلين المفتوحة ونوعها |
+| `/admin/complaints/:id/close` | `POST` | إغلاق شكوى التعامل، و`warn: true` يوجه إنذار للمحامي |
+| `/admin/reports` | `GET` | شكاوى المحامين المفتوحة ونوعها |
+| `/admin/reports/:id/close` | `POST` | إغلاق شكوى التعامل، و`warn: true` يوجه إنذار للموكل |
+| `/admin/appeals` و`/admin/appeals/:id/resolve` | `GET`/`POST` | اعتراضات الطلبات القديمة |
+| `/admin/tickets` | `GET` | كل ما ينتظر قرار، واللوحة بتاخد منه الأكواد المقفولة |
+| `/admin/urgent-applications` | `GET` | طلبات الانضمام بالصورة الشخصية وبيانات الكارنيه |
+| `/admin/urgent-applications/:id/decision` | `POST` | الموافقة على طلب الانضمام أو رفضه بسبب |
+| `/admin/reviews` و`/admin/reviews/reported` | `GET` | كل التقييمات، والمبلغ عنها |
+| `/admin/reviews/:id/moderate` | `POST` | إخفاء تعليق أو إبقاؤه |
+| `/admin/prices` | `GET`/`PUT` | نطاق السعر ونسبة المنصة لكل مشكلة |
+| `/admin/commission` | `POST` | نسبة واحدة لكل الخدمات للطلبات الجديدة |
+| `/admin/tax` | `GET`/`POST` | نسبة الضريبة للطلبات الجديدة |
+
+### ز. المهام التلقائية (`sweepLifecycle` كل 10 ثواني)
+- قفل الطلبات اللي ما اتردش عليها، واللي ما اتدفعتش.
+- رجوع المحامي والموكل من الإيقاف المؤقت لما المدة تخلص.
+- إخفاء المحامي اللي موقعه ما اتحدثش 65 دقيقة.
+- تذكير المحامي قبل انتهاء مهلة المهمة.
+- تسوية الطلب لما مهلته تخلص بالقاعدة الثابتة، إلا لو فيه شكوى فلوس مفتوحة.
+- تحويل الأتعاب المحجوزة لمتاحة بعد 24 ساعة.

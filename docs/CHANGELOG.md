@@ -1,5 +1,13 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.87] - 2026-11-02
+### Cleanup and Documentation
+- Removed admin routes nothing uses anymore: the old account approval list and decision, and the old complaint and report decisions. The settlement and close routes replace them.
+- Removed the control page font route and its font files, since the page carries its fonts inside.
+- Removed 16 font files the app never used, which made the app smaller.
+- The local control page preview is now part of the project: `npm run preview:panel`.
+- Rewrote the API reference from the code, and documented the control page, the database tables, and the money rules.
+
 ## [Phase 2.86] - 2026-11-02
 ### Simple Settlement and Admin Account Tools
 - One fixed money rule: no arrival refunds the client, arrival with the code pays the lawyer, and arrival without the code splits in half unless one side has 3 active warnings.

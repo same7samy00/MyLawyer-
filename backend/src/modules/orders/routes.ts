@@ -8,7 +8,6 @@ import {
   approximateCoordinate,
   APPEAL_WINDOW_DAYS,
   ARRIVAL_RADIUS_KM,
-  COMPLAINT_WINDOW_DAYS,
   generateCompletionCode,
   HOLD_HOURS,
   LAWYER_RESPONSE_SECONDS,

@@ -83,3 +83,27 @@ erDiagram
    - استخدام الـ Database Transactions `withTransaction` عند إنشاء أو قبول الطلبات يمنع قبول الطلب من أكثر من محامٍ في نفس الوقت (`Race Conditions`).
    - مفتاح فريد `order_number` لمنع تكرار الفواتير والطلبات.
 
+---
+
+## 🧾 4. الجداول الحالية حسب التحديثات (Migrations)
+
+التحديثات في `backend/migrations` بتتطبق لوحدها مع كل تشغيل للسيرفر، بالترتيب، ومرة واحدة لكل تحديث.
+
+| التحديث | الجداول والأعمدة |
+|---|---|
+| `001` | `users`، `user_credentials`، `user_sessions`، `email_verifications`، `password_resets`، `lawyer_profiles`، `lawyer_documents` |
+| `002` | `service_orders`، `order_status_logs`، وموقع المحامي وإتاحته |
+| `003` | `complaints`، `order_appeals`، `client_credits`، `reviews`، `problem_prices`، `client_problem_prices`، `notifications`، `lawyer_strikes`، `lawyer_reports` |
+| `004` | `device_tokens` لإشعارات الموبايل |
+| `005`–`007` | حداثة موقع المحامي، وسبب قفل الإتاحة |
+| `008` | نسبة الضريبة في الطلب وشروط الخدمة |
+| `009` | حالة التقديم على «محاميك حالاً» `urgent_status` |
+| `010` | `account_warnings`، و`lawyer_adjustments`، و`users.suspended_until`، ونوع الشكوى `kind` في `complaints` و`lawyer_reports` |
+
+**الفلوس:**
+- **رصيد الموكل:** مجموع `client_credits`، وفيه الردود والتسويات وحركات الإدارة والدفع من الرصيد بالسالب.
+- **أتعاب المحامي:** `payout_amount` في الطلب حسب `payout_status`: `HELD` أو `FROZEN` أو `AVAILABLE` أو `REFUNDED`.
+- **حركات الإدارة على المحامي:** في `lawyer_adjustments`، وبتتجمع على المتاح.
+- **الرصيد السالب:** دين بيتسدد من المبالغ اللي بتدخل بعده.
+
+**الإنذارات:** في `account_warnings` للطرفين. الإنذار الملغى `revoked_at` ما بيتحسبش، و3 سارية في 30 يوم بتوقف الحساب أسبوع عبر `users.suspended_until`.
