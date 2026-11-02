@@ -11,13 +11,13 @@
    ========================================================================== */
 
 :root {
-  /* درجات الأخضر الطبيعي النقي */
-  --brand-primary: #469600;
-  --brand-primary-hover: #3b8000;
-  --brand-primary-active: #2f6600;
-  --brand-light: #eaf7d0;
-  --brand-border: #b8e268;
-  --brand-dark: #1e4700;
+  /* درجات الأزرق المعتمدة */
+  --brand-primary: #1d4ed8;
+  --brand-primary-hover: #1e40af;
+  --brand-primary-active: #1e3a8a;
+  --brand-light: #eff6ff;
+  --brand-border: #bfdbfe;
+  --brand-dark: #172554;
 
   /* الخلفيات والأسطح - تباين عالي وواضح لمنع بهتان الواجهة */
   --bg-app: #e2e8f0;
@@ -40,12 +40,12 @@
   --sidebar-w-collapsed: 72px;
   --header-h: 64px;
   --control-h: 40px;
-  --control-radius: 6px;
+  --control-radius: 0;
   --control-font-size: 0.875rem;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-full: 9999px;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-full: 0;
   
   --transition-fast: 0.18s ease;
 
@@ -381,7 +381,7 @@ body {
 }
 
 .sub-nav-item.active {
-  background-color: rgba(70, 150, 0, 0.08);
+  background-color: rgba(29, 78, 216, 0.08);
   color: var(--brand-primary);
   font-weight: 700;
 }
@@ -1066,7 +1066,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  background: #f4f9eb;
+  background: #eff6ff;
   padding: 0.6rem 0.85rem;
   border-radius: var(--radius-md);
   border: 1.5px solid var(--brand-border);
@@ -1138,14 +1138,14 @@ body {
   position: sticky !important;
   top: 0 !important;
   z-index: 20 !important;
-  background-color: #eaf7d0 !important;
+  background-color: #eff6ff !important;
 }
 
 .custom-table thead th {
   position: sticky !important;
   top: 0 !important;
   z-index: 20 !important;
-  background-color: #eaf7d0 !important;
+  background-color: #eff6ff !important;
   background-image: none !important;
   color: var(--brand-dark) !important;
   padding: 0.75rem 0.65rem !important;
@@ -1820,7 +1820,7 @@ body {
   flex-shrink: 0;
 }
 
-.bg-brand-subtle { background: #eaf7d0; }
+.bg-brand-subtle { background: #eff6ff; }
 .bg-green-subtle { background: #dcfce7; }
 .bg-gray-subtle { background: #f1f5f9; }
 .bg-amber-subtle { background: #fef3c7; }
@@ -2523,7 +2523,7 @@ body {
   align-items: center;
   gap: 0.6rem;
   padding: 0.85rem 1.25rem;
-  background: #eaf7d0;
+  background: #eff6ff;
   border-bottom: 1.5px solid var(--brand-border);
   border-right: 4px solid var(--brand-primary);
 }
@@ -2541,7 +2541,7 @@ body {
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.65rem 1rem;
-  background: #f4f9eb;
+  background: #eff6ff;
   border: 1.5px solid var(--brand-border);
   border-right: 4px solid var(--brand-primary);
   border-radius: var(--radius-sm);
@@ -2786,7 +2786,7 @@ body {
 }
 
 .sub-variants-table thead th {
-  background-color: #eaf7d0 !important;
+  background-color: #eff6ff !important;
   font-size: 0.78rem !important;
   padding: 0.85rem 1.15rem !important;
   color: var(--brand-dark) !important;
@@ -4896,7 +4896,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
   align-items: center;
   justify-content: space-between;
   padding: 0.85rem 1.35rem;
-  background: #eaf7d0;
+  background: #eff6ff;
   border-bottom: 1.5px solid var(--brand-border);
   border-right: 4px solid var(--brand-primary);
   flex-shrink: 0 !important;
@@ -5288,9 +5288,9 @@ body .custom-switch-toggle.active.sm .switch-knob {
 }
 
 .default-address-pill {
-  background: var(--brand-light, #eaf7d0);
-  color: var(--brand-primary, #469600);
-  border: 1px solid var(--brand-border, #b8e268);
+  background: var(--brand-light, #eff6ff);
+  color: var(--brand-primary, #1d4ed8);
+  border: 1px solid var(--brand-border, #bfdbfe);
   font-size: 0.68rem;
   font-weight: 800;
   padding: 2px 7px;
@@ -5841,8 +5841,8 @@ body .custom-switch-toggle.active.sm .switch-knob {
   align-items: center;
   justify-content: center;
   padding: 0.3rem 0.75rem;
-  background: rgba(70, 150, 0, 0.1);
-  border: 1px solid rgba(70, 150, 0, 0.3);
+  background: rgba(29, 78, 216, 0.1);
+  border: 1px solid rgba(29, 78, 216, 0.3);
   color: #275200;
   font-weight: 800;
   font-size: 0.82rem;
@@ -6005,7 +6005,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
   .header-toast-wrapper { display: inline-flex; }
   .header-toast-close-btn { background: none; border: 0; color: inherit; cursor: pointer; display: inline-flex; padding: 0; }
 
-  .login-brand-icon { width: 56px; height: 56px; background: rgba(70, 150, 0, 0.08); border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; color: var(--brand-primary); margin-bottom: 1rem; }
+  .login-brand-icon { width: 56px; height: 56px; background: rgba(29, 78, 216, 0.08); border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; color: var(--brand-primary); margin-bottom: 1rem; }
   .login-brand-icon svg { width: 32px; height: 32px; }
   .login-title { font-size: 1.4rem; font-weight: 700; color: var(--text-main); margin: 0 0 0.4rem; }
   .login-subtitle { font-size: 0.88rem; color: var(--text-secondary); margin: 0; }
@@ -6104,6 +6104,101 @@ body .custom-switch-toggle.active.sm .switch-knob {
 .form-actions-row { gap: 0.5rem; margin-top: 0.4rem; padding-top: 0; }
 .action-group + .action-group { margin-top: 0.6rem; }
 .custom-tabs-container { margin-bottom: 0; }
+
+/* Sharp corners everywhere */
+*, *::before, *::after { border-radius: 0 !important; }
+
+/* One container level: the section or table is the only box, what sits inside it is plain */
+.form-card-header { background: transparent !important; border-right: 0 !important; border-bottom: 1px solid var(--border-color) !important; }
+.form-card-section, .view-hero-card { border-width: 1px !important; box-shadow: none !important; }
+.form-card-body .table-wrapper, .form-card-body .custom-table, .tab-content-pane > .form-card-section .table-wrapper { border: 0 !important; box-shadow: none !important; }
+.table-controls-bar, .custom-tabs-container, .tab-content-pane { background: transparent !important; border: 0 !important; box-shadow: none !important; padding-inline: 0 !important; }
+.custom-tabs-container { border-bottom: 1px solid var(--border-color) !important; padding-block: 0 0.25rem !important; }
+.section-subheading-box { background: transparent !important; border: 0 !important; padding: 0 !important; }
+.person-grid { gap: 1.25rem; }
+.person-card, .info-lines, .info-line, .person-pill, .view-meta-pill { background: transparent !important; border: 0 !important; box-shadow: none !important; padding-inline: 0 !important; }
+.person-avatar, .hero-avatar, .summary-card-icon { border: 0 !important; }
+.ticket-message { background: transparent !important; border: 0 !important; border-bottom: 1px solid var(--border-color) !important; padding-inline: 0 !important; }
+.ticket-message:last-child { border-bottom: 0 !important; }
+.ticket-note .ticket-message-head strong { color: var(--text-muted); }
+.ticket-admin .ticket-message-head strong { color: var(--brand-primary); }
+.products-summary-bar { gap: 0 !important; background: var(--bg-surface); border: 1px solid var(--border-color); }
+.summary-card { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+.summary-card-icon { background: transparent !important; width: 22px; height: 22px; }
+
+/* Stable layout: separate equal cards, and every label and value on a fixed grid */
+.products-summary-bar { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important; gap: 0.5rem !important; background: transparent !important; border: 0 !important; }
+.summary-card { display: grid !important; grid-template-columns: 22px 1fr; align-items: center; gap: 0.6rem !important; min-height: 52px; background: var(--bg-surface) !important; border: 1px solid var(--border-color) !important; padding: 0.4rem 0.75rem !important; }
+.summary-card-data { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; text-align: right; }
+.detail-table { table-layout: fixed; width: 100%; }
+.detail-table th { width: 190px; text-align: right !important; }
+.detail-table td { text-align: right !important; }
+.detail-table .info-key { justify-content: flex-start; }
+.person-grid { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
+.person-head { display: grid !important; grid-template-columns: 40px 1fr auto; align-items: center; gap: 0.6rem; }
+.info-lines { display: flex; flex-direction: column; gap: 0.2rem; }
+.info-line { display: grid !important; grid-template-columns: 100px 1fr; align-items: center; gap: 0.5rem; padding-block: 0.15rem !important; text-align: right; }
+.info-line .info-key { justify-content: flex-start; }
+.info-line .info-value { text-align: right; overflow-wrap: anywhere; }
+.person-stats { justify-content: flex-start; }
+.ticket-message-head { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+.form-actions-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; }
+.table-controls-bar, .controls-right { align-items: center; justify-content: flex-start; }
+.view-hero-card { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.view-hero-main { display: flex; align-items: center; gap: 0.75rem; }
+.view-meta-pills { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 0.25rem 0.9rem; }
+@media (max-width: 640px) { .detail-table th { width: 120px; } }
+/* Explanation notes sit in their own box with a note icon */
+.page-guide { display: flex !important; align-items: flex-start; gap: 0.6rem; background: var(--brand-light) !important; border: 1px solid var(--brand-border) !important; padding: 0.5rem 0.75rem !important; margin: 0 !important; }
+.page-guide svg { display: block; flex: 0 0 18px; width: 18px; height: 18px; margin-top: 0.1rem; color: var(--brand-primary); }
+.page-guide > div { display: flex; flex-direction: column; gap: 0.2rem; text-align: right; }
+.page-guide p { font-size: 0.8rem; line-height: 1.6; color: var(--text-secondary); margin: 0; }
+.action-group .page-guide { margin-bottom: 0.4rem !important; }
+/* Order parties: each person in a separate box, data in ruled lines */
+.person-grid { gap: 0.6rem !important; }
+.person-card { display: flex; flex-direction: column; gap: 0 !important; background: var(--bg-surface) !important; border: 1px solid var(--border-color) !important; padding: 0 !important; }
+.person-head { padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--border-color); }
+.info-lines { gap: 0 !important; }
+.info-line { padding: 0.4rem 0.7rem !important; border-bottom: 1px solid var(--border-color) !important; }
+.person-stats { padding: 0.4rem 0.7rem; margin: 0; }
+.person-stats:empty { display: none; }
+.info-lines:has(+ .person-stats:empty) .info-line:last-child { border-bottom: 0 !important; }
+/* System alerts: red, at the top of the page */
+.system-alert { display: flex; align-items: flex-start; gap: 0.6rem; background: #fef2f2; border: 1px solid #fca5a5; border-right: 4px solid #dc2626; padding: 0.55rem 0.75rem; color: #991b1b; }
+.system-alert svg { flex: 0 0 20px; width: 20px; height: 20px; color: #dc2626; }
+.system-alert strong { display: block; font-size: 0.85rem; color: #991b1b; }
+.system-alert p { margin: 0.1rem 0 0; font-size: 0.8rem; line-height: 1.6; color: #991b1b; }
+/* Side menu groups and work list */
+.nav-group-title { padding: 0.7rem 0.75rem 0.2rem; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
+.nav-item .nav-count { margin-inline-start: auto; min-width: 20px; padding: 0 0.3rem; background: #dc2626; color: #fff; font-size: 0.72rem; font-weight: 800; line-height: 20px; text-align: center; }
+.work-list { display: flex; flex-direction: column; }
+.work-row { display: flex; align-items: center; gap: 0.6rem; width: 100%; padding: 0.6rem 0.25rem; background: transparent; border: 0; border-bottom: 1px solid var(--border-color); color: var(--text-main); font: inherit; text-align: right; cursor: pointer; }
+.work-row:last-child { border-bottom: 0; }
+.work-row:hover { background: var(--brand-light); }
+.work-row svg { flex: 0 0 18px; width: 18px; height: 18px; color: var(--brand-primary); }
+.work-count { min-width: 24px; color: #dc2626; font-size: 1rem; text-align: center; }
+.work-text { flex: 1; }
+.work-row .work-arrow { color: var(--text-muted); }
+/* Ticket page: messages and reply beside a fixed column of details and actions */
+.ticket-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 0.5rem; align-items: start; }
+.ticket-main, .ticket-side { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+.ticket-side .person-grid { grid-template-columns: 1fr; }
+.side-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+.side-buttons .btn { width: 100%; justify-content: center; white-space: normal; height: auto; min-height: 38px; }
+.side-buttons .btn-primary { grid-column: 1 / -1; }
+.dialog-form { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.85rem 1.1rem; }
+.dialog-form .field-input { width: 100%; }
+.dialog-form p { margin: 0; min-height: 1.2em; font-size: 0.8rem; }
+@media (max-width: 1000px) { .ticket-layout { grid-template-columns: minmax(0, 1fr); } }
+/* Ticket actions: equal boxes, one kind of action in each */
+.action-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 0.5rem; }
+.action-tile { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.55rem 0.65rem; border: 1px solid var(--border-color); }
+.action-tile h4 { margin: 0 0 0.1rem; font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); }
+.action-tile .btn { width: 100%; justify-content: center; }
+.action-tile .field-input { width: 100%; }
+.action-tile p { margin: 0; font-size: 0.78rem; line-height: 1.5; }
+.view-hero-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; max-width: 100%; }
+.view-hero-actions .btn { white-space: normal; height: auto; min-height: 36px; }
 </style>
 </head>
 <body>
@@ -6194,6 +6289,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     money: 'M3 7h18v10H3zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5',
     filter: 'M4 5h16l-6 8v6l-4-2v-4z',
     close: 'M6 6l12 12M18 6 6 18',
+    note: 'M5 3h14v12l-6 6H5zM13 21v-6h6M9 8h6M9 12h3',
   };
 
   // Status badge colors follow the EGY-ORDER badges
@@ -6627,7 +6723,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     if (id) head.append(link('الملف الشخصي', () => open('user', id), 'btn-outline btn-xs', 'open'));
 
     const lines = el('div', undefined, 'info-lines');
-    lines.append(infoLine(role === 'المحامي' ? 'lawyer' : 'client', 'الاسم', name), infoLine('phone', 'الهاتف', phone));
+    lines.append(infoLine('phone', 'الهاتف', phone));
     if (email !== undefined) lines.append(infoLine('mail', 'البريد', email));
     card.append(head, lines, statPills(stats));
     return card;
@@ -6687,16 +6783,14 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const box = el('div', undefined, 'page-guide');
     const body = el('div');
     lines.forEach((line) => body.append(el('p', line)));
-    box.append(icon('ticket'), body);
+    box.append(icon('note'), body);
     return box;
   }
 
   const OUTCOMES = {
     REFUND: ['رد المبلغ كاملًا إلى الموكل', 'btn-outline-danger'],
     LAWYER: ['صرف الأتعاب كاملة للمحامي', 'btn-outline'],
-    SPLIT: ['تقسيم المبلغ مناصفة', 'btn-outline'],
   };
-  const outcomeLabel = (outcome) => (OUTCOMES[outcome] || [outcome || '-'])[0];
 
   /// The order facts behind a money decision, and the equal decision buttons
   async function settlementParts(orderId) {
@@ -6707,14 +6801,14 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['إنذارات الموكل السارية', data.clientWarnings], ['إنذارات المحامي السارية', data.lawyerWarnings],
       ['قيمة الطلب', data.price + ' ج.م'],
     ]);
-    if (!data.open) return { facts, controls: el('p', 'تمت تسوية هذا الطلب، ولا يمكن تنفيذ قرار مالي جديد عليه.', 'muted') };
+    if (!data.open) return { facts, controls: [el('p', 'تمت تسوية هذا الطلب، ولا يمكن تنفيذ قرار مالي جديد عليه.', 'muted')] };
 
-    const note = input('', 'ملاحظة القرار (اختيارية)');
-    note.style.minWidth = '260px';
-    const controls = actionRow(note, ...Object.entries(OUTCOMES).map(([key, [label, style]]) =>
-      button(label, style, confirmed('هل تريد تنفيذ القرار: ' + label + '؟', () =>
-        api('POST', '/admin/orders/' + orderId + '/settle', { outcome: key, note: note.value })), 'تم تنفيذ القرار')));
-    return { facts, controls };
+    const decide = (key, label) => async () => {
+      const note = input('', 'ملاحظة القرار (اختيارية)');
+      if (!await askForm(label, [el('p', 'سيُنفَّذ هذا القرار على الطلب ولا يمكن التراجع عنه.', 'muted'), note], 'تنفيذ', () => null)) return CANCELLED;
+      return api('POST', '/admin/orders/' + orderId + '/settle', { outcome: key, note: note.value });
+    };
+    return { facts, controls: Object.entries(OUTCOMES).map(([key, [label, style]]) => button(label, style, decide(key, label), 'تم تنفيذ القرار')) };
   }
 
   /// The title lives in the top header, and the page keeps only its extra details
@@ -6728,24 +6822,40 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
   // Pages
 
+  /// Opens a list page from a work row, already filtered to what needs attention
+  function goTo(page, state) {
+    trail = [];
+    current = { page, state };
+    render();
+  }
+
+  function workRow(iconName, count, text, onClick) {
+    const row = el('button', undefined, 'work-row');
+    row.type = 'button';
+    row.append(icon(iconName), el('strong', count, 'work-count'), el('span', text, 'work-text'), icon('open', 'ui-icon work-arrow'));
+    row.addEventListener('click', onClick);
+    return row;
+  }
+
   async function overviewPage(box) {
     const { data } = await api('GET', '/admin/overview');
-    box.append(
-      subheading('الحسابات'),
-      summaryBar([
-        ['الموكلون', data.clients, 'client', 'brand'], ['المحامون', data.lawyers, 'lawyer', 'blue'],
-        ['محامون متاحون', data.available_lawyers, 'apply', 'green'],
-      ]),
-      subheading('الطلبات'),
-      summaryBar([
-        ['طلبات مفتوحة', data.open_orders, 'orders', 'blue'], ['طلبات مكتملة', data.completed_orders, 'check', 'green'],
-        ['قيمة الطلبات المكتملة', Number(data.completed_value) + ' ج.م', 'money', 'brand'],
-      ]),
-      subheading('بحاجة إلى متابعة'),
-      summaryBar([
-        ['طلبات انضمام', data.pending_lawyers, 'lawyer', 'amber'], ['تذاكر تحت المراجعة', data.waiting_tickets, 'complaint', 'red'], ['تذاكر مفتوحة', data.open_tickets, 'appeal', 'blue'],
-      ]),
-    );
+    const rows = [
+      ['complaint', data.waiting_tickets, 'تذاكر تنتظر ردك', () => goTo('tickets', 'UNDER_REVIEW')],
+      ['power', data.frozen_orders, 'عمليات أموالها مجمدة وتنتظر قرارك', () => goTo('money')],
+      ['apply', data.pending_lawyers, 'طلبات انضمام تنتظر المراجعة', () => goTo('applications')],
+      ['review', data.reported_reviews, 'بلاغات تقييم تنتظر قرارك', () => goTo('reports')],
+    ].filter(([, count]) => count > 0);
+
+    const list = el('div', undefined, 'work-list');
+    if (rows.length) list.append(...rows.map((row) => workRow(...row)));
+    else list.append(el('p', 'لا يوجد شيء مطلوب منك الآن.', 'muted'));
+    box.append(section('المطلوب منك', list));
+
+    box.append(summaryBar([
+      ['الموكلون', data.clients, 'client', 'brand'], ['المحامون', data.lawyers, 'lawyer', 'blue'],
+      ['محامون متاحون', data.available_lawyers, 'apply', 'green'], ['طلبات جارية', data.open_orders, 'orders', 'blue'],
+      ['طلبات مكتملة', data.completed_orders, 'check', 'green'], ['قيمة المكتملة', Number(data.completed_value) + ' ج.م', 'money', 'brand'],
+    ]));
   }
 
   /// Opens a list item on its own page, then comes back to the list after a decision
@@ -6777,27 +6887,67 @@ body .custom-switch-toggle.active.sm .switch-knob {
     return img;
   }
 
-  function ticketsPage(role) {
-    return async function (box) {
-      const { data } = await api('GET', '/admin/support?role=' + role);
-      const shown = applyFilters(data, (item) => item.created_at, (item) => item.status);
-      const count = (status) => data.filter((item) => item.status === status).length;
-      box.append(summaryBar([
-        ['تحت المراجعة', count('UNDER_REVIEW'), 'complaint', 'amber'], ['مفتوحة', count('OPEN'), 'appeal', 'blue'],
-        ['مغلقة', count('CLOSED'), 'check', 'gray'],
-      ]));
-      box.append(guide('كل تذكرة تبدأ «تحت المراجعة»، وأول رد من الإدارة يجعلها «مفتوحة»، وتظل مفتوحة حتى تغلقها الإدارة.',
-        'التذاكر التي تنتظر ردًا تظهر أولًا. وأي تذكرة على طلب توقف أتعابه، فلا تُغلق إلا بعد اختيار القرار المالي.'));
-      box.append(controlsBar([stateFilter([['', 'كل الحالات'], ...Object.entries(TICKET_STATUS).map(([key, [label]]) => [key, label])]), ...dateFilters()]));
-      box.append(table(['رقم التذكرة', 'العنوان', 'النوع', role === 'lawyer' ? 'المحامي' : 'الموكل', 'رقم الطلب', 'الحالة', 'آخر تحديث', 'الإجراءات'], shown.map((item) => ({
-        item,
-        cells: [
-          el('strong', item.reference, 'prod-name-ar'), item.title, TICKET_CATEGORY[item.category] || item.category,
-          personCell(item.user_name, item.user_phone), item.order_number || '-', ticketStatus(item.status), date(item.updated_at),
-          openButton('فتح', 'ticket', item.id),
-        ],
-      })), (item) => open('ticket', item.id)));
-    };
+  const TICKET_TABS = [['UNDER_REVIEW', 'تنتظر الرد'], ['OPEN', 'مفتوحة'], ['CLOSED', 'مغلقة']];
+
+  async function ticketsPage(box) {
+    const { data } = await api('GET', '/admin/support');
+    const active = TICKET_TABS.some(([key]) => key === current.state) ? current.state : 'UNDER_REVIEW';
+    const sided = current.side ? data.filter((item) => item.user_role === current.side) : data;
+    box.append(tabs(TICKET_TABS.map(([key, label]) => [key, label, sided.filter((item) => item.status === key).length]), active, (key) => { current.state = key; render(); }));
+    box.append(controlsBar([
+      filterSelect([['', 'الموكلون والمحامون'], ['client', 'الموكلون'], ['lawyer', 'المحامون']], current.side || '', (value) => { current.side = value; render(); }, 'client'),
+      ...dateFilters(),
+    ]));
+    const shown = applyFilters(sided.filter((item) => item.status === active), (item) => item.created_at);
+    box.append(table(['رقم التذكرة', 'العنوان', 'النوع', 'صاحب التذكرة', 'رقم الطلب', active === 'UNDER_REVIEW' ? 'تنتظر منذ' : 'آخر تحديث', 'الإجراءات'], shown.map((item) => ({
+      item,
+      cells: [
+        el('strong', item.reference, 'prod-name-ar'), item.title, TICKET_CATEGORY[item.category] || item.category,
+        personCell(item.user_name, (item.user_role === 'lawyer' ? 'محامٍ' : 'موكل') + ' • ' + item.user_phone), item.order_number || '-',
+        active === 'UNDER_REVIEW' ? waitingTime(item.updated_at) : date(item.updated_at), openButton('فتح', 'ticket', item.id),
+      ],
+    })), (item) => open('ticket', item.id)));
+  }
+
+  /// A small form window: resolves with true after validate passes, or false when dismissed
+  function askForm(title, nodes, confirmLabel, validate) {
+    return new Promise((resolve) => {
+      const close = (answer) => { $('dialog').hidden = true; $('dialog').replaceChildren(); resolve(answer); };
+      const backdrop = el('div', undefined, 'modal-backdrop');
+      const card = el('div', undefined, 'modal-card modal-md');
+      const head = el('div', undefined, 'modal-header');
+      const titleBox = el('div', undefined, 'modal-title-box');
+      titleBox.append(el('h3', title));
+      head.append(titleBox);
+      const body = el('div', undefined, 'modal-body dialog-form');
+      const error = el('p', '', 'text-danger');
+      body.append(...nodes, error);
+      const foot = el('div', undefined, 'modal-actions');
+      foot.append(link('تراجع', () => close(false)), link(confirmLabel, () => {
+        const problem = validate();
+        if (problem) error.textContent = problem;
+        else close(true);
+      }, 'btn-primary'));
+      card.append(head, body, foot);
+      backdrop.append(card);
+      $('dialog').replaceChildren(backdrop);
+      $('dialog').hidden = false;
+    });
+  }
+
+  /// Asks for an amount and a reason; the title names who the money moves between
+  async function askMoney(title, withOrder) {
+    const amount = input('', 'المبلغ بالجنيه');
+    amount.type = 'number';
+    amount.min = '0';
+    const reason = input('', 'السبب (إلزامي)');
+    const orderNumber = input('', 'رقم الطلب (اختياري)');
+    const ok = await askForm(title, [amount, reason, ...(withOrder ? [orderNumber] : [])], 'تنفيذ', () => {
+      if (!(Number(amount.value) > 0)) return 'أدخل مبلغًا صحيحًا';
+      if (reason.value.trim().length < 5) return 'اكتب السبب في 5 أحرف على الأقل';
+      return null;
+    });
+    return ok ? { value: Number(amount.value), reason: reason.value, orderNumber: orderNumber.value.trim() || undefined } : null;
   }
 
   async function ticketPage(box) {
@@ -6805,17 +6955,19 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const closed = data.status === 'CLOSED';
     pageHead('تذكرة ' + data.reference);
 
+    if (data.order?.payout_status === 'FROZEN') box.append(frozenNote(data.order.payout_amount));
+
     const buttons = [link('الملف الشخصي لصاحب التذكرة', () => open('user', data.user_id), 'btn-outline', 'open')];
     if (data.order) buttons.push(link('تفاصيل الطلب', () => open('order', data.order.id), 'btn-outline', 'orders'));
     box.append(hero(avatarBox(null, 'complaint'), data.title, [ticketStatus(data.status), badge(TICKET_CATEGORY[data.category] || data.category, 'purple')],
       [[data.user_role === 'lawyer' ? 'lawyer' : 'client', data.user_name + ' • ' + data.user_phone], ['calendar', date(data.created_at)],
         ...(data.order ? [['orders', 'طلب ' + data.order.order_number]] : [])], buttons));
 
-    if (data.order) {
-      box.append(section('أطراف الطلب', parties(
-        personCard('الموكل', data.order.client_name, data.order.client_phone, data.order.client_id),
-        personCard('المحامي', data.order.lawyer_name, data.order.lawyer_phone, data.order.lawyer_id))));
-    }
+    const layout = el('div', undefined, 'ticket-layout');
+    const main = el('div', undefined, 'ticket-main');
+    const side = el('div', undefined, 'ticket-side');
+    layout.append(main, side);
+    box.append(layout);
 
     const thread = el('div', undefined, 'ticket-thread');
     data.messages.forEach((message) => {
@@ -6832,39 +6984,92 @@ body .custom-switch-toggle.active.sm .switch-knob {
       }
       thread.append(card);
     });
-    box.append(section('الرسائل', thread));
+    main.append(section('الرسائل', thread));
+
+    if (data.order) {
+      side.append(section('أطراف الطلب', parties(
+        personCard('الموكل', data.order.client_name, data.order.client_phone, data.order.client_id),
+        personCard('المحامي', data.order.lawyer_name, data.order.lawyer_phone, data.order.lawyer_id))));
+      if (data.order.payout_status) {
+        side.append(section('حالة الأموال', details([
+          ['حالة الأتعاب', PAYOUT[data.order.payout_status] || data.order.payout_status], ['صافي المحامي', Number(data.order.payout_amount || 0) + ' ج.م'],
+        ])));
+      }
+    }
 
     if (closed) {
-      box.append(section('حالة التذكرة', el('p', 'أُغلقت التذكرة في ' + date(data.closed_at) + (data.closed_by_email ? ' بواسطة ' + data.closed_by_email : '') + '، ولا يمكن الرد عليها.', 'muted')));
+      main.append(section('حالة التذكرة', el('p', 'أُغلقت التذكرة في ' + date(data.closed_at) + (data.closed_by_email ? ' بواسطة ' + data.closed_by_email : '') + '، ولا يمكن الرد عليها.', 'muted')));
       return;
     }
 
-    const note = textarea('', 'ملاحظة للفريق فقط، مثل: تواصلت مع الموكل هاتفيًا...');
-    box.append(section('ملاحظة داخلية', note, actionRow(button('حفظ الملاحظة', 'btn-outline', () => {
+    const reply = textarea('', 'اكتب ردك إلى صاحب التذكرة...');
+    main.append(section('الرد', reply, actionRow(button('إرسال الرد', 'btn-primary', () => {
+      if (!reply.value.trim()) throw new Error('اكتب الرد أولًا');
+      return api('POST', '/admin/support/' + data.id + '/reply', { body: reply.value });
+    }, 'تم إرسال الرد', 'check'))));
+
+    const note = textarea('', 'ملاحظة للفريق فقط...');
+    side.append(section('ملاحظة داخلية', note, actionRow(button('حفظ الملاحظة', 'btn-outline', () => {
       if (!note.value.trim()) throw new Error('اكتب الملاحظة أولًا');
       return api('POST', '/admin/support/' + data.id + '/note', { body: note.value });
     }, 'تم حفظ الملاحظة'))));
 
-    const message = textarea('', 'اكتب رسالتك إلى صاحب التذكرة...');
-    const outcome = filterSelect([['', 'اختر القرار المالي'], ...Object.entries(OUTCOMES).map(([key, [label]]) => [key, label])], '', () => {}, 'money');
-    const closeTicket = async (withMessage) => {
-      const body = withMessage ? message.value.trim() : '';
-      const chosen = outcome.querySelector('select').value;
-      if (withMessage && !body) throw new Error('اكتب الرسالة أولًا');
-      if (data.needsDecision && !chosen) throw new Error('اختر القرار المالي أولًا');
-      const question = data.needsDecision ? 'سيُنفَّذ القرار «' + outcomeLabel(chosen) + '» وتُغلق التذكرة. هل تريد المتابعة؟' : 'هل تريد إغلاق التذكرة؟';
-      if (!await askConfirm(question)) return CANCELLED;
-      return decideAndReturn(() => api('POST', '/admin/support/' + data.id + '/close', { outcome: chosen || undefined, body }));
+    const moveMoney = (userId, sign, title) => async () => {
+      const entry = await askMoney(title);
+      if (!entry) return CANCELLED;
+      return api('POST', '/admin/users/' + userId + '/balance', { amount: sign * entry.value, reason: entry.reason, orderNumber: data.order?.order_number });
     };
-    box.append(section('الإجراءات', message,
-      ...(data.needsDecision ? [el('p', 'أتعاب الطلب موقوفة بسبب هذه التذكرة، فلا تُغلق إلا بعد اختيار القرار المالي.', 'muted'), actionRow(outcome)] : []),
-      actionRow(
-        button('إرسال الرد', 'btn-primary', () => {
-          if (!message.value.trim()) throw new Error('اكتب الرد أولًا');
-          return api('POST', '/admin/support/' + data.id + '/reply', { body: message.value });
-        }, 'تم إرسال الرد', 'check'),
-        button('إغلاق التذكرة مع الرسالة', 'btn-outline-danger', () => closeTicket(true), 'تم إغلاق التذكرة'),
-        button('إغلاق التذكرة دون رسالة', 'btn-outline-danger', () => closeTicket(false), 'تم إغلاق التذكرة'))));
+    const transfer = (from, title) => async () => {
+      const entry = await askMoney(title);
+      if (!entry) return CANCELLED;
+      return api('POST', '/admin/support/' + data.id + '/transfer', { from, amount: entry.value, reason: entry.reason });
+    };
+    const people = data.order
+      ? [['المحامي', data.order.lawyer_id], ['الموكل', data.order.client_id]]
+      : [[data.user_role === 'lawyer' ? 'المحامي' : 'الموكل', data.user_id]];
+    const warn = (userId, title) => async () => {
+      const reason = input('', 'سبب الإنذار (إلزامي)');
+      const notice = guide('ثلاثة إنذارات سارية خلال 30 يومًا توقف الحساب أسبوعًا تلقائيًا.');
+      if (!await askForm(title, [notice, reason], 'توجيه الإنذار', () => (reason.value.trim().length < 5 ? 'اكتب السبب في 5 أحرف على الأقل' : null))) return CANCELLED;
+      return api('POST', '/admin/users/' + userId + '/warnings', { reason: reason.value, orderNumber: data.order?.order_number });
+    };
+    const closeWithMessage = async () => {
+      const message = textarea('', 'رسالتك الأخيرة إلى صاحب التذكرة...');
+      if (!await askForm('إغلاق التذكرة مع رسالة', [message], 'إغلاق', () => (message.value.trim() ? null : 'اكتب الرسالة أولًا'))) return CANCELLED;
+      return decideAndReturn(() => api('POST', '/admin/support/' + data.id + '/close', { body: message.value.trim() }));
+    };
+
+    const perPerson = (verb, style, action, success) => people.map(([name, id]) =>
+      button(verb + ' ' + name, style, action(id, verb + ' ' + name), success));
+
+    const tiles = [
+      actionTile('الخصم', ...perPerson('خصم من', 'btn-outline-danger', (id, title) => moveMoney(id, -1, title), 'تم تنفيذ الخصم')),
+      actionTile('الإضافة', ...perPerson('إضافة إلى', 'btn-outline', (id, title) => moveMoney(id, 1, title), 'تمت الإضافة')),
+      actionTile('الإنذارات', ...perPerson('إنذار', 'btn-outline-danger', warn, 'تم توجيه الإنذار')),
+    ];
+    if (data.order) {
+      tiles.unshift(actionTile('التحويل', ...[['lawyer', 'تحويل من المحامي إلى الموكل'], ['client', 'تحويل من الموكل إلى المحامي']].map(([from, title]) =>
+        button(title, 'btn-outline', transfer(from, title), 'تم تنفيذ التحويل'))));
+    }
+    const payout = data.order?.payout_status;
+    if (data.order && ['HELD', 'AVAILABLE', 'FROZEN'].includes(payout)) {
+      const frozen = payout === 'FROZEN';
+      tiles.push(actionTile('تجميد الأتعاب', button(frozen ? 'فك تجميد العملية' : 'تجميد رصيد العملية للمحامي', frozen ? 'btn-primary' : 'btn-outline-danger',
+        () => api('POST', '/admin/orders/' + data.order.id + '/freeze', { freeze: !frozen }), frozen ? 'تم فك التجميد' : 'تم تجميد الأتعاب', 'power')));
+    }
+    tiles.push(actionTile('إغلاق التذكرة',
+      button('إغلاق مع رسالة', 'btn-outline-danger', closeWithMessage, 'تم إغلاق التذكرة'),
+      button('إغلاق دون رسالة', 'btn-outline-danger', confirmed('هل تريد إغلاق التذكرة؟', () => decideAndReturn(() => api('POST', '/admin/support/' + data.id + '/close', {}))), 'تم إغلاق التذكرة')));
+
+    box.append(actionsSection(tiles));
+  }
+
+  function frozenNote(amount) {
+    const box = el('div', undefined, 'system-alert');
+    const body = el('div');
+    body.append(el('strong', 'تنبيه من النظام'), el('p', 'أموال هذه العملية مجمدة ومعلقة (' + Number(amount || 0) + ' ج.م)، ولا يستطيع المحامي سحبها حتى يُفك التجميد أو تُنفَّذ تسوية.'));
+    box.append(icon('complaint'), body);
+    return box;
   }
 
   async function reportsPage(box) {
@@ -6887,11 +7092,12 @@ body .custom-switch-toggle.active.sm .switch-knob {
       [['lawyer', item.lawyer_name], ['calendar', date(item.reported_at)]], []));
     box.append(section('سبب البلاغ', el('p', item.report_reason || '-')));
     box.append(section('التقييم', details([['التقييم', item.rating + ' / 5'], ['التعليق', item.comment || 'بدون تعليق']])));
-    box.append(section('الإجراءات',
-      el('p', 'يؤدي الإخفاء إلى حذف التعليق من ملف المحامي، ويؤدي الإبقاء إلى إغلاق البلاغ مع بقاء التعليق ظاهرًا.', 'muted'),
-      actionRow(
-        button('إخفاء التعليق', 'btn-outline-danger', () => moderate(true), 'تم إخفاء التعليق'),
-        button('إبقاء التعليق', 'btn-primary', () => moderate(false), 'تم إبقاء التعليق', 'check'))));
+    box.append(actionsSection([
+      actionTile('قرار البلاغ',
+        el('p', 'الإخفاء يحذف التعليق من ملف المحامي، والإبقاء يغلق البلاغ مع بقاء التعليق ظاهرًا.', 'muted'),
+        button('إبقاء التعليق', 'btn-primary', confirmed('هل تريد إبقاء التعليق؟', () => moderate(false)), 'تم إبقاء التعليق', 'check'),
+        button('إخفاء التعليق', 'btn-outline-danger', confirmed('هل تريد إخفاء التعليق؟', () => moderate(true)), 'تم إخفاء التعليق')),
+    ]));
   }
 
   async function applicationsPage(box) {
@@ -6983,10 +7189,13 @@ body .custom-switch-toggle.active.sm .switch-knob {
   /// One application on its own page, the list already carries everything it shows
   async function applicationPage(box) {
     const item = current.param;
-    const reason = input('', 'سبب الرفض (عند الرفض)');
-    reason.style.minWidth = '260px';
-    const decide = (approve) => decideAndReturn(() =>
-      api('POST', '/admin/urgent-applications/' + item.user_id + '/decision', { approve, reason: reason.value }));
+    const decide = (approve, reason) => decideAndReturn(() =>
+      api('POST', '/admin/urgent-applications/' + item.user_id + '/decision', { approve, reason }));
+    const reject = async () => {
+      const reason = input('', 'سبب الرفض، ويصل إلى المحامي');
+      if (!await askForm('رفض طلب ' + item.full_name, [reason], 'رفض الطلب', () => (reason.value.trim() ? null : 'اكتب سبب الرفض'))) return CANCELLED;
+      return decide(false, reason.value);
+    };
 
     box.append(hero(avatarBox(null, 'lawyer'), item.full_name, [badge('بانتظار المراجعة', 'amber')],
       [['phone', item.phone], ['apply', 'قيد ' + (item.syndicate_number || 'غير مسجل')]], []));
@@ -6998,12 +7207,12 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['التخصص', item.specialty || 'بدون تخصص'], ['النبذة', item.bio || '-'],
     ])));
 
-    box.append(section('الإجراءات',
-      el('p', 'تتيح الموافقة للمحامي تفعيل استقبال طلبات «محاميك حالاً»، ويصله عند الرفض إشعار بالسبب.', 'muted'),
-      actionRow(
-        button('موافقة', 'btn-primary', () => decide(true), 'تمت الموافقة', 'check'),
-        reason,
-        button('رفض', 'btn-outline-danger', confirmed('رفض طلب ' + item.full_name + '؟', () => decide(false)), 'تم الرفض'))));
+    box.append(actionsSection([
+      actionTile('قرار الطلب',
+        el('p', 'تتيح الموافقة للمحامي استقبال طلبات «محاميك حالاً»، ويصله عند الرفض إشعار بالسبب.', 'muted'),
+        button('موافقة', 'btn-primary', confirmed('هل تريد الموافقة على طلب ' + item.full_name + '؟', () => decide(true)), 'تمت الموافقة', 'check'),
+        button('رفض', 'btn-outline-danger', reject, 'تم الرفض')),
+    ]));
   }
 
   const ACCOUNT_FILTERS = [['', 'كل الحالات'], ['active', 'نشط'], ['suspended', 'موقوف']];
@@ -7062,15 +7271,14 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const stats = [['الطلبات', user.user_orders, 'orders', 'blue'], ['شكاوى ضده', user.user_against, 'complaint', 'red'],
       ['شكاوى قدمها', user.user_filed, 'appeal', 'amber'], ['الإنذارات', user.warnings_count, 'power', 'gray']];
     if (isLawyer) stats.unshift(['التقييم', Number(user.rating ?? 0).toFixed(1) + ' / 5', 'review', 'green']);
+    const balance = Number((isLawyer ? data.wallet?.available : data.wallet?.client_balance) || 0);
+    stats.unshift(['الرصيد الحالي', balance + ' ج.م', 'money', balance < 0 ? 'red' : 'green']);
     box.append(summaryBar(stats));
 
     const list = [
       ['data', 'البيانات'],
-      ['orders', 'الطلبات', data.orders.length],
-      ['reviews', 'التقييمات', data.reviews.length],
-      ['tickets', 'التذاكر', data.tickets.length],
+      ['activity', 'النشاط', data.orders.length + data.tickets.length + data.reviews.length],
       ['wallet', 'الرصيد والإنذارات', data.warnings.filter((item) => !item.revoked_at).length],
-      ...(isLawyer ? [['strikes', 'المخالفات', data.strikes.length]] : []),
       ['actions', 'الإجراءات'],
     ];
     const active = list.some(([key]) => key === current.tab) ? current.tab : 'data';
@@ -7090,20 +7298,19 @@ body .custom-switch-toggle.active.sm .switch-knob {
           ['آخر تحديث للموقع', date(user.last_location_updated_at)],
         ])));
       }
-    } else if (active === 'orders') {
-      pane.append(table(['رقم الطلب', 'المشكلة', 'المبلغ', 'الحالة', 'التاريخ'], data.orders.map((item) => ({
+    } else if (active === 'activity') {
+      pane.append(section('الطلبات', table(['رقم الطلب', 'المشكلة', 'المبلغ', 'الحالة', 'التاريخ'], data.orders.map((item) => ({
         item, cells: [item.order_number, item.problem_type, item.price + ' ج.م', tag(item.status), date(item.created_at)],
-      })), (item) => open('order', item.id)));
-    } else if (active === 'reviews') {
-      pane.append(table(['رقم الطلب', 'التقييم', 'التعليق', 'التاريخ'], data.reviews.map((item) => ({
-        item, cells: [item.order_number, item.rating + ' / 5', item.comment, date(item.created_at)],
-      })), (item) => open('order', item.order_id)));
-    } else if (active === 'tickets') {
-      pane.append(table(['رقم التذكرة', 'العنوان', 'النوع', 'رقم الطلب', 'الحالة', 'التاريخ'], data.tickets.map((item) => ({
+      })), (item) => open('order', item.id))));
+      pane.append(section('التذاكر', table(['رقم التذكرة', 'العنوان', 'النوع', 'رقم الطلب', 'الحالة', 'التاريخ'], data.tickets.map((item) => ({
         item, cells: [item.reference, item.title, TICKET_CATEGORY[item.category] || item.category, item.order_number || '-', ticketStatus(item.status), date(item.created_at)],
-      })), (item) => open('ticket', item.id)));
-    } else if (active === 'strikes') {
-      pane.append(table(['النوع', 'التاريخ'], data.strikes.map((item) => ({ item, cells: [item.kind, date(item.created_at)] }))));
+      })), (item) => open('ticket', item.id))));
+      pane.append(section('التقييمات', table(['رقم الطلب', 'التقييم', 'التعليق', 'التاريخ'], data.reviews.map((item) => ({
+        item, cells: [item.order_number, item.rating + ' / 5', item.comment, date(item.created_at)],
+      })), (item) => open('order', item.order_id))));
+      if (isLawyer) {
+        pane.append(section('المخالفات', table(['النوع', 'التاريخ'], data.strikes.map((item) => ({ item, cells: [{ WITHDRAWAL: 'اعتذار بعد الدفع', COMPLAINT: 'شكوى' }[item.kind] || item.kind, date(item.created_at)] })))));
+      }
     } else if (active === 'actions') {
       pane.append(userActions(user));
     } else {
@@ -7142,44 +7349,43 @@ body .custom-switch-toggle.active.sm .switch-knob {
       table(['السبب', 'رقم الطلب', 'بواسطة', 'التاريخ', 'الحالة', 'الإجراء'], rows)));
   }
 
-  function actionGroup(title, ...nodes) {
-    const group = el('div', undefined, 'action-group');
-    group.append(subheading(title), ...nodes);
-    return group;
+  /// One kind of action in one box, the same on every page
+  function actionTile(title, ...nodes) {
+    const box = el('div', undefined, 'action-tile');
+    box.append(el('h4', title), ...nodes);
+    return box;
+  }
+
+  function actionsSection(tiles) {
+    const grid = el('div', undefined, 'action-tiles');
+    grid.append(...tiles);
+    return section('الإجراءات', grid);
   }
 
   /// Everything the admin can do to an account, in one place
   function userActions(user) {
     const suspend = (value) => api('POST', '/admin/users/' + user.id + '/status', { suspend: value });
-
-    const type = filterSelect([['add', 'إضافة إلى الرصيد'], ['deduct', 'خصم من الرصيد']], 'add', () => {}, 'money');
-    const amount = input('', 'المبلغ', 'small');
-    amount.type = 'number';
-    amount.min = '0';
-    const reason = input('', 'سبب الحركة (إلزامي)');
-    reason.style.minWidth = '260px';
-    const orderNumber = input('', 'رقم الطلب (اختياري)');
-    const submit = () => {
-      const deduct = type.querySelector('select').value === 'deduct';
-      const value = Math.abs(Number(amount.value));
-      return api('POST', '/admin/users/' + user.id + '/balance', { amount: deduct ? -value : value, reason: reason.value, orderNumber: orderNumber.value || undefined });
+    const moveMoney = (sign, title) => async () => {
+      const entry = await askMoney(title, true);
+      if (!entry) return CANCELLED;
+      return api('POST', '/admin/users/' + user.id + '/balance', { amount: sign * entry.value, reason: entry.reason, orderNumber: entry.orderNumber });
+    };
+    const warn = async () => {
+      const reason = input('', 'سبب الإنذار (إلزامي)');
+      const notice = guide('ثلاثة إنذارات سارية خلال 30 يومًا توقف الحساب أسبوعًا تلقائيًا.');
+      if (!await askForm('توجيه إنذار', [notice, reason], 'توجيه الإنذار', () => (reason.value.trim().length < 5 ? 'اكتب السبب في 5 أحرف على الأقل' : null))) return CANCELLED;
+      return api('POST', '/admin/users/' + user.id + '/warnings', { reason: reason.value });
     };
 
-    const warningReason = input('', 'سبب الإنذار (إلزامي)');
-    warningReason.style.minWidth = '280px';
-
-    return section('الإجراءات',
-      actionGroup('حالة الحساب', actionRow(user.status === 'suspended'
+    return actionsSection([
+      actionTile('حالة الحساب', user.status === 'suspended'
         ? button('تفعيل الحساب', 'btn-primary', () => suspend(false), undefined, 'power')
-        : button('إيقاف الحساب', 'btn-outline-danger', confirmed('هل تريد إيقاف هذا الحساب؟', () => suspend(true)), undefined, 'power'))),
-      actionGroup('الرصيد',
-        guide('تُسجَّل كل حركة بسببها ولا تُحذف، ولتصحيح حركة خاطئة نفِّذ حركة معاكسة لها. وإذا زاد الخصم على الرصيد أصبح سالبًا ويُسدَّد مما يدخل الحساب لاحقًا.'),
-        actionRow(type, amount, reason, orderNumber,
-          button('تنفيذ الحركة', 'btn-primary', confirmed('هل تريد تنفيذ هذه الحركة على الرصيد؟', submit), 'تم تنفيذ الحركة', 'check'))),
-      actionGroup('الإنذارات',
-        guide('ثلاثة إنذارات سارية خلال 30 يومًا توقف الحساب أسبوعًا، ثم يعود للعمل تلقائيًا. وإلغاء الإنذار لا يرفع إيقافًا قائمًا.'),
-        actionRow(warningReason, button('توجيه إنذار', 'btn-outline-danger', confirmed('هل تريد توجيه إنذار إلى هذا الحساب؟', () =>
-          api('POST', '/admin/users/' + user.id + '/warnings', { reason: warningReason.value })), 'تم توجيه الإنذار'))));
+        : button('إيقاف الحساب', 'btn-outline-danger', confirmed('هل تريد إيقاف هذا الحساب؟', () => suspend(true)), undefined, 'power')),
+      actionTile('الرصيد',
+        button('إضافة رصيد', 'btn-outline', moveMoney(1, 'إضافة رصيد'), 'تمت الإضافة'),
+        button('خصم رصيد', 'btn-outline-danger', moveMoney(-1, 'خصم رصيد'), 'تم تنفيذ الخصم')),
+      actionTile('الإنذارات', button('توجيه إنذار', 'btn-outline-danger', warn, 'تم توجيه الإنذار')),
+    ]);
   }
 
   async function ordersPage(box) {
@@ -7213,6 +7419,8 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const { order } = data;
     pageHead('طلب ' + order.order_number);
 
+    if (order.payout_status === 'FROZEN') box.append(frozenNote(order.payout_amount));
+
     const buttons = [];
     data.tickets.filter((item) => item.status !== 'CLOSED').forEach((item) => buttons.push(link('تذكرة ' + item.reference, () => open('ticket', item.id), 'btn-primary', 'complaint')));
     box.append(hero(avatarBox(null, 'orders'), 'طلب ' + order.order_number, [tag(order.status)],
@@ -7223,46 +7431,66 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['نسبة المنصة', order.commission_percent + '%', 'price', 'blue'], ['الضريبة', order.tax_percent + '%', 'orders', 'amber'],
     ]));
 
+    const list = [['summary', 'الملخص'], ['stages', 'المراحل', data.logs.length], ['money', 'الأموال', data.movements.length], ['actions', 'الإجراءات']];
+    const active = list.some(([key]) => key === current.tab) ? current.tab : 'summary';
+    box.append(tabs(list, active, (key) => { current.tab = key; render(); }));
+    const pane = el('div', undefined, 'tab-content-pane');
+    box.append(pane);
+
+    if (active === 'summary') {
+      pane.append(section('أطراف الطلب', parties(
+        personCard('الموكل', order.client_name, order.client_phone, order.client_id, statsOf(order, 'client'), order.client_email),
+        personCard('المحامي', order.lawyer_name, order.lawyer_phone, order.lawyer_id, statsOf(order, 'lawyer'), order.lawyer_email))));
+      pane.append(section('تفاصيل المشكلة', details([['المشكلة', order.problem_type], ['الوصف', order.problem_description]])));
+      if (data.tickets.length) {
+        pane.append(section('تذاكر الدعم الفني', table(['رقم التذكرة', 'العنوان', 'من', 'الحالة', 'التاريخ'], data.tickets.map((item) => ({
+          item, cells: [item.reference, item.title, item.user_role === 'lawyer' ? 'المحامي' : 'الموكل', ticketStatus(item.status), date(item.created_at)],
+        })), (item) => open('ticket', item.id))));
+      }
+      if (data.reviews.length) {
+        pane.append(section('التقييم', table(['التقييم', 'التعليق'], data.reviews.map((item) => ({ item, cells: [item.rating + ' / 5', item.comment] })))));
+      }
+      return;
+    }
+
+    if (active === 'stages') {
+      pane.append(section('المواعيد', details([
+        ['القبول', date(order.accepted_at)], ['الدفع', date(order.paid_at)], ['الوصول', date(order.arrived_at)], ['الإنهاء', date(order.completed_at)],
+      ])));
+      const timeline = el('ul', undefined, 'timeline');
+      data.logs.forEach((log) => {
+        const item = el('li');
+        item.append(el('strong', (STATUS[log.new_status] || [log.new_status])[0]), el('div', log.note, 'muted'), el('div', date(log.created_at), 'muted'));
+        timeline.append(item);
+      });
+      pane.append(section('مراحل الطلب', data.logs.length ? timeline : el('p', 'لا توجد أحداث', 'muted')));
+      return;
+    }
+
+    if (active === 'money') {
+      pane.append(section('حالة الأتعاب', details([
+        ['حالة الأتعاب', PAYOUT[order.payout_status] || order.payout_status], ['صافي المحامي', Number(order.payout_amount ?? order.lawyer_amount ?? 0) + ' ج.م'],
+      ])));
+      pane.append(section('حركات الرصيد على هذا الطلب', table(['التاريخ', 'المبلغ', 'الحساب', 'السبب', 'بواسطة'], data.movements.map((item) => ({
+        item, cells: [date(item.created_at), money(item.amount), personCell(item.account_name, item.account_role === 'lawyer' ? 'محامٍ' : 'موكل'), item.reason, item.created_by || 'النظام'],
+      })))));
+      pane.append(section('سجل التجميد', table(['التاريخ', 'الإجراء', 'المبلغ', 'السبب', 'بواسطة'], data.events.map((item) => ({
+        item, cells: [date(item.created_at), badge(...(PAYOUT_ACTIONS[item.action] || [item.action, 'gray'])), Number(item.amount) + ' ج.م', item.reason, item.created_by || 'تلقائي من النظام'],
+      })))));
+      return;
+    }
+
     const canSettle = order.status === 'ACTIVE' || ['HELD', 'FROZEN'].includes(order.payout_status);
     const settlement = canSettle ? await settlementParts(order.id) : null;
-    if (settlement) box.append(section('بيانات التسوية المالية', settlement.facts));
-
-    box.append(section('أطراف الطلب', parties(
-      personCard('الموكل', order.client_name, order.client_phone, order.client_id, statsOf(order, 'client'), order.client_email),
-      personCard('المحامي', order.lawyer_name, order.lawyer_phone, order.lawyer_id, statsOf(order, 'lawyer'), order.lawyer_email))));
-    box.append(section('تفاصيل المشكلة', details([['المشكلة', order.problem_type], ['الوصف', order.problem_description]])));
-    box.append(section('المبالغ والمواعيد', details([
-      ['حالة الأتعاب', PAYOUT[order.payout_status] || order.payout_status],
-      ['القبول', date(order.accepted_at)], ['الدفع', date(order.paid_at)], ['الوصول', date(order.arrived_at)], ['الإنهاء', date(order.completed_at)],
-    ])));
-
-    const list = el('ul', undefined, 'timeline');
-    data.logs.forEach((log) => {
-      const item = el('li');
-      item.append(el('strong', (STATUS[log.new_status] || [log.new_status])[0]), el('div', log.note, 'muted'), el('div', date(log.created_at), 'muted'));
-      list.append(item);
-    });
-    box.append(section('دورة حياة الطلب', data.logs.length ? list : el('p', 'لا توجد أحداث', 'muted')));
-
-    if (data.tickets.length) {
-      box.append(section('تذاكر الدعم الفني', table(['رقم التذكرة', 'العنوان', 'من', 'الحالة', 'التاريخ'], data.tickets.map((item) => ({
-        item, cells: [item.reference, item.title, item.user_role === 'lawyer' ? 'المحامي' : 'الموكل', ticketStatus(item.status), date(item.created_at)],
-      })), (item) => open('ticket', item.id))));
-    }
-    if (data.reviews.length) {
-      box.append(section('التقييم', table(['التقييم', 'التعليق'], data.reviews.map((item) => ({ item, cells: [item.rating + ' / 5', item.comment] })))));
-    }
-
-    const groups = [];
-    if (settlement) groups.push(actionGroup('التسوية المالية', settlement.controls));
+    if (settlement) pane.append(section('بيانات التسوية', settlement.facts));
+    const tiles = [];
+    if (settlement) tiles.push(actionTile('التسوية المالية', ...settlement.controls));
     if (['HELD', 'AVAILABLE', 'FROZEN'].includes(order.payout_status)) {
       const frozen = order.payout_status === 'FROZEN';
-      groups.push(actionGroup('أتعاب الطلب',
-        guide('يوقف التجميد تحويل أتعاب هذا الطلب إلى المحامي حتى يُفك التجميد أو تُنفَّذ تسوية.'),
-        actionRow(button(frozen ? 'فك التجميد' : 'تجميد الأتعاب', frozen ? 'btn-primary' : 'btn-outline-danger',
-          () => api('POST', '/admin/orders/' + order.id + '/freeze', { freeze: !frozen }), frozen ? 'تم فك التجميد' : 'تم تجميد الأتعاب', 'power'))));
+      tiles.push(actionTile('تجميد الأتعاب', button(frozen ? 'فك التجميد' : 'تجميد الأتعاب', frozen ? 'btn-primary' : 'btn-outline-danger',
+        () => api('POST', '/admin/orders/' + order.id + '/freeze', { freeze: !frozen }), frozen ? 'تم فك التجميد' : 'تم تجميد الأتعاب', 'power')));
     }
-    if (groups.length) box.append(section('الإجراءات', ...groups));
+    pane.append(tiles.length ? actionsSection(tiles) : section('الإجراءات', el('p', 'لا توجد إجراءات متاحة على هذا الطلب الآن.', 'muted')));
   }
 
   async function reviewsPage(box) {
@@ -7311,34 +7539,114 @@ body .custom-switch-toggle.active.sm .switch-knob {
       return { item, cells: [el('strong', item.problem_type, 'prod-name-ar'), min, max, commission, save] };
     })));
 
-    box.append(section('الإجراءات',
-      guide('تُخصم الضريبة من السعر أولًا، ثم تُحسب نسبة المنصة من الصافي. وتُطبَّق التغييرات على الطلبات الجديدة فقط.'),
-      actionRow(el('span', 'نسبة المنصة لكل الخدمات'), percent,
-        button('تطبيق على الكل', 'btn-primary', () => api('POST', '/admin/commission', { percent: Number(percent.value) })),
-        el('span', 'نسبة الضريبة'), taxInput,
-        button('حفظ الضريبة', 'btn-primary', () => api('POST', '/admin/tax', { percent: Number(taxInput.value) })))));
+    box.append(guide('تُخصم الضريبة من السعر أولًا، ثم تُحسب نسبة المنصة من الصافي. وتُطبَّق التغييرات على الطلبات الجديدة فقط.'));
+    box.append(actionsSection([
+      actionTile('نسبة المنصة لكل الخدمات', percent,
+        button('تطبيق على الكل', 'btn-primary', confirmed('هل تريد تطبيق هذه النسبة على كل الخدمات؟', () => api('POST', '/admin/commission', { percent: Number(percent.value) })))),
+      actionTile('نسبة الضريبة', taxInput,
+        button('حفظ الضريبة', 'btn-primary', confirmed('هل تريد تغيير نسبة الضريبة؟', () => api('POST', '/admin/tax', { percent: Number(taxInput.value) })))),
+    ]));
+  }
+
+  const PAYOUT_ACTIONS = { FREEZE: ['تجميد', 'red'], UNFREEZE: ['فك التجميد', 'green'], SETTLE: ['تسوية', 'blue'] };
+
+  function waitingTime(value) {
+    if (!value) return 'غير مسجل';
+    const hours = Math.floor((Date.now() - new Date(value)) / 3600000);
+    if (hours < 1) return 'أقل من ساعة';
+    return hours < 24 ? hours + ' ساعة' : Math.floor(hours / 24) + ' يوم';
+  }
+
+  /// Every pound in one place: what is frozen, what moved, and the freeze history
+  async function moneyPage(box) {
+    const params = new URLSearchParams();
+    if (current.from) params.set('from', current.from);
+    if (current.to) params.set('to', current.to);
+    const { data } = await api('GET', '/admin/money?' + params);
+    const pounds = (value) => Number(value) + ' ج.م';
+
+    box.append(summaryBar([
+      ['مجمدة', pounds(data.totals.frozen), 'power', 'red'], ['محجوزة 24 ساعة', pounds(data.totals.held), 'calendar', 'amber'],
+      ['مضافة', pounds(data.totals.added), 'money', 'green'], ['مخصومة', pounds(data.totals.deducted), 'money', 'red'],
+    ]));
+
+    const list = [['frozen', 'المجمدة', data.frozen.length], ['movements', 'الحركات', data.movements.length], ['events', 'سجل التجميد', data.events.length]];
+    const active = list.some(([key]) => key === current.tab) ? current.tab : 'frozen';
+    box.append(tabs(list, active, (key) => { current.tab = key; render(); }));
+
+    if (active === 'frozen') {
+      box.append(guide('هذه الأموال لا يستطيع المحامي سحبها. افتح العملية لتتخذ القرار. وتظهر الأقدم أولًا.'));
+      box.append(table(['رقم الطلب', 'المبلغ', 'المحامي', 'الموكل', 'سبب التجميد', 'مجمدة منذ', 'الإجراءات'], data.frozen.map((item) => ({
+        item,
+        cells: [
+          el('strong', item.order_number, 'prod-name-ar'), el('strong', pounds(item.payout_amount), 'text-danger'), item.lawyer_name, item.client_name,
+          item.reason || 'غير مسجل', waitingTime(item.frozen_at),
+          item.ticket_id ? openButton('فتح التذكرة', 'ticket', item.ticket_id) : openButton('فتح الطلب', 'order', item.order_id),
+        ],
+      })), (item) => (item.ticket_id ? open('ticket', item.ticket_id) : open('order', item.order_id))));
+      return;
+    }
+
+    box.append(controlsBar([
+      ...(active === 'movements' ? [
+        searchBox(current.search, 'ابحث بالاسم أو رقم الطلب أو السبب', (value) => { current.search = value; render(); }),
+        stateFilter([['', 'كل الحركات'], ['add', 'إضافة'], ['deduct', 'خصم']]),
+      ] : []),
+      ...dateFilters(),
+    ]));
+
+    if (active === 'movements') {
+      const q = (current.search || '').toLowerCase();
+      const shown = data.movements.filter((item) =>
+        (!current.state || (current.state === 'add') === (Number(item.amount) > 0)) &&
+        (!q || [item.account_name, item.order_number, item.reason].some((text) => (text || '').toLowerCase().includes(q))));
+      box.append(table(['التاريخ', 'النوع', 'المبلغ', 'الحساب', 'السبب', 'رقم الطلب', 'بواسطة'], shown.map((item) => ({
+        item,
+        cells: [
+          date(item.created_at), Number(item.amount) > 0 ? badge('إضافة', 'green') : badge('خصم', 'red'), money(item.amount),
+          personCell(item.account_name, item.account_role === 'lawyer' ? 'محامٍ' : 'موكل'), item.reason, item.order_number || '-', item.created_by || 'النظام',
+        ],
+      })), (item) => open('user', item.user_id)));
+      return;
+    }
+
+    box.append(table(['التاريخ', 'الإجراء', 'المبلغ', 'رقم الطلب', 'السبب', 'بواسطة'], data.events.map((item) => ({
+      item,
+      cells: [
+        date(item.created_at), badge(...(PAYOUT_ACTIONS[item.action] || [item.action, 'gray'])), pounds(item.amount),
+        item.order_number, item.reason, item.created_by || 'تلقائي من النظام',
+      ],
+    })), (item) => open('order', item.order_id)));
   }
 
   const PAGES = {
-    overview: ['نظرة عامة', 'home', overviewPage],
-    clientTickets: ['تذاكر الموكلين', 'complaint', ticketsPage('client')],
-    lawyerTickets: ['تذاكر المحامين', 'complaint', ticketsPage('lawyer')],
+    overview: ['الرئيسية', 'home', overviewPage],
+    tickets: ['التذاكر', 'complaint', ticketsPage],
     reports: ['بلاغات التقييمات', 'review', reportsPage],
     applications: ['طلبات المحامين', 'apply', applicationsPage],
     lawyers: ['المحامون', 'lawyer', usersPage('lawyer')],
     clients: ['الموكلون', 'client', usersPage('client')],
     orders: ['الطلبات', 'orders', ordersPage],
     reviews: ['التقييمات', 'review', reviewsPage],
+    money: ['الأموال', 'money', moneyPage],
     prices: ['الأسعار والنسب', 'price', pricesPage],
   };
   const INNER = { user: userPage, order: orderPage, application: applicationPage, ticket: ticketPage, reviewReport: reviewReportPage };
   const INNER_TITLES = { user: 'الملف الشخصي', order: 'تفاصيل الطلب', application: 'طلب انضمام', ticket: 'تذكرة دعم فني', reviewReport: 'بلاغ عن تقييم' };
   const SUBTITLES = {
-    overview: 'ملخص الحسابات والطلبات', clientTickets: 'كل ما يرسله الموكلون إلى الدعم الفني', lawyerTickets: 'كل ما يرسله المحامون إلى الدعم الفني', reports: 'تعليقات أبلغ عنها المحامون',
+    overview: 'ما يحتاج إلى متابعتك الآن', tickets: 'كل ما يرسله الموكلون والمحامون إلى الدعم الفني', reports: 'تعليقات أبلغ عنها المحامون',
     reviewReport: 'مراجعة التعليق والقرار', ticket: 'الرسائل والرد والإغلاق', applications: 'محامون تقدموا للانضمام إلى الخدمة', lawyers: 'كل حسابات المحامين',
     clients: 'كل حسابات الموكلين', orders: 'البحث في الطلبات ومتابعة حالتها', reviews: 'تقييمات الموكلين للمحامين',
-    prices: 'أسعار الخدمات ونسبة المنصة والضريبة', application: 'مراجعة بيانات المحامي والقرار', user: 'البيانات والطلبات والتقييمات', order: 'البيانات ودورة حياة الطلب',
+    money: 'الأموال المجمدة وكل الحركات وسجل التجميد', prices: 'أسعار الخدمات ونسبة المنصة والضريبة', application: 'مراجعة بيانات المحامي والقرار', user: 'البيانات والطلبات والتقييمات', order: 'البيانات ودورة حياة الطلب',
   };
+  const NAV_GROUPS = [
+    [null, ['overview']],
+    ['المتابعة', ['tickets', 'applications', 'reports']],
+    ['الطلبات والحسابات', ['orders', 'lawyers', 'clients', 'reviews']],
+    ['الأموال', ['money', 'prices']],
+  ];
+  const NAV_COUNTS = { tickets: 'waiting_tickets', applications: 'pending_lawyers', reports: 'reported_reviews', money: 'frozen_orders' };
+  let navCounts = {};
   let current = { page: 'overview' };
   let trail = [];
 
@@ -7361,25 +7669,37 @@ body .custom-switch-toggle.active.sm .switch-knob {
     $('backdrop').hidden = !isOpen;
   }
 
-  function navItem(title, name, onClick, isActive) {
+  function navItem(title, name, onClick, isActive, count) {
     const item = el('button', undefined, 'nav-item' + (isActive ? ' active' : ''));
     item.type = 'button';
     item.append(icon(name, 'nav-icon'), el('span', title, 'nav-label'));
+    if (count > 0) item.append(el('span', count, 'nav-count'));
     item.addEventListener('click', onClick);
     return item;
   }
 
   function renderNav() {
     const activePage = trail.length ? trail[0].page : current.page;
-    $('nav').replaceChildren(...Object.entries(PAGES).map(([key, [title, name]]) =>
-      navItem(title, name, () => { setMenu(false); open(key, undefined, true); }, key === activePage)));
+    $('nav').replaceChildren(...NAV_GROUPS.flatMap(([group, keys]) => [
+      ...(group ? [el('div', group, 'nav-group-title')] : []),
+      ...keys.map((key) => navItem(PAGES[key][0], PAGES[key][1], () => { setMenu(false); open(key, undefined, true); }, key === activePage, navCounts[NAV_COUNTS[key]])),
+    ]));
     $('nav-footer').replaceChildren(navItem('تسجيل الخروج', 'logout', () => { setMenu(false); showLogin(); }, false));
+  }
+
+  /// The red numbers follow every page change, and a failed refresh keeps the last ones
+  async function refreshNavCounts() {
+    try {
+      navCounts = (await api('GET', '/admin/overview')).data;
+      renderNav();
+    } catch { /* the page itself shows its own errors */ }
   }
 
   async function render() {
     $('login').hidden = true;
     $('app').hidden = false;
     renderNav();
+    refreshNavCounts();
     if (!INNER[current.page] && !PAGES[current.page]) current = { page: 'overview' };
     $('page-title').textContent = INNER_TITLES[current.page] || PAGES[current.page][0];
     $('page-subtitle').textContent = SUBTITLES[current.page] || '';

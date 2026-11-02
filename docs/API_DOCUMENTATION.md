@@ -117,13 +117,17 @@
 | `/admin/orders?q=&status=` | `GET` | البحث في الطلبات |
 | `/admin/orders/:id` | `GET` | الطلب وأطرافه ودورة حياته وشكاواه وتقييمه |
 | `/admin/orders/:id/settlement` | `GET` | القرار المقترح وأدلته: الوصول، وإنهاء المهمة، وإنذارات الطرفين |
-| `/admin/orders/:id/settle` | `POST` | تنفيذ القرار المقترح، أو `outcome` تاني: `REFUND` أو `LAWYER` أو `SPLIT` |
+| `/admin/orders/:id/settle` | `POST` | تنفيذ القرار المقترح، أو `outcome` تاني: `REFUND` أو `LAWYER` |
 | `/admin/orders/:id/freeze` | `POST` | `freeze: true/false` لتجميد أتعاب الطلب أو فكها |
 | `/admin/support?role=client` أو `lawyer` | `GET` | تذاكر طرف واحد، وتحت المراجعة الأول |
-| `/admin/support/:id` | `GET` | التذكرة بكل رسايلها وملاحظاتها، والطلب، والقرار المالي المقترح لو الأتعاب متوقفة |
+| `/admin/support/:id` | `GET` | التذكرة بكل رسايلها وملاحظاتها، والطلب |
 | `/admin/support/:id/reply` | `POST` | رد يوصل لصاحب التذكرة في إشعار، وأول رد بيحولها لمفتوحة |
 | `/admin/support/:id/note` | `POST` | ملاحظة داخلية للإدارة بس |
-| `/admin/support/:id/close` | `POST` | قفل التذكرة. لو الأتعاب متوقفة عليها لازم `outcome`: `REFUND` أو `LAWYER` أو `SPLIT` |
+| `/admin/orders/:id` | `GET` | تفاصيل الطلب ومراحله وتذاكره وتقييمه، وحركات الرصيد `movements` وسجل التجميد `events` |
+| `/admin/users/:id/warnings` | `POST` | توجيه إنذار بسبب `reason`، ورقم طلب اختياري `orderNumber` |
+| `/admin/money` | `GET` | الأموال المجمدة والمحجوزة، والحركات، وسجل التجميد. يقبل `from` و`to` بصيغة `YYYY-MM-DD` |
+| `/admin/support/:id/transfer` | `POST` | تحويل مبلغ بين طرفي طلب التذكرة في خطوة واحدة: `from` (`lawyer` أو `client`) و`amount` و`reason` |
+| `/admin/support/:id/close` | `POST` | قفل التذكرة برسالة اختيارية `body`. لا يغير الفلوس، والقرار المالي من `/admin/orders/:id/settle` |
 | `/admin/urgent-applications` | `GET` | طلبات الانضمام بالصورة الشخصية وبيانات الكارنيه |
 | `/admin/urgent-applications/:id/decision` | `POST` | الموافقة على طلب الانضمام أو رفضه بسبب |
 | `/admin/reviews` و`/admin/reviews/reported` | `GET` | كل التقييمات، والمبلغ عنها |

@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { registerAdminDirectory, userStats } from './directory.js';
 import { registerAdminSupport } from '../support/admin.js';
+import { registerAdminMoney } from './money.js';
 import { sanitizeText } from '../../utils/security.js';
 import { notify, refreshLawyerRating } from '../lifecycle/service.js';
 
@@ -21,6 +22,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
   await registerAdminDirectory(fastify);
   await registerAdminSupport(fastify);
+  await registerAdminMoney(fastify);
 
   // GET /api/v1/admin/prices
   fastify.get('/prices', async (_request: FastifyRequest, reply: FastifyReply) => {

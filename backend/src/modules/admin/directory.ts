@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { notify } from '../lifecycle/service.js';
 import { sanitizeText } from '../../utils/security.js';
-import { addWarning, adjustBalance, applySettlement, evaluateSettlement, revokeWarning, SettlementOutcome } from '../lifecycle/settlement.js';
+import { addWarning, adjustBalance, applySettlement, evaluateSettlement, logPayoutEvent, revokeWarning, SettlementOutcome } from '../lifecycle/settlement.js';
 
 const PAGE_LIMIT = 100;
 
@@ -29,6 +29,8 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
         (SELECT COUNT(*)::int FROM service_orders WHERE status = 'COMPLETED') AS completed_orders,
         (SELECT COUNT(*)::int FROM support_tickets WHERE status = 'UNDER_REVIEW') AS waiting_tickets,
         (SELECT COUNT(*)::int FROM support_tickets WHERE status = 'OPEN') AS open_tickets,
+        (SELECT COUNT(*)::int FROM reviews WHERE reported_at IS NOT NULL AND is_hidden = FALSE) AS reported_reviews,
+        (SELECT COUNT(*)::int FROM service_orders WHERE payout_status = 'FROZEN') AS frozen_orders,
         (SELECT COALESCE(SUM(price), 0) FROM service_orders WHERE status = 'COMPLETED') AS completed_value
     `);
     return reply.send({ success: true, data: res.rows[0] });
@@ -192,17 +194,32 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     );
     if (orderRes.rows.length === 0) return reply.status(404).send({ success: false, error: 'الطلب غير موجود' });
 
-    const [logs, tickets, reviews] = await Promise.all([
+    const [logs, tickets, reviews, movements, events] = await Promise.all([
       query('SELECT old_status, new_status, note, created_at FROM order_status_logs WHERE order_id = $1 ORDER BY created_at ASC', [id]),
       query(`SELECT t.id, t.reference, t.title, t.category, t.status, t.created_at, u.role AS user_role
              FROM support_tickets t JOIN users u ON u.id = t.user_id WHERE t.order_id = $1 ORDER BY t.created_at DESC`, [id]),
       query('SELECT rating, comment, created_at FROM reviews WHERE order_id = $1', [id]),
+      query(
+        `SELECT m.amount, m.reason, m.created_at, m.account_role, COALESCE(lp.full_name, u.full_name, u.phone) AS account_name, a.email AS created_by
+         FROM (
+           SELECT client_id AS user_id, 'client' AS account_role, amount, reason, created_at, created_by FROM client_credits WHERE order_id = $1
+           UNION ALL
+           SELECT lawyer_id, 'lawyer', amount, reason, created_at, created_by FROM lawyer_adjustments WHERE order_id = $1
+         ) m
+         JOIN users u ON u.id = m.user_id
+         LEFT JOIN lawyer_profiles lp ON lp.user_id = m.user_id
+         LEFT JOIN users a ON a.id = m.created_by
+         ORDER BY m.created_at DESC`, [id]),
+      query(
+        `SELECT e.action, e.amount, e.reason, e.created_at, a.email AS created_by
+         FROM payout_events e LEFT JOIN users a ON a.id = e.created_by
+         WHERE e.order_id = $1 ORDER BY e.created_at DESC`, [id]),
     ]);
 
     const { completion_code: _hidden, ...order } = orderRes.rows[0];
     return reply.send({
       success: true,
-      data: { order, logs: logs.rows, tickets: tickets.rows, reviews: reviews.rows },
+      data: { order, logs: logs.rows, tickets: tickets.rows, reviews: reviews.rows, movements: movements.rows, events: events.rows },
     });
   });
 
@@ -227,7 +244,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const body = (request.body || {}) as { outcome?: string; note?: string };
     if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
-    if (body.outcome && !['REFUND', 'LAWYER', 'SPLIT'].includes(body.outcome)) {
+    if (body.outcome && !['REFUND', 'LAWYER'].includes(body.outcome)) {
       return reply.status(400).send({ success: false, error: 'القرار غير صالح' });
     }
 
@@ -275,13 +292,22 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
   fastify.post('/users/:id/warnings', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId: adminId } = request.user as { userId: string };
     const { id } = request.params as { id: string };
-    const reason = sanitizeText(((request.body || {}) as { reason?: string }).reason || '', 500).trim();
+    const body = (request.body || {}) as { reason?: string; orderNumber?: string };
+    const reason = sanitizeText(body.reason || '', 500).trim();
     if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
     if (reason.length < 5) return reply.status(400).send({ success: false, error: 'اكتب سبب الإنذار' });
 
     const userRes = await query(`SELECT id FROM users WHERE id = $1 AND role IN ('client', 'lawyer')`, [id]);
     if (userRes.rows.length === 0) return reply.status(404).send({ success: false, error: 'الحساب غير موجود' });
-    await addWarning(dbPool, id, reason, null, adminId);
+
+    let orderId: string | null = null;
+    if (body.orderNumber) {
+      const orderRes = await query('SELECT id FROM service_orders WHERE order_number = $1 AND (client_id = $2 OR lawyer_id = $2)', [String(body.orderNumber).trim(), id]);
+      if (orderRes.rows.length === 0) return reply.status(400).send({ success: false, error: 'رقم الطلب غير مرتبط بهذا الحساب' });
+      orderId = orderRes.rows[0].id;
+    }
+
+    await addWarning(dbPool, id, reason, orderId, adminId);
     return reply.send({ success: true, message: 'تم توجيه الإنذار' });
   });
 
@@ -297,17 +323,19 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
 
   // POST /api/v1/admin/orders/:id/freeze - Stops or releases one order's fees
   fastify.post('/orders/:id/freeze', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
     const { id } = request.params as { id: string };
     const freeze = Boolean(((request.body || {}) as { freeze?: boolean }).freeze);
     if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
 
     const res = freeze
-      ? await query(`UPDATE service_orders SET payout_status = 'FROZEN' WHERE id = $1 AND payout_status IN ('HELD', 'AVAILABLE') RETURNING lawyer_id`, [id])
+      ? await query(`UPDATE service_orders SET payout_status = 'FROZEN' WHERE id = $1 AND payout_status IN ('HELD', 'AVAILABLE') RETURNING lawyer_id, payout_amount`, [id])
       : await query(
         `UPDATE service_orders SET payout_status = CASE WHEN hold_until > NOW() THEN 'HELD' ELSE 'AVAILABLE' END
-         WHERE id = $1 AND payout_status = 'FROZEN' RETURNING lawyer_id`, [id]);
+         WHERE id = $1 AND payout_status = 'FROZEN' RETURNING lawyer_id, payout_amount`, [id]);
     if (res.rows.length === 0) return reply.status(409).send({ success: false, error: 'لا يمكن تنفيذ ذلك على أتعاب هذا الطلب الآن' });
 
+    await logPayoutEvent(dbPool, id, freeze ? 'FREEZE' : 'UNFREEZE', Number(res.rows[0].payout_amount || 0), 'إجراء من الإدارة', adminId);
     await notify(dbPool, res.rows[0].lawyer_id, freeze ? 'تجميد أتعاب' : 'فك تجميد الأتعاب',
       freeze ? 'الإدارة جمدت أتعاب طلب لحين المراجعة' : 'الإدارة فكت تجميد أتعاب طلب', id);
     return reply.send({ success: true, message: freeze ? 'تم تجميد الأتعاب' : 'تم فك تجميد الأتعاب' });

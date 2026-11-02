@@ -8,6 +8,7 @@ import {
   attachmentFile,
   freezePayout,
   MAX_OPEN_TICKETS,
+  ORDER_TICKET_WINDOW_HOURS,
   readTicketForm,
   TICKET_CATEGORIES,
   TicketCategory,
@@ -98,6 +99,9 @@ export async function supportRoutes(fastify: FastifyInstance) {
           );
           order = orderRes.rows[0];
           if (!order) throw new TicketError(404, 'الطلب غير موجود');
+          if (order.completed_at && Date.now() - new Date(order.completed_at).getTime() >= ORDER_TICKET_WINDOW_HOURS * 3600000) {
+            throw new TicketError(409, `مينفعش تفتح تذكرة على طلب بعد ${ORDER_TICKET_WINDOW_HOURS} ساعة من إنهائه`);
+          }
           const sameOrder = await db.query(`SELECT 1 FROM support_tickets WHERE order_id = $1 AND user_id = $2 AND status <> 'CLOSED'`, [order.id, userId]);
           if (sameOrder.rows.length > 0) throw new TicketError(409, 'عندك تذكرة مفتوحة على الطلب ده، كمل فيها');
         }
@@ -110,11 +114,10 @@ export async function supportRoutes(fastify: FastifyInstance) {
         const row = ticket.rows[0];
         await addMessage(db, row.id, 'USER', userId, fields.body ?? '', images);
 
-        // Any problem on an order holds its fees until the admin decides
         if (order) {
-          await freezePayout(db, order);
+          const frozen = await freezePayout(db, order, `تذكرة ${row.reference}`);
           const other = order.client_id === userId ? order.lawyer_id : order.client_id;
-          await notify(db, other, 'مراجعة على طلب', `فيه مشكلة على طلب ${order.order_number}، والأتعاب متوقفة لحد قرار الإدارة`, { orderId: order.id });
+          await notify(db, other, 'مراجعة على طلب', frozen ? `فيه مشكلة على طلب ${order.order_number}، والأتعاب متجمدة لحد قرار الإدارة` : `فيه مشكلة على طلب ${order.order_number}، والإدارة بتراجعها`, { orderId: order.id });
         }
 
         return {

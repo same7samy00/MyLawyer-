@@ -1,5 +1,51 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 3.10] - 2026-11-03
+### Control Page Finish
+- Every page now uses the same action boxes in one "الإجراءات" section, with a small window for what a decision needs.
+- Reviewed the wording, and strike types show in Arabic.
+
+## [Phase 3.09] - 2026-11-03
+### Order and Account Pages
+- The order page has four tabs: summary, stages, money and actions. The money tab shows every balance movement and the freeze history of that order.
+- The account page has four tabs instead of seven: data, activity, balance and warnings, and actions.
+- A warning from a ticket is linked to its order, its window explains the automatic suspension, and party cards no longer repeat the name.
+
+## [Phase 3.08] - 2026-11-03
+### One Tickets Page
+- Client and lawyer tickets are now one page with tabs for waiting, open and closed, a side filter, and the waiting time.
+- A ticket opens in two columns: messages and reply beside the parties, money status, note and actions. Money actions and closing with a message open a small window.
+- Ticket actions sit in one section below in equal boxes: transfer, deduct, add, warnings, freezing and closing. A warning to the lawyer or the client can now be sent from the ticket.
+
+## [Phase 3.07] - 2026-11-03
+### Control Page Home and Menu
+- The side menu is grouped into follow-up, orders and accounts, and money, with a red count next to pages that have waiting work.
+- The home page opens with a "المطلوب منك" list, each row opening its page, and small totals below it.
+
+## [Phase 3.06] - 2026-11-03
+### Money Page
+- New control page "الأموال" with totals and three tabs: frozen money, all balance movements, and the freeze history.
+- Every freeze, unfreeze and settlement of frozen fees is now recorded with who did it and why (migration `017`). Fees frozen before this update show no freeze date.
+
+## [Phase 3.05] - 2026-11-03
+### Money Actions Inside Tickets
+- A ticket now has actions to deduct from or add to the lawyer and the client, and to freeze or unfreeze the order fees, with a note when the fees are frozen.
+- A ticket on a finished order freezes its fees automatically, and nobody can open a ticket on an order 24 hours after its end, so the fees then stay available to the lawyer. The app hides the problem button after that time.
+- Removed the half split from the whole system.
+- Added two one-step transfers in a ticket, lawyer to client and client to lawyer, which deduct from one side and add to the other together.
+
+## [Phase 3.04] - 2026-11-03
+### Tickets Are for Replies Only
+- Removed the money decision from tickets. Closing a ticket no longer changes any money, and frozen fees stay frozen until the admin decides on the order page.
+- Control page notes sit in a box with a note icon, stat cards are separate, and labels and values follow fixed columns.
+- Order parties show each person in a separate box, with data in ruled lines.
+- Every account profile shows a current balance card: available fees for a lawyer, wallet balance for a client.
+
+## [Phase 3.03] - 2026-11-03
+### Control Page Look
+- The control page brand color is now blue instead of green, and all corners are sharp. Green stays only for success states.
+- Removed nested containers: the section is the only box, and what sits inside it (people, messages, tables, notes) is plain with thin dividers.
+
 ## [Phase 3.02] - 2026-11-03
 ### Control Page Cleanup
 - Removed the suggested decision everywhere. The admin sees the facts and picks a decision, and all decisions look equal.

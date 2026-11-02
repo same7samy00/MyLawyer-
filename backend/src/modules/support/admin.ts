@@ -1,11 +1,11 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { notify } from '../lifecycle/service.js';
-import { applySettlement, evaluateSettlement, SettlementOutcome } from '../lifecycle/settlement.js';
+import { adjustBalance } from '../lifecycle/settlement.js';
+import { sanitizeText } from '../../utils/security.js';
 import { addMessage, readTicketForm, TicketError, ticketMessages } from './service.js';
 
 const UUID_PATTERN = /^[0-9a-f-]{36}$/i;
-const OUTCOMES = ['REFUND', 'LAWYER', 'SPLIT'];
 
 /// The control page side of support: lists, replies, internal notes, and closing
 export async function registerAdminSupport(fastify: FastifyInstance) {
@@ -19,12 +19,12 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
     }
   };
 
-  // GET /api/v1/admin/support?role=client|lawyer - Every ticket of one side, waiting ones first
+  // GET /api/v1/admin/support?role=client|lawyer - Every ticket, or one side only, waiting ones first
   fastify.get('/support', async (request: FastifyRequest, reply: FastifyReply) => {
     const { role } = (request.query || {}) as { role?: string };
     const res = await query(
       `SELECT t.id, t.reference, t.category, t.title, t.status, t.created_at, t.updated_at, t.closed_at,
-              u.id AS user_id, u.phone AS user_phone, COALESCE(lp.full_name, u.full_name, u.phone) AS user_name,
+              u.id AS user_id, u.role AS user_role, u.phone AS user_phone, COALESCE(lp.full_name, u.full_name, u.phone) AS user_name,
               o.id AS order_id, o.order_number, o.payout_status,
               (SELECT m.body FROM ticket_messages m WHERE m.ticket_id = t.id AND m.author = 'USER' ORDER BY m.created_at LIMIT 1) AS first_message
        FROM support_tickets t
@@ -59,7 +59,7 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
     let order = null;
     if (ticket.order_id) {
       const orderRes = await query(
-        `SELECT o.id, o.order_number, o.status, o.payout_status, o.price, o.arrived_at, o.completed_at,
+        `SELECT o.id, o.order_number, o.status, o.payout_status, o.payout_amount, o.price, o.arrived_at, o.completed_at,
                 COALESCE(c.full_name, c.phone) AS client_name, c.phone AS client_phone, o.client_id,
                 lp.full_name AS lawyer_name, l.phone AS lawyer_phone, o.lawyer_id
          FROM service_orders o
@@ -72,17 +72,9 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
       order = orderRes.rows[0] ?? null;
     }
 
-    // A money decision is needed while the fees of the order are frozen
-    const needsDecision = ticket.status !== 'CLOSED' && order?.payout_status === 'FROZEN';
-    let suggestion = null;
-    if (needsDecision) {
-      const full = await query('SELECT * FROM service_orders WHERE id = $1', [order.id]);
-      suggestion = await evaluateSettlement(dbPool, full.rows[0]);
-    }
-
     return reply.send({
       success: true,
-      data: { ...ticket, order, needsDecision, suggestion, messages: await ticketMessages(dbPool, ticket.id, true) },
+      data: { ...ticket, order, messages: await ticketMessages(dbPool, ticket.id, true) },
     });
   });
 
@@ -117,29 +109,42 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
     });
   });
 
-  // POST /api/v1/admin/support/:id/close - Only an admin closes a ticket; frozen fees need a money decision first
+  // POST /api/v1/admin/support/:id/transfer - Moves an amount between the order's two sides at once
+  fastify.post('/support/:id/transfer', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
+    const { id } = request.params as { id: string };
+    const body = (request.body || {}) as { from?: string; amount?: number; reason?: string };
+    const amount = Math.round(Number(body.amount) * 100) / 100;
+    const reason = sanitizeText(body.reason || '', 500).trim();
+    return handle(reply, () => withTransaction(async (db) => {
+      if (body.from !== 'lawyer' && body.from !== 'client') throw new TicketError(400, 'اتجاه التحويل غير صالح');
+      if (!Number.isFinite(amount) || amount <= 0 || amount > 100000) throw new TicketError(400, 'أدخل مبلغًا صحيحًا');
+      if (reason.length < 5) throw new TicketError(400, 'اكتب سبب الحركة');
+
+      const ticket = (await db.query('SELECT * FROM support_tickets WHERE id::text = $1 FOR UPDATE', [id])).rows[0];
+      if (!ticket) throw new TicketError(404, 'التذكرة غير موجودة');
+      if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة مغلقة');
+      const order = ticket.order_id ? (await db.query('SELECT id, client_id, lawyer_id FROM service_orders WHERE id = $1', [ticket.order_id])).rows[0] : null;
+      if (!order) throw new TicketError(400, 'التحويل متاح للتذاكر المرتبطة بطلب فقط');
+
+      const lawyer = { id: order.lawyer_id, role: 'lawyer' };
+      const client = { id: order.client_id, role: 'client' };
+      const [sender, receiver] = body.from === 'lawyer' ? [lawyer, client] : [client, lawyer];
+      await adjustBalance(db, sender, -amount, reason, order.id, adminId);
+      await adjustBalance(db, receiver, amount, reason, order.id, adminId);
+      return { message: 'تم تنفيذ التحويل' };
+    }));
+  });
+
+  // POST /api/v1/admin/support/:id/close - Only an admin closes a ticket; money decisions live on the order page
   fastify.post('/support/:id/close', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId: adminId } = request.user as { userId: string };
     const { id } = request.params as { id: string };
-    const body = (request.body || {}) as { outcome?: string; body?: string };
+    const body = (request.body || {}) as { body?: string };
     return handle(reply, () => withTransaction(async (db) => {
       const ticket = (await db.query('SELECT * FROM support_tickets WHERE id::text = $1 FOR UPDATE', [id])).rows[0];
       if (!ticket) throw new TicketError(404, 'التذكرة غير موجودة');
       if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة مغلقة بالفعل');
-
-      if (ticket.order_id) {
-        const order = (await db.query('SELECT * FROM service_orders WHERE id = $1 FOR UPDATE', [ticket.order_id])).rows[0];
-        const otherTicket = await db.query(
-          `SELECT 1 FROM support_tickets WHERE order_id = $1 AND id <> $2 AND status <> 'CLOSED'`,
-          [ticket.order_id, ticket.id]
-        );
-        if (order?.payout_status === 'FROZEN' && otherTicket.rows.length === 0) {
-          if (!body.outcome || !OUTCOMES.includes(body.outcome)) {
-            throw new TicketError(400, 'أتعاب الطلب موقوفة بسبب هذه التذكرة، فاختر القرار المالي قبل الإغلاق');
-          }
-          await applySettlement(db, order, body.outcome as SettlementOutcome, adminId, `قرار تذكرة ${ticket.reference}`);
-        }
-      }
 
       if (body.body && body.body.trim()) await addMessage(db, ticket.id, 'ADMIN', adminId, body.body, []);
       await db.query(`UPDATE support_tickets SET status = 'CLOSED', closed_at = NOW(), closed_by = $2, updated_at = NOW() WHERE id = $1`, [ticket.id, adminId]);

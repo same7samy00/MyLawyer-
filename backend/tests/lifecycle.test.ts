@@ -318,11 +318,9 @@ describe('تذاكر الفلوس والتسوية بالالتقاء', () => {
     assert.equal((await wallet()).availableBalance, 800);
   });
 
-  it('الإدارة تقدر تختار التقسيم مناصفة بنفسها', async () => {
+  it('التقسيم مناصفة مش موجود', async () => {
     const order = await createArrivedOrder();
-    assert.equal((await settle(order.id, { outcome: 'SPLIT' })).status, 200);
-    assert.equal(await clientBalance(), 175);
-    assert.equal((await wallet()).availableBalance, 175);
+    assert.equal((await settle(order.id, { outcome: 'SPLIT' })).status, 400);
   });
 
   it('تذكرة الفلوس توقف الإنهاء والمهلة لحد القرار', async () => {
@@ -335,9 +333,17 @@ describe('تذاكر الفلوس والتسوية بالالتقاء', () => {
     assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'ACTIVE');
   });
 
-  it('أي تذكرة على طلب بتوقف أتعابه، حتى بعد أيام، وبتوصل للطرف التاني إشعار', async () => {
+  it('مفيش تذكرة على طلب بعد 24 ساعة من إنهائه، لا للموكل ولا للمحامي', async () => {
     const order = await createCompletedOrder();
-    await sql(`UPDATE service_orders SET completed_at = NOW() - INTERVAL '5 days' WHERE id = $1`, [order.id]);
+    await sql(`UPDATE service_orders SET completed_at = NOW() - INTERVAL '25 hours', hold_until = NOW() - INTERVAL '1 hour', payout_status = 'AVAILABLE' WHERE id = $1`, [order.id]);
+    assert.equal((await openTicket(clientToken, order.id, 'ORDER')).status, 409);
+    assert.equal((await openTicket(lawyerToken, order.id, 'ORDER')).status, 409);
+    assert.equal((await wallet()).frozenBalance, 0);
+    assert.equal((await wallet()).availableBalance, 350);
+  });
+
+  it('التذكرة خلال 24 ساعة من الإنهاء بتجمد الأتعاب، وبتوصل للطرف التاني إشعار', async () => {
+    const order = await createCompletedOrder();
     assert.equal((await openTicket(clientToken, order.id, 'ORDER')).status, 201);
     assert.equal((await wallet()).frozenBalance, 350);
     const notes = await sql(`SELECT order_id FROM notifications WHERE user_id = $1 AND title = 'مراجعة على طلب'`, [lawyerId]);
@@ -754,14 +760,81 @@ describe('الدعم الفني', () => {
     assert.equal((await openTicket(clientToken, null, 'OTHER')).status, 409);
   });
 
-  it('تذكرة الفلوس ما تتقفلش غير بقرار الفلوس', async () => {
+  it('صفحة الأموال بتعرض المجمد والحركات وسجل التجميد', async () => {
+    const order = await createCompletedOrder();
+    const ticket = (await openTicket(clientToken, order.id)).body.data;
+    await call('POST', `/admin/support/${ticket.id}/transfer`, adminToken, { from: 'lawyer', amount: 100, reason: 'تعويض الموكل' });
+
+    const detail = (await call('GET', `/admin/orders/${order.id}`, adminToken)).body.data;
+    assert.equal(detail.movements.length, 2);
+    assert.equal(detail.events[0].action, 'FREEZE');
+
+    const warned = await call('POST', `/admin/users/${lawyerId}/warnings`, adminToken, { reason: 'إنذار على الطلب', orderNumber: detail.order.order_number });
+    assert.equal(warned.status, 200);
+    assert.equal((await sql('SELECT order_id FROM account_warnings WHERE user_id = $1', [lawyerId]))[0].order_id, order.id);
+    assert.equal((await call('POST', `/admin/users/${lawyerId}/warnings`, adminToken, { reason: 'إنذار على طلب غريب', orderNumber: 'ML-NONE' })).status, 400);
+
+    const overview = (await call('GET', '/admin/overview', adminToken)).body.data;
+    assert.equal(overview.frozen_orders, 1);
+    assert.equal(overview.waiting_tickets, 1);
+    const allTickets = (await call('GET', '/admin/support', adminToken)).body.data;
+    assert.equal(allTickets[0].user_role, 'client');
+
+    let money = (await call('GET', '/admin/money', adminToken)).body.data;
+    assert.equal(Number(money.totals.frozen), 350);
+    assert.equal(Number(money.totals.added), 100);
+    assert.equal(Number(money.totals.deducted), 100);
+    assert.equal(money.frozen[0].ticket_id, ticket.id);
+    assert.equal(money.movements.length, 2);
+    assert.equal(money.events[0].action, 'FREEZE');
+    assert.equal(money.events[0].created_by, null);
+
+    await call('POST', `/admin/orders/${order.id}/freeze`, adminToken, { freeze: false });
+    money = (await call('GET', '/admin/money', adminToken)).body.data;
+    assert.equal(money.frozen.length, 0);
+    assert.equal(money.events[0].action, 'UNFREEZE');
+    assert.ok(money.events[0].created_by);
+
+    await call('POST', `/admin/orders/${order.id}/freeze`, adminToken, { freeze: true });
+    await call('POST', `/admin/orders/${order.id}/settle`, adminToken, { outcome: 'REFUND' });
+    money = (await call('GET', '/admin/money', adminToken)).body.data;
+    assert.equal(money.events[0].action, 'SETTLE');
+
+    const future = (await call('GET', '/admin/money?from=2099-01-01', adminToken)).body.data;
+    assert.equal(future.movements.length, 0);
+    assert.equal((await call('GET', '/admin/money?from=bad', adminToken)).status, 400);
+    assert.equal((await call('GET', '/admin/money', clientToken)).status, 403);
+  });
+
+  it('التحويل من التذكرة بيخصم من طرف ويضيف للتاني في نفس اللحظة', async () => {
+    const order = await createCompletedOrder();
+    const ticket = (await openTicket(clientToken, order.id)).body.data;
+    const transfer = (body: object) => call('POST', `/admin/support/${ticket.id}/transfer`, adminToken, body);
+    const lawyerTotal = async () => Number((await sql('SELECT COALESCE(SUM(amount), 0) AS total FROM lawyer_adjustments WHERE lawyer_id = $1', [lawyerId]))[0].total);
+
+    assert.equal((await transfer({ from: 'lawyer', amount: 100, reason: 'تعويض الموكل' })).status, 200);
+    assert.equal(await clientBalance(), 100);
+    assert.equal(await lawyerTotal(), -100);
+
+    assert.equal((await transfer({ from: 'client', amount: 40, reason: 'تصحيح المبلغ' })).status, 200);
+    assert.equal(await clientBalance(), 60);
+    assert.equal(await lawyerTotal(), -60);
+
+    assert.equal((await transfer({ from: 'lawyer', amount: 0, reason: 'مبلغ غير صحيح' })).status, 400);
+    assert.equal((await transfer({ from: 'nobody', amount: 10, reason: 'اتجاه غير صحيح' })).status, 400);
+    assert.equal(await clientBalance(), 60);
+  });
+
+  it('إغلاق التذكرة ما بيغيرش الفلوس، والقرار من صفحة الطلب', async () => {
     const order = await createCompletedOrder();
     const ticket = (await openTicket(clientToken, order.id)).body.data;
     assert.equal((await wallet()).frozenBalance, 350);
 
-    assert.equal((await call('POST', `/admin/support/${ticket.id}/close`, adminToken, {})).status, 400);
-    assert.equal((await call('GET', `/admin/support/${ticket.id}`, adminToken)).body.data.suggestion.outcome, 'LAWYER');
     assert.equal((await call('POST', `/admin/support/${ticket.id}/close`, adminToken, { outcome: 'REFUND' })).status, 200);
+    assert.equal(await clientBalance(), 0);
+    assert.equal((await wallet()).frozenBalance, 350);
+
+    assert.equal((await call('POST', `/admin/orders/${order.id}/settle`, adminToken, { outcome: 'REFUND' })).status, 200);
     assert.equal(await clientBalance(), 350);
     assert.equal((await wallet()).frozenBalance, 0);
   });

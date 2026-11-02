@@ -195,10 +195,14 @@ class OrderModel {
     return seconds <= 0 ? 0 : (seconds / 60).ceil();
   }
 
-  /// أي طلب اتدفع يقدر صاحبه يفتح عليه تذكرة دعم، وتذكرة مفتوحة واحدة بس على نفس الطلب
+  /// أي طلب اتدفع يقدر صاحبه يفتح عليه تذكرة دعم لحد 24 ساعة من إنهائه، وتذكرة مفتوحة واحدة بس على نفس الطلب
   bool get hasOpenTicket => openTicketId != null;
 
-  bool get canOpenTicket => paidAt != null && !hasOpenTicket;
+  bool get canOpenTicket {
+    final finishedAt = completedAt;
+    final windowOpen = finishedAt == null || DateTime.now().difference(finishedAt).inHours < 24;
+    return paidAt != null && !hasOpenTicket && windowOpen;
+  }
 
   /// التقييم متاح لمدة 7 أيام بعد إنهاء المهمة
   bool get canReview {

@@ -6,12 +6,14 @@ import { FastifyRequest } from 'fastify';
 import { config } from '../../config/index.js';
 import { sanitizeText } from '../../utils/security.js';
 import { detectFileType } from '../../utils/files.js';
+import { logPayoutEvent } from '../lifecycle/settlement.js';
 
 type Db = pg.Pool | pg.PoolClient;
 
 export const TICKET_CATEGORIES = ['ORDER', 'MONEY', 'ACCOUNT', 'OTHER'] as const;
 export type TicketCategory = typeof TICKET_CATEGORIES[number];
 export const MAX_OPEN_TICKETS = 3;
+export const ORDER_TICKET_WINDOW_HOURS = 24;
 export const MAX_IMAGES = 5;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ATTACHMENTS_DIR = () => path.join(config.privateStoragePath, 'support');
@@ -22,11 +24,16 @@ export class TicketError extends Error {
   }
 }
 
-/// The fees wait for the admin decision
-export async function freezePayout(db: Db, order: any) {
-  if (order.status === 'COMPLETED') {
-    await db.query(`UPDATE service_orders SET payout_status = 'FROZEN' WHERE id = $1 AND payout_status IN ('HELD', 'AVAILABLE')`, [order.id]);
-  }
+/// A problem within 24 hours of the task end freezes the fees; after that they already belong to the lawyer
+export async function freezePayout(db: Db, order: any, reason: string): Promise<boolean> {
+  if (order.status !== 'COMPLETED') return false;
+  const res = await db.query(
+    `UPDATE service_orders SET payout_status = 'FROZEN' WHERE id = $1 AND payout_status = 'HELD' AND hold_until > NOW()`,
+    [order.id]
+  );
+  const frozen = (res.rowCount ?? 0) > 0;
+  if (frozen) await logPayoutEvent(db, order.id, 'FREEZE', Number(order.payout_amount || 0), reason, null);
+  return frozen;
 }
 
 /// SQL condition: the order has an open ticket, which holds the task and the fees until the admin decides

@@ -8,7 +8,7 @@ const WARNING_LIMIT = 3;
 const WARNING_WINDOW_DAYS = 30;
 const SUSPENSION_DAYS = 7;
 
-export type SettlementOutcome = 'REFUND' | 'LAWYER' | 'SPLIT';
+export type SettlementOutcome = 'REFUND' | 'LAWYER';
 
 export interface Settlement {
   outcome: SettlementOutcome;
@@ -25,6 +25,14 @@ async function activeWarnings(db: Db, userId: string): Promise<number> {
   return res.rows[0].total;
 }
 
+/// One line in the freeze history; an empty actor means the system did it
+export async function logPayoutEvent(db: Db, orderId: string, action: 'FREEZE' | 'UNFREEZE' | 'SETTLE', amount: number, reason: string, actorId: string | null) {
+  await db.query(
+    'INSERT INTO payout_events (order_id, action, amount, reason, created_by) VALUES ($1, $2, $3, $4, $5)',
+    [orderId, action, amount, reason, actorId]
+  );
+}
+
 /// The meeting decides the money: no meeting refunds the client, a meeting pays the lawyer
 export async function evaluateSettlement(db: Db, order: any): Promise<Settlement> {
   const lawyerArrived = Boolean(order.arrived_at);
@@ -39,15 +47,12 @@ export async function evaluateSettlement(db: Db, order: any): Promise<Settlement
 }
 
 export function outcomeAmount(outcome: SettlementOutcome, price: number): number {
-  if (outcome === 'REFUND') return price;
-  if (outcome === 'SPLIT') return Math.round(price * 50) / 100;
-  return 0;
+  return outcome === 'REFUND' ? price : 0;
 }
 
 const OUTCOME_LABELS: Record<SettlementOutcome, string> = {
   REFUND: 'رد المبلغ للموكل',
   LAWYER: 'صرف الأتعاب للمحامي',
-  SPLIT: 'تقسيم المبلغ مناصفة',
 };
 
 /// Applies one settlement to an order
@@ -69,6 +74,10 @@ export async function applySettlement(db: pg.PoolClient, order: any, outcome: Se
      VALUES ($1, $2, $3, $4, $5)`,
     [order.id, actorId, order.status, newStatus, `تسوية الطلب: ${OUTCOME_LABELS[outcome]}`]
   );
+
+  if (order.payout_status === 'FROZEN') {
+    await logPayoutEvent(db, order.id, 'SETTLE', Number(order.payout_amount || 0), OUTCOME_LABELS[outcome], actorId);
+  }
 
   if (clientAmount > 0) {
     await addClientCredit(db, order.client_id, order.id, clientAmount, `تسوية طلب ${order.order_number}: ${OUTCOME_LABELS[outcome]}`);
