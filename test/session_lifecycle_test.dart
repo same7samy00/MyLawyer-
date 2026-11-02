@@ -26,6 +26,7 @@ import 'package:my_lawyer/features/client/nearby_lawyers_showcase_screen.dart';
 import 'package:my_lawyer/features/client/orders_tab.dart';
 import 'package:my_lawyer/features/urgent_service/payment_screen.dart';
 import 'package:my_lawyer/features/urgent_service/payment_success_screen.dart';
+import 'package:my_lawyer/features/auth/account_suspended_screen.dart';
 import 'package:my_lawyer/features/auth/session_router.dart';
 import 'package:my_lawyer/features/auth/splash_screen.dart';
 import 'package:my_lawyer/features/urgent_service/tracking_screen.dart';
@@ -175,14 +176,28 @@ void main() {
       expect(await ApiService.getRefreshToken(), isNull);
     });
 
-    testWidgets('حساب موقوف: إنهاء الجلسة والعودة للدخول برسالة واضحة', (tester) async {
+    testWidgets('حساب موقوف: صفحة الإيقاف مع حفظ الجلسة والرجوع بعد التفعيل', (tester) async {
       SharedPreferences.setMockInitialValues(_savedSession());
-      backend.account = {...clientAccount(), 'status': 'suspended'};
+      backend.overrides['GET /users/me'] = (_) => FakeBackend.json(403, {
+            'success': false,
+            'error': 'تم إيقاف هذا الحساب',
+            'data': {'status': 'suspended'},
+          });
       await _launch(tester);
 
-      expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.textContaining('تم إيقاف هذا الحساب'), findsOneWidget);
-      expect(await ApiService.getRefreshToken(), isNull);
+      expect(find.byType(AccountSuspendedScreen), findsOneWidget);
+      expect(await ApiService.getRefreshToken(), isNotNull);
+
+      await tester.tap(find.text('تحديث حالة الحساب'));
+      await _settleAsync(tester);
+      expect(find.text('الحساب لسه موقوف'), findsOneWidget);
+
+      backend.overrides.remove('GET /users/me');
+      await tester.tap(find.text('تحديث حالة الحساب'));
+      await _settleAsync(tester);
+      expect(find.byType(AccountSuspendedScreen), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
     });
   });
 
@@ -794,6 +809,29 @@ void main() {
       expect(backend.countOf('POST /notifications/read-all'), 1);
       expect(find.byKey(const ValueKey('unread-dot')), findsNothing);
       expect(find.text('تعليم الكل كمقروء'), findsNothing);
+    });
+
+    testWidgets('الحساب الموقوف يتوجه لصفحة الإيقاف من أي شاشة', (tester) async {
+      backend.overrides['GET /orders'] = (_) => FakeBackend.json(403, {
+            'success': false,
+            'error': 'تم إيقاف هذا الحساب',
+            'data': {'status': 'suspended'},
+          });
+      ApiService.onAccountSuspended = SessionRouter.handleAccountSuspended;
+
+      await tester.pumpWidget(_app(const Scaffold(body: OrdersTab()), navigatorKey: SessionRouter.navigatorKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AccountSuspendedScreen), findsOneWidget);
+      expect(find.text('حسابك موقوف'), findsOneWidget);
+      expect(find.byType(OrdersTab), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    test('الجلسة الموقوفة لها وجهة مستقلة', () {
+      final check = AuthService.resolveSession(role: 'client', userStatus: 'suspended', approvalStatus: null);
+      expect(check.status, SessionStatus.accountSuspended);
     });
 
     testWidgets('الموكل يشوف كود الإنهاء في طلبه النشط', (tester) async {

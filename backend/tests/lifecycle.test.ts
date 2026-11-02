@@ -834,3 +834,20 @@ describe('الترتيب والإشعارات والصلاحيات', () => {
     assert.equal((await createOrder()).price, 400);
   });
 });
+
+describe('إيقاف الحساب', () => {
+  it('الحساب الموقوف يترفض في كل العمليات ويرجع بعد التفعيل', async () => {
+    const stop = await call('POST', `/admin/users/${clientId}/status`, adminToken, { suspend: true });
+    assert.equal(stop.status, 200);
+
+    for (const [method, url] of [['GET', '/users/me'], ['GET', '/orders'], ['GET', '/notifications']]) {
+      const res = await call(method, url, clientToken);
+      assert.equal(res.status, 403, url);
+      assert.equal(res.body.data.status, 'suspended');
+    }
+    assert.equal((await call('POST', '/notifications/device-token/remove', clientToken, { token: 'x' })).status, 200);
+
+    await call('POST', `/admin/users/${clientId}/status`, adminToken, { suspend: false });
+    assert.equal((await call('GET', '/users/me', clientToken)).status, 200);
+  });
+});

@@ -20,6 +20,7 @@ void main() {
     DeviceOrientation.portraitDown,
   ]);
   ApiService.onSessionExpired = SessionRouter.handleSessionExpired;
+  ApiService.onAccountSuspended = SessionRouter.handleAccountSuspended;
   runApp(const MyLawyerApp());
 }
 

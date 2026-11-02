@@ -29,7 +29,7 @@ class ApiResponse<T> {
   bool get isOk => success && statusCode >= 200 && statusCode < 300;
 }
 
-enum _RefreshOutcome { refreshed, expired, unreachable }
+enum _RefreshOutcome { refreshed, expired, unreachable, suspended }
 
 /// خدمة الاتصال الموحدة بالـ Backend الإنتاجي لـ My Lawyer
 class ApiService {
@@ -55,6 +55,9 @@ class ApiService {
   /// يستدعى عند ثبوت انتهاء الجلسة من الخادم نفسه
   static Future<void> Function()? onSessionExpired;
 
+  /// يستدعى عند رفض الخادم للحساب لأنه موقوف
+  static Future<void> Function()? onAccountSuspended;
+
   /// يوقف إشعار انتهاء الجلسة أثناء فحص بدء التشغيل لأن الفحص يوجّه المستخدم بنفسه
   static bool muteSessionExpiry = false;
 
@@ -68,6 +71,7 @@ class ApiService {
     _activeRefresh = null;
     muteSessionExpiry = false;
     onSessionExpired = null;
+    onAccountSuspended = null;
     isServerReachable.value = true;
   }
 
@@ -219,6 +223,14 @@ class ApiService {
         if (outcome == _RefreshOutcome.unreachable) {
           return _connectivityFailure();
         }
+        if (outcome == _RefreshOutcome.suspended) {
+          return _accountSuspended(const ApiResponse(
+            success: false,
+            statusCode: 403,
+            error: 'تم إيقاف هذا الحساب',
+            data: {'status': 'suspended'},
+          ));
+        }
         if (outcome == _RefreshOutcome.refreshed) {
           response = await request(await _buildHeaders()).timeout(timeout);
         }
@@ -226,6 +238,7 @@ class ApiService {
 
       final parsed = await _parseResponse(response);
       isServerReachable.value = !parsed.isConnectivityError;
+      if (isSuspended(parsed) && !endpoint.startsWith('/auth/')) return _accountSuspended(parsed);
       return parsed;
     } on TimeoutException {
       isServerReachable.value = false;
@@ -248,6 +261,17 @@ class ApiService {
         error: 'حدث خطأ غير متوقع أثناء الاتصال بالخدمة، يرجى المحاولة مرة أخرى.',
       );
     }
+  }
+
+  /// الخادم بيقول إن الحساب موقوف، مش مجرد رفض لعملية واحدة
+  static bool isSuspended(ApiResponse<dynamic> res) {
+    final data = res.data;
+    return res.statusCode == 403 && data is Map && data['status'] == 'suspended';
+  }
+
+  static Future<ApiResponse<dynamic>> _accountSuspended(ApiResponse<dynamic> res) async {
+    if (!muteSessionExpiry) await onAccountSuspended?.call();
+    return res;
   }
 
   static ApiResponse<dynamic> _connectivityFailure() {
@@ -310,6 +334,9 @@ class ApiService {
           return _RefreshOutcome.refreshed;
         }
       }
+
+      // الجلسة تفضل محفوظة، فالتطبيق يرجع لوحده بعد تفعيل الحساب
+      if (isSuspended(parsed)) return _RefreshOutcome.suspended;
 
       if (response.statusCode == 401 || response.statusCode == 403) {
         await _expireSession();

@@ -39,6 +39,7 @@ enum SessionStatus {
   lawyerPending,
   lawyerRejected,
   accountBlocked,
+  accountSuspended,
   serverUnreachable,
 }
 
@@ -301,6 +302,8 @@ class AuthService {
         return check;
       }
 
+      if (ApiService.isSuspended(res)) return const SessionCheck(SessionStatus.accountSuspended);
+
       final stillHasSession = await ApiService.getRefreshToken() != null;
       if (res.statusCode == 401 || !stillHasSession) {
         await clearLocalSession();
@@ -336,10 +339,7 @@ class AuthService {
     required String? approvalStatus,
   }) {
     if (userStatus == 'suspended' || approvalStatus == 'suspended') {
-      return const SessionCheck(
-        SessionStatus.accountBlocked,
-        message: 'تم إيقاف هذا الحساب من قِبل إدارة التطبيق. يرجى التواصل مع الدعم الفني.',
-      );
+      return const SessionCheck(SessionStatus.accountSuspended);
     }
 
     if (role == 'client') {

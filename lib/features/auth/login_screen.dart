@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/auth_service.dart';
 import 'email_verification_screen.dart';
 import 'forgot_password_screen.dart';
+import 'account_suspended_screen.dart';
 import 'session_router.dart';
 import 'user_type_selection_screen.dart';
 
@@ -78,6 +79,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (result.success) {
       // يبقى التحميل ظاهراً حتى تبدأ شاشة الحساب فلا يومض الزر قبل الانتقال
       await SessionRouter.openCurrentAccount(navigator);
+      return;
+    }
+
+    if (result.accountStatus == 'suspended') {
+      await SessionRouter.replaceStack(navigator, const AccountSuspendedScreen(hasSession: false));
       return;
     }
 

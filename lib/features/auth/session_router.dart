@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/device_permission_service.dart';
+import '../../core/services/background_location_service.dart';
+import 'account_suspended_screen.dart';
 import 'connection_retry_screen.dart';
 import 'lawyer_approval_status_screen.dart';
 import '../lawyer/lawyer_navigation_shell.dart';
@@ -17,6 +20,7 @@ class SessionRouter {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   static bool _isHandlingExpiry = false;
+  static bool _isSuspendedScreenOpen = false;
 
   /// الشاشة الصحيحة لحالة الجلسة
   static Future<Widget> screenFor(SessionCheck check) async {
@@ -36,6 +40,8 @@ class SessionRouter {
         return const LawyerApprovalStatusScreen(isRejected: false);
       case SessionStatus.lawyerRejected:
         return const LawyerApprovalStatusScreen(isRejected: true);
+      case SessionStatus.accountSuspended:
+        return const AccountSuspendedScreen();
       case SessionStatus.serverUnreachable:
         return ConnectionRetryScreen(message: check.message);
       case SessionStatus.unauthenticated:
@@ -72,6 +78,20 @@ class SessionRouter {
   static Future<void> signOut(NavigatorState navigator) async {
     await AuthService.logout();
     await toLogin(navigator);
+  }
+
+  /// يستدعيها ApiService لما الخادم يرفض الحساب، فكل الصفحات تتقفل
+  static Future<void> handleAccountSuspended() async {
+    final navigator = navigatorKey.currentState;
+    if (_isSuspendedScreenOpen || navigator == null) return;
+
+    _isSuspendedScreenOpen = true;
+    unawaited(BackgroundLocationService.stop());
+    await replaceStack(navigator, const AccountSuspendedScreen());
+  }
+
+  static void onSuspendedScreenClosed() {
+    _isSuspendedScreenOpen = false;
   }
 
   /// يستدعيها ApiService عند ثبوت انتهاء الجلسة أثناء الاستخدام

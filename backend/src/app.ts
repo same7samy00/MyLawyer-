@@ -145,6 +145,17 @@ export function buildApp() {
 
   // Register API modules under /api/v1
   fastify.register(async (api) => {
+    // A suspended account is refused everywhere, even with a valid sign-in
+    api.addHook('preHandler', async (request, reply) => {
+      const user = request.user as { userId?: string } | undefined;
+      if (!user?.userId || request.url.endsWith('/notifications/device-token/remove')) return;
+
+      const res = await dbPool.query('SELECT status FROM users WHERE id = $1', [user.userId]);
+      if (res.rows[0]?.status === 'suspended') {
+        return reply.status(403).send({ success: false, error: 'تم إيقاف هذا الحساب', data: { status: 'suspended' } });
+      }
+    });
+
     api.get('/health', healthHandler);
     api.get('/health/migrate', async () => {
       try {

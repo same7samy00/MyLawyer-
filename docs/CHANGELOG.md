@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.84] - 2026-11-02
+### Suspended Accounts
+- A suspended account is refused by the server on every request, even with a valid sign-in.
+- The app closes every page and shows a full «حسابك موقوف» screen with no way around it. Signing in with a suspended account opens the same screen.
+- The screen checks the account every 30 seconds and opens the app by itself after the admin reactivates it.
+
 ## [Phase 2.83] - 2026-11-02
 ### Order Details and Full Control Page
 - **Order details:** a new page holds all details and actions for the client and the lawyer. Order cards are now summaries, and the order number always shows. The lawyer no longer opens orders on the map.

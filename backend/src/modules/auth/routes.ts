@@ -387,7 +387,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     if (session.status === 'suspended') {
-      return reply.status(403).send({ success: false, error: 'الحساب موقوف' });
+      return reply.status(403).send({ success: false, error: 'الحساب موقوف', data: { status: 'suspended' } });
     }
 
     // Refresh Token Rotation: Revoke old session, create new session
