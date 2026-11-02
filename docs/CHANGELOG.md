@@ -2,6 +2,7 @@
 
 ## [Phase 2.84] - 2026-11-02
 ### Suspended Accounts
+- Removed the public `health/migrate` link. Database updates run when the server starts, or with `npm run migrate`.
 - A suspended account is refused by the server on every request, even with a valid sign-in.
 - The app closes every page and shows a full «حسابك موقوف» screen with no way around it. Signing in with a suspended account opens the same screen.
 - The screen checks the account every 30 seconds and opens the app by itself after the admin reactivates it.

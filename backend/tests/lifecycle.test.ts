@@ -835,6 +835,14 @@ describe('الترتيب والإشعارات والصلاحيات', () => {
   });
 });
 
+describe('حماية السيرفر', () => {
+  it('تحديثات قاعدة البيانات مش متاحة من رابط عام', async () => {
+    for (const url of ['/health/migrate', '/api/v1/health/migrate']) {
+      assert.equal((await app.inject({ method: 'GET', url })).statusCode, 404);
+    }
+  });
+});
+
 describe('إيقاف الحساب', () => {
   it('الحساب الموقوف يترفض في كل العمليات ويرجع بعد التفعيل', async () => {
     const stop = await call('POST', `/admin/users/${clientId}/status`, adminToken, { suspend: true });

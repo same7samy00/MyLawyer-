@@ -16,7 +16,6 @@ import { orderRoutes } from './modules/orders/routes.js';
 import { adminRoutes } from './modules/admin/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { dbPool } from './database/index.js';
-import { runMigrations } from './database/migrate.js';
 
 const ADMIN_FONTS = ['app-digits.ttf', 'flat-jooza-regular.ttf', 'Nunito-Variable.ttf'];
 
@@ -128,21 +127,6 @@ export function buildApp() {
   // Health check endpoint (root & versioned)
   fastify.get('/health', healthHandler);
 
-  // Migration trigger & debug endpoint
-  fastify.get('/health/migrate', async () => {
-    try {
-      const count = await runMigrations(false);
-      return { success: true, appliedCount: count };
-    } catch (err: any) {
-      return {
-        success: false,
-        error: err.message,
-        detail: err.detail || err.hint || null,
-        stack: err.stack,
-      };
-    }
-  });
-
   // Register API modules under /api/v1
   fastify.register(async (api) => {
     // A suspended account is refused everywhere, even with a valid sign-in
@@ -157,19 +141,6 @@ export function buildApp() {
     });
 
     api.get('/health', healthHandler);
-    api.get('/health/migrate', async () => {
-      try {
-        const count = await runMigrations(false);
-        return { success: true, appliedCount: count };
-      } catch (err: any) {
-        return {
-          success: false,
-          error: err.message,
-          detail: err.detail || err.hint || null,
-          stack: err.stack,
-        };
-      }
-    });
     api.get('/admin-panel', async (_request, reply) => {
       const page = fs.readFileSync(path.resolve(process.cwd(), 'public/admin.html'), 'utf-8');
       return reply.type('text/html; charset=utf-8').send(page);
