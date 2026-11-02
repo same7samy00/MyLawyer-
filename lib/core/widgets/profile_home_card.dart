@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../constants/app_colors.dart';
 import '../services/api_service.dart';
+import '../services/notification_center.dart';
 import 'app_button.dart';
 import 'app_card.dart';
 import 'lawyer_reviews_panel.dart';
@@ -19,11 +20,22 @@ class ProfileHomeCard extends StatefulWidget {
 class _ProfileHomeCardState extends State<ProfileHomeCard> {
   Map<String, dynamic>? _profile;
   bool _isUploading = false;
+  late final AppLifecycleListener _lifecycle;
 
   @override
   void initState() {
     super.initState();
     _load();
+    // التقييم يتحدث مع وصول أي إشعار جديد، ومع رجوع المستخدم للتطبيق
+    NotificationCenter.unread.addListener(_load);
+    _lifecycle = AppLifecycleListener(onResume: _load);
+  }
+
+  @override
+  void dispose() {
+    NotificationCenter.unread.removeListener(_load);
+    _lifecycle.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -59,28 +71,35 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
   }
 
   void _openReviews() {
-    final profile = _profile!;
-    if (_isLawyer) {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (context) => Scaffold(
-            appBar: AppBar(title: const Text('تقييماتي')),
-            body: Padding(
-              padding: const EdgeInsets.all(18),
-              child: LawyerReviewsPanel(
-                lawyerId: profile['id'].toString(),
-                onClose: () => Navigator.of(context).pop(),
-              ),
-            ),
+    final lawyerId = _profile!['id'].toString();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: const Text('تقييماتي')),
+          body: Padding(
+            padding: const EdgeInsets.all(18),
+            child: LawyerReviewsPanel(lawyerId: lawyerId, onClose: () => Navigator.of(context).pop()),
           ),
         ),
-      );
-      return;
-    }
+      ),
+    );
+  }
 
-    final completed = profile['completedOrders'] ?? 0;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('تقييمك ${profile['rating']} من 5، من $completed طلب مكتمل')),
+  Widget _buildStars(num rating) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var star = 1; star <= 5; star++)
+          Icon(
+            rating >= star
+                ? Icons.star_rounded
+                : (rating >= star - 0.5 ? Icons.star_half_rounded : Icons.star_border_rounded),
+            size: 20,
+            color: const Color(0xFFEAB308),
+          ),
+        const SizedBox(width: 6),
+        Text('$rating', style: _nameStyle.copyWith(fontSize: 14)),
+      ],
     );
   }
 
@@ -157,14 +176,15 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
           const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(Icons.star_rounded, size: 18, color: Color(0xFFEAB308)),
-              const SizedBox(width: 4),
-              Text('$rating', style: _nameStyle.copyWith(fontSize: 14)),
+              _buildStars(rating is num ? rating : 0),
               const Spacer(),
-              SizedBox(
-                width: 120,
-                child: AppButton.outlined(text: 'التقييمات', height: 38, fontSize: 12, onPressed: _openReviews),
-              ),
+              if (_isLawyer)
+                SizedBox(
+                  width: 120,
+                  child: AppButton.outlined(text: 'التقييمات', height: 38, fontSize: 12, onPressed: _openReviews),
+                )
+              else
+                Text('${profile['completedOrders'] ?? 0} طلب مكتمل', style: _detailStyle),
             ],
           ),
         ],
