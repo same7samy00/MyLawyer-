@@ -98,6 +98,7 @@ erDiagram
 | `005`–`007` | حداثة موقع المحامي، وسبب قفل الإتاحة |
 | `008` | نسبة الضريبة في الطلب وشروط الخدمة |
 | `009` | حالة التقديم على «محاميك حالاً» `urgent_status` |
+| `014` | `support_tickets` و`ticket_messages` و`ticket_attachments` للدعم الفني، والشكاوى المفتوحة القديمة اتنقلت لتذاكر |
 | `013` | `service_orders.review_reminder_sent` لتذكير التقييم مرة واحدة |
 | `012` | ترقيم ML الموحد: `order_number` و`reference` في `complaints` و`lawyer_reports` و`order_appeals` و`wallet_transfers`، كل واحد بتسلسل خاص بيه |
 | `011` | `wallet_transfers`: كل تحويل بين حسابين، والفلوس نفسها بتتسجل في `client_credits` أو `lawyer_adjustments` |

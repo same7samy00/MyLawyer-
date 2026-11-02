@@ -88,6 +88,10 @@ async function createCompletedOrder() {
   return order;
 }
 
+function openTicket(token: string, orderId: string | null, category = 'MONEY') {
+  return call('POST', '/support/tickets', token, { category, title: 'مشكلة في الطلب', body: 'تفاصيل المشكلة بالكامل هنا', ...(orderId ? { orderId } : {}) });
+}
+
 async function wallet() {
   return (await call('GET', '/orders/wallet/me', lawyerToken)).body.data;
 }
@@ -128,7 +132,7 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  for (const table of ['wallet_transfers', 'reviews', 'order_appeals', 'complaints', 'lawyer_reports', 'lawyer_strikes', 'client_credits', 'account_warnings', 'lawyer_adjustments', 'notifications', 'client_problem_prices', 'order_status_logs']) {
+  for (const table of ['ticket_attachments', 'ticket_messages', 'support_tickets', 'wallet_transfers', 'reviews', 'order_appeals', 'complaints', 'lawyer_reports', 'lawyer_strikes', 'client_credits', 'account_warnings', 'lawyer_adjustments', 'notifications', 'client_problem_prices', 'order_status_logs']) {
     await sql(`DELETE FROM ${table}`);
   }
   await sql('DELETE FROM service_orders');
@@ -278,13 +282,13 @@ describe('المحفظة', () => {
   });
 });
 
-describe('الشكاوى والتسوية بالالتقاء', () => {
+describe('تذاكر الفلوس والتسوية بالالتقاء', () => {
   const settlement = async (orderId: string) => (await call('GET', `/admin/orders/${orderId}/settlement`, adminToken)).body.data;
   const settle = (orderId: string, body: object = {}) => call('POST', `/admin/orders/${orderId}/settle`, adminToken, body);
 
   it('المحامي ما وصلش: الفلوس ترجع للموكل كاملة', async () => {
     const order = await createPaidOrder();
-    assert.equal((await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'MONEY' })).status, 201);
+    assert.equal((await openTicket(clientToken, order.id)).status, 201);
     assert.equal((await settlement(order.id)).outcome, 'REFUND');
 
     assert.equal((await settle(order.id)).status, 200);
@@ -292,9 +296,9 @@ describe('الشكاوى والتسوية بالالتقاء', () => {
     assert.equal((await wallet()).availableBalance, 0);
   });
 
-  it('المحامي أنهى المهمة: الأتعاب للمحامي حتى لو فيه شكوى فلوس', async () => {
+  it('المحامي أنهى المهمة: الأتعاب للمحامي حتى لو فيه تذكرة فلوس', async () => {
     const order = await createCompletedOrder();
-    await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'MONEY' });
+    await openTicket(clientToken, order.id);
     assert.equal((await wallet()).frozenBalance, 350);
     assert.equal((await settlement(order.id)).outcome, 'LAWYER');
 
@@ -306,13 +310,12 @@ describe('الشكاوى والتسوية بالالتقاء', () => {
   it('المحامي وصل وما أنهاش المهمة: الأتعاب للمحامي، والنسبة على نصيبه', async () => {
     await sql(`UPDATE problem_prices SET min_price = 1000, max_price = 1000, commission_percent = 20 WHERE problem_type = $1`, [PROBLEM]);
     const order = await createArrivedOrder();
-    await call('POST', `/orders/${order.id}/report`, lawyerToken, { kind: 'MONEY' });
+    await openTicket(lawyerToken, order.id);
     assert.equal((await settlement(order.id)).outcome, 'LAWYER');
 
     await settle(order.id);
     assert.equal(await clientBalance(), 0);
     assert.equal((await wallet()).availableBalance, 800);
-    assert.equal((await call('GET', '/admin/reports', adminToken)).body.data.length, 0);
   });
 
   it('الإدارة تقدر تختار التقسيم مناصفة بنفسها', async () => {
@@ -322,9 +325,9 @@ describe('الشكاوى والتسوية بالالتقاء', () => {
     assert.equal((await wallet()).availableBalance, 175);
   });
 
-  it('شكوى الفلوس توقف الإنهاء والمهلة لحد القرار', async () => {
+  it('تذكرة الفلوس توقف الإنهاء والمهلة لحد القرار', async () => {
     const order = await createArrivedOrder();
-    await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'MONEY' });
+    await openTicket(clientToken, order.id);
     assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, {})).status, 409);
 
     await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
@@ -332,27 +335,22 @@ describe('الشكاوى والتسوية بالالتقاء', () => {
     assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'ACTIVE');
   });
 
-  it('شكوى التعامل ما بتلمسش الفلوس، والإدارة توجه إنذار', async () => {
+  it('تذكرة الطلب العادية ما بتلمسش الفلوس', async () => {
     const order = await createCompletedOrder();
-    assert.equal((await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'BEHAVIOR' })).status, 201);
+    assert.equal((await openTicket(clientToken, order.id, 'ORDER')).status, 201);
     assert.equal((await wallet()).heldBalance, 350);
-
-    const list = await call('GET', '/admin/complaints', adminToken);
-    assert.equal(list.body.data[0].kind, 'BEHAVIOR');
-    assert.equal((await call('POST', `/admin/complaints/${list.body.data[0].id}/close`, adminToken, { warn: true })).status, 200);
-    assert.equal((await sql('SELECT COUNT(*)::int AS n FROM account_warnings WHERE user_id = $1', [lawyerId]))[0].n, 1);
   });
 
-  it('الشكوى محتاجة نوع، وبتتقفل بعد 24 ساعة، والغريب ما يشتكيش', async () => {
+  it('التذكرة محتاجة نوع، والغريب ما يفتحش على طلب، وبعد 24 ساعة الفلوس ما بتتوقفش', async () => {
     const order = await createCompletedOrder();
-    assert.equal((await call('POST', `/orders/${order.id}/complaint`, clientToken, {})).status, 400);
+    assert.equal((await call('POST', '/support/tickets', clientToken, { title: 'مشكلة', body: 'تفاصيل المشكلة بالكامل' })).status, 400);
 
     const other = await createUser('01000000009', 'client');
-    assert.equal((await call('POST', `/orders/${order.id}/complaint`, app.jwt.sign({ userId: other, role: 'client' }), { kind: 'MONEY' })).status, 404);
+    assert.equal((await openTicket(app.jwt.sign({ userId: other, role: 'client' }), order.id)).status, 404);
 
     await sql(`UPDATE service_orders SET completed_at = NOW() - INTERVAL '25 hours' WHERE id = $1`, [order.id]);
-    assert.equal((await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'MONEY' })).status, 400);
-    assert.equal((await call('POST', `/orders/${order.id}/report`, lawyerToken, { kind: 'BEHAVIOR' })).status, 400);
+    assert.equal((await openTicket(clientToken, order.id)).status, 201);
+    assert.equal((await wallet()).heldBalance, 350);
   });
 });
 
@@ -433,12 +431,12 @@ describe('التقييمات', () => {
     assert.equal(found.body.data.length, 1);
     assert.equal((await call('GET', '/admin/overview', clientToken)).status, 403);
 
-    await call('POST', `/orders/${order.id}/report`, lawyerToken, { kind: 'BEHAVIOR', reason: 'الموكل ما ادانيش الكود في الميعاد' });
-    const reports = await call('GET', '/admin/reports', adminToken);
-    const report = reports.body.data.find((r: any) => r.order_id === order.id);
-    assert.equal(report.client_against >= 1, true);
-    assert.equal(report.lawyer_filed >= 1, true);
-    assert.equal(typeof report.lawyer_orders, 'number');
+    await openTicket(lawyerToken, order.id, 'ORDER');
+    const stats = (await call('GET', `/admin/orders/${order.id}`, adminToken)).body.data;
+    assert.equal(stats.order.client_against >= 1, true);
+    assert.equal(stats.order.lawyer_filed >= 1, true);
+    assert.equal(typeof stats.order.lawyer_orders, 'number');
+    assert.equal(stats.tickets.length, 1);
   });
 
   it('المحامي يبلغ والإدارة تخفي التعليق', async () => {
@@ -661,14 +659,80 @@ describe('المهل والمخالفات', () => {
     assert.equal((await sql('SELECT status FROM users WHERE id = $1', [clientId]))[0].status, 'active');
   });
 
-  it('شكوى المحامي على التعامل تتقفل بإنذار للموكل', async () => {
-    const order = await createPaidOrder();
-    assert.equal((await call('POST', `/orders/${order.id}/report`, lawyerToken, { kind: 'BEHAVIOR' })).status, 201);
+});
 
-    const reports = await call('GET', '/admin/reports', adminToken);
-    assert.equal(reports.body.data[0].kind, 'BEHAVIOR');
-    assert.equal((await call('POST', `/admin/reports/${reports.body.data[0].id}/close`, adminToken, { warn: true })).status, 200);
-    assert.equal((await sql('SELECT COUNT(*)::int AS n FROM account_warnings WHERE user_id = $1', [clientId]))[0].n, 1);
+describe('الدعم الفني', () => {
+  it('تحت المراجعة، ثم مفتوحة بعد رد الإدارة، وتفضل مفتوحة لحد ما الإدارة تقفلها', async () => {
+    const created = await openTicket(clientToken, null, 'ACCOUNT');
+    assert.equal(created.status, 201);
+    const ticket = created.body.data;
+    assert.match(ticket.reference, /^ML-TKT-\d{6}$/);
+    assert.equal(ticket.status, 'UNDER_REVIEW');
+
+    assert.equal((await call('POST', `/admin/support/${ticket.id}/note`, adminToken, { body: 'كلمت الموكل' })).status, 200);
+    assert.equal((await call('POST', `/admin/support/${ticket.id}/reply`, adminToken, { body: 'بنراجع حسابك' })).status, 200);
+    assert.equal((await call('POST', `/support/tickets/${ticket.id}/messages`, clientToken, { body: 'شكراً، مستني' })).status, 201);
+    assert.equal((await call('POST', `/admin/support/${ticket.id}/reply`, adminToken, { body: 'اتحلت' })).status, 200);
+
+    const mine = (await call('GET', `/support/tickets/${ticket.id}`, clientToken)).body.data;
+    assert.equal(mine.status, 'OPEN');
+    assert.deepEqual(mine.messages.map((m: any) => m.author), ['USER', 'ADMIN', 'USER', 'ADMIN']);
+
+    const forAdmin = (await call('GET', `/admin/support/${ticket.id}`, adminToken)).body.data;
+    assert.equal(forAdmin.messages.some((m: any) => m.author === 'NOTE'), true);
+
+    assert.equal((await call('POST', `/admin/support/${ticket.id}/close`, adminToken, {})).status, 200);
+    assert.equal((await call('POST', `/support/tickets/${ticket.id}/messages`, clientToken, { body: 'رد بعد القفل' })).status, 409);
+    assert.equal((await call('GET', '/support/tickets', clientToken)).body.data[0].status, 'CLOSED');
+    assert.equal((await call('GET', `/support/tickets/${ticket.id}`, lawyerToken)).status, 404);
+  });
+
+  it('التذكرة بتاخد صور، والصورة لصاحب التذكرة والإدارة بس', async () => {
+    const png = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8cfc0f01f0005000201a5ddd3fb0000000049454e44ae426082', 'hex');
+    const boundary = 'ml-test-boundary';
+    const field = (name: string, value: string) => `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;
+    const payload = Buffer.concat([
+      Buffer.from(field('category', 'OTHER') + field('title', 'صورة المشكلة') + field('body', 'مرفق صورة للمشكلة')),
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="images"; filename="a.png"\r\nContent-Type: image/png\r\n\r\n`),
+      png,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/support/tickets',
+      headers: { authorization: `Bearer ${clientToken}`, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload,
+    });
+    assert.equal(res.statusCode, 201, res.body);
+
+    const ticket = (await call('GET', `/support/tickets/${res.json().data.id}`, clientToken)).body.data;
+    const image = ticket.messages[0].images[0];
+    assert.match(image, /^\/support\/attachments\//);
+    const get = (token: string) => app.inject({ method: 'GET', url: `/api/v1${image}`, headers: { authorization: `Bearer ${token}` } });
+    assert.equal((await get(clientToken)).statusCode, 200);
+    assert.equal((await get(adminToken)).statusCode, 200);
+    assert.equal((await get(lawyerToken)).statusCode, 404);
+  });
+
+  it('أقصى 3 تذاكر مفتوحة، وتذكرة مفتوحة واحدة على نفس الطلب', async () => {
+    const order = await createCompletedOrder();
+    assert.equal((await openTicket(clientToken, order.id, 'ORDER')).status, 201);
+    assert.equal((await openTicket(clientToken, order.id, 'ORDER')).status, 409);
+    assert.equal((await openTicket(clientToken, null, 'OTHER')).status, 201);
+    assert.equal((await openTicket(clientToken, null, 'OTHER')).status, 201);
+    assert.equal((await openTicket(clientToken, null, 'OTHER')).status, 409);
+  });
+
+  it('تذكرة الفلوس ما تتقفلش غير بقرار الفلوس', async () => {
+    const order = await createCompletedOrder();
+    const ticket = (await openTicket(clientToken, order.id)).body.data;
+    assert.equal((await wallet()).frozenBalance, 350);
+
+    assert.equal((await call('POST', `/admin/support/${ticket.id}/close`, adminToken, {})).status, 400);
+    assert.equal((await call('GET', `/admin/support/${ticket.id}`, adminToken)).body.data.suggestion.outcome, 'LAWYER');
+    assert.equal((await call('POST', `/admin/support/${ticket.id}/close`, adminToken, { outcome: 'REFUND' })).status, 200);
+    assert.equal(await clientBalance(), 350);
+    assert.equal((await wallet()).frozenBalance, 0);
   });
 });
 
@@ -831,7 +895,7 @@ describe('الترتيب والإشعارات والصلاحيات', () => {
   });
 
   it('الموكل والمحامي لا يصلان لمسارات الإدارة', async () => {
-    assert.equal((await call('GET', '/admin/complaints', clientToken)).status, 403);
+    assert.equal((await call('GET', '/admin/support', clientToken)).status, 403);
     assert.equal((await call('PUT', '/admin/prices', lawyerToken, { problemType: PROBLEM, minPrice: 1, maxPrice: 2 })).status, 403);
   });
 
@@ -909,21 +973,18 @@ describe('التحويل بين الحسابات', () => {
 });
 
 describe('ترقيم ML الموحد', () => {
-  it('الطلب والشكوى والتحويل ياخدوا أرقام ML متسلسلة', async () => {
+  it('الطلب والتذكرة والتحويل ياخدوا أرقام ML متسلسلة', async () => {
     const first: any = await createOrder();
     await closeOrders();
     assert.match(first.order_number ?? first.orderNumber, /^ML-ORD-\d{6}$/);
 
     const order = await createArrivedOrder();
-    const complaint = await call('POST', `/orders/${order.id}/complaint`, clientToken, { kind: 'BEHAVIOR' });
-    assert.match(complaint.body.data.reference, /^ML-CMP-\d{6}$/);
-    assert.ok(complaint.body.message.includes(complaint.body.data.reference));
+    const ticket = await openTicket(clientToken, order.id, 'ORDER');
+    assert.match(ticket.body.data.reference, /^ML-TKT-\d{6}$/);
+    assert.ok(ticket.body.message.includes(ticket.body.data.reference));
 
-    const report = await call('POST', `/orders/${order.id}/report`, lawyerToken, { kind: 'BEHAVIOR' });
-    assert.match(report.body.data.reference, /^ML-RPT-\d{6}$/);
-
-    const listed = await call('GET', '/admin/complaints', adminToken);
-    assert.equal(listed.body.data[0].reference, complaint.body.data.reference);
+    const listed = await call('GET', '/admin/support?role=client', adminToken);
+    assert.equal(listed.body.data[0].reference, ticket.body.data.reference);
 
     await sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, 500, 'شحن تجريبي')`, [clientId]);
     const transfer = await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 100 });

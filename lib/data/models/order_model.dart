@@ -30,10 +30,9 @@ class OrderModel {
   final DateTime? holdUntil;
   final String? payoutStatus;
   final bool hasReview;
-  final bool hasComplaint;
+  final bool hasOpenTicket;
   final bool hasOpenComplaint;
   final bool hasAppeal;
-  final bool hasReport;
   final bool canEditReview;
   final DateTime? arrivedAt;
   final DateTime? paymentDeadline;
@@ -71,10 +70,9 @@ class OrderModel {
     this.holdUntil,
     this.payoutStatus,
     this.hasReview = false,
-    this.hasComplaint = false,
+    this.hasOpenTicket = false,
     this.hasOpenComplaint = false,
     this.hasAppeal = false,
-    this.hasReport = false,
     this.canEditReview = false,
     this.arrivedAt,
     this.paymentDeadline,
@@ -127,10 +125,9 @@ class OrderModel {
       holdUntil: _toDate(json['holdUntil'] ?? json['hold_until']),
       payoutStatus: json['payoutStatus']?.toString(),
       hasReview: json['hasReview'] == true,
-      hasComplaint: json['hasComplaint'] == true,
+      hasOpenTicket: json['hasOpenTicket'] == true,
       hasOpenComplaint: json['hasOpenComplaint'] == true,
       hasAppeal: json['hasAppeal'] == true,
-      hasReport: json['hasReport'] == true,
       canEditReview: json['canEditReview'] == true,
       arrivedAt: _toDate(json['arrivedAt'] ?? json['arrived_at']),
       paymentDeadline: _toDate(json['paymentDeadline'] ?? json['payment_deadline']),
@@ -201,14 +198,8 @@ class OrderModel {
     return seconds <= 0 ? 0 : (seconds / 60).ceil();
   }
 
-  /// الشكوى متاحة أثناء المهمة ولحد 24 ساعة بعد ما تخلص
-  bool get isComplaintWindowOpen {
-    if (isActive) return true;
-    final finishedAt = completedAt;
-    return isCompleted && finishedAt != null && DateTime.now().difference(finishedAt).inHours < 24;
-  }
-
-  bool get canComplain => isComplaintWindowOpen && !hasOpenComplaint;
+  /// أي طلب اتدفع يقدر صاحبه يفتح عليه تذكرة دعم، وتذكرة مفتوحة واحدة بس على نفس الطلب
+  bool get canOpenTicket => paidAt != null && !hasOpenTicket;
 
   /// التقييم متاح لمدة 7 أيام بعد إنهاء المهمة
   bool get canReview {

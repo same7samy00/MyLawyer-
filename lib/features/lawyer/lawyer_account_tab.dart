@@ -7,6 +7,7 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/logout_confirmation_sheet.dart';
 import '../../core/widgets/profile_photo.dart';
 import '../account/personal_data_screen.dart';
+import '../support/support_screen.dart';
 import '../auth/session_router.dart';
 
 /// تبويب الحساب الشخصي للمحامي
@@ -175,9 +176,11 @@ class _LawyerAccountTabState extends State<LawyerAccountTab> {
                   const Divider(height: 1, color: AppColors.cardBorder, indent: 16, endIndent: 16),
                   _buildMenuItem(
                     icon: Icons.headset_mic_outlined,
-                    title: 'تواصل مع الدعم الفني للمحامين',
-                    subtitle: 'دعم تقني وإداري مباشر على مدار الساعة',
-                    onTap: () => _showComingSoon('الدعم الفني للمحامين'),
+                    title: 'الدعم الفني',
+                    subtitle: 'افتح تذكرة وتابع ردود الإدارة',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => const SupportScreen()),
+                    ),
                   ),
                 ],
               ),

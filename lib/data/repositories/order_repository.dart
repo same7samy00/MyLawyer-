@@ -197,10 +197,6 @@ class OrderRepository {
     return ApiService.post('/orders/$orderId/withdraw', {});
   }
 
-  static Future<ApiResponse<dynamic>> reportClient(String orderId, String kind, String details) {
-    return ApiService.post('/orders/$orderId/report', {'kind': kind, if (details.isNotEmpty) 'reason': details});
-  }
-
   static Future<ApiResponse<dynamic>> updateReview(String orderId, int rating, String comment) {
     return ApiService.put('/orders/$orderId/review', {
       'rating': rating,
@@ -211,10 +207,6 @@ class OrderRepository {
   /// المحامي ينهي المهمة بعد ما يسجل وصوله على بعد 50 متر من الموكل
   static Future<ApiResponse<dynamic>> completeOrder(String orderId) {
     return ApiService.post('/orders/$orderId/complete', {});
-  }
-
-  static Future<ApiResponse<dynamic>> submitComplaint(String orderId, String kind, String details) {
-    return ApiService.post('/orders/$orderId/complaint', {'kind': kind, if (details.isNotEmpty) 'reason': details});
   }
 
   static Future<ApiResponse<dynamic>> submitAppeal(String orderId, String reason) {

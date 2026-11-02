@@ -25,6 +25,7 @@ import 'package:my_lawyer/features/client/main_navigation_shell.dart';
 import 'package:my_lawyer/features/client/nearby_lawyers_showcase_screen.dart';
 import 'package:my_lawyer/features/client/orders_tab.dart';
 import 'package:my_lawyer/features/client/wallet_tab.dart';
+import 'package:my_lawyer/features/support/support_screen.dart';
 import 'package:my_lawyer/features/urgent_service/payment_screen.dart';
 import 'package:my_lawyer/features/urgent_service/payment_success_screen.dart';
 import 'package:my_lawyer/features/auth/account_suspended_screen.dart';
@@ -910,11 +911,15 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
 
-    testWidgets('الطلب المكتمل يعرض التقييم والشكوى', (tester) async {
-      backend.overrides['POST /orders/order-1/complaint'] =
-          (request) => FakeBackend.json(201, {'success': true});
+    testWidgets('الطلب المكتمل يعرض التقييم، والمشكلة بتتبعت تذكرة دعم والطلب متحدد', (tester) async {
+      backend.overrides['POST /support/tickets'] =
+          (request) => FakeBackend.json(201, {'success': true, 'message': 'استلمنا تذكرتك رقم ML-TKT-100001', 'data': {'id': 't-1'}});
       backend.orders = [
-        {...sampleOrder(status: 'COMPLETED'), 'completedAt': DateTime.now().toIso8601String()},
+        {
+          ...sampleOrder(status: 'COMPLETED'),
+          'completedAt': DateTime.now().toIso8601String(),
+          'paidAt': DateTime.now().toIso8601String(),
+        },
       ];
 
       await _openDetails(tester);
@@ -925,13 +930,51 @@ void main() {
       await tester.tap(find.text('عندك مشكلة؟'));
       await _settleAsync(tester);
 
-      await tester.tap(find.text('مشكلة في الفلوس'));
-      await tester.pump();
-      await tester.enterText(find.byType(TextField), 'المحامي لم يكمل المهمة كما اتفقنا');
-      await tester.tap(find.text('إرسال الشكوى'));
+      expect(find.text('طلب ML-ORD-100001'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).at(0), 'المحامي اتأخر');
+      await tester.enterText(find.byType(TextField).at(1), 'المحامي لم يكمل المهمة كما اتفقنا');
+      await tester.ensureVisible(find.text('إرسال التذكرة'));
+      await tester.tap(find.text('إرسال التذكرة'));
       await _settleAsync(tester);
 
-      expect(backend.countOf('POST /orders/order-1/complaint'), 1);
+      expect(backend.countOf('POST /support/tickets'), 1);
+      expect(find.text('إرسال التذكرة'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('التذكرة المقفولة بتعرض الرسايل من غير خانة رد', (tester) async {
+      final ticket = {
+        'id': 't-1',
+        'reference': 'ML-TKT-100001',
+        'category': 'ACCOUNT',
+        'title': 'مشكلة في الدخول',
+        'status': 'CLOSED',
+        'updatedAt': '2026-11-02T10:00:00.000Z',
+      };
+      backend.overrides['GET /support/tickets'] = (request) => FakeBackend.json(200, {'success': true, 'data': [ticket]});
+      backend.overrides['GET /support/tickets/t-1'] = (request) => FakeBackend.json(200, {
+            'success': true,
+            'data': {
+              ...ticket,
+              'messages': [
+                {'author': 'USER', 'body': 'مش عارف أدخل', 'images': []},
+                {'author': 'ADMIN', 'body': 'اتحلت، جرب تاني', 'images': []},
+              ],
+            },
+          });
+
+      await tester.pumpWidget(_app(const SupportScreen()));
+      await _settleAsync(tester);
+      expect(find.text('مشكلة في الدخول'), findsOneWidget);
+      expect(find.text('مقفولة'), findsOneWidget);
+
+      await tester.tap(find.text('مشكلة في الدخول'));
+      await _settleAsync(tester);
+      expect(find.text('الدعم الفني'), findsOneWidget);
+      expect(find.text('اتحلت، جرب تاني'), findsOneWidget);
+      expect(find.text('إرسال الرد'), findsNothing);
+      expect(find.text('التذكرة دي اتقفلت، لو عندك مشكلة جديدة افتح تذكرة جديدة'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
     });

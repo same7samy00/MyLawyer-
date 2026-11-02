@@ -51,7 +51,7 @@ const OUTCOME_LABELS: Record<SettlementOutcome, string> = {
   SPLIT: 'تقسيم المبلغ مناصفة',
 };
 
-/// Applies one settlement to an order and closes every open money complaint on it
+/// Applies one settlement to an order
 export async function applySettlement(db: pg.PoolClient, order: any, outcome: SettlementOutcome, actorId: string, note: string) {
   const price = Number(order.price);
   const clientAmount = outcomeAmount(outcome, price);
@@ -74,17 +74,6 @@ export async function applySettlement(db: pg.PoolClient, order: any, outcome: Se
   if (clientAmount > 0) {
     await addClientCredit(db, order.client_id, order.id, clientAmount, `تسوية طلب ${order.order_number}: ${OUTCOME_LABELS[outcome]}`);
   }
-
-  await db.query(
-    `UPDATE complaints SET status = 'RESOLVED', resolution = $1, refund_amount = $2, admin_note = $3, resolved_by = $4, resolved_at = NOW()
-     WHERE order_id = $5 AND status = 'OPEN' AND kind = 'MONEY'`,
-    [outcome, clientAmount, note || null, actorId, order.id]
-  );
-  await db.query(
-    `UPDATE lawyer_reports SET status = 'RESOLVED', resolution = $1, admin_note = $2, resolved_by = $3, resolved_at = NOW()
-     WHERE order_id = $4 AND status = 'OPEN' AND kind = 'MONEY'`,
-    [outcome, note || null, actorId, order.id]
-  );
 
   const clientMessage = clientAmount > 0 ? `تمت تسوية الطلب، وأُضيف ${clientAmount} ج.م إلى رصيدك.` : 'تمت تسوية الطلب، وصُرفت الأتعاب للمحامي.';
   const lawyerMessage = lawyerAmount > 0 ? `تمت تسوية الطلب، وأُضيف ${lawyerAmount} ج.م إلى محفظتك.` : 'تمت تسوية الطلب، ورُد المبلغ إلى الموكل.';

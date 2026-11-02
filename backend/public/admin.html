@@ -6062,6 +6062,14 @@ body .custom-switch-toggle.active.sm .switch-knob {
   .page-guide { display: flex; gap: 0.6rem; align-items: flex-start; background: #f8fafc; border: 1px dashed var(--border-color); border-right: 4px solid var(--brand-primary); border-radius: var(--radius-sm); padding: 0.65rem 0.85rem; color: var(--text-secondary); font-size: 0.84rem; line-height: 1.7; }
   .page-guide svg { width: 18px; height: 18px; color: var(--brand-primary); flex-shrink: 0; margin-top: 0.2rem; }
   .page-guide p { margin: 0; }
+  .ticket-thread { display: flex; flex-direction: column; gap: 0.6rem; }
+  .ticket-message { border: 1px solid var(--border-color); border-radius: 7px; padding: 0.75rem 0.9rem; background: #fff; }
+  .ticket-message p { margin: 0.35rem 0 0; white-space: pre-wrap; }
+  .ticket-admin { background: var(--brand-light); border-color: var(--brand-border); }
+  .ticket-note { background: #FFFBEB; border-style: dashed; }
+  .ticket-message-head { display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+  .ticket-images { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+  .ticket-image { width: 96px; height: 96px; object-fit: cover; border-radius: 7px; border: 1px solid var(--border-color); cursor: zoom-in; background: var(--bg-app); }
   .decision-box { background: var(--brand-light); border: 1.5px solid var(--brand-border); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.35rem; }
   .decision-box strong { color: var(--brand-dark); font-size: 1rem; }
   .decision-box p { margin: 0; color: var(--text-main); }
@@ -6174,10 +6182,6 @@ body .custom-switch-toggle.active.sm .switch-knob {
     EXPIRED: ['انتهت المهلة', 'red'], REFUNDED: ['مردود للموكل', 'purple'],
   };
   const PAYOUT = { HELD: 'محجوزة 24 ساعة', AVAILABLE: 'متاحة', FROZEN: 'مجمدة', REFUNDED: 'مردودة' };
-  const RESOLUTIONS = {
-    REFUND: 'رد المبلغ للموكل', LAWYER: 'صرف الأتعاب للمحامي', SPLIT: 'تقسيم مناصفة', WARNING: 'إنذار', CLOSED: 'إغلاق دون إجراء',
-    REFUND_FULL: 'رد كامل', REFUND_PARTIAL: 'رد جزئي', RELEASE: 'صرف للمحامي',
-  };
   const REQUEST = { OPEN: 'مفتوحة', RESOLVED: 'مغلقة', APPROVED: 'مقبولة', REJECTED: 'مرفوضة' };
 
   function readSession() {
@@ -6708,10 +6712,6 @@ body .custom-switch-toggle.active.sm .switch-knob {
     return section('التسوية المالية', ...parts);
   }
 
-  function kindBadge(kind) {
-    return kind === 'BEHAVIOR' ? badge('على التعامل', 'purple') : badge('على الفلوس', 'red');
-  }
-
   /// The title lives in the top header, and the page keeps only its extra details
   function pageHead(title) {
     $('page-title').textContent = title;
@@ -6738,7 +6738,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ]),
       subheading('بحاجة إلى متابعة'),
       summaryBar([
-        ['طلبات انضمام', data.pending_lawyers, 'lawyer', 'amber'], ['شكاوى مفتوحة', data.open_complaints, 'complaint', 'red'],
+        ['طلبات انضمام', data.pending_lawyers, 'lawyer', 'amber'], ['تذاكر تحت المراجعة', data.waiting_tickets, 'complaint', 'red'], ['تذاكر مفتوحة', data.open_tickets, 'appeal', 'blue'],
         ['اعتراضات مفتوحة', data.open_appeals, 'appeal', 'amber'],
       ]),
     );
@@ -6755,70 +6755,122 @@ body .custom-switch-toggle.active.sm .switch-knob {
     return link(text, () => open(page, item), 'btn-outline btn-xs', 'open');
   }
 
-  async function complaintsPage(box) {
-    const { data } = await api('GET', '/admin/complaints');
-    const shown = applyFilters(data, (item) => item.created_at, (item) => item.kind);
-    box.append(summaryBar([
-      ['شكاوى مفتوحة', data.length, 'complaint', 'red'],
-      ['على الفلوس', data.filter((item) => item.kind !== 'BEHAVIOR').length, 'money', 'amber'],
-      ['على التعامل', data.filter((item) => item.kind === 'BEHAVIOR').length, 'appeal', 'blue'],
-      ['قيمة الطلبات المعنية', sumOf(data, 'price') + ' ج.م', 'money', 'brand'],
-    ]));
-    box.append(guide('تظهر هنا شكاوى الموكلين المفتوحة. يمكنك مراجعة الشكوى والرد عليها ليصل الرد للموكل في إشعار وتُغلق الشكوى.',
-      'إذا استدعت الشكوى أي إجراء (مثل الإنذار أو إضافة/خصم رصيد أو تجميد أتعاب)، يمكنك تطبيقه مباشرة من صفحة بروفايل الحساب المعني.'));
-    box.append(controlsBar([stateFilter([['', 'كل الأنواع'], ['MONEY', 'على الفلوس'], ['BEHAVIOR', 'على التعامل']]), ...dateFilters()]));
-    box.append(table(['رقم الشكوى', 'النوع', 'رقم الطلب', 'الموكل', 'المحامي', 'التفاصيل', 'المبلغ', 'التاريخ', 'الإجراءات'], shown.map((item) => ({
-      item,
-      cells: [
-        el('strong', item.reference, 'prod-name-ar'), kindBadge(item.kind), item.order_number,
-        personCell(item.client_name, item.client_phone), personCell(item.lawyer_name, item.lawyer_phone),
-        item.reason, item.price + ' ج.م', date(item.created_at), openButton('فتح', 'complaint', item),
-      ],
-    })), (item) => open('complaint', item)));
+  const TICKET_STATUS = { UNDER_REVIEW: ['تحت المراجعة', 'amber'], OPEN: ['مفتوحة', 'blue'], CLOSED: ['مقفولة', 'gray'] };
+  const TICKET_CATEGORY = { ORDER: 'مشكلة في طلب', MONEY: 'الفلوس والمحفظة', ACCOUNT: 'الحساب', OTHER: 'حاجة تانية' };
+  const ticketStatus = (status) => badge(...(TICKET_STATUS[status] || [status, 'gray']));
+
+  /// Private images need the admin token, so they load through fetch
+  function privateImage(path) {
+    const img = el('img', undefined, 'ticket-image');
+    img.alt = 'صورة مرفقة';
+    fetch(API + path, { headers: { Authorization: 'Bearer ' + session?.accessToken } })
+      .then((res) => (res.ok ? res.blob() : null))
+      .then((blob) => {
+        if (!blob) return;
+        img.src = URL.createObjectURL(blob);
+        img.addEventListener('click', () => window.open(img.src, '_blank'));
+      });
+    return img;
   }
 
-  async function complaintPage(box) {
-    const item = current.param;
-    pageHead('شكوى ' + item.reference + ' على طلب ' + item.order_number);
-
-    box.append(hero(avatarBox(null, 'complaint'), 'شكوى موكل', [badge('مفتوحة', 'red'), kindBadge(item.kind), tag(item.order_status)],
-      [['orders', 'طلب ' + item.order_number], ['calendar', date(item.created_at)], ['money', item.price + ' ج.م']],
-      [link('تفاصيل الطلب', () => open('order', item.order_id), 'btn-outline', 'orders')]));
-    box.append(section('نص الشكوى', el('p', item.reason)));
-    box.append(section('أطراف الطلب', parties(
-      personCard('الموكل', item.client_name, item.client_phone, item.client_id, statsOf(item, 'client'), item.client_email),
-      personCard('المحامي', item.lawyer_name, item.lawyer_phone, item.lawyer_id, statsOf(item, 'lawyer'), item.lawyer_email))));
-
-    const reply = textarea('', 'اكتب رد الإدارة على الشكوى هنا...');
-    const sendReply = () => {
-      const text = reply.value.trim();
-      if (!text) {
-        toast('يرجى كتابة رد الإدارة أولاً', true);
-        return;
-      }
-      return decideAndReturn(() => api('POST', '/admin/complaints/' + item.id + '/close', { note: text }));
+  function ticketsPage(role) {
+    return async function (box) {
+      const { data } = await api('GET', '/admin/support?role=' + role);
+      const shown = applyFilters(data, (item) => item.created_at, (item) => item.status);
+      const count = (status) => data.filter((item) => item.status === status).length;
+      box.append(summaryBar([
+        ['تحت المراجعة', count('UNDER_REVIEW'), 'complaint', 'amber'], ['مفتوحة', count('OPEN'), 'appeal', 'blue'],
+        ['مقفولة', count('CLOSED'), 'check', 'gray'],
+      ]));
+      box.append(guide('كل تذكرة تبدأ «تحت المراجعة»، وأول رد من الإدارة يجعلها «مفتوحة»، وتظل مفتوحة حتى تقفلها الإدارة بنفسها.',
+        'التذاكر التي تنتظر ردًا تظهر أولًا. وتذكرة الفلوس على طلب أتعابه متوقفة لا تُقفل إلا بعد اختيار القرار المالي.'));
+      box.append(controlsBar([stateFilter([['', 'كل الحالات'], ...Object.entries(TICKET_STATUS).map(([key, [label]]) => [key, label])]), ...dateFilters()]));
+      box.append(table(['رقم التذكرة', 'العنوان', 'النوع', role === 'lawyer' ? 'المحامي' : 'الموكل', 'رقم الطلب', 'الحالة', 'آخر تحديث', 'الإجراءات'], shown.map((item) => ({
+        item,
+        cells: [
+          el('strong', item.reference, 'prod-name-ar'), item.title, TICKET_CATEGORY[item.category] || item.category,
+          personCell(item.user_name, item.user_phone), item.order_number || '-', ticketStatus(item.status), date(item.updated_at),
+          openButton('فتح', 'ticket', item.id),
+        ],
+      })), (item) => open('ticket', item.id)));
     };
+  }
 
-    box.append(section('رد الإدارة على الشكوى',
-      guide('اكتب رد الإدارة ليصل مباشرة إلى الموكل في إشعار، وسيتم إغلاق الشكوى فور الإرسال.',
-        'إذا استدعت الشكوى أي إجراء (مثل الإنذار أو إضافة/خصم رصيد أو تجميد أتعاب)، يمكنك فتح بروفايل الحساب من بطاقة الأطراف أعلاه وتطبيق الإجراء من هناك.'),
-      reply,
-      actionRow(button('إرسال الرد وإغلاق الشكوى', 'btn-primary', sendReply, 'تم إرسال الرد وإغلاق الشكوى', 'check'))));
+  async function ticketPage(box) {
+    const { data } = await api('GET', '/admin/support/' + current.param);
+    const closed = data.status === 'CLOSED';
+    pageHead('تذكرة ' + data.reference);
+
+    const buttons = [link('بروفايل صاحب التذكرة', () => open('user', data.user_id), 'btn-outline', 'open')];
+    if (data.order) buttons.push(link('تفاصيل الطلب', () => open('order', data.order.id), 'btn-outline', 'orders'));
+    box.append(hero(avatarBox(null, 'complaint'), data.title, [ticketStatus(data.status), badge(TICKET_CATEGORY[data.category] || data.category, 'purple')],
+      [[data.user_role === 'lawyer' ? 'lawyer' : 'client', data.user_name + ' • ' + data.user_phone], ['calendar', date(data.created_at)],
+        ...(data.order ? [['orders', 'طلب ' + data.order.order_number]] : [])], buttons));
+
+    if (data.order) {
+      box.append(section('أطراف الطلب', parties(
+        personCard('الموكل', data.order.client_name, data.order.client_phone, data.order.client_id),
+        personCard('المحامي', data.order.lawyer_name, data.order.lawyer_phone, data.order.lawyer_id))));
+    }
+
+    const thread = el('div', undefined, 'ticket-thread');
+    data.messages.forEach((message) => {
+      const kind = message.author === 'ADMIN' ? 'admin' : message.author === 'NOTE' ? 'note' : 'user';
+      const card = el('div', undefined, 'ticket-message ticket-' + kind);
+      const head = el('div', undefined, 'ticket-message-head');
+      head.append(el('strong', kind === 'admin' ? 'رد الإدارة' : kind === 'note' ? 'ملاحظة داخلية (لا يراها صاحب التذكرة)' : 'صاحب التذكرة'), el('span', date(message.createdAt), 'muted'));
+      card.append(head);
+      if (message.body) card.append(el('p', message.body));
+      if (message.images.length) {
+        const images = el('div', undefined, 'ticket-images');
+        message.images.forEach((path) => images.append(privateImage(path)));
+        card.append(images);
+      }
+      thread.append(card);
+    });
+    box.append(section('الرسائل', thread));
+
+    if (closed) {
+      box.append(section('حالة التذكرة', el('p', 'أُغلقت التذكرة في ' + date(data.closed_at) + (data.closed_by_email ? ' بواسطة ' + data.closed_by_email : '') + '، ولا يمكن الرد عليها.', 'muted')));
+      return;
+    }
+
+    const reply = textarea('', 'اكتب ردك هنا، وسيصل إلى صاحب التذكرة في إشعار...');
+    box.append(section('الرد على صاحب التذكرة', reply, actionRow(button('إرسال الرد', 'btn-primary', () => {
+      if (!reply.value.trim()) throw new Error('اكتب الرد أولًا');
+      return api('POST', '/admin/support/' + data.id + '/reply', { body: reply.value });
+    }, 'تم إرسال الرد', 'check'))));
+
+    const note = textarea('', 'ملاحظة للفريق فقط، مثل: تواصلت مع الموكل هاتفيًا...');
+    box.append(section('ملاحظة داخلية', note, actionRow(button('حفظ الملاحظة', 'btn-outline', () => {
+      if (!note.value.trim()) throw new Error('اكتب الملاحظة أولًا');
+      return api('POST', '/admin/support/' + data.id + '/note', { body: note.value });
+    }, 'تم حفظ الملاحظة'))));
+
+    const closing = textarea('', 'رسالة أخيرة لصاحب التذكرة مع القفل (اختيارية)');
+    const close = (outcome) => decideAndReturn(() => api('POST', '/admin/support/' + data.id + '/close', { outcome, body: closing.value }));
+    const parts = [guide('اقفل التذكرة بعد حل المشكلة فقط. بعد القفل لا يستطيع صاحبها الرد عليها، ويفتح تذكرة جديدة إن احتاج.'), closing];
+    if (data.needsDecision) {
+      const suggestion = el('div', undefined, 'decision-box');
+      suggestion.append(el('strong', 'الأتعاب متوقفة على هذه التذكرة. القرار المقترح: ' + OUTCOMES[data.suggestion.outcome][0]), el('p', data.suggestion.reason));
+      parts.push(suggestion, actionRow(...Object.entries(OUTCOMES).map(([key, [label, style]]) =>
+        button('قفل مع: ' + label, key === data.suggestion.outcome ? 'btn-primary' : style,
+          confirmed('سيُنفذ القرار «' + label + '» وتُقفل التذكرة. هل تريد المتابعة؟', () => close(key)), 'تم تنفيذ القرار وقفل التذكرة'))));
+    } else {
+      parts.push(actionRow(button('قفل التذكرة', 'btn-outline-danger', confirmed('هل تريد قفل التذكرة؟ لن يستطيع صاحبها الرد بعد ذلك.', () => close()), 'تم قفل التذكرة', 'check')));
+    }
+    box.append(section('قفل التذكرة', ...parts));
   }
 
   const LAWYER_ITEMS = {
-    report: ['شكوى على موكل', 'red', 'report'],
     appeal: ['اعتراض على المهلة', 'amber', 'appeal'],
     review: ['بلاغ عن تقييم', 'purple', 'reviewReport'],
   };
 
   async function reportsPage(box) {
-    const [reports, appeals, reviews] = await Promise.all([
-      api('GET', '/admin/reports'), api('GET', '/admin/appeals'), api('GET', '/admin/reviews/reported'),
-    ]);
+    const [appeals, reviews] = await Promise.all([api('GET', '/admin/appeals'), api('GET', '/admin/reviews/reported')]);
     const lawyerCell = (item) => personCell(item.lawyer_name, item.lawyer_phone);
     const items = [
-      ...reports.data.map((item) => ({ kind: 'report', item, order: item.order_number, lawyer: lawyerCell(item), details: (item.kind === 'BEHAVIOR' ? 'على التعامل: ' : 'على الفلوس: ') + item.reason, at: item.created_at })),
       ...appeals.data.map((item) => ({ kind: 'appeal', item, order: item.order_number, lawyer: lawyerCell(item), details: item.reason, at: item.created_at })),
       ...reviews.data.map((item) => ({ kind: 'review', item, order: '-', lawyer: personCell(item.lawyer_name), details: item.report_reason, at: item.reported_at })),
     ].sort((a, b) => new Date(a.at) - new Date(b.at));
@@ -6826,11 +6878,10 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
     const count = (kind) => items.filter((entry) => entry.kind === kind).length;
     box.append(summaryBar([
-      ['شكاوى على موكلين', count('report'), 'complaint', 'red'], ['اعتراضات', count('appeal'), 'appeal', 'amber'],
+      ['اعتراضات', count('appeal'), 'appeal', 'amber'],
       ['بلاغات تقييمات', count('review'), 'review', 'blue'],
     ]));
-    box.append(guide('تظهر هنا شكاوى المحامين على الموكلين واعتراضاتهم وبلاغاتهم.',
-      'يمكنك مراجعة الشكوى والرد عليها ليصل الرد في إشعار للمحامي وتُغلق الشكوى. وإذا استدعت الشكوى أي إجراء، يمكنك تطبيقه مباشرة من صفحة بروفايل الحساب المعني.'));
+    box.append(guide('تظهر هنا اعتراضات المحامين على انتهاء المهلة وبلاغاتهم عن التقييمات.', 'افتح البند لمراجعته واتخاذ القرار.'));
     box.append(controlsBar([stateFilter([['', 'كل الأنواع'], ...Object.entries(LAWYER_ITEMS).map(([key, [label]]) => [key, label])]), ...dateFilters()]));
     box.append(table(['الرقم', 'النوع', 'رقم الطلب', 'المحامي', 'التفاصيل', 'التاريخ', 'الإجراءات'], shown.map((entry) => {
       const [label, color, page] = LAWYER_ITEMS[entry.kind];
@@ -6854,35 +6905,6 @@ body .custom-switch-toggle.active.sm .switch-knob {
       actionRow(
         button('إخفاء التعليق', 'btn-outline-danger', () => moderate(true), 'تم إخفاء التعليق'),
         button('إبقاء التعليق', 'btn-primary', () => moderate(false), 'تم إبقاء التعليق', 'check'))));
-  }
-
-  async function reportPage(box) {
-    const item = current.param;
-    pageHead('شكوى محامٍ ' + item.reference + ' على طلب ' + item.order_number);
-
-    box.append(hero(avatarBox(null, 'complaint'), 'شكوى محامٍ', [badge('مفتوحة', 'red'), kindBadge(item.kind), tag(item.order_status)],
-      [['orders', 'طلب ' + item.order_number], ['calendar', date(item.created_at)], ['money', item.price + ' ج.م']],
-      [link('تفاصيل الطلب', () => open('order', item.order_id), 'btn-outline', 'orders')]));
-    box.append(section('نص الشكوى', el('p', item.reason)));
-    box.append(section('أطراف الطلب', parties(
-      personCard('المحامي', item.lawyer_name, item.lawyer_phone, item.lawyer_id, statsOf(item, 'lawyer'), item.lawyer_email),
-      personCard('الموكل', item.client_name, item.client_phone, item.client_id, statsOf(item, 'client'), item.client_email))));
-
-    const reply = textarea('', 'اكتب رد الإدارة على الشكوى هنا...');
-    const sendReply = () => {
-      const text = reply.value.trim();
-      if (!text) {
-        toast('يرجى كتابة رد الإدارة أولاً', true);
-        return;
-      }
-      return decideAndReturn(() => api('POST', '/admin/reports/' + item.id + '/close', { note: text }));
-    };
-
-    box.append(section('رد الإدارة على الشكوى',
-      guide('اكتب رد الإدارة ليصل مباشرة إلى المحامي في إشعار، وسيتم إغلاق الشكوى فور الإرسال.',
-        'إذا استدعت الشكوى أي إجراء (مثل الإنذار أو تعديل الرصيد)، يمكنك فتح بروفايل الحساب من بطاقة الأطراف أعلاه وتطبيق الإجراء من هناك.'),
-      reply,
-      actionRow(button('إرسال الرد وإغلاق الشكوى', 'btn-primary', sendReply, 'تم إرسال الرد وإغلاق الشكوى', 'check'))));
   }
 
   async function appealPage(box) {
@@ -7087,7 +7109,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['data', 'البيانات'],
       ['orders', 'الطلبات', data.orders.length],
       ['reviews', 'التقييمات', data.reviews.length],
-      ['complaints', 'الشكاوى', data.complaints.length],
+      ['tickets', 'التذاكر', data.tickets.length],
       ['wallet', 'الرصيد والإنذارات', data.warnings.filter((item) => !item.revoked_at).length],
       ...(isLawyer ? [['strikes', 'المخالفات', data.strikes.length]] : []),
     ];
@@ -7116,10 +7138,10 @@ body .custom-switch-toggle.active.sm .switch-knob {
       pane.append(table(['رقم الطلب', 'التقييم', 'التعليق', 'التاريخ'], data.reviews.map((item) => ({
         item, cells: [item.order_number, item.rating + ' / 5', item.comment, date(item.created_at)],
       })), (item) => open('order', item.order_id)));
-    } else if (active === 'complaints') {
-      pane.append(table(['رقم الطلب', 'النوع', 'الشكوى', 'الحالة', 'القرار', 'التاريخ'], data.complaints.map((item) => ({
-        item, cells: [item.order_number, kindBadge(item.kind), item.reason, REQUEST[item.status] || item.status, RESOLUTIONS[item.resolution] || item.resolution || '-', date(item.created_at)],
-      })), (item) => open('order', item.order_id)));
+    } else if (active === 'tickets') {
+      pane.append(table(['رقم التذكرة', 'العنوان', 'النوع', 'رقم الطلب', 'الحالة', 'التاريخ'], data.tickets.map((item) => ({
+        item, cells: [item.reference, item.title, TICKET_CATEGORY[item.category] || item.category, item.order_number || '-', ticketStatus(item.status), date(item.created_at)],
+      })), (item) => open('ticket', item.id)));
     } else if (active === 'strikes') {
       pane.append(table(['النوع', 'التاريخ'], data.strikes.map((item) => ({ item, cells: [item.kind, date(item.created_at)] }))));
     } else {
@@ -7213,7 +7235,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     pageHead('طلب ' + order.order_number);
 
     const buttons = [];
-    if (data.complaints.some((item) => item.status === 'OPEN')) buttons.push(link('مراجعة الشكوى', () => open('complaints'), 'btn-primary', 'complaint'));
+    data.tickets.filter((item) => item.status !== 'CLOSED').forEach((item) => buttons.push(link('تذكرة ' + item.reference, () => open('ticket', item.id), 'btn-primary', 'complaint')));
     box.append(hero(avatarBox(null, 'orders'), 'طلب ' + order.order_number, [tag(order.status)],
       [['calendar', 'تاريخ الطلب: ' + date(order.created_at)], ['money', order.price + ' ج.م']], buttons));
 
@@ -7251,10 +7273,10 @@ body .custom-switch-toggle.active.sm .switch-knob {
     });
     box.append(section('دورة حياة الطلب', data.logs.length ? list : el('p', 'لا توجد أحداث', 'muted')));
 
-    if (data.complaints.length) {
-      box.append(section('الشكاوى', table(['الشكوى', 'الحالة', 'القرار', 'الرد', 'ملاحظة'], data.complaints.map((item) => ({
-        item, cells: [item.reason, REQUEST[item.status] || item.status, item.resolution, item.refund_amount, item.admin_note],
-      })))));
+    if (data.tickets.length) {
+      box.append(section('تذاكر الدعم الفني', table(['رقم التذكرة', 'العنوان', 'من', 'الحالة', 'التاريخ'], data.tickets.map((item) => ({
+        item, cells: [item.reference, item.title, item.user_role === 'lawyer' ? 'المحامي' : 'الموكل', ticketStatus(item.status), date(item.created_at)],
+      })), (item) => open('ticket', item.id))));
     }
     if (data.appeals.length) {
       box.append(section('الاعتراضات', table(['الاعتراض', 'الحالة', 'ملاحظة'], data.appeals.map((item) => ({
@@ -7322,8 +7344,9 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
   const PAGES = {
     overview: ['نظرة عامة', 'home', overviewPage],
-    complaints: ['شكاوى الموكلين', 'complaint', complaintsPage],
-    reports: ['شكاوى المحامين', 'appeal', reportsPage],
+    clientTickets: ['تذاكر الموكلين', 'complaint', ticketsPage('client')],
+    lawyerTickets: ['تذاكر المحامين', 'complaint', ticketsPage('lawyer')],
+    reports: ['الاعتراضات والبلاغات', 'appeal', reportsPage],
     applications: ['طلبات المحامين', 'apply', applicationsPage],
     lawyers: ['المحامون', 'lawyer', usersPage('lawyer')],
     clients: ['الموكلون', 'client', usersPage('client')],
@@ -7331,11 +7354,11 @@ body .custom-switch-toggle.active.sm .switch-knob {
     reviews: ['التقييمات', 'review', reviewsPage],
     prices: ['الأسعار والنسب', 'price', pricesPage],
   };
-  const INNER = { user: userPage, order: orderPage, application: applicationPage, complaint: complaintPage, report: reportPage, appeal: appealPage, reviewReport: reviewReportPage };
-  const INNER_TITLES = { user: 'بروفايل الحساب', order: 'تفاصيل الطلب', application: 'طلب انضمام', complaint: 'شكوى موكل', report: 'شكوى محامي', appeal: 'اعتراض محامي', reviewReport: 'بلاغ عن تقييم' };
+  const INNER = { user: userPage, order: orderPage, application: applicationPage, ticket: ticketPage, appeal: appealPage, reviewReport: reviewReportPage };
+  const INNER_TITLES = { user: 'بروفايل الحساب', order: 'تفاصيل الطلب', application: 'طلب انضمام', ticket: 'تذكرة دعم فني', appeal: 'اعتراض محامي', reviewReport: 'بلاغ عن تقييم' };
   const SUBTITLES = {
-    overview: 'ملخص الحسابات والطلبات', complaints: 'كل ما يرد من الموكلين ويحتاج إلى قرار', reports: 'شكاوى المحامين واعتراضاتهم وبلاغاتهم التي تحتاج إلى قرار',
-    reviewReport: 'مراجعة التعليق والقرار', complaint: 'مراجعة الشكوى والقرار', report: 'مراجعة الشكوى والقرار', appeal: 'مراجعة الاعتراض والقرار', applications: 'محامون تقدموا للانضمام إلى الخدمة', lawyers: 'كل حسابات المحامين',
+    overview: 'ملخص الحسابات والطلبات', clientTickets: 'كل ما يرسله الموكلون إلى الدعم الفني', lawyerTickets: 'كل ما يرسله المحامون إلى الدعم الفني', reports: 'اعتراضات المحامين وبلاغات التقييمات',
+    reviewReport: 'مراجعة التعليق والقرار', ticket: 'الرسائل والرد والقفل', appeal: 'مراجعة الاعتراض والقرار', applications: 'محامون تقدموا للانضمام إلى الخدمة', lawyers: 'كل حسابات المحامين',
     clients: 'كل حسابات الموكلين', orders: 'البحث في الطلبات ومتابعة حالتها', reviews: 'تقييمات الموكلين للمحامين',
     prices: 'أسعار الخدمات ونسبة المنصة والضريبة', application: 'مراجعة بيانات المحامي والقرار', user: 'البيانات والطلبات والتقييمات', order: 'البيانات ودورة حياة الطلب',
   };

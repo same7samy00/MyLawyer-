@@ -83,15 +83,14 @@ const done = await order(c1, lawyer1, 'محضر في قسم الشرطة');
 await call(`/orders/${done.id}/accept`, l1);
 await call(`/orders/${done.id}/confirm-payment`, c1);
 await call(`/orders/${done.id}/arrive`, l1, { latitude: 30.0501, longitude: 31.25 });
-const code = (await list(c1)).find((o: any) => o.orderId === done.id).completionCode;
-await call(`/orders/${done.id}/complete`, l1, { code });
+await call(`/orders/${done.id}/complete`, l1, {});
 await call(`/orders/${done.id}/review`, c1, { rating: 5, comment: 'محامي محترم ووصل بسرعة' });
 
-// Active with an open complaint
+// Active with an open money ticket
 const active = await order(c2, lawyer1, 'محضر في قسم الشرطة');
 await call(`/orders/${active.id}/accept`, l1);
 await call(`/orders/${active.id}/confirm-payment`, c2);
-await call(`/orders/${active.id}/complaint`, c2, { kind: 'MONEY', reason: 'المحامي اتأخر عن الميعاد المتفق عليه' });
+await call('/support/tickets', c2, { category: 'MONEY', orderId: active.id, title: 'المحامي اتأخر', body: 'المحامي اتأخر عن الميعاد المتفق عليه ومش بيرد' });
 
 // Cancelled, then one waiting for the lawyer
 const cancelled = await order(c1, lawyer2, 'محضر في قسم الشرطة');
@@ -124,24 +123,21 @@ const upload = (url: string, userToken: string) => {
 const l6 = token(lawyer6, 'lawyer');
 await upload('/users/me/profile-photo', l6);
 await upload('/lawyers/me/documents', l6);
-const l3 = token(lawyer3, 'lawyer');
 const l4 = token(lawyer4, 'lawyer');
 const l5 = token(lawyer5, 'lawyer');
 const c3 = token(client3, 'client');
 const c4 = token(client4, 'client');
 
-// Locked completion code
-const locked = await order(c3, lawyer3, 'محضر في قسم الشرطة');
-await call(`/orders/${locked.id}/accept`, l3);
-await call(`/orders/${locked.id}/confirm-payment`, c3);
-await call(`/orders/${locked.id}/arrive`, l3, { latitude: 30.0501, longitude: 31.25 });
-await sql('UPDATE service_orders SET code_attempts = 10 WHERE id = $1', [locked.id]);
+// An account ticket the admin already answered, so it is open
+const accountTicket = await call('/support/tickets', c3, { category: 'ACCOUNT', title: 'مش قادر أغير صورتي', body: 'كل ما أرفع صورة جديدة بيطلع خطأ' });
+await sql(`INSERT INTO ticket_messages (ticket_id, author, author_id, body) VALUES ($1, 'ADMIN', $2, 'جرب صورة أصغر من 5 ميجا وقولنا')`, [accountTicket.data.id, adminId]);
+await sql(`UPDATE support_tickets SET status = 'OPEN' WHERE id = $1`, [accountTicket.data.id]);
 
-// Lawyer report, then the order expired and the lawyer appealed
+// Lawyer ticket, then the order expired and the lawyer appealed
 const expired = await order(c4, lawyer4, 'محضر في قسم الشرطة');
 await call(`/orders/${expired.id}/accept`, l4);
 await call(`/orders/${expired.id}/confirm-payment`, c4);
-await call(`/orders/${expired.id}/report`, l4, { kind: 'BEHAVIOR', reason: 'الموكل اتعامل بشكل غير لائق' });
+await call('/support/tickets', l4, { category: 'ORDER', orderId: expired.id, title: 'تعامل غير لائق', body: 'الموكل اتعامل بشكل غير لائق وقت المهمة' });
 await sql(`UPDATE service_orders SET status = 'EXPIRED', expires_at = NOW() - INTERVAL '1 hour' WHERE id = $1`, [expired.id]);
 await call(`/orders/${expired.id}/appeal`, l4, { reason: 'وصلت للموكل وخلصت المهمة بس النت كان واقع' });
 

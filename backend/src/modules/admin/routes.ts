@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { registerAdminDirectory, userStats } from './directory.js';
+import { registerAdminSupport } from '../support/admin.js';
 import { sanitizeText } from '../../utils/security.js';
 import { addClientCredit, notify, refreshLawyerRating, warnClient } from '../lifecycle/service.js';
 
@@ -19,27 +20,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
   });
 
   await registerAdminDirectory(fastify);
-
-  // GET /api/v1/admin/complaints - Open complaints with the context needed to decide
-  fastify.get('/complaints', async (_request: FastifyRequest, reply: FastifyReply) => {
-    const res = await query(
-      `SELECT c.id, c.reference, c.reason, c.kind, c.filed_after_hold, c.created_at, o.arrived_at, o.hold_until,
-              o.id as order_id, o.order_number, o.status as order_status, o.price, o.service_title,
-              o.problem_description, o.completed_at, o.payout_status,
-              u.phone as client_phone, u.email as client_email, lu.email as lawyer_email, COALESCE(u.full_name, 'موكل') as client_name, c.client_id,
-              lu.phone as lawyer_phone, lp.full_name as lawyer_name, c.lawyer_id,
-              ${userStats('c.client_id', 'client')}, ${userStats('c.lawyer_id', 'lawyer')}
-       FROM complaints c
-       JOIN service_orders o ON o.id = c.order_id
-       JOIN users u ON u.id = c.client_id
-       JOIN users lu ON lu.id = c.lawyer_id
-       JOIN lawyer_profiles lp ON lp.user_id = c.lawyer_id
-       WHERE c.status = 'OPEN'
-       ORDER BY c.created_at ASC`
-    );
-
-    return reply.send({ success: true, data: res.rows });
-  });
+  await registerAdminSupport(fastify);
 
   // GET /api/v1/admin/appeals
   fastify.get('/appeals', async (_request: FastifyRequest, reply: FastifyReply) => {
@@ -204,35 +185,6 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
     await query('UPDATE platform_settings SET tax_percent = $1, updated_at = NOW()', [percent]);
     return reply.send({ success: true, message: 'تم تحديث نسبة الضريبة' });
-  });
-
-  // GET /api/v1/admin/tickets - Everything waiting for a decision, oldest first
-  fastify.get('/tickets', async (_request: FastifyRequest, reply: FastifyReply) => {
-    const res = await query(
-      `SELECT * FROM (
-         SELECT 'complaint' AS type, 'شكوى موكل' AS label, c.id::text AS id, c.reference, o.order_number, c.reason AS details, c.created_at, o.price
-         FROM complaints c JOIN service_orders o ON o.id = c.order_id WHERE c.status = 'OPEN'
-         UNION ALL
-         SELECT 'appeal', 'اعتراض محامي', a.id::text, a.reference, o.order_number, a.reason, a.created_at, o.price
-         FROM order_appeals a JOIN service_orders o ON o.id = a.order_id WHERE a.status = 'OPEN'
-         UNION ALL
-         SELECT 'report', 'بلاغ من محامي', r.id::text, r.reference, o.order_number, r.reason, r.created_at, o.price
-         FROM lawyer_reports r JOIN service_orders o ON o.id = r.order_id WHERE r.status = 'OPEN'
-
-         UNION ALL
-         SELECT 'review', 'تعليق مبلغ عنه', r.id::text, NULL, o.order_number, r.report_reason, r.reported_at, o.price
-         FROM reviews r JOIN service_orders o ON o.id = r.order_id WHERE r.reported_at IS NOT NULL AND r.is_hidden = FALSE
-       ) tickets
-       ORDER BY created_at ASC`
-    );
-
-    return reply.send({
-      success: true,
-      data: res.rows.map((row) => ({
-        ...row,
-        isOverdue: Date.now() - new Date(row.created_at).getTime() > 86400000,
-      })),
-    });
   });
 
   // GET /api/v1/admin/reviews/reported

@@ -6,13 +6,12 @@ import { addWarning, adjustBalance, applySettlement, evaluateSettlement, revokeW
 
 const PAGE_LIMIT = 100;
 
-/// Orders and complaints of one account, shown next to it wherever the control page lists it
+/// Orders and tickets of one account, shown next to it wherever the control page lists it
 export function userStats(id: string, prefix: string) {
   return `(SELECT COUNT(*)::int FROM service_orders x WHERE x.client_id = ${id} OR x.lawyer_id = ${id}) AS ${prefix}_orders,
-          ((SELECT COUNT(*) FROM complaints x WHERE x.lawyer_id = ${id})
-            + (SELECT COUNT(*) FROM lawyer_reports x WHERE x.client_id = ${id}))::int AS ${prefix}_against,
-          ((SELECT COUNT(*) FROM complaints x WHERE x.client_id = ${id})
-            + (SELECT COUNT(*) FROM lawyer_reports x WHERE x.lawyer_id = ${id}))::int AS ${prefix}_filed`;
+          (SELECT COUNT(*) FROM support_tickets st JOIN service_orders so ON so.id = st.order_id
+              WHERE st.user_id <> ${id} AND (so.client_id = ${id} OR so.lawyer_id = ${id}))::int AS ${prefix}_against,
+          (SELECT COUNT(*) FROM support_tickets st WHERE st.user_id = ${id})::int AS ${prefix}_filed`;
 }
 const UUID_PATTERN = /^[0-9a-f-]{36}$/i;
 
@@ -28,7 +27,8 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
         (SELECT COUNT(*)::int FROM lawyer_profiles WHERE urgent_status = 'PENDING') AS pending_lawyers,
         (SELECT COUNT(*)::int FROM service_orders WHERE status IN ('PENDING', 'ACCEPTED', 'ACTIVE')) AS open_orders,
         (SELECT COUNT(*)::int FROM service_orders WHERE status = 'COMPLETED') AS completed_orders,
-        (SELECT COUNT(*)::int FROM complaints WHERE status = 'OPEN') AS open_complaints,
+        (SELECT COUNT(*)::int FROM support_tickets WHERE status = 'UNDER_REVIEW') AS waiting_tickets,
+        (SELECT COUNT(*)::int FROM support_tickets WHERE status = 'OPEN') AS open_tickets,
         (SELECT COUNT(*)::int FROM order_appeals WHERE status = 'OPEN') AS open_appeals,
         (SELECT COALESCE(SUM(price), 0) FROM service_orders WHERE status = 'COMPLETED') AS completed_value
     `);
@@ -73,7 +73,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     );
     if (userRes.rows.length === 0) return reply.status(404).send({ success: false, error: 'الحساب غير موجود' });
 
-    const [orders, reviews, complaints, strikes, credits, warnings, adjustments, wallet] = await Promise.all([
+    const [orders, reviews, tickets, strikes, credits, warnings, adjustments, wallet] = await Promise.all([
       query(
         `SELECT id, order_number, status, price, problem_type, created_at FROM service_orders
          WHERE client_id = $1 OR lawyer_id = $1 ORDER BY created_at DESC LIMIT $2`,
@@ -86,9 +86,9 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
         [id, PAGE_LIMIT]
       ),
       query(
-        `SELECT c.reason, c.kind, c.status, c.resolution, c.created_at, o.order_number, o.id AS order_id
-         FROM complaints c JOIN service_orders o ON o.id = c.order_id
-         WHERE c.lawyer_id = $1 OR c.client_id = $1 ORDER BY c.created_at DESC LIMIT $2`,
+        `SELECT t.id, t.reference, t.title, t.category, t.status, t.created_at, o.order_number
+         FROM support_tickets t LEFT JOIN service_orders o ON o.id = t.order_id
+         WHERE t.user_id = $1 ORDER BY t.created_at DESC LIMIT $2`,
         [id, PAGE_LIMIT]
       ),
       query('SELECT kind, created_at FROM lawyer_strikes WHERE lawyer_id = $1 ORDER BY created_at DESC LIMIT $2', [id, PAGE_LIMIT]),
@@ -119,7 +119,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
         user: userRes.rows[0],
         orders: orders.rows,
         reviews: reviews.rows,
-        complaints: complaints.rows,
+        tickets: tickets.rows,
         strikes: strikes.rows,
         credits: credits.rows,
         warnings: warnings.rows,
@@ -193,9 +193,10 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     );
     if (orderRes.rows.length === 0) return reply.status(404).send({ success: false, error: 'الطلب غير موجود' });
 
-    const [logs, complaints, appeals, reviews] = await Promise.all([
+    const [logs, tickets, appeals, reviews] = await Promise.all([
       query('SELECT old_status, new_status, note, created_at FROM order_status_logs WHERE order_id = $1 ORDER BY created_at ASC', [id]),
-      query('SELECT reason, kind, status, resolution, refund_amount, admin_note, created_at FROM complaints WHERE order_id = $1 ORDER BY created_at DESC', [id]),
+      query(`SELECT t.id, t.reference, t.title, t.category, t.status, t.created_at, u.role AS user_role
+             FROM support_tickets t JOIN users u ON u.id = t.user_id WHERE t.order_id = $1 ORDER BY t.created_at DESC`, [id]),
       query('SELECT reason, status, admin_note, created_at FROM order_appeals WHERE order_id = $1', [id]),
       query('SELECT rating, comment, created_at FROM reviews WHERE order_id = $1', [id]),
     ]);
@@ -203,27 +204,8 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     const { completion_code: _hidden, ...order } = orderRes.rows[0];
     return reply.send({
       success: true,
-      data: { order, logs: logs.rows, complaints: complaints.rows, appeals: appeals.rows, reviews: reviews.rows },
+      data: { order, logs: logs.rows, tickets: tickets.rows, appeals: appeals.rows, reviews: reviews.rows },
     });
-  });
-
-  // GET /api/v1/admin/reports - Open reports the lawyers filed about clients
-  fastify.get('/reports', async (_request: FastifyRequest, reply: FastifyReply) => {
-    const res = await query(
-      `SELECT r.id, r.reference, r.reason, r.kind, r.created_at, o.id AS order_id, o.order_number, o.status AS order_status, o.price,
-              lp.full_name AS lawyer_name, l.phone AS lawyer_phone, l.email AS lawyer_email, r.lawyer_id,
-              COALESCE(c.full_name, 'موكل') AS client_name, c.phone AS client_phone, c.email AS client_email, r.client_id,
-              ${userStats('r.client_id', 'client')}, ${userStats('r.lawyer_id', 'lawyer')}
-       FROM lawyer_reports r
-       JOIN service_orders o ON o.id = r.order_id
-       JOIN users l ON l.id = r.lawyer_id
-       JOIN lawyer_profiles lp ON lp.user_id = r.lawyer_id
-       JOIN users c ON c.id = r.client_id
-       WHERE r.status = 'OPEN'
-       ORDER BY r.created_at ASC LIMIT $1`,
-      [PAGE_LIMIT]
-    );
-    return reply.send({ success: true, data: res.rows });
   });
 
   // GET /api/v1/admin/orders/:id/settlement - The fixed decision for an order and the facts behind it
@@ -261,88 +243,6 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     });
     if (!result) return reply.status(409).send({ success: false, error: 'تمت تسوية هذا الطلب من قبل' });
     return reply.send({ success: true, message: 'تم تنفيذ القرار', data: result });
-  });
-
-  // POST /api/v1/admin/complaints/:id/close - Closes a complaint and sends admin reply in notification
-  fastify.post('/complaints/:id/close', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { userId: adminId } = request.user as { userId: string };
-    const { id } = request.params as { id: string };
-    const body = (request.body || {}) as { warn?: boolean; note?: string };
-    const note = body.note ? sanitizeText(body.note, 1000) : null;
-
-    const done = await withTransaction(async (client) => {
-      const res = await client.query(
-        `UPDATE complaints SET status = 'RESOLVED', resolution = $1, admin_note = $2, resolved_by = $3, resolved_at = NOW()
-         WHERE id::text = $4 AND status = 'OPEN' RETURNING order_id, client_id, lawyer_id, kind`,
-        [body.warn ? 'WARNING' : 'RESOLVED', note, adminId, id]
-      );
-      const row = res.rows[0];
-      if (!row) return false;
-      if (body.warn) await addWarning(client, row.lawyer_id, note || 'إنذار بسبب شكوى من موكل على التعامل', row.order_id, adminId);
-      const notifyMessage = note || (body.warn ? 'راجعت الإدارة شكواك ووجهت إنذارًا للمحامي' : 'راجعت الإدارة شكواك وتم إغلاقها');
-      await notify(client, row.client_id, 'رد الإدارة على شكواك', notifyMessage, row.order_id);
-
-      if (row.kind === 'MONEY') {
-        const otherRes = await client.query(
-          `SELECT 1 FROM complaints WHERE order_id = $1 AND status = 'OPEN' AND kind = 'MONEY'
-           UNION ALL
-           SELECT 1 FROM lawyer_reports WHERE order_id = $1 AND status = 'OPEN' AND kind = 'MONEY'`,
-          [row.order_id]
-        );
-        if (otherRes.rows.length === 0) {
-          await client.query(
-            `UPDATE service_orders SET payout_status = CASE WHEN hold_until > NOW() THEN 'HELD' ELSE 'AVAILABLE' END
-             WHERE id = $1 AND payout_status = 'FROZEN'`,
-            [row.order_id]
-          );
-        }
-      }
-
-      return true;
-    });
-    if (!done) return reply.status(404).send({ success: false, error: 'الشكوى غير موجودة أو مغلقة' });
-    return reply.send({ success: true, message: body.warn ? 'تم توجيه الإنذار وإغلاق الشكوى' : 'تم إرسال الرد وإغلاق الشكوى' });
-  });
-
-  // POST /api/v1/admin/reports/:id/close - Closes a lawyer's complaint and sends admin reply in notification
-  fastify.post('/reports/:id/close', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { userId: adminId } = request.user as { userId: string };
-    const { id } = request.params as { id: string };
-    const body = (request.body || {}) as { warn?: boolean; note?: string };
-    const note = body.note ? sanitizeText(body.note, 1000) : null;
-
-    const done = await withTransaction(async (client) => {
-      const res = await client.query(
-        `UPDATE lawyer_reports SET status = 'RESOLVED', resolution = $1, admin_note = $2, resolved_by = $3, resolved_at = NOW()
-         WHERE id::text = $4 AND status = 'OPEN' RETURNING order_id, client_id, lawyer_id, kind`,
-        [body.warn ? 'WARNING' : 'RESOLVED', note, adminId, id]
-      );
-      const row = res.rows[0];
-      if (!row) return false;
-      if (body.warn) await addWarning(client, row.client_id, note || 'إنذار بسبب شكوى من محامٍ على التعامل', row.order_id, adminId);
-      const notifyMessage = note || (body.warn ? 'راجعت الإدارة شكواك ووجهت إنذارًا للموكل' : 'راجعت الإدارة شكواك وتم إغلاقها');
-      await notify(client, row.lawyer_id, 'رد الإدارة على شكواك', notifyMessage, row.order_id);
-
-      if (row.kind === 'MONEY') {
-        const otherRes = await client.query(
-          `SELECT 1 FROM complaints WHERE order_id = $1 AND status = 'OPEN' AND kind = 'MONEY'
-           UNION ALL
-           SELECT 1 FROM lawyer_reports WHERE order_id = $1 AND status = 'OPEN' AND kind = 'MONEY'`,
-          [row.order_id]
-        );
-        if (otherRes.rows.length === 0) {
-          await client.query(
-            `UPDATE service_orders SET payout_status = CASE WHEN hold_until > NOW() THEN 'HELD' ELSE 'AVAILABLE' END
-             WHERE id = $1 AND payout_status = 'FROZEN'`,
-            [row.order_id]
-          );
-        }
-      }
-
-      return true;
-    });
-    if (!done) return reply.status(404).send({ success: false, error: 'الشكوى غير موجودة أو مغلقة' });
-    return reply.send({ success: true, message: body.warn ? 'تم توجيه الإنذار وإغلاق الشكوى' : 'تم إرسال الرد وإغلاق الشكوى' });
   });
 
   // POST /api/v1/admin/users/:id/balance - Adds to or deducts from a balance with a reason

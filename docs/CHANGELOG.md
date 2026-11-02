@@ -1,5 +1,15 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.97] - 2026-11-02
+### Technical Support Tickets
+- Clients and lawyers open a ticket from "الدعم الفني" in the account page, or from "عندك مشكلة؟" in an order with the order already picked. A ticket has a type, a title, the details, and up to 5 images.
+- Ticket states: under review until the first admin reply, then open, and closed only when an admin presses close. Nobody can reply on a closed ticket.
+- The support page lists every ticket with its title, ML-TKT number, order number, and state. The ticket page shows the messages in order, not as a chat, with a reply box while it is open.
+- The control page has "تذاكر الموكلين" and "تذاكر المحامين" pages with replies, internal notes, private images, and close.
+- A money ticket on an order holds the fees, the finish, and the automatic settlement. It closes only with a money decision, so a reply never pays anyone by mistake.
+- Removed the old complaint and lawyer report routes and pages. Open old complaints move into tickets (migration `014`).
+- At most 3 open tickets per person, and one open ticket per order.
+
 ## [Phase 2.96] - 2026-11-02
 ### Rating Prompts
 - The rating sheet opens by itself for the client the moment the lawyer finishes the task.

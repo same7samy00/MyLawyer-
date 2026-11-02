@@ -166,6 +166,33 @@ class ApiService {
     );
   }
 
+  /// نموذج فيه نصوص وصور مع بعض، زي تذكرة الدعم الفني
+  static Future<ApiResponse<dynamic>> uploadForm(String endpoint, Map<String, String> fields, List<String> imagePaths) {
+    final uri = Uri.parse('$_baseUrl$endpoint');
+
+    return _send(
+      endpoint,
+      (headers) async {
+        final request = http.MultipartRequest('POST', uri)
+          ..headers.addAll(headers..remove('Content-Type'))
+          ..fields.addAll(fields);
+        for (final path in imagePaths) {
+          request.files.add(await http.MultipartFile.fromPath('images', path));
+        }
+        return http.Response.fromStream(await _client.send(request));
+      },
+      customToken: null,
+      timeout: const Duration(seconds: 60),
+      timeoutError: 'انتهت مهلة الإرسال، حاول تاني',
+    );
+  }
+
+  /// ترويسة الدخول لعرض الصور الخاصة، زي صور تذاكر الدعم
+  static Future<Map<String, String>> imageHeaders() async {
+    final token = await getAccessToken();
+    return token == null || token.isEmpty ? const {} : {'Authorization': 'Bearer $token'};
+  }
+
   /// POST Request
   static Future<ApiResponse<dynamic>> post(
     String endpoint,

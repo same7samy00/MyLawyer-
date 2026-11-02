@@ -268,8 +268,7 @@ async function expireUnfinishedOrders() {
   const expired = await dbPool.query(
     `SELECT o.* FROM service_orders o
      WHERE o.status = 'ACTIVE' AND o.expires_at <= NOW()
-       AND NOT EXISTS (SELECT 1 FROM complaints c WHERE c.order_id = o.id AND c.status = 'OPEN' AND c.kind = 'MONEY')
-       AND NOT EXISTS (SELECT 1 FROM lawyer_reports r WHERE r.order_id = o.id AND r.status = 'OPEN' AND r.kind = 'MONEY')`
+       AND NOT EXISTS (SELECT 1 FROM support_tickets st WHERE st.order_id = o.id AND st.status <> 'CLOSED' AND st.category = 'MONEY')`
   );
 
   for (const order of expired.rows) {

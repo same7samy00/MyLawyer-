@@ -13,6 +13,7 @@ import '../../core/widgets/order_status_tracker.dart';
 import '../../core/widgets/response_countdown.dart';
 import '../../data/models/order_model.dart';
 import '../../data/repositories/order_repository.dart';
+import '../support/new_ticket_screen.dart';
 import 'payment_screen.dart';
 
 /// كل تفاصيل الطلب وإجراءاته للموكل والمحامي في صفحة واحدة
@@ -157,16 +158,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     await _run(() => OrderRepository.cancelOrder(_order.id), 'تم إلغاء الطلب');
   }
 
+  /// المشكلة على الطلب بتتبعت كتذكرة دعم فني والطلب متحدد فيها
   Future<void> _openComplaint() async {
-    final sent = await OrderActionSheets.complaint(
-      context,
-      onSubmit: (kind, details) => widget.isLawyer
-          ? OrderRepository.reportClient(_order.id, kind, details)
-          : OrderRepository.submitComplaint(_order.id, kind, details),
+    final sent = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => NewTicketScreen(order: _order)),
     );
-    if (!sent || !mounted) return;
-    _showNotice('تم استلام شكواك');
-    await _load();
+    if (sent == true && mounted) await _load();
   }
 
   Future<void> _openReview({required bool isEdit}) async {
@@ -419,8 +416,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         _primaryAction('اتصل بالمحامي', () => _call(order.lawyerPhone), icon: Icons.call_rounded),
       if (order.canReview) _primaryAction('قيّم المحامي', () => _openReview(isEdit: false)),
       if (order.canEditReview) _action('تعديل التقييم', () => _openReview(isEdit: true)),
-      if (order.hasOpenComplaint) _statusNote('شكواك قيد المراجعة'),
-      if (order.canComplain) _action('عندك مشكلة؟', _openComplaint, isDanger: true),
+      if (order.hasOpenComplaint) _statusNote('الطلب عليه تذكرة فلوس قيد المراجعة'),
+      if (order.hasOpenTicket) _statusNote('عندك تذكرة مفتوحة على الطلب ده في الدعم الفني'),
+      if (order.canOpenTicket) _action('عندك مشكلة؟', _openComplaint, isDanger: true),
       if (order.canCancel) _action('إلغاء الطلب', _cancelOrder, isDanger: true),
     ];
   }
@@ -432,7 +430,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         _action('اعتذار', _rejectOrder, isDanger: true),
       ],
       if (order.isActive) ...[
-        if (order.hasOpenComplaint) _statusNote('قيد مراجعة شكوى'),
+        if (order.hasOpenComplaint) _statusNote('الطلب عليه تذكرة فلوس قيد المراجعة'),
         if (order.clientPhone != null)
           _action('اتصل بالموكل', () => _call(order.clientPhone), icon: Icons.call_rounded),
         _action('افتح مكان الموكل في Google Maps', _openDirections, icon: Icons.navigation_rounded),
@@ -445,7 +443,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           _action('اعتذار', _withdraw, isDanger: true),
         ],
       ],
-      if (order.isComplaintWindowOpen && !order.hasReport) _action('عندك مشكلة؟', _openComplaint, isDanger: true),
+      if (order.canOpenTicket) _action('عندك مشكلة؟', _openComplaint, isDanger: true),
       if (order.canAppeal) _action('اعتراض', _openAppeal),
     ];
   }

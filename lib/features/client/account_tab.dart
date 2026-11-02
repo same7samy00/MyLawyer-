@@ -7,6 +7,7 @@ import '../../core/widgets/app_pressable.dart';
 import '../../core/widgets/logout_confirmation_sheet.dart';
 import '../../core/widgets/profile_photo.dart';
 import '../account/personal_data_screen.dart';
+import '../support/support_screen.dart';
 import '../auth/session_router.dart';
 
 class AccountTab extends StatefulWidget {
@@ -112,9 +113,13 @@ class _AccountTabState extends State<AccountTab> {
               onTap: () {},
             ),
             _buildSettingItem(
-              title: 'مركز المساعدة والدعم الفني',
+              title: 'الدعم الفني',
               icon: Icons.headset_mic_outlined,
-              onTap: () {},
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const SupportScreen()),
+                );
+              },
             ),
             _buildSettingItem(
               title: 'الشروط والأحكام وسياسة الخصوصية',
