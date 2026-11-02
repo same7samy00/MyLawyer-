@@ -47,6 +47,13 @@ for item in dist migrations public package.json package-lock.json; do
   cp -a "$RELEASE_DIR/backend/$item" "$APP_DIR/$item"
 done
 
+# The public website (landing page and policies) is served by Nginx from the site folder
+SITE_DIR="${SITE_DIR:-/var/www/mylawyer/site}"
+mkdir -p "$SITE_DIR"
+rm -rf "${SITE_DIR:?}"/*
+cp -a "$RELEASE_DIR/backend/public/site/." "$SITE_DIR/"
+chown -R www-data:www-data "$SITE_DIR"
+
 cd "$APP_DIR"
 npm ci --omit=dev
 chown -R www-data:www-data "$APP_DIR"
@@ -60,6 +67,7 @@ HEALTH="$(curl -s "http://127.0.0.1:${PORT:-4000}/api/v1/health")"
 echo "$HEALTH"
 echo "$HEALTH" | grep -q '003_service_lifecycle.sql' || { echo "Migration 003 is not applied. Check the server logs."; exit 1; }
 curl -s -o /dev/null -w 'Control page: %{http_code}\n' "http://127.0.0.1:${PORT:-4000}/api/v1/admin-panel"
+curl -sk -o /dev/null -w 'Website: %{http_code}\n' --resolve my-lawyer.online:443:127.0.0.1 https://my-lawyer.online/
 
 rm -rf "$RELEASE_DIR" /tmp/mylawyer-backend.tar
 echo "Deployment finished. Backup: $BACKUP_FILE"

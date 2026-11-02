@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 2.93] - 2026-11-02
+### Public Website for the Payment Gateway
+- Added a landing page on `https://my-lawyer.online` that describes the app and its services, with the Alexandria address, phone, and email.
+- Added temporary policy pages: `/terms/`, `/privacy/`, and `/refund/`.
+- The site lives in `backend/public/site`, and `deploy.sh` copies it to the Nginx site folder with every deploy.
+
 ## [Phase 2.92] - 2026-11-02
 ### Meeting Rule Without a Code
 - Removed the completion code everywhere: the client sees no code, the lawyer types no code, and the admin code unlock is gone.
