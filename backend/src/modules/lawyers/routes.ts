@@ -2,54 +2,20 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { pipeline } from 'stream/promises';
 import { query, withTransaction } from '../../database/index.js';
 import { config } from '../../config/index.js';
-import { sanitizeText } from '../../utils/security.js';
+import { sanitizeText, shortName } from '../../utils/security.js';
 import { detectFileType } from '../../utils/files.js';
+import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { approximateCoordinate } from '../lifecycle/service.js';
-
-// Ensure storage directories exist
-if (!fs.existsSync(config.publicStoragePath)) {
-  fs.mkdirSync(config.publicStoragePath, { recursive: true });
-}
-const avatarsDir = path.join(config.publicStoragePath, 'avatars');
-if (!fs.existsSync(avatarsDir)) {
-  fs.mkdirSync(avatarsDir, { recursive: true });
-}
-
-if (!fs.existsSync(config.privateStoragePath)) {
-  fs.mkdirSync(config.privateStoragePath, { recursive: true });
-}
-
-interface AuthenticatedLawyer {
-  userId: string;
-  role: string;
-}
 
 // Clients can browse the map further than the area they can order from
 const MAX_MAP_RADIUS_KM = 1500;
 
-// "أحمد محمد علي" becomes "أحمد م."
-function shortenName(fullName: string | null): string {
-  const [first, second] = (fullName || '').trim().split(/\s+/);
-  if (!first) return 'عميل';
-  return second ? `${first} ${[...second][0]}.` : first;
-}
-
 export async function lawyerRoutes(fastify: FastifyInstance) {
   // Helper authentication hook for protected lawyer routes
-  const requireLawyerAuth = async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      await request.jwtVerify();
-      const { role } = request.user as AuthenticatedLawyer;
-      if (role !== 'lawyer' && role !== 'admin') {
-        return reply.status(403).send({ success: false, error: 'هذا المسار مخصص للمحامين فقط' });
-      }
-    } catch {
-      return reply.status(401).send({ success: false, error: 'غير مصرح: يرجى تسجيل الدخول' });
-    }
-  };
+  // Runs first, so the suspended-account check in app.ts sees who is asking
+  const requireLawyerAuth = requireAuth(['lawyer', 'admin'], 'هذا المسار مخصص للمحامين فقط');
 
   // 1. GET /api/v1/lawyers/nearby (Open to clients & visitors for real nearby search)
   fastify.get('/nearby', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -122,16 +88,15 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
           WHERE o.lawyer_id = u.id AND o.status IN ('PENDING', 'ACCEPTED', 'ACTIVE')
         )
       ) lp
+      WHERE distance_km <= $3::float8
       ORDER BY distance_km ASC, lp.rating DESC
       LIMIT 1000;
     `;
 
     try {
-      const res = await query(sql, [userLat, userLon]);
+      const res = await query(sql, [userLat, userLon, radiusKm]);
 
-      // Filter by requested radius
       const nearbyLawyers = res.rows
-        .filter((row) => Number(row.distance_km) <= radiusKm)
         .map((lawyer) => ({
           id: lawyer.user_id,
           profileId: lawyer.profile_id,
@@ -164,7 +129,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
   // GET /api/v1/lawyers/:id/reviews - Published reviews, open like the nearby search
   fastify.get('/:id/reviews', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    if (!UUID_PATTERN.test(id)) {
       return reply.status(400).send({ success: false, error: 'معرف المحامي غير صالح' });
     }
 
@@ -184,7 +149,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
         rating: row.rating,
         comment: row.comment,
         // This route is open, so only the short form of the name leaves the server
-        authorName: shortenName(row.full_name),
+        authorName: shortName(row.full_name, 'عميل'),
         authorPhoto: row.profile_photo_path || null,
         publishedAt: row.published_at,
       })),
@@ -192,18 +157,20 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
   });
 
   // POST /api/v1/lawyers/me/reviews/:reviewId/report - Lawyer reports a comment to the admin
-  fastify.post('/me/reviews/:reviewId/report', { preHandler: [requireLawyerAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const { userId } = request.user as AuthenticatedLawyer;
+  fastify.post('/me/reviews/:reviewId/report', { onRequest: requireLawyerAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
     const { reviewId } = request.params as { reviewId: string };
     const body = (request.body || {}) as { reason?: string };
 
     const res = await query(
       `UPDATE reviews SET reported_at = NOW(), report_reason = $1
-       WHERE id::text = $2 AND lawyer_id = $3 RETURNING id`,
+       WHERE id::text = $2 AND lawyer_id = $3 AND report_reason IS NULL RETURNING id`,
       [sanitizeText(body.reason || 'بلاغ من المحامي', 500), reviewId, userId]
     );
 
     if (res.rows.length === 0) {
+      const exists = await query('SELECT 1 FROM reviews WHERE id::text = $1 AND lawyer_id = $2', [reviewId, userId]);
+      if (exists.rows.length > 0) throw new HttpError(409, 'بلغت عن التعليق ده قبل كده');
       return reply.status(404).send({ success: false, error: 'التقييم غير موجود' });
     }
 
@@ -211,8 +178,8 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
   });
 
   // 2. GET /api/v1/lawyers/me (Protected: Lawyer Profile)
-  fastify.get('/me', { preHandler: [requireLawyerAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const { userId } = request.user as AuthenticatedLawyer;
+  fastify.get('/me', { onRequest: requireLawyerAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
 
     const lawyerRes = await query(
       `SELECT lp.id as profile_id, lp.full_name, lp.profile_photo_path, lp.approval_status,
@@ -252,8 +219,8 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
   });
 
   // POST /api/v1/lawyers/me/urgent-terms - The lawyer joins the urgent service
-  fastify.post('/me/urgent-terms', { preHandler: [requireLawyerAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const { userId } = request.user as AuthenticatedLawyer;
+  fastify.post('/me/urgent-terms', { onRequest: requireLawyerAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
 
     // The admin checks the photo and the syndicate card before approving
     const filesRes = await query(
@@ -283,8 +250,8 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
   });
 
   // 3. POST /api/v1/lawyers/me/availability (Protected: Toggle online/offline status)
-  fastify.post('/me/availability', { preHandler: [requireLawyerAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const { userId } = request.user as AuthenticatedLawyer;
+  fastify.post('/me/availability', { onRequest: requireLawyerAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
     const body = (request.body || {}) as { isAvailable?: boolean; is_available?: boolean };
 
     const rawVal = body.isAvailable !== undefined ? body.isAvailable : body.is_available;
@@ -322,8 +289,8 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
   });
 
   // 4. POST /api/v1/lawyers/me/location (Protected: Update live GPS coordinates)
-  fastify.post('/me/location', { preHandler: [requireLawyerAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const { userId } = request.user as AuthenticatedLawyer;
+  fastify.post('/me/location', { onRequest: requireLawyerAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
     const body = (request.body || {}) as any;
 
     const lat = Number(body.latitude ?? body.lat);
@@ -362,47 +329,9 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // 5. POST /api/v1/lawyers/me/profile-photo (Protected: Avatars upload)
-  fastify.post('/me/profile-photo', { preHandler: [requireLawyerAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const { userId } = request.user as AuthenticatedLawyer;
-
-    const data = await request.file();
-    if (!data) {
-      return reply.status(400).send({ success: false, error: 'لم يتم إرسال ملف الصورة' });
-    }
-
-    const allowedMime = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedMime.includes(data.mimetype)) {
-      return reply.status(400).send({ success: false, error: 'نوع الملف غير مدعوم، يرجى رفع صورة JPG أو PNG أو WEBP' });
-    }
-
-    const ext = data.mimetype === 'image/png' ? '.png' : data.mimetype === 'image/webp' ? '.webp' : '.jpg';
-    const filename = `avatar_${crypto.randomUUID()}${ext}`;
-    const filePath = path.join(avatarsDir, filename);
-
-    await pipeline(data.file, fs.createWriteStream(filePath));
-
-    const relativeWebPath = `/uploads/avatars/${filename}`;
-
-    await query(
-      `UPDATE lawyer_profiles
-       SET profile_photo_path = $1, updated_at = NOW()
-       WHERE user_id = $2`,
-      [relativeWebPath, userId]
-    );
-
-    return reply.send({
-      success: true,
-      message: 'تم رفع الصورة الشخصية بنجاح',
-      data: {
-        profilePhotoPath: relativeWebPath
-      }
-    });
-  });
-
   // 6. POST /api/v1/lawyers/me/documents (Protected: Syndicate card upload)
-  fastify.post('/me/documents', { preHandler: [requireLawyerAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const { userId } = request.user as AuthenticatedLawyer;
+  fastify.post('/me/documents', { onRequest: requireLawyerAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
 
     const lawyerRes = await query('SELECT id FROM lawyer_profiles WHERE user_id = $1', [userId]);
     if (lawyerRes.rows.length === 0) {
@@ -422,9 +351,9 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
     }
 
     const secretStorageName = `doc_${crypto.randomBytes(24).toString('hex')}${type.ext}`;
-    fs.mkdirSync(config.privateStoragePath, { recursive: true });
+    await fs.promises.mkdir(config.privateStoragePath, { recursive: true });
     const secretStoragePath = path.join(config.privateStoragePath, secretStorageName);
-    fs.writeFileSync(secretStoragePath, buffer);
+    await fs.promises.writeFile(secretStoragePath, buffer);
 
     const docRes = await withTransaction(async (client) => {
       await client.query(
@@ -451,15 +380,12 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
   });
 
   // 7. GET /api/v1/lawyers/documents/:id (Secure private document download)
-  fastify.get('/documents/:id', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      await request.jwtVerify();
-    } catch {
-      return reply.status(401).send({ success: false, error: 'غير مصرح: يرجى تسجيل الدخول' });
-    }
-
-    const { userId, role } = request.user as AuthenticatedLawyer;
+  fastify.get('/documents/:id', { onRequest: requireAuth() }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId, role } = request.user as AuthenticatedUser;
     const { id } = request.params as { id: string };
+    if (!UUID_PATTERN.test(id)) {
+      return reply.status(400).send({ success: false, error: 'معرف المستند غير صالح' });
+    }
 
     const docRes = await query(
       `SELECT d.id, d.storage_path, d.mime_type, d.original_filename, lp.user_id

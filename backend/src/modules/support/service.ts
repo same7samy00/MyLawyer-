@@ -1,14 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import pg from 'pg';
 import { FastifyRequest } from 'fastify';
 import { config } from '../../config/index.js';
+import { Db } from '../../database/index.js';
 import { sanitizeText } from '../../utils/security.js';
 import { detectFileType } from '../../utils/files.js';
+import { HttpError, UUID_PATTERN } from '../../utils/http.js';
 import { logPayoutEvent } from '../lifecycle/settlement.js';
-
-type Db = pg.Pool | pg.PoolClient;
 
 export const TICKET_CATEGORIES = ['ORDER', 'MONEY', 'ACCOUNT', 'OTHER'] as const;
 export type TicketCategory = typeof TICKET_CATEGORIES[number];
@@ -17,12 +16,6 @@ export const ORDER_TICKET_WINDOW_HOURS = 24;
 export const MAX_IMAGES = 5;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ATTACHMENTS_DIR = () => path.join(config.privateStoragePath, 'support');
-
-export class TicketError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-  }
-}
 
 /// A problem within 24 hours of the task end freezes the fees; after that they already belong to the lawyer
 export async function freezePayout(db: Db, order: any, reason: string): Promise<boolean> {
@@ -57,9 +50,9 @@ export async function readTicketForm(request: FastifyRequest): Promise<TicketFor
   for await (const part of request.parts({ limits: { files: MAX_IMAGES, fileSize: MAX_IMAGE_BYTES } })) {
     if (part.type === 'file') {
       const buffer = await part.toBuffer();
-      if (part.file.truncated) throw new TicketError(400, 'الصورة أكبر من 5 ميجا');
+      if (part.file.truncated) throw new HttpError(400, 'الصورة أكبر من 5 ميجا');
       const type = detectFileType(buffer);
-      if (!type?.mime.startsWith('image/')) throw new TicketError(400, 'الملفات لازم تكون صور');
+      if (!type?.mime.startsWith('image/')) throw new HttpError(400, 'الملفات لازم تكون صور');
       images.push({ buffer, ext: type.ext, mime: type.mime });
     } else {
       fields[part.fieldname] = String(part.value ?? '');
@@ -71,7 +64,7 @@ export async function readTicketForm(request: FastifyRequest): Promise<TicketFor
 /// Saves one message with its images
 export async function addMessage(db: Db, ticketId: string, author: 'USER' | 'ADMIN' | 'NOTE', authorId: string, body: string, images: TicketForm['images']) {
   const text = sanitizeText(body, 4000).trim();
-  if (!text && images.length === 0) throw new TicketError(400, 'اكتب رسالتك أو ضيف صورة');
+  if (!text && images.length === 0) throw new HttpError(400, 'اكتب رسالتك أو ضيف صورة');
 
   const res = await db.query(
     'INSERT INTO ticket_messages (ticket_id, author, author_id, body) VALUES ($1, $2, $3, $4) RETURNING id',
@@ -79,10 +72,10 @@ export async function addMessage(db: Db, ticketId: string, author: 'USER' | 'ADM
   );
   const messageId = res.rows[0].id;
 
-  if (images.length > 0) fs.mkdirSync(ATTACHMENTS_DIR(), { recursive: true });
+  if (images.length > 0) await fs.promises.mkdir(ATTACHMENTS_DIR(), { recursive: true });
   for (const image of images) {
     const fileName = `${crypto.randomUUID()}${image.ext}`;
-    fs.writeFileSync(path.join(ATTACHMENTS_DIR(), fileName), image.buffer);
+    await fs.promises.writeFile(path.join(ATTACHMENTS_DIR(), fileName), image.buffer);
     await db.query('INSERT INTO ticket_attachments (message_id, file_name, mime) VALUES ($1, $2, $3)', [messageId, fileName, image.mime]);
   }
   await db.query('UPDATE support_tickets SET updated_at = NOW() WHERE id = $1', [ticketId]);
@@ -110,7 +103,7 @@ export async function ticketMessages(db: Db, ticketId: string, includeNotes: boo
 
 /// Finds an attachment file the viewer is allowed to see
 export async function attachmentFile(db: Db, attachmentId: string, viewer: { userId: string; role: string }) {
-  if (!/^[0-9a-f-]{36}$/i.test(attachmentId)) return null;
+  if (!UUID_PATTERN.test(attachmentId)) return null;
   const res = await db.query(
     `SELECT a.file_name, a.mime, t.user_id FROM ticket_attachments a
      JOIN ticket_messages m ON m.id = a.message_id
@@ -123,6 +116,3 @@ export async function attachmentFile(db: Db, attachmentId: string, viewer: { use
   const filePath = path.join(ATTACHMENTS_DIR(), path.basename(row.file_name));
   return fs.existsSync(filePath) ? { filePath, mime: row.mime as string } : null;
 }
-
-export const STATUS_LABELS: Record<string, string> = { UNDER_REVIEW: 'تحت المراجعة', OPEN: 'مفتوحة', CLOSED: 'مقفولة' };
-export const CATEGORY_LABELS: Record<string, string> = { ORDER: 'مشكلة في طلب', MONEY: 'الفلوس والمحفظة', ACCOUNT: 'الحساب', OTHER: 'حاجة تانية' };

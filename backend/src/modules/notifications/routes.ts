@@ -1,19 +1,9 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { query } from '../../database/index.js';
-
-interface AuthenticatedUser {
-  userId: string;
-  role: 'client' | 'lawyer' | 'admin';
-}
+import { AuthenticatedUser, requireAuth } from '../../utils/http.js';
 
 export async function notificationRoutes(fastify: FastifyInstance) {
-  fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      await request.jwtVerify();
-    } catch {
-      return reply.status(401).send({ success: false, error: 'غير مصرح: يرجى تسجيل الدخول' });
-    }
-  });
+  fastify.addHook('onRequest', requireAuth());
 
   // POST /api/v1/notifications/device-token - Phone that receives push notifications
   fastify.post('/device-token', async (request: FastifyRequest, reply: FastifyReply) => {

@@ -1,7 +1,6 @@
 import pg from 'pg';
+import { Db } from '../../database/index.js';
 import { addClientCredit, lawyerShare, notify } from './service.js';
-
-type Db = pg.Pool | pg.PoolClient;
 
 export const CANCEL_MINUTES = 5;
 const WARNING_LIMIT = 3;

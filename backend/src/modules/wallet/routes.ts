@@ -1,24 +1,11 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import pg from 'pg';
-import { dbPool, query, withTransaction } from '../../database/index.js';
-import { isValidEgyptianPhone } from '../../utils/security.js';
+import { Db, dbPool, query, withTransaction } from '../../database/index.js';
+import { AuthenticatedUser, HttpError, requireAuth } from '../../utils/http.js';
+import { isValidEgyptianPhone, shortName } from '../../utils/security.js';
 import { notify } from '../lifecycle/service.js';
-
-type Db = pg.Pool | pg.PoolClient;
 
 export const MIN_TRANSFER = 100;
 export const DAILY_TRANSFER_LIMIT = 10000;
-
-interface AuthenticatedUser {
-  userId: string;
-  role: string;
-}
-
-class TransferError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-  }
-}
 
 /// What the account can spend now: the client's credits, or the lawyer's available earnings
 export async function spendableBalance(db: Db, userId: string, role: string): Promise<number> {
@@ -40,14 +27,8 @@ async function addToLedger(db: Db, user: { id: string; role: string }, amount: n
   }
 }
 
-/// Only the first name and the first letter of the next one, enough to confirm the person
-function shortName(fullName: string): string {
-  const parts = String(fullName || '').trim().split(/\s+/);
-  return parts.length > 1 ? `${parts[0]} ${parts[1].charAt(0)}.` : parts[0] || '';
-}
-
 async function findRecipient(db: Db, phone: string, senderId: string) {
-  if (!isValidEgyptianPhone(phone)) throw new TransferError(400, 'اكتب رقم موبايل صحيح');
+  if (!isValidEgyptianPhone(phone)) throw new HttpError(400, 'اكتب رقم موبايل صحيح');
   const res = await db.query(
     `SELECT u.id, u.role, u.status, COALESCE(lp.full_name, u.full_name) AS full_name
      FROM users u LEFT JOIN lawyer_profiles lp ON lp.user_id = u.id
@@ -55,28 +36,15 @@ async function findRecipient(db: Db, phone: string, senderId: string) {
     [phone.trim()]
   );
   const recipient = res.rows[0];
-  if (!recipient || recipient.status !== 'active') throw new TransferError(404, 'مفيش حساب مفعّل بالرقم ده');
-  if (recipient.id === senderId) throw new TransferError(400, 'مينفعش تحوّل لنفسك');
+  if (!recipient || recipient.status !== 'active') throw new HttpError(404, 'مفيش حساب مفعّل بالرقم ده');
+  if (recipient.id === senderId) throw new HttpError(400, 'مينفعش تحوّل لنفسك');
   return recipient;
 }
 
 export async function walletRoutes(fastify: FastifyInstance) {
-  fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      await request.jwtVerify();
-    } catch {
-      return reply.status(401).send({ success: false, error: 'غير مصرح: يرجى تسجيل الدخول' });
-    }
-  });
+  fastify.addHook('onRequest', requireAuth());
 
-  const handle = async (reply: FastifyReply, work: () => Promise<unknown>) => {
-    try {
-      return reply.send({ success: true, data: await work() });
-    } catch (err) {
-      if (err instanceof TransferError) return reply.status(err.status).send({ success: false, error: err.message });
-      throw err;
-    }
-  };
+  const handle = async (reply: FastifyReply, work: () => Promise<unknown>) => reply.send({ success: true, data: await work() });
 
   // GET /api/v1/wallet/recipient?phone= - Confirm who receives before sending
   fastify.get('/recipient', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -113,9 +81,9 @@ export async function walletRoutes(fastify: FastifyInstance) {
 
     return handle(reply, () => withTransaction(async (db) => {
       if (!Number.isFinite(amount) || Math.round(amount * 100) !== amount * 100) {
-        throw new TransferError(400, 'اكتب المبلغ صح');
+        throw new HttpError(400, 'اكتب المبلغ صح');
       }
-      if (amount < MIN_TRANSFER) throw new TransferError(400, `أقل مبلغ للتحويل ${MIN_TRANSFER} ج.م`);
+      if (amount < MIN_TRANSFER) throw new HttpError(400, `أقل مبلغ للتحويل ${MIN_TRANSFER} ج.م`);
 
       const recipient = await findRecipient(db, String(body.phone ?? ''), userId);
 
@@ -129,10 +97,10 @@ export async function walletRoutes(fastify: FastifyInstance) {
       );
       const remaining = DAILY_TRANSFER_LIMIT - Number(sent.rows[0].total);
       if (amount > remaining) {
-        throw new TransferError(400, `أقصى تحويل ${DAILY_TRANSFER_LIMIT} ج.م في اليوم، والمتاح لك دلوقتي ${Math.max(0, remaining)} ج.م`);
+        throw new HttpError(400, `أقصى تحويل ${DAILY_TRANSFER_LIMIT} ج.م في اليوم، والمتاح لك دلوقتي ${Math.max(0, remaining)} ج.م`);
       }
 
-      if (amount > await spendableBalance(db, userId, role)) throw new TransferError(400, 'رصيدك مش كفاية');
+      if (amount > await spendableBalance(db, userId, role)) throw new HttpError(400, 'رصيدك مش كفاية');
 
       const transfer = await db.query(
         'INSERT INTO wallet_transfers (sender_id, recipient_id, amount) VALUES ($1, $2, $3) RETURNING id, reference, created_at',

@@ -33,6 +33,19 @@ const FONTS: Record<string, string> = {
   semibold: 'SemiBold',
 };
 const YEAR_CACHE = 'public, max-age=31536000, immutable';
+// This page moves money, so it runs only its own files and can't be placed inside another site.
+// Inline style attributes stay allowed, the page uses them for layout.
+const PAGE_POLICY = [
+  "default-src 'none'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self'",
+  "connect-src 'self'",
+  "form-action 'self'",
+  "base-uri 'none'",
+  "frame-ancestors 'none'",
+].join('; ');
 
 /// Serves the control page. Links have no file extension because Nginx answers those itself,
 /// and they change with every release, so browsers can keep the files for a year.
@@ -50,7 +63,11 @@ export function registerAdminPanel(api: FastifyInstance) {
   const fonts = new Map(Object.entries(FONTS).map(([weight, file]) => [weight, read(`fonts/IBMPlexSansArabic-${file}.woff2`)]));
 
   api.get('/admin-panel', async (_request, reply) => {
-    return reply.header('Cache-Control', 'no-cache').type('text/html; charset=utf-8').send(page);
+    return reply
+      .header('Cache-Control', 'no-cache')
+      .header('Content-Security-Policy', PAGE_POLICY)
+      .type('text/html; charset=utf-8')
+      .send(page);
   });
   api.get('/admin-panel/styles', async (_request, reply) => {
     return reply.header('Cache-Control', YEAR_CACHE).type('text/css; charset=utf-8').send(styles);

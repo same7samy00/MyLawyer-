@@ -2,6 +2,7 @@ import fs from 'fs';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { sanitizeText } from '../../utils/security.js';
+import { AuthenticatedUser, HttpError, requireAuth } from '../../utils/http.js';
 import { notify } from '../lifecycle/service.js';
 import {
   addMessage,
@@ -12,14 +13,8 @@ import {
   readTicketForm,
   TICKET_CATEGORIES,
   TicketCategory,
-  TicketError,
   ticketMessages,
 } from './service.js';
-
-interface AuthenticatedUser {
-  userId: string;
-  role: string;
-}
 
 const listItem = (row: any) => ({
   id: row.id,
@@ -37,22 +32,11 @@ const listItem = (row: any) => ({
 
 /// Technical support for clients and lawyers: open a ticket, read the replies, and answer until an admin closes it
 export async function supportRoutes(fastify: FastifyInstance) {
-  fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      await request.jwtVerify();
-    } catch {
-      return reply.status(401).send({ success: false, error: 'غير مصرح: يرجى تسجيل الدخول' });
-    }
-  });
+  fastify.addHook('onRequest', requireAuth());
 
   const handle = async (reply: FastifyReply, work: () => Promise<{ status?: number; data: unknown; message?: string }>) => {
-    try {
-      const result = await work();
-      return reply.status(result.status ?? 200).send({ success: true, data: result.data, message: result.message });
-    } catch (err) {
-      if (err instanceof TicketError) return reply.status(err.status).send({ success: false, error: err.message });
-      throw err;
-    }
+    const result = await work();
+    return reply.status(result.status ?? 200).send({ success: true, data: result.data, message: result.message });
   };
 
   // GET /api/v1/support/tickets - My tickets, the latest first
@@ -70,25 +54,25 @@ export async function supportRoutes(fastify: FastifyInstance) {
   fastify.post('/tickets', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId, role } = request.user as AuthenticatedUser;
     return handle(reply, async () => {
-      if (role !== 'client' && role !== 'lawyer') throw new TicketError(403, 'الدعم الفني للموكلين والمحامين');
+      if (role !== 'client' && role !== 'lawyer') throw new HttpError(403, 'الدعم الفني للموكلين والمحامين');
       const { fields, images } = await readTicketForm(request);
 
       const category = fields.category as TicketCategory;
-      if (!TICKET_CATEGORIES.includes(category)) throw new TicketError(400, 'اختار نوع المشكلة');
+      if (!TICKET_CATEGORIES.includes(category)) throw new HttpError(400, 'اختار نوع المشكلة');
       const title = sanitizeText(fields.title ?? '', 120);
-      if (title.length < 3) throw new TicketError(400, 'اكتب عنوان للمشكلة');
-      if (sanitizeText(fields.body ?? '', 4000).length < 10) throw new TicketError(400, 'اكتب تفاصيل المشكلة في 10 أحرف على الأقل');
+      if (title.length < 3) throw new HttpError(400, 'اكتب عنوان للمشكلة');
+      if (sanitizeText(fields.body ?? '', 4000).length < 10) throw new HttpError(400, 'اكتب تفاصيل المشكلة في 10 أحرف على الأقل');
 
       return withTransaction(async (db) => {
         // One sender at a time, so the open tickets count stays right
         await db.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
         const waiting = await db.query(`SELECT reference FROM support_tickets WHERE user_id = $1 AND status = 'UNDER_REVIEW' LIMIT 1`, [userId]);
         if (waiting.rows.length > 0) {
-          throw new TicketError(409, `تذكرتك ${waiting.rows[0].reference} لسه تحت المراجعة، استنى رد الإدارة الأول`);
+          throw new HttpError(409, `تذكرتك ${waiting.rows[0].reference} لسه تحت المراجعة، استنى رد الإدارة الأول`);
         }
         const open = await db.query(`SELECT COUNT(*)::int AS count FROM support_tickets WHERE user_id = $1 AND status <> 'CLOSED'`, [userId]);
         if (open.rows[0].count >= MAX_OPEN_TICKETS) {
-          throw new TicketError(409, `عندك ${MAX_OPEN_TICKETS} تذاكر مفتوحة، استنى لما واحدة منهم تتقفل`);
+          throw new HttpError(409, `عندك ${MAX_OPEN_TICKETS} تذاكر مفتوحة، استنى لما واحدة منهم تتقفل`);
         }
 
         let order: any = null;
@@ -98,14 +82,14 @@ export async function supportRoutes(fastify: FastifyInstance) {
             [fields.orderId, userId]
           );
           order = orderRes.rows[0];
-          if (!order) throw new TicketError(404, 'الطلب غير موجود');
+          if (!order) throw new HttpError(404, 'الطلب غير موجود');
           if (order.completed_at && Date.now() - new Date(order.completed_at).getTime() >= ORDER_TICKET_WINDOW_HOURS * 3600000) {
-            throw new TicketError(409, `مينفعش تفتح تذكرة على طلب بعد ${ORDER_TICKET_WINDOW_HOURS} ساعة من إنهائه`);
+            throw new HttpError(409, `مينفعش تفتح تذكرة على طلب بعد ${ORDER_TICKET_WINDOW_HOURS} ساعة من إنهائه`);
           }
           const sameOrder = await db.query(`SELECT 1 FROM support_tickets WHERE order_id = $1 AND user_id = $2 AND status <> 'CLOSED'`, [order.id, userId]);
-          if (sameOrder.rows.length > 0) throw new TicketError(409, 'عندك تذكرة مفتوحة على الطلب ده، كمل فيها');
+          if (sameOrder.rows.length > 0) throw new HttpError(409, 'عندك تذكرة مفتوحة على الطلب ده، كمل فيها');
         }
-        if (category === 'ORDER' && !order) throw new TicketError(400, 'اختار الطلب اللي فيه المشكلة');
+        if (category === 'ORDER' && !order) throw new HttpError(400, 'اختار الطلب اللي فيه المشكلة');
 
         const ticket = await db.query(
           'INSERT INTO support_tickets (user_id, category, title, order_id) VALUES ($1, $2, $3, $4) RETURNING *',
@@ -160,13 +144,13 @@ export async function supportRoutes(fastify: FastifyInstance) {
           [id, userId]
         );
         const ticket = res.rows[0];
-        if (!ticket) throw new TicketError(404, 'التذكرة غير موجودة');
-        if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة دي اتقفلت، لو عندك مشكلة جديدة افتح تذكرة جديدة');
+        if (!ticket) throw new HttpError(404, 'التذكرة غير موجودة');
+        if (ticket.status === 'CLOSED') throw new HttpError(409, 'التذكرة دي اتقفلت، لو عندك مشكلة جديدة افتح تذكرة جديدة');
         const last = await db.query(
           `SELECT author FROM ticket_messages WHERE ticket_id = $1 AND author <> 'NOTE' ORDER BY created_at DESC LIMIT 1`,
           [ticket.id]
         );
-        if (last.rows[0]?.author !== 'ADMIN') throw new TicketError(409, 'استنى رد الإدارة الأول، وبعدها تقدر ترد');
+        if (last.rows[0]?.author !== 'ADMIN') throw new HttpError(409, 'استنى رد الإدارة الأول، وبعدها تقدر ترد');
         await addMessage(db, ticket.id, 'USER', userId, fields.body ?? '', images);
         return { status: 201, data: { messages: await ticketMessages(db, ticket.id, false) }, message: 'تم إرسال ردك' };
       });

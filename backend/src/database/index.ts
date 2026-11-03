@@ -3,6 +3,8 @@ import { config } from '../config/index.js';
 
 const { Pool } = pg;
 
+export type Db = pg.Pool | pg.PoolClient;
+
 export const dbPool = new Pool({
   connectionString: config.databaseUrl,
   max: 20,

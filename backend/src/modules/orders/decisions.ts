@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { sanitizeText } from '../../utils/security.js';
+import { HttpError } from '../../utils/http.js';
 import { addClientCredit, lawyerHasOpenOrder, notify, ORDER_DEADLINE_HOURS, PAYMENT_MINUTES } from '../lifecycle/service.js';
 import { AuthenticatedUser } from './shared.js';
 
@@ -46,15 +47,16 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
     const hasFreshLocation = lat !== null && lon !== null;
 
     await withTransaction(async (client) => {
-      await client.query(
+      const accepted = await client.query(
         `UPDATE service_orders
          SET status = 'ACCEPTED', accepted_at = NOW(), updated_at = NOW(),
              payment_deadline = NOW() + make_interval(mins => $2),
              lawyer_latitude = COALESCE($3, lawyer_latitude),
              lawyer_longitude = COALESCE($4, lawyer_longitude)
-         WHERE id = $1`,
+         WHERE id = $1 AND status = 'PENDING'`,
         [order.id, PAYMENT_MINUTES, lat, lon]
       );
+      if (accepted.rowCount === 0) throw new HttpError(409, 'الطلب اتغيرت حالته، حدّث الصفحة');
 
       await client.query('UPDATE lawyer_profiles SET missed_orders = 0 WHERE user_id = $1', [userId]);
 
@@ -87,7 +89,7 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
   fastify.post('/:id/reject', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId, role } = request.user as AuthenticatedUser;
     const { id } = request.params as { id: string };
-    const body = request.body as { reason?: string };
+    const body = (request.body || {}) as { reason?: string };
 
     if (role !== 'lawyer' && role !== 'admin') {
       return reply.status(403).send({ success: false, error: 'الاعتذار عن الطلبات مخصص للمحامي المعني فقط' });
@@ -113,12 +115,13 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
     const cleanReason = body.reason ? sanitizeText(body.reason, 500) : 'المحامي غير متاح حالياً للمهمة';
 
     await withTransaction(async (client) => {
-      await client.query(
+      const rejected = await client.query(
         `UPDATE service_orders
          SET status = 'REJECTED', rejection_reason = $1, updated_at = NOW()
-         WHERE id = $2`,
+         WHERE id = $2 AND status = 'PENDING'`,
         [cleanReason, order.id]
       );
+      if (rejected.rowCount === 0) throw new HttpError(409, 'الطلب اتغيرت حالته، حدّث الصفحة');
 
       await client.query(
         `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)

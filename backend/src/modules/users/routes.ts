@@ -1,22 +1,17 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import crypto from 'crypto';
-import fs from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 import { config } from '../../config/index.js';
-import { query } from '../../database/index.js';
+import { query, withTransaction } from '../../database/index.js';
 import { hashPassword, verifyPassword, sanitizeText } from '../../utils/security.js';
 import { z } from 'zod';
 import { detectFileType } from '../../utils/files.js';
+import { requireAuth } from '../../utils/http.js';
 
 export async function userRoutes(fastify: FastifyInstance) {
   // Hook to authenticate all routes in this plugin
-  fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      await request.jwtVerify();
-    } catch {
-      return reply.status(401).send({ success: false, error: 'غير مصرح: يرجى تسجيل الدخول' });
-    }
-  });
+  fastify.addHook('onRequest', requireAuth());
 
   // GET /api/v1/users/me
   fastify.get('/me', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -76,8 +71,8 @@ export async function userRoutes(fastify: FastifyInstance) {
 
     const filename = `avatar_${crypto.randomUUID()}${ext}`;
     const avatarsDir = path.join(config.publicStoragePath, 'avatars');
-    fs.mkdirSync(avatarsDir, { recursive: true });
-    fs.writeFileSync(path.join(avatarsDir, filename), buffer);
+    await fs.mkdir(avatarsDir, { recursive: true });
+    await fs.writeFile(path.join(avatarsDir, filename), buffer);
 
     const webPath = `/uploads/avatars/${filename}`;
     await query(
@@ -92,7 +87,7 @@ export async function userRoutes(fastify: FastifyInstance) {
   // PATCH /api/v1/users/me
   fastify.patch('/me', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId, role } = request.user as { userId: string; role: string };
-    const body = request.body as { fullName?: string };
+    const body = (request.body || {}) as { fullName?: string };
 
     if (role === 'lawyer' && body.fullName) {
       const cleanName = body.fullName ? sanitizeText(body.fullName, 255) : undefined;
@@ -138,7 +133,11 @@ export async function userRoutes(fastify: FastifyInstance) {
     }
 
     const newHash = await hashPassword(newPassword);
-    await query('UPDATE user_credentials SET password_hash = $1, password_updated_at = NOW() WHERE user_id = $2', [newHash, userId]);
+    await withTransaction(async (client) => {
+      await client.query('UPDATE user_credentials SET password_hash = $1, password_updated_at = NOW() WHERE user_id = $2', [newHash, userId]);
+      // Whoever knew the old password loses their session too
+      await client.query('UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL', [userId]);
+    });
 
     return reply.send({ success: true, message: 'تم تغيير كلمة المرور بنجاح' });
   });

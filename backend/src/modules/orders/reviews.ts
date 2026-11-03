@@ -67,9 +67,9 @@ export async function registerOrderReviews(fastify: FastifyInstance) {
       `UPDATE reviews r SET rating = $1, comment = $2, edited = TRUE
        FROM service_orders o
        WHERE r.order_id = o.id AND (o.id::text = $3 OR o.order_number = $3) AND r.client_id = $4
-         AND r.edited = FALSE
+         AND r.edited = FALSE AND o.completed_at > NOW() - make_interval(days => $5)
        RETURNING r.id, r.lawyer_id`,
-      [rating, body.comment ? sanitizeText(body.comment, 1000) : null, id, userId]
+      [rating, body.comment ? sanitizeText(body.comment, 1000) : null, id, userId, REVIEW_WINDOW_DAYS]
     );
 
     if (res.rows.length === 0) {

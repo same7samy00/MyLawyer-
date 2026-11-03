@@ -3,21 +3,13 @@ import { dbPool, query, withTransaction } from '../../database/index.js';
 import { notify } from '../lifecycle/service.js';
 import { adjustBalance } from '../lifecycle/settlement.js';
 import { sanitizeText } from '../../utils/security.js';
-import { addMessage, readTicketForm, TicketError, ticketMessages } from './service.js';
-
-const UUID_PATTERN = /^[0-9a-f-]{36}$/i;
+import { HttpError, UUID_PATTERN } from '../../utils/http.js';
+import { addMessage, readTicketForm, ticketMessages } from './service.js';
 
 /// The control page side of support: lists, replies, internal notes, and closing
 export async function registerAdminSupport(fastify: FastifyInstance) {
-  const handle = async (reply: FastifyReply, work: () => Promise<{ data?: unknown; message?: string }>) => {
-    try {
-      const result = await work();
-      return reply.send({ success: true, ...result });
-    } catch (err) {
-      if (err instanceof TicketError) return reply.status(err.status).send({ success: false, error: err.message });
-      throw err;
-    }
-  };
+  const handle = async (reply: FastifyReply, work: () => Promise<{ data?: unknown; message?: string }>) =>
+    reply.send({ success: true, ...await work() });
 
   // GET /api/v1/admin/support?role=client|lawyer - Every ticket, or one side only, waiting ones first
   fastify.get('/support', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -87,8 +79,8 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
       const { fields, images } = await readTicketForm(request);
       return withTransaction(async (db) => {
         const ticket = (await db.query('SELECT * FROM support_tickets WHERE id::text = $1 FOR UPDATE', [id])).rows[0];
-        if (!ticket) throw new TicketError(404, 'التذكرة غير موجودة');
-        if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة مغلقة');
+        if (!ticket) throw new HttpError(404, 'التذكرة غير موجودة');
+        if (ticket.status === 'CLOSED') throw new HttpError(409, 'التذكرة مغلقة');
         await addMessage(db, ticket.id, 'ADMIN', adminId, fields.body ?? '', images);
         await db.query(`UPDATE support_tickets SET status = 'OPEN' WHERE id = $1`, [ticket.id]);
         await notify(db, ticket.user_id, 'رد من الدعم الفني', `على تذكرة ${ticket.reference}`, { ticketId: ticket.id });
@@ -104,7 +96,7 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
     const body = (request.body || {}) as { body?: string };
     return handle(reply, async () => {
       const ticket = (await query('SELECT id FROM support_tickets WHERE id::text = $1', [id])).rows[0];
-      if (!ticket) throw new TicketError(404, 'التذكرة غير موجودة');
+      if (!ticket) throw new HttpError(404, 'التذكرة غير موجودة');
       await addMessage(dbPool, ticket.id, 'NOTE', adminId, body.body ?? '', []);
       return { message: 'تم حفظ الملاحظة' };
     });
@@ -118,15 +110,15 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
     const amount = Math.round(Number(body.amount) * 100) / 100;
     const reason = sanitizeText(body.reason || '', 500).trim();
     return handle(reply, () => withTransaction(async (db) => {
-      if (body.from !== 'lawyer' && body.from !== 'client') throw new TicketError(400, 'اتجاه التحويل غير صالح');
-      if (!Number.isFinite(amount) || amount <= 0 || amount > 100000) throw new TicketError(400, 'أدخل مبلغًا صحيحًا');
-      if (reason.length < 5) throw new TicketError(400, 'اكتب سبب الحركة');
+      if (body.from !== 'lawyer' && body.from !== 'client') throw new HttpError(400, 'اتجاه التحويل غير صالح');
+      if (!Number.isFinite(amount) || amount <= 0 || amount > 100000) throw new HttpError(400, 'أدخل مبلغًا صحيحًا');
+      if (reason.length < 5) throw new HttpError(400, 'اكتب سبب الحركة');
 
       const ticket = (await db.query('SELECT * FROM support_tickets WHERE id::text = $1 FOR UPDATE', [id])).rows[0];
-      if (!ticket) throw new TicketError(404, 'التذكرة غير موجودة');
-      if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة مغلقة');
+      if (!ticket) throw new HttpError(404, 'التذكرة غير موجودة');
+      if (ticket.status === 'CLOSED') throw new HttpError(409, 'التذكرة مغلقة');
       const order = ticket.order_id ? (await db.query('SELECT id, client_id, lawyer_id FROM service_orders WHERE id = $1', [ticket.order_id])).rows[0] : null;
-      if (!order) throw new TicketError(400, 'التحويل متاح للتذاكر المرتبطة بطلب فقط');
+      if (!order) throw new HttpError(400, 'التحويل متاح للتذاكر المرتبطة بطلب فقط');
 
       const lawyer = { id: order.lawyer_id, role: 'lawyer' };
       const client = { id: order.client_id, role: 'client' };
@@ -144,8 +136,8 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
     const body = (request.body || {}) as { body?: string };
     return handle(reply, () => withTransaction(async (db) => {
       const ticket = (await db.query('SELECT * FROM support_tickets WHERE id::text = $1 FOR UPDATE', [id])).rows[0];
-      if (!ticket) throw new TicketError(404, 'التذكرة غير موجودة');
-      if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة مغلقة بالفعل');
+      if (!ticket) throw new HttpError(404, 'التذكرة غير موجودة');
+      if (ticket.status === 'CLOSED') throw new HttpError(409, 'التذكرة مغلقة بالفعل');
 
       if (body.body && body.body.trim()) await addMessage(db, ticket.id, 'ADMIN', adminId, body.body, []);
       await db.query(`UPDATE support_tickets SET status = 'CLOSED', closed_at = NOW(), closed_by = $2, updated_at = NOW() WHERE id = $1`, [ticket.id, adminId]);

@@ -5,21 +5,12 @@ import { registerAdminSupport } from '../support/admin.js';
 import { registerAdminMoney } from './money.js';
 import { logAdminAction, registerAdminActions } from './actions.js';
 import { sanitizeText } from '../../utils/security.js';
+import { requireAuth } from '../../utils/http.js';
 import { notify, refreshLawyerRating } from '../lifecycle/service.js';
 
 export async function adminRoutes(fastify: FastifyInstance) {
   // Strict admin authorization hook
-  fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      await request.jwtVerify();
-      const { role } = request.user as { role: string };
-      if (role !== 'admin') {
-        return reply.status(403).send({ success: false, error: 'غير مصرح: هذه العمليات تتطلب صلاحيات إدارة النظام' });
-      }
-    } catch {
-      return reply.status(401).send({ success: false, error: 'غير مصرح: يرجى تسجيل الدخول كمسؤول' });
-    }
-  });
+  fastify.addHook('onRequest', requireAuth(['admin'], 'غير مصرح: هذه العمليات تتطلب صلاحيات إدارة النظام', 'غير مصرح: يرجى تسجيل الدخول كمسؤول'));
 
   await registerAdminDirectory(fastify);
   await registerAdminSupport(fastify);

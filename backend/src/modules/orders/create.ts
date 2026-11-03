@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { sanitizeText } from '../../utils/security.js';
+import { HttpError, UUID_PATTERN } from '../../utils/http.js';
 import { LAWYER_RESPONSE_SECONDS, lawyerHasOpenOrder, notify, resolveClientQuote } from '../lifecycle/service.js';
 import { responseSecondsLeft, AuthenticatedUser } from './shared.js';
 
@@ -19,7 +20,7 @@ export async function registerOrderCreation(fastify: FastifyInstance) {
   fastify.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = request.user as AuthenticatedUser;
 
-    const body = request.body as {
+    const body = (request.body || {}) as {
       lawyerId?: string;
       serviceType?: string;
       serviceTitle?: string;
@@ -30,11 +31,11 @@ export async function registerOrderCreation(fastify: FastifyInstance) {
       clientAddress?: string;
     };
 
-    if (!body.lawyerId) {
+    if (!body.lawyerId || !UUID_PATTERN.test(body.lawyerId)) {
       return reply.status(400).send({ success: false, error: 'يجب تحديد المحامي المطلوب' });
     }
 
-    if (!body.problemDescription || body.problemDescription.trim().length === 0) {
+    if (typeof body.problemDescription !== 'string' || body.problemDescription.trim().length === 0) {
       return reply.status(400).send({ success: false, error: 'يرجى كتابة وصف تفصيلي للمشكلة أو المهمة' });
     }
 
@@ -42,14 +43,6 @@ export async function registerOrderCreation(fastify: FastifyInstance) {
     const clientLon = Number(body.clientLon);
     if (!Number.isFinite(clientLat) || !Number.isFinite(clientLon)) {
       return reply.status(400).send({ success: false, error: 'إحداثيات موقع العميل غير صالحة' });
-    }
-
-    const openRes = await query(
-      `SELECT 1 FROM service_orders WHERE client_id = $1 AND status IN ('PENDING', 'ACCEPTED', 'ACTIVE') LIMIT 1`,
-      [userId]
-    );
-    if (openRes.rows.length > 0) {
-      return reply.status(409).send({ success: false, error: 'عندك طلب مفتوح بالفعل، كمله من صفحة الطلبات' });
     }
 
     // Verify target lawyer exists, is active, approved, and available
@@ -70,7 +63,7 @@ export async function registerOrderCreation(fastify: FastifyInstance) {
     if (targetLawyer.approval_status !== 'approved' || targetLawyer.status !== 'active') {
       return reply.status(400).send({ success: false, error: 'عذراً، المحامي المحدد ليس في حالة نشطة ومعتمدة حالياً' });
     }
-    if (targetLawyer.urgent_status !== 'APPROVED' || !targetLawyer.is_available || targetLawyer.suspended_until || await lawyerHasOpenOrder(dbPool, targetLawyer.user_id)) {
+    if (targetLawyer.urgent_status !== 'APPROVED' || !targetLawyer.is_available || targetLawyer.suspended_until) {
       return reply.status(409).send({ success: false, error: 'المحامي مشغول دلوقتي، اختار محامي تاني' });
     }
 
@@ -80,6 +73,18 @@ export async function registerOrderCreation(fastify: FastifyInstance) {
     const cleanAddress = body.clientAddress ? sanitizeText(body.clientAddress, 500) : null;
 
     const newOrder = await withTransaction(async (client) => {
+      // Both sides wait their turn here, so two requests at once can't book one lawyer or open two orders
+      await client.query(
+        'SELECT id FROM users WHERE id = ANY($1::uuid[]) ORDER BY id FOR NO KEY UPDATE',
+        [[userId, targetLawyer.user_id]]
+      );
+      const openRes = await client.query(
+        `SELECT 1 FROM service_orders WHERE client_id = $1 AND status IN ('PENDING', 'ACCEPTED', 'ACTIVE') LIMIT 1`,
+        [userId]
+      );
+      if (openRes.rows.length > 0) throw new HttpError(409, 'عندك طلب مفتوح بالفعل، كمله من صفحة الطلبات');
+      if (await lawyerHasOpenOrder(client, targetLawyer.user_id)) throw new HttpError(409, 'المحامي مشغول دلوقتي، اختار محامي تاني');
+
       // The server owns the price, so a client request cannot change it
       const quote = await resolveClientQuote(client, userId, cleanProblemType);
 

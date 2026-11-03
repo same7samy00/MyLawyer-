@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { query } from '../../database/index.js';
+import { REVIEW_WINDOW_DAYS } from '../lifecycle/service.js';
 import { OPEN_ORDER_TICKET } from '../support/service.js';
 import { PAID_STATUSES, responseSecondsLeft, visibleLocation, AuthenticatedUser } from './shared.js';
 
@@ -24,7 +25,8 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
              EXISTS (SELECT 1 FROM reviews r WHERE r.order_id = o.id) as has_review,
              (SELECT st.id FROM support_tickets st WHERE st.order_id = o.id AND st.user_id = $1 AND st.status <> 'CLOSED' LIMIT 1) as open_ticket_id,
              ${OPEN_ORDER_TICKET('o.id')} as has_open_complaint,
-             EXISTS (SELECT 1 FROM reviews r WHERE r.order_id = o.id AND r.edited = FALSE) as review_editable
+             EXISTS (SELECT 1 FROM reviews r WHERE r.order_id = o.id AND r.edited = FALSE
+                     AND o.completed_at > NOW() - make_interval(days => ${REVIEW_WINDOW_DAYS})) as review_editable
       FROM service_orders o
       JOIN users u_client ON o.client_id = u_client.id
       JOIN users u_lawyer ON o.lawyer_id = u_lawyer.id
@@ -39,18 +41,12 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
       sql += ` WHERE o.client_id = $1`;
     } else {
       // admin can view all
-      sql = sql.replace('WHERE o.client_id = $1', '');
-      params.pop();
+      sql += ` WHERE TRUE`;
     }
 
     if (statusFilter !== 'ALL') {
-      if (params.length > 0) {
-        params.push(statusFilter);
-        sql += ` AND o.status = $${params.length}`;
-      } else {
-        params.push(statusFilter);
-        sql += ` WHERE o.status = $1`;
-      }
+      params.push(statusFilter);
+      sql += ` AND o.status = $${params.length}`;
     }
 
     sql += ` ORDER BY o.created_at DESC LIMIT 100`;
@@ -132,7 +128,6 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
     const orderRes = await query(
       `SELECT o.*,
               u_client.phone as client_phone,
-              u_client.email as client_email,
               u_lawyer.phone as lawyer_phone,
               lp.full_name as lawyer_name,
               lp.profile_photo_path as lawyer_avatar
@@ -184,16 +179,18 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
     if (role !== 'admin') {
       delete order.commission_percent;
       delete order.tax_percent;
-      if (order.client_id === userId) delete order.lawyer_amount;
+      if (order.client_id === userId) {
+        delete order.lawyer_amount;
+        delete order.payout_amount;
+      }
     }
 
-    // Fetch audit trail logs
+    // Fetch audit trail logs, without the phone numbers of whoever made each change
     const logsRes = await query(
-      `SELECT l.id, l.old_status, l.new_status, l.note, l.created_at, u.phone as changed_by_phone
-       FROM order_status_logs l
-       JOIN users u ON l.changed_by_user_id = u.id
-       WHERE l.order_id = $1
-       ORDER BY l.created_at ASC`,
+      `SELECT id, old_status, new_status, note, created_at
+       FROM order_status_logs
+       WHERE order_id = $1
+       ORDER BY created_at ASC`,
       [order.id]
     );
 

@@ -1,9 +1,6 @@
 import { approximateCoordinate } from '../lifecycle/service.js';
 
-export interface AuthenticatedUser {
-  userId: string;
-  role: 'client' | 'lawyer' | 'admin';
-}
+export type { AuthenticatedUser } from '../../utils/http.js';
 
 // Contact details stay hidden until payment so the deal stays on the platform
 export const PAID_STATUSES = ['ACTIVE', 'COMPLETED'];

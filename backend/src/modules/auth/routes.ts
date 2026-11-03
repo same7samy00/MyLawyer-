@@ -9,6 +9,7 @@ import {
   sanitizeText 
 } from '../../utils/security.js';
 import { sendOtpEmail } from '../../services/emailService.js';
+import { clearLoginFailures, isLoginLocked, recordLoginFailure } from './loginAttempts.js';
 import {
   registerSchema,
   verifyOtpSchema,
@@ -17,6 +18,11 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema
 } from './schemas.js';
+
+const OTP_RESEND_SECONDS = 60;
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_VALID_MS = 10 * 60 * 1000;
+const UNIQUE_VIOLATION = '23505';
 
 export async function authRoutes(fastify: FastifyInstance) {
 
@@ -51,7 +57,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const pwdHash = await hashPassword(password);
     const otpCode = generateOtpCode();
     const otpHash = hashSha256(otpCode);
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otpExpires = new Date(Date.now() + OTP_VALID_MS);
 
     // Create user in database transaction
     const newUser = await withTransaction(async (client) => {
@@ -95,7 +101,15 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
 
       return user;
+    }).catch((err) => {
+      // Two requests with the same details at once, and the first one already took them
+      if (err.code === UNIQUE_VIOLATION) return null;
+      throw err;
     });
+
+    if (!newUser) {
+      return reply.status(409).send({ success: false, error: 'رقم الهاتف أو البريد الإلكتروني مسجل بالفعل مسبقاً' });
+    }
 
     // Send email asynchronously
     sendOtpEmail(email, otpCode, 'register').catch((err) => {
@@ -139,6 +153,11 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     const user = userRes.rows[0];
 
+    // Only a new account is activated here, otherwise a suspended person could lift their own suspension
+    if (user.status !== 'pending_email_verification') {
+      return reply.status(409).send({ success: false, error: 'الحساب ده مش مستني تفعيل، سجل دخولك' });
+    }
+
     // Check verification OTP
     const verifRes = await query(
       `SELECT id, otp_hash, expires_at, attempts, consumed_at
@@ -158,7 +177,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: 'انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد' });
     }
 
-    if (verif.attempts >= 5) {
+    if (verif.attempts >= OTP_MAX_ATTEMPTS) {
       return reply.status(429).send({ success: false, error: 'تم تجاوز الحد الأقصى للمحاولات الخاطئة، يرجى طلب رمز جديد' });
     }
 
@@ -182,9 +201,10 @@ export async function authRoutes(fastify: FastifyInstance) {
         [targetStatus, user.id]
       );
       if (user.role === 'lawyer') {
+        // Availability stays with the lawyer's own button, after the admin approves the service
         await client.query(
           `UPDATE lawyer_profiles
-           SET approval_status = 'approved', approved_at = NOW(), is_available = TRUE, updated_at = NOW()
+           SET approval_status = 'approved', approved_at = NOW(), updated_at = NOW()
            WHERE user_id = $1`,
           [user.id]
         );
@@ -217,6 +237,10 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     const user = userRes.rows[0];
 
+    if (user.status !== 'pending_email_verification') {
+      return reply.status(409).send({ success: false, error: 'الحساب ده مش مستني تفعيل، سجل دخولك' });
+    }
+
     // Check rate limit: Cooldown of 60 seconds
     const lastOtp = await query(
       `SELECT created_at FROM email_verifications
@@ -226,17 +250,17 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     if (lastOtp.rows.length > 0) {
       const elapsedSec = (Date.now() - new Date(lastOtp.rows[0].created_at).getTime()) / 1000;
-      if (elapsedSec < 60) {
+      if (elapsedSec < OTP_RESEND_SECONDS) {
         return reply.status(429).send({
           success: false,
-          error: `يرجى الانتظار ${Math.ceil(60 - elapsedSec)} ثانية قبل طلب رمز تحقق جديد`
+          error: `يرجى الانتظار ${Math.ceil(OTP_RESEND_SECONDS - elapsedSec)} ثانية قبل طلب رمز تحقق جديد`
         });
       }
     }
 
     const newCode = generateOtpCode();
     const newHash = hashSha256(newCode);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + OTP_VALID_MS);
 
     await query(
       'INSERT INTO email_verifications (user_id, otp_hash, expires_at) VALUES ($1, $2, $3)',
@@ -264,6 +288,11 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     const { identifier, password, rememberMe } = parseResult.data;
+    const attemptKey = identifier.toLowerCase();
+
+    if (isLoginLocked(attemptKey)) {
+      return reply.status(429).send({ success: false, error: 'محاولات دخول كتير على الحساب ده، استنى 10 دقايق وحاول تاني' });
+    }
 
     // Search by email or phone
     const userRes = await query(
@@ -277,6 +306,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     );
 
     if (userRes.rows.length === 0) {
+      recordLoginFailure(attemptKey);
       return reply.status(401).send({ success: false, error: 'بيانات الدخول غير صحيحة، تأكد من رقم الهاتف/الإيميل وكلمة المرور' });
     }
 
@@ -284,8 +314,10 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     const isValid = await verifyPassword(user.password_hash, password);
     if (!isValid) {
+      recordLoginFailure(attemptKey);
       return reply.status(401).send({ success: false, error: 'بيانات الدخول غير صحيحة، تأكد من رقم الهاتف/الإيميل وكلمة المرور' });
     }
+    clearLoginFailures(attemptKey);
 
     // Check account statuses
     if (user.status === 'suspended') {
@@ -361,8 +393,8 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // 5. POST /api/v1/auth/refresh
   fastify.post('/refresh', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { refreshToken } = request.body as { refreshToken?: string };
-    if (!refreshToken) {
+    const { refreshToken } = (request.body || {}) as { refreshToken?: unknown };
+    if (!refreshToken || typeof refreshToken !== 'string') {
       return reply.status(400).send({ success: false, error: 'انتهت الجلسة، سجل الدخول مرة أخرى' });
     }
 
@@ -394,14 +426,20 @@ export async function authRoutes(fastify: FastifyInstance) {
     const newRefreshHash = hashSha256(newRefreshToken);
     const newExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-    await withTransaction(async (client) => {
-      await client.query('UPDATE user_sessions SET revoked_at = NOW() WHERE id = $1', [session.id]);
+    // One token buys one renewal, even when it arrives twice at the same moment
+    const rotated = await withTransaction(async (client) => {
+      const revoked = await client.query('UPDATE user_sessions SET revoked_at = NOW() WHERE id = $1 AND revoked_at IS NULL', [session.id]);
+      if (revoked.rowCount === 0) return false;
       await client.query(
         `INSERT INTO user_sessions (user_id, refresh_token_hash, user_agent, ip_address, expires_at)
          VALUES ($1, $2, $3, $4, $5)`,
         [session.user_id, newRefreshHash, request.headers['user-agent'] || 'Unknown', request.ip || '127.0.0.1', newExpires]
       );
+      return true;
     });
+    if (!rotated) {
+      return reply.status(401).send({ success: false, error: 'انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول' });
+    }
 
     const newAccessToken = fastify.jwt.sign(
       {
@@ -423,8 +461,8 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // 6. POST /api/v1/auth/logout
   fastify.post('/logout', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { refreshToken } = (request.body || {}) as { refreshToken?: string };
-    if (refreshToken) {
+    const { refreshToken } = (request.body || {}) as { refreshToken?: unknown };
+    if (refreshToken && typeof refreshToken === 'string') {
       const hash = hashSha256(refreshToken);
       await query('UPDATE user_sessions SET revoked_at = NOW() WHERE refresh_token_hash = $1', [hash]);
     }
@@ -450,9 +488,23 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     const user = userRes.rows[0];
+
+    // Same answer during the cooldown, so nobody can flood a mailbox or collect many live codes
+    const lastRequest = await query(
+      `SELECT 1 FROM password_reset_requests
+       WHERE user_id = $1 AND created_at > NOW() - make_interval(secs => $2) LIMIT 1`,
+      [user.id, OTP_RESEND_SECONDS]
+    );
+    if (lastRequest.rows.length > 0) {
+      return reply.send({
+        success: true,
+        message: 'إذا كان البريد الإلكتروني مسجلاً، فقد تم إرسال رمز التحقق إليه.'
+      });
+    }
+
     const otp = generateOtpCode();
     const otpHash = hashSha256(otp);
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+    const expiresAt = new Date(Date.now() + OTP_VALID_MS);
 
     await query(
       'INSERT INTO password_reset_requests (user_id, otp_hash, expires_at) VALUES ($1, $2, $3)',
@@ -489,12 +541,13 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     const user = userRes.rows[0];
 
+    // Only the latest code counts, and its wrong guesses are limited, or six digits could be guessed
     const resetReq = await query(
-      `SELECT id, expires_at, attempts, consumed_at
+      `SELECT id, otp_hash, expires_at, attempts
        FROM password_reset_requests
-       WHERE user_id = $1 AND otp_hash = $2 AND consumed_at IS NULL
+       WHERE user_id = $1 AND consumed_at IS NULL
        ORDER BY created_at DESC LIMIT 1`,
-      [user.id, otpHash]
+      [user.id]
     );
 
     if (resetReq.rows.length === 0) {
@@ -505,6 +558,15 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     if (new Date() > new Date(reqData.expires_at)) {
       return reply.status(400).send({ success: false, error: 'انتهت صلاحية رمز التحقق' });
+    }
+
+    if (reqData.attempts >= OTP_MAX_ATTEMPTS) {
+      return reply.status(429).send({ success: false, error: 'تم تجاوز الحد الأقصى للمحاولات الخاطئة، يرجى طلب رمز جديد' });
+    }
+
+    if (reqData.otp_hash !== otpHash) {
+      await query('UPDATE password_reset_requests SET attempts = attempts + 1 WHERE id = $1', [reqData.id]);
+      return reply.status(400).send({ success: false, error: 'رمز التحقق غير صحيح أو منتهي' });
     }
 
     const newHash = await hashPassword(newPassword);

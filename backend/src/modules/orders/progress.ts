@@ -118,7 +118,7 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
   fastify.post('/:id/cancel', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId, role } = request.user as AuthenticatedUser;
     const { id } = request.params as { id: string };
-    const body = request.body as { reason?: string };
+    const body = (request.body || {}) as { reason?: string };
 
     const orderRes = await query(
       `SELECT * FROM service_orders WHERE (id::text = $1 OR order_number = $1)`,

@@ -28,7 +28,14 @@ export async function verifyPassword(hash: string, plainPassword: string): Promi
  * Generates a random 6-digit numeric OTP
  */
 export function generateOtpCode(): string {
-  return crypto.randomInt(100000, 999999).toString();
+  return crypto.randomInt(100000, 1000000).toString();
+}
+
+/// "أحمد محمد علي" becomes "أحمد م.", enough to confirm the person without the full name
+export function shortName(fullName: string | null | undefined, fallback = ''): string {
+  const [first, second] = (fullName || '').trim().split(/\s+/);
+  if (!first) return fallback;
+  return second ? `${first} ${[...second][0]}.` : first;
 }
 
 /**

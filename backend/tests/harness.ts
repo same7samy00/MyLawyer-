@@ -113,7 +113,7 @@ before(async () => {
   await runMigrations(false);
 
   const { buildApp } = await import('../src/app.js');
-  sweepLifecycle = (await import('../src/modules/lifecycle/service.js')).sweepLifecycle;
+  sweepLifecycle = (await import('../src/modules/lifecycle/sweep.js')).sweepLifecycle;
   app = buildApp();
   await app.ready();
 

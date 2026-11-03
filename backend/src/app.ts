@@ -4,9 +4,8 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
-import swagger from '@fastify/swagger';
-import swaggerUi from '@fastify/swagger-ui';
 import { config } from './config/index.js';
+import { HttpError } from './utils/http.js';
 import { authRoutes } from './modules/auth/routes.js';
 import { userRoutes } from './modules/users/routes.js';
 import { walletRoutes } from './modules/wallet/routes.js';
@@ -18,10 +17,30 @@ import { notificationRoutes } from './modules/notifications/routes.js';
 import { registerAdminPanel } from './modules/admin/panel.js';
 import { dbPool } from './database/index.js';
 
+// PostgreSQL's code for a value of the wrong type, like a malformed id in a link
+const INVALID_TEXT_FOR_TYPE = '22P02';
+
 export function buildApp() {
   const fastify = Fastify({
-    logger: config.nodeEnv === 'development',
-    trustProxy: true,
+    logger: config.nodeEnv === 'test' ? false : { level: config.nodeEnv === 'production' ? 'warn' : 'info' },
+    // Only Nginx on this machine may name the caller, so nobody can pose as another address
+    trustProxy: 'loopback',
+  });
+
+  // Nothing technical reaches the caller, and every server failure reaches the log
+  fastify.setErrorHandler((error: Error & { statusCode?: number; code?: string }, request, reply) => {
+    if (error instanceof HttpError) {
+      return reply.status(error.status).send({ success: false, error: error.message });
+    }
+    if (error.code === INVALID_TEXT_FOR_TYPE) {
+      return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
+    }
+    const status = error.statusCode ?? 500;
+    if (status >= 500) {
+      request.log.error(error);
+      return reply.status(500).send({ success: false, error: 'حدث خطأ غير متوقع، حاول مرة أخرى بعد قليل' });
+    }
+    return reply.status(status).send({ success: false, error: error.message });
   });
 
   // Security Headers
@@ -74,27 +93,29 @@ export function buildApp() {
     secret: config.jwtSecret,
   });
 
-  // Swagger Documentation
-  fastify.register(swagger, {
-    openapi: {
-      info: {
-        title: 'MyLawyer API',
-        description: 'Production REST API for MyLawyer Client & Lawyer Platform',
-        version: '1.0.0',
+  // API explorer on a developer's machine only, so production carries neither the page nor its packages
+  if (config.nodeEnv === 'development') {
+    fastify.register(import('@fastify/swagger'), {
+      openapi: {
+        info: {
+          title: 'MyLawyer API',
+          description: 'REST API for MyLawyer Client & Lawyer Platform',
+          version: '1.0.0',
+        },
+        servers: [
+          { url: '/api/v1', description: 'API' },
+        ],
       },
-      servers: [
-        { url: '/api/v1', description: 'Production API' },
-      ],
-    },
-  });
+    });
 
-  fastify.register(swaggerUi, {
-    routePrefix: '/docs',
-    uiConfig: {
-      docExpansion: 'list',
-      deepLinking: false,
-    },
-  });
+    fastify.register(import('@fastify/swagger-ui'), {
+      routePrefix: '/docs',
+      uiConfig: {
+        docExpansion: 'list',
+        deepLinking: false,
+      },
+    });
+  }
 
   // Public, so it says only whether the service works
   const healthHandler = async () => {

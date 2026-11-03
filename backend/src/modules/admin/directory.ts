@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { notify } from '../lifecycle/service.js';
 import { sanitizeText } from '../../utils/security.js';
+import { UUID_PATTERN } from '../../utils/http.js';
 import { logAdminAction } from './actions.js';
 import { addWarning, adjustBalance, applySettlement, evaluateSettlement, logPayoutEvent, revokeWarning, SettlementOutcome } from '../lifecycle/settlement.js';
 
@@ -15,7 +16,6 @@ export function userStats(id: string, prefix: string) {
               WHERE st.user_id <> ${id} AND (so.client_id = ${id} OR so.lawyer_id = ${id}))::int AS ${prefix}_against,
           (SELECT COUNT(*) FROM support_tickets st WHERE st.user_id = ${id})::int AS ${prefix}_filed`;
 }
-const UUID_PATTERN = /^[0-9a-f-]{36}$/i;
 
 /// Read side of the control page: accounts, orders, and everything linked to them
 export async function registerAdminDirectory(fastify: FastifyInstance) {
