@@ -1,40 +1,46 @@
 const ACCOUNT_FILTERS = [['', 'كل الحالات'], ['active', 'نشط'], ['suspended', 'موقوف']];
+const SERVICE_NAME = 'محاميك حالاً';
+const LAWYER_FILTERS = [...ACCOUNT_FILTERS, ['service-on', 'الخدمة مفعلة'], ['service-off', 'الخدمة غير مفعلة']];
+const hasService = (item) => item.urgent_status === 'APPROVED';
+const matchesAccountFilter = (item, filter) => {
+  if (filter === 'service-on') return hasService(item);
+  if (filter === 'service-off') return !hasService(item);
+  return !filter || item.status === filter;
+};
 
 function usersPage(role) {
   return async (box) => {
     const isLawyer = role === 'lawyer';
     const q = current.search || '';
     const filter = current.filter || '';
-    const res = await api('GET', '/admin/users?role=' + role + '&q=' + encodeURIComponent(q));
-    // A lawyer joins the list only after the admin approves the application
-    const data = isLawyer ? res.data.filter((item) => item.urgent_status === 'APPROVED') : res.data;
-    const shown = applyFilters(filter ? data.filter((item) => item.status === filter) : data, (item) => item.created_at);
+    const { data } = await api('GET', '/admin/users?role=' + role + '&q=' + encodeURIComponent(q));
+    const shown = applyFilters(data.filter((item) => matchesAccountFilter(item, filter)), (item) => item.created_at);
 
     box.append(summaryBar([
       [isLawyer ? 'إجمالي المحامين' : 'إجمالي الموكلين', data.length, isLawyer ? 'lawyer' : 'client', 'brand'],
       ['حسابات نشطة', data.filter((item) => item.status === 'active').length, 'check', 'green'],
       ['حسابات موقوفة', data.filter((item) => item.status === 'suspended').length, 'power', 'red'],
+      ...(isLawyer ? [['الخدمة مفعلة', data.filter(hasService).length, 'apply', 'green']] : []),
       ['إجمالي الطلبات', sumOf(data, 'orders_count'), 'orders', 'blue'],
       ['حسابات عليها شكاوى', data.filter((item) => item.user_against > 0).length, 'complaint', 'amber'],
     ]));
     box.append(guide('افتح الملف الشخصي لمراجعة الطلبات والشكاوى، ولتنفيذ الإجراءات على الحساب.',
-      isLawyer ? 'لا يظهر المحامي في هذه القائمة إلا بعد الموافقة على طلب انضمامه.' : 'إيقاف الحساب يمنع صاحبه من استخدام التطبيق كليًا حتى تفعيله مرة أخرى.'));
+      isLawyer ? 'تظهر هنا كل حسابات المحامين، سواء كانت خدمة «محاميك حالاً» مفعلة لهم أو لا.' : 'إيقاف الحساب يمنع صاحبه من استخدام التطبيق كليًا حتى تفعيله مرة أخرى.'));
     box.append(controlsBar([
       searchBox(q, 'ابحث بالاسم أو الهاتف أو البريد', (value) => { current.search = value; render(); }),
-      filterButtons(ACCOUNT_FILTERS, filter, (key) => { current.filter = key; render(); }),
+      filterButtons(isLawyer ? LAWYER_FILTERS : ACCOUNT_FILTERS, filter, (key) => { current.filter = key; render(); }),
       ...dateFilters(),
     ]));
 
     const headers = isLawyer
-      ? ['الاسم', 'الهاتف', 'سنوات الخبرة', 'التقييم', 'الحالة', 'الإجراءات']
+      ? ['الاسم', 'الهاتف', 'سنوات الخبرة', 'التقييم', SERVICE_NAME, 'الحالة', 'الإجراءات']
       : ['الاسم', 'الهاتف', 'تاريخ التسجيل', 'الحالة', 'الإجراءات'];
     const rows = shown.map((item) => {
       const tools = link('الملف', () => open('user', item.id), 'btn-outline btn-xs', 'open');
 
-      const name = el('div', undefined, 'person-inline');
-      name.append(personAvatar(item.full_name, item.photo), el('strong', item.full_name || 'دون اسم', 'prod-name-ar'));
+      const name = el('strong', item.full_name || 'دون اسم', 'prod-name-ar');
       const cells = isLawyer
-        ? [name, item.phone, item.experience_years ?? 0, Number(item.rating ?? 0).toFixed(1) + ' / 5', accountTag(item.status), tools]
+        ? [name, item.phone, item.experience_years ?? 0, Number(item.rating ?? 0).toFixed(1) + ' / 5', hasService(item) ? badge('مفعلة', 'green') : badge('غير مفعلة', 'gray'), accountTag(item.status), tools]
         : [name, item.phone, date(item.created_at), accountTag(item.status), tools];
       return { item, cells };
     });
@@ -48,7 +54,7 @@ async function userPage(box) {
   const isLawyer = user.role === 'lawyer';
 
   const badges = [badge(isLawyer ? 'محامٍ' : 'موكل', 'blue'), accountTag(user.status)];
-  if (isLawyer) badges.push(badge(user.urgent_status === 'APPROVED' ? 'معتمد للخدمة' : 'غير معتمد', user.urgent_status === 'APPROVED' ? 'green' : 'gray'));
+  if (isLawyer && hasService(user)) badges.push(badge(SERVICE_NAME, 'green'));
   box.append(hero(avatarBox(user.photo, isLawyer ? 'lawyer' : 'client'), user.full_name || 'حساب', badges,
     [['phone', user.phone], ['mail', user.email], ['calendar', 'تاريخ التسجيل: ' + date(user.created_at)]], [actionButton(userActions(user, data))]));
 

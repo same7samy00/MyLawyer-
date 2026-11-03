@@ -2,7 +2,7 @@ const PAGES = {
   overview: ['الرئيسية', 'home', overviewPage],
   tickets: ['تذاكر الدعم الفني', 'complaint', ticketsPage],
   reports: ['بلاغات التقييمات', 'review', reportsPage],
-  applications: ['طلبات انضمام المحامين', 'apply', applicationsPage],
+  applications: ['مستخدمو محاميك حالاً', 'apply', applicationsPage],
   lawyers: ['حسابات المحامين', 'lawyer', usersPage('lawyer')],
   clients: ['حسابات الموكلين', 'client', usersPage('client')],
   orders: ['إدارة الطلبات', 'orders', ordersPage],
@@ -12,10 +12,10 @@ const PAGES = {
   prices: ['الأسعار والنسب', 'price', pricesPage],
 };
 const INNER = { user: userPage, order: orderPage, application: applicationPage, ticket: ticketPage, reviewReport: reviewReportPage };
-const INNER_TITLES = { user: 'الملف الشخصي', order: 'تفاصيل الطلب', application: 'طلب انضمام', ticket: 'تذكرة دعم فني', reviewReport: 'بلاغ عن تقييم' };
+const INNER_TITLES = { user: 'الملف الشخصي', order: 'تفاصيل الطلب', application: 'طلب تقديم على محاميك حالاً', ticket: 'تذكرة دعم فني', reviewReport: 'بلاغ عن تقييم' };
 const SUBTITLES = {
   overview: 'ما يحتاج إلى متابعتك الآن', tickets: 'كل ما يرسله الموكلون والمحامون إلى الدعم الفني', reports: 'تعليقات أبلغ عنها المحامون',
-  reviewReport: 'مراجعة التعليق والقرار', ticket: 'الرسائل والرد والإغلاق', applications: 'محامون تقدموا للانضمام إلى الخدمة', lawyers: 'كل حسابات المحامين',
+  reviewReport: 'مراجعة التعليق والقرار', ticket: 'الرسائل والرد والإغلاق', applications: 'طلبات التقديم على الخدمة والمحامون المفعلة لهم', lawyers: 'كل حسابات المحامين',
   clients: 'كل حسابات الموكلين', orders: 'البحث في الطلبات ومتابعة حالتها', reviews: 'تقييمات الموكلين للمحامين',
   decisions: 'من اتخذ كل قرار في اللوحة ومتى', money: 'المدفوعات والأموال المجمدة والحركات', prices: 'أسعار الخدمات ونسبة المنصة والضريبة', application: 'مراجعة بيانات المحامي والقرار', user: 'البيانات والطلبات والتقييمات', order: 'البيانات ودورة حياة الطلب',
 };
@@ -75,7 +75,7 @@ function renderNav() {
 function announceNewWork(before, now) {
   if (before.waiting_tickets === undefined) return;
   if (now.waiting_tickets > before.waiting_tickets) toast('وصلت تذكرة جديدة');
-  if (now.pending_lawyers > before.pending_lawyers) toast('وصل طلب انضمام جديد');
+  if (now.pending_lawyers > before.pending_lawyers) toast('وصل طلب تقديم جديد على محاميك حالاً');
   if (now.reported_reviews > before.reported_reviews) toast('وصل بلاغ جديد عن تقييم');
   if (now.frozen_orders > before.frozen_orders) toast('تم تجميد أموال عملية جديدة');
 }

@@ -1,23 +1,40 @@
+const SERVICE_FILTERS = [['PENDING', 'طلبات التقديم'], ['APPROVED', 'الخدمة مفعلة'], ['REJECTED', 'طلبات مرفوضة']];
+const SERVICE_STATUS = { PENDING: ['بانتظار المراجعة', 'amber'], APPROVED: ['مفعلة', 'green'], REJECTED: ['مرفوض', 'red'] };
+
+/// Everyone who applied for the service: decide on new applications and follow the rest
 async function applicationsPage(box) {
-  const { data } = await api('GET', '/admin/urgent-applications');
-  const shown = applyFilters(data, (item) => item.urgent_terms_accepted_at || item.created_at);
-  const week = Date.now() - 7 * 86400000;
+  const q = current.search || '';
+  const filter = current.filter || 'PENDING';
+  const [{ data: pending }, { data: lawyers }] = await Promise.all([
+    api('GET', '/admin/urgent-applications'),
+    api('GET', '/admin/users?role=lawyer&q=' + encodeURIComponent(q)),
+  ]);
+  const applications = new Map(pending.map((item) => [item.user_id, item]));
+  const count = (status) => lawyers.filter((item) => item.urgent_status === status).length;
+  const applied = (item) => applications.get(item.id)?.urgent_terms_accepted_at || item.created_at;
+  const shown = applyFilters(lawyers.filter((item) => item.urgent_status === filter), applied);
+
   box.append(summaryBar([
-    ['طلبات انضمام', data.length, 'lawyer', 'amber'],
-    ['آخر 7 أيام', data.filter((item) => new Date(item.urgent_terms_accepted_at || 0) > week).length, 'calendar', 'blue'],
-    ['مستندات مكتملة', data.filter((item) => item.photo && item.card_id).length, 'check', 'green'],
+    ['طلبات التقديم', count('PENDING'), 'lawyer', 'amber'],
+    ['الخدمة مفعلة', count('APPROVED'), 'check', 'green'],
+    ['طلبات مرفوضة', count('REJECTED'), 'reject', 'red'],
   ]));
   box.append(guide('راجع الصورة الشخصية وصورة البطاقة وبيانات المحامي قبل الموافقة.',
-    'بعد الموافقة ينتقل المحامي إلى قائمة المحامين ويصبح له ملف شخصي، ويتمكن من استقبال طلبات «محاميك حالاً».'));
-  box.append(controlsBar(dateFilters()));
+    'بعد الموافقة يتمكن المحامي من استقبال طلبات «محاميك حالاً»، ويظهر للموكلين على الخريطة عند إتاحته.'));
+  box.append(controlsBar([
+    searchBox(q, 'ابحث بالاسم أو الهاتف أو البريد', (value) => { current.search = value; render(); }),
+    filterButtons(SERVICE_FILTERS, filter, (key) => { current.filter = key; render(); }),
+    ...dateFilters(),
+  ]));
 
-  box.append(table(['الاسم', 'الهاتف', 'رقم القيد', 'سنوات الخبرة', 'تاريخ التقديم', 'الحالة', 'الإجراءات'], shown.map((item) => ({
+  const openLawyer = (item) => (applications.has(item.id) ? open('application', applications.get(item.id)) : open('user', item.id));
+  box.append(table(['الاسم', 'الهاتف', 'رقم القيد', 'سنوات الخبرة', 'تاريخ التسجيل', 'الحالة', 'الإجراءات'], shown.map((item) => ({
     item,
     cells: [
-      el('strong', item.full_name, 'prod-name-ar'), item.phone, item.syndicate_number || 'غير مسجل', item.experience_years ?? 0,
-      date(item.urgent_terms_accepted_at), badge('بانتظار المراجعة', 'amber'), link('فتح', () => open('application', item), 'btn-outline btn-xs', 'open'),
+      el('strong', item.full_name || 'دون اسم', 'prod-name-ar'), item.phone, item.syndicate_number || 'غير مسجل', item.experience_years ?? 0,
+      date(item.created_at), badge(...SERVICE_STATUS[item.urgent_status]), link('فتح', () => openLawyer(item), 'btn-outline btn-xs', 'open'),
     ],
-  })), (item) => open('application', item)));
+  })), openLawyer));
 }
 
 /// The card is private, so it is fetched with the admin sign-in and shown from memory

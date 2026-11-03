@@ -20,7 +20,7 @@ async function overviewPage(box) {
   const rows = [
     ['complaint', data.waiting_tickets, 'تذاكر تنتظر ردك', () => goTo('tickets', 'UNDER_REVIEW')],
     ['power', data.frozen_orders, 'عمليات أموالها مجمدة وتنتظر قرارك', () => goTo('money')],
-    ['apply', data.pending_lawyers, 'طلبات انضمام تنتظر المراجعة', () => goTo('applications')],
+    ['apply', data.pending_lawyers, 'طلبات تقديم على محاميك حالاً تنتظر المراجعة', () => goTo('applications')],
     ['review', data.reported_reviews, 'بلاغات تقييم تنتظر قرارك', () => goTo('reports')],
   ].filter(([, count]) => count > 0);
 

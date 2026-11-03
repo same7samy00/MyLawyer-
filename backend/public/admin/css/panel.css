@@ -301,7 +301,7 @@ table, thead, tbody, tr, th, td, svg, path, strong, span, p, h1, h2, h3, h4, lab
 .page-spinner { width: 34px; height: 34px; border: 3px solid var(--brand-border); border-top-color: var(--brand-primary); border-radius: 50% !important; animation: spin-loader 0.7s linear infinite; }
 .page-view.active, .page-view { animation: none !important; }
 /* Space between the page title and the menu button, and a slightly smaller logo */
-.sidebar-logo { width: 98px !important; height: 56px !important; }
+.sidebar-logo { width: 84px !important; height: 48px !important; }
 @media (min-width: 861px) { .header-left { padding-inline-start: 1.3rem; } }
 /* Notifications with strong colors so their text is easy to read */
 .header-toast-pill { box-shadow: 0 6px 18px rgba(15, 23, 42, 0.28); max-width: min(420px, calc(100vw - 32px)); }
@@ -315,3 +315,16 @@ table, thead, tbody, tr, th, td, svg, path, strong, span, p, h1, h2, h3, h4, lab
 .person-avatar.image-thumb { width: 40px; height: 40px; padding: 0; flex-shrink: 0; }
 .person-inline { display: inline-flex; align-items: center; gap: 0.45rem; }
 .person-inline .person-avatar { width: 32px; height: 32px; font-size: 0.72rem; }
+
+/* Tables: one connected grid of dashed lines inside 5px corners that meets its container's edges */
+@media screen {
+  .form-card-section:has(.custom-table), .clothing-page-container > .table-wrapper, .tab-content-pane > .table-wrapper { border: 1px dashed #94a3b8 !important; }
+  .form-card-section:has(.custom-table) > .form-card-header { border-bottom: 1px dashed #94a3b8 !important; }
+  .form-card-body:has(> .table-wrapper), .form-card-body:has(> .custom-table) { padding: 0 !important; }
+  .custom-table thead th, .custom-table tbody td { border-top: 0 !important; border-right: 0 !important; border-left: 1px dashed #94a3b8 !important; border-bottom: 1px dashed #94a3b8 !important; }
+  .custom-table tr > :last-child { border-left: 0 !important; }
+  .custom-table tbody tr:last-child td { border-bottom: 0 !important; }
+}
+@media screen {
+  .form-card-section:has(.custom-table), .clothing-page-container > .table-wrapper, .tab-content-pane > .table-wrapper { border-radius: 5px !important; overflow: hidden; }
+}

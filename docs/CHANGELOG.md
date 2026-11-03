@@ -1,5 +1,12 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Control Page: Table Lines] - 2026-11-03
+- Tables across the control page now form one connected grid of dashed lines that meets the edges of their containers, with the same 5px corners. Account tables no longer show photos, which stay in the profile.
+
+## [Control Page: Service Users] - 2026-11-03
+- Added the «مستخدمو محاميك حالاً» page, replacing the join requests page: it holds applications with their decisions, approved lawyers, and rejected ones.
+- «حسابات المحامين» now lists every lawyer from sign-up, with a service column and service filters. The service name shows in the profile header only when the service is active.
+
 ## [App Font] - 2026-11-03
 - The app text font is now IBM Plex Sans Arabic (SIL OFL, licence inside the font files) in six weights from Thin to SemiBold, replacing flat-jooza. Bold text uses SemiBold, the heaviest weight included. English digits still come from `app-digits.ttf`. The control page uses the same six weights through `/admin-panel/font/:weight`, replacing the Vodafone font. The public website keeps its own font.
 
