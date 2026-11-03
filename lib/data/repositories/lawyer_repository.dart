@@ -72,6 +72,10 @@ class LawyerRepository {
     return ApiService.post('/lawyers/me/availability', {'isAvailable': isAvailable});
   }
 
+  static Future<ApiResponse<dynamic>> reportReview(String reviewId, String reason) {
+    return ApiService.post('/lawyers/me/reviews/$reviewId/report', {'reason': reason});
+  }
+
   static Future<ApiResponse<List<LawyerReview>>> getReviews(String lawyerId) async {
     final res = await ApiService.get('/lawyers/$lawyerId/reviews');
     if (res.isOk && res.data is List) {

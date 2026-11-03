@@ -48,6 +48,13 @@ class OrderActionSheets {
     return _show(context, _ReviewSheet(lawyerName: lawyerName, onSubmit: onSubmit));
   }
 
+  static Future<bool> reportReview(
+    BuildContext context, {
+    required Future<ApiResponse<dynamic>> Function(String reason) onSubmit,
+  }) {
+    return _show(context, _ReportReviewSheet(onSubmit: onSubmit));
+  }
+
   static Future<bool> transfer(
     BuildContext context, {
     required Future<ApiResponse<dynamic>> Function(String phone) findRecipient,
@@ -201,6 +208,68 @@ class _ReviewSheetState extends State<_ReviewSheet> {
         const SizedBox(height: 12),
         _ErrorText(_error),
         AppButton.primary(text: 'إرسال التقييم', onPressed: _submit),
+      ],
+    );
+  }
+}
+
+/// بلاغ المحامي عن تعليق، والإدارة بتقرر تخفيه أو تسيبه
+class _ReportReviewSheet extends StatefulWidget {
+  final Future<ApiResponse<dynamic>> Function(String reason) onSubmit;
+
+  const _ReportReviewSheet({required this.onSubmit});
+
+  @override
+  State<_ReportReviewSheet> createState() => _ReportReviewSheetState();
+}
+
+class _ReportReviewSheetState extends State<_ReportReviewSheet> {
+  final _controller = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final reason = _controller.text.trim();
+    if (reason.length < 3) {
+      setState(() => _error = 'اكتب سبب البلاغ');
+      return;
+    }
+
+    final navigator = Navigator.of(context);
+    final res = await widget.onSubmit(reason);
+    if (!mounted) return;
+
+    if (res.isOk) {
+      navigator.pop(true);
+    } else {
+      setState(() => _error = res.error ?? 'تعذر إرسال البلاغ');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SheetFrame(
+      children: [
+        const Text('الإبلاغ عن التعليق', textAlign: TextAlign.center, style: _titleStyle),
+        const SizedBox(height: 4),
+        const Text('الإدارة هتراجع التعليق وتقرر', textAlign: TextAlign.center, style: _subtitleStyle),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _controller,
+          maxLines: 3,
+          maxLength: 500,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 14),
+          decoration: const InputDecoration(hintText: 'ليه التعليق ده مخالف؟', counterText: ''),
+        ),
+        const SizedBox(height: 12),
+        _ErrorText(_error),
+        AppButton.primary(text: 'إرسال البلاغ', onPressed: _submit),
       ],
     );
   }

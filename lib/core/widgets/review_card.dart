@@ -8,7 +8,11 @@ import 'profile_photo.dart';
 class ReviewCard extends StatelessWidget {
   final LawyerReview review;
 
-  const ReviewCard({super.key, required this.review});
+  /// بيظهر زر البلاغ للمحامي صاحب التقييمات بس
+  final VoidCallback? onReport;
+  final bool isReported;
+
+  const ReviewCard({super.key, required this.review, this.onReport, this.isReported = false});
 
   String get _formattedDate {
     final date = review.publishedAt;
@@ -80,6 +84,26 @@ class ReviewCard extends StatelessWidget {
                 if (_formattedDate.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(_formattedDate, style: _style(11, FontWeight.w400, AppColors.textMuted)),
+                ],
+                if (isReported) ...[
+                  const SizedBox(height: 6),
+                  Text('تم إرسال البلاغ للإدارة', style: _style(12, FontWeight.w700, AppColors.success)),
+                ] else if (onReport != null) ...[
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton.icon(
+                      onPressed: onReport,
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.danger,
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        minimumSize: const Size(0, 34),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.flag_rounded, size: 16),
+                      label: Text('إبلاغ', style: _style(12, FontWeight.w700, AppColors.danger)),
+                    ),
+                  ),
                 ],
               ],
             ),

@@ -32,6 +32,6 @@
 .doc-box .image-thumb, .doc-box .doc-missing { width: 100%; height: auto; aspect-ratio: 1; }
 
 /* Action buttons: two on each line, filling the header part */
-.view-hero-actions.hero-part { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); grid-auto-rows: 1fr; align-items: stretch; gap: 0.35rem; padding: 0.45rem 0.6rem; }
-.view-hero-actions.hero-part > * { width: 100%; height: auto !important; min-height: 40px !important; max-height: none !important; align-self: stretch; justify-self: stretch; justify-content: center; }
+.view-hero-actions.hero-part { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); grid-auto-rows: auto; align-content: center; justify-content: center; align-items: center; gap: 0.3rem; padding: 0.45rem 0.6rem; }
+.view-hero-actions.hero-part > * { width: 100%; height: auto !important; min-height: 42px !important; max-height: none !important; align-self: center; justify-self: stretch; display: inline-flex !important; align-items: center !important; justify-content: center !important; text-align: center; }
 .view-hero-actions.hero-part > :only-child { grid-column: 1 / -1; }

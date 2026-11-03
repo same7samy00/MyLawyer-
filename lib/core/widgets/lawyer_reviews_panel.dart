@@ -4,6 +4,7 @@ import '../../data/repositories/lawyer_repository.dart';
 import '../constants/app_colors.dart';
 import 'app_button.dart';
 import 'app_state_message.dart';
+import 'order_action_sheets.dart';
 import 'review_card.dart';
 
 /// تقييمات وتعليقات المحامي داخل البوتن شيت الموسّع
@@ -11,7 +12,10 @@ class LawyerReviewsPanel extends StatefulWidget {
   final String lawyerId;
   final VoidCallback onClose;
 
-  const LawyerReviewsPanel({super.key, required this.lawyerId, required this.onClose});
+  /// المحامي بيشوف تقييماته ويقدر يبلغ عن أي تعليق
+  final bool canReport;
+
+  const LawyerReviewsPanel({super.key, required this.lawyerId, required this.onClose, this.canReport = false});
 
   @override
   State<LawyerReviewsPanel> createState() => _LawyerReviewsPanelState();
@@ -21,6 +25,15 @@ class _LawyerReviewsPanelState extends State<LawyerReviewsPanel> {
   bool _isLoading = true;
   String? _error;
   List<LawyerReview> _reviews = const [];
+  final Set<String> _reported = {};
+
+  Future<void> _report(LawyerReview review) async {
+    final sent = await OrderActionSheets.reportReview(
+      context,
+      onSubmit: (reason) => LawyerRepository.reportReview(review.id, reason),
+    );
+    if (sent && mounted) setState(() => _reported.add(review.id));
+  }
 
   @override
   void initState() {
@@ -69,7 +82,14 @@ class _LawyerReviewsPanelState extends State<LawyerReviewsPanel> {
       padding: EdgeInsets.zero,
       itemCount: _reviews.length,
       separatorBuilder: (context, index) => const SizedBox(height: 10),
-      itemBuilder: (context, index) => ReviewCard(review: _reviews[index]),
+      itemBuilder: (context, index) {
+        final review = _reviews[index];
+        return ReviewCard(
+          review: review,
+          isReported: _reported.contains(review.id),
+          onReport: widget.canReport ? () => _report(review) : null,
+        );
+      },
     );
   }
 }

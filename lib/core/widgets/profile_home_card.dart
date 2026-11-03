@@ -61,7 +61,7 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
           appBar: AppBar(title: const Text('تقييماتي')),
           body: Padding(
             padding: const EdgeInsets.all(18),
-            child: LawyerReviewsPanel(lawyerId: lawyerId, onClose: () => Navigator.of(context).pop()),
+            child: LawyerReviewsPanel(lawyerId: lawyerId, canReport: true, onClose: () => Navigator.of(context).pop()),
           ),
         ),
       ),
