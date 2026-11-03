@@ -1,6 +1,7 @@
 const ACCOUNT_FILTERS = [['', 'كل الحالات'], ['active', 'نشط'], ['suspended', 'موقوف']];
 const SERVICE_NAME = 'محاميك حالاً';
 const LAWYER_FILTERS = [...ACCOUNT_FILTERS, ['service-on', 'الخدمة مفعلة'], ['service-off', 'الخدمة غير مفعلة']];
+const OFF_REASONS = { MANUAL: 'أوقفها المحامي', MISSED: 'لم يرد على طلب', NO_LOCATION: 'الموقع غير محدث', SUSPENDED: 'الحساب موقوف' };
 const hasService = (item) => item.urgent_status === 'APPROVED';
 const matchesAccountFilter = (item, filter) => {
   if (filter === 'service-on') return hasService(item);
@@ -48,15 +49,24 @@ function usersPage(role) {
   };
 }
 
-async function userPage(box) {
-  const { data } = await api('GET', '/admin/users/' + current.param);
+/// The profile page. For an application it offers the decision only, and its tables wait for the approval
+async function userPage(box, application) {
+  const { data } = await api('GET', '/admin/users/' + (application ? application.user_id : current.param));
   const { user } = data;
   const isLawyer = user.role === 'lawyer';
 
-  const badges = [badge(isLawyer ? 'محامٍ' : 'موكل', 'blue'), accountTag(user.status)];
-  if (isLawyer && hasService(user)) badges.push(badge(SERVICE_NAME, 'green'));
+  const badges = [statusRow(isLawyer ? 'lawyer' : 'client', 'نوع الحساب', badge(isLawyer ? 'محامٍ' : 'موكل', 'blue')), statusRow('power', 'حالة الحساب', accountTag(user.status))];
+  if (isLawyer) {
+    const [serviceText, serviceColor] = { APPROVED: ['مفعلة', 'green'], PENDING: ['قيد المراجعة', 'amber'], REJECTED: ['مرفوضة', 'red'] }[user.urgent_status] || ['غير مفعلة', 'gray'];
+    badges.push(statusRow('apply', SERVICE_NAME, badge(serviceText, serviceColor)));
+    badges.push(statusRow('check', 'متاح الآن', user.is_available ? badge('نعم', 'green') : badge('لا', 'gray')));
+    if (!user.is_available && user.availability_off_reason) {
+      badges.push(statusRow('complaint', 'سبب عدم الإتاحة', badge(OFF_REASONS[user.availability_off_reason] || user.availability_off_reason, 'amber')));
+    }
+    badges.push(statusRow('calendar', 'آخر تحديث للموقع', el('span', date(user.last_location_updated_at), 'hero-status-text')));
+  }
   box.append(hero(avatarBox(user.photo, isLawyer ? 'lawyer' : 'client'), user.full_name || 'حساب', badges,
-    [['phone', user.phone], ['mail', user.email], ['calendar', 'تاريخ التسجيل: ' + date(user.created_at)]], [actionButton(userActions(user, data))]));
+    [['phone', user.phone], ['mail', user.email], ['calendar', 'تاريخ التسجيل: ' + date(user.created_at)]], [actionButton(application ? applicationActions(application) : userActions(user, data))]));
 
   const stats = [['الطلبات', user.user_orders, 'orders', 'blue'], ['شكاوى ضده', user.user_against, 'complaint', 'red'],
     ['شكاوى قدمها', user.user_filed, 'appeal', 'amber'], ['الإنذارات', user.warnings_count, 'power', 'gray']];
@@ -73,19 +83,15 @@ async function userPage(box) {
   const active = list.some(([key]) => key === current.tab) ? current.tab : 'data';
   box.append(tabs(list, active, (key) => { current.tab = key; render(); }));
 
-  const pane = el('div', undefined, 'tab-content-pane');
+  const pane = el('div', undefined, 'tab-content-pane' + (application && active !== 'data' ? ' locked-tables' : ''));
   if (active === 'data') {
     pane.append(section('بيانات الحساب', details([
       ['الاسم', user.full_name], ['الهاتف', user.phone], ['البريد', user.email], ['تاريخ التسجيل', date(user.created_at)],
     ])));
     if (isLawyer) {
-      pane.append(section('الصورة وبطاقة النقابة', await documentsGrid(user)));
+      pane.append(section('الصورة وكارنيه النقابة', await documentsGrid(user)));
       pane.append(section('البيانات المهنية', details([
         ['رقم القيد', user.syndicate_number], ['سنوات الخبرة', user.experience_years ?? 0], ['عدد التقييمات', user.reviews_count],
-      ])));
-      pane.append(section('الإتاحة والموقع', details([
-        ['متاح الآن', user.is_available ? 'نعم' : 'لا'], ['سبب عدم الإتاحة', user.availability_off_reason],
-        ['آخر تحديث للموقع', date(user.last_location_updated_at)],
       ])));
     }
   } else if (active === 'activity') {

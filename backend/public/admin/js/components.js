@@ -139,11 +139,13 @@ function accountTag(status) {
   return badge(label, color);
 }
 
+const COLUMN_SIZES = { 'الاسم': 'wide-column', 'سنوات الخبرة': 'narrow-column', 'التقييم': 'narrow-column' };
+
 function table(headers, rows, onClick) {
   const wrap = el('div', undefined, 'table-wrapper sticky-table-container');
   const node = el('table', undefined, 'custom-table text-center-table');
   const head = el('tr');
-  headers.forEach((title) => head.append(el('th', title)));
+  headers.forEach((title) => head.append(el('th', title, COLUMN_SIZES[title] || '')));
   const thead = el('thead');
   thead.append(head);
   const tbody = el('tbody');
@@ -207,7 +209,7 @@ const SECTION_ICONS = {
   'إضافات وخصومات الرصيد': 'money', 'كل حركات الرصيد': 'money', 'مدفوعات الموكل': 'money', 'الدفعة': 'money', 'الأموال التي تحركت في هذا الطلب': 'transfer',
   'حالة الأتعاب': 'money', 'حالة الأموال': 'money', 'سجل التجميد': 'freeze', 'بيانات التسوية': 'apply', 'تذاكر الدعم الفني': 'ticket',
   'أطراف الطلب': 'client', 'تفاصيل المشكلة': 'appeal', 'المواعيد': 'calendar', 'مراحل الطلب': 'orders', 'الرسائل': 'appeal', 'حالة التذكرة': 'lock',
-  'بيانات الحساب': 'lawyer', 'الصورة وبطاقة النقابة': 'apply', 'البيانات المهنية': 'apply', 'الإتاحة والموقع': 'power', 'سبب البلاغ': 'complaint', 'المطلوب منك': 'check',
+  'بيانات الحساب': 'lawyer', 'الصورة وكارنيه النقابة': 'apply', 'البيانات المهنية': 'apply', 'سبب البلاغ': 'complaint', 'المطلوب منك': 'check',
 };
 
 // A short line under each inner table's title, saying what the table shows
@@ -345,24 +347,31 @@ function textarea(value, placeholder, className) {
 }
 
 /// Top card for a profile or an order, like view-hero-card
+/// One labelled status in a page header: what it describes, then its value
+function statusRow(name, label, value) {
+  const row = el('div', undefined, 'hero-status-row');
+  const key = el('span', undefined, 'hero-status-key');
+  key.append(icon(name), el('span', label));
+  row.append(key, value);
+  return row;
+}
+
+/// The header of an inner page, split into separate parts: who, how to reach them, status, action
 function hero(avatar, title, badges, pills, buttons) {
   const card = el('div', undefined, 'view-hero-card');
-  const main = el('div', undefined, 'view-hero-main');
-  const info = el('div', undefined, 'view-hero-info');
-  const row = el('div', undefined, 'view-title-row');
-  row.style.flexWrap = 'wrap';
-  row.append(el('h2', title, 'view-product-title'), ...badges);
-  const meta = el('div', undefined, 'view-meta-pills');
+  const main = el('div', undefined, 'view-hero-main hero-part');
+  main.append(avatar, el('h2', title, 'view-product-title'));
+  const meta = el('div', undefined, 'view-meta-pills hero-part');
   pills.forEach(([name, text]) => {
     const pill = el('span', undefined, 'view-meta-pill');
     pill.append(icon(name), text instanceof Node ? text : document.createTextNode(text ?? '-'));
     meta.append(pill);
   });
-  info.append(row, meta);
-  main.append(avatar, info);
-  card.append(main);
+  const states = el('div', undefined, 'hero-states hero-part');
+  states.append(...badges);
+  card.append(main, meta, states);
   if (buttons.length) {
-    const tools = el('div', undefined, 'view-hero-actions');
+    const tools = el('div', undefined, 'view-hero-actions hero-part');
     tools.append(...buttons);
     card.append(tools);
   }

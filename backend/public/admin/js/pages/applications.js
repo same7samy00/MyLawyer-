@@ -19,7 +19,7 @@ async function applicationsPage(box) {
     ['الخدمة مفعلة', count('APPROVED'), 'check', 'green'],
     ['طلبات مرفوضة', count('REJECTED'), 'reject', 'red'],
   ]));
-  box.append(guide('راجع الصورة الشخصية وصورة البطاقة وبيانات المحامي قبل الموافقة.',
+  box.append(guide('راجع الصورة الشخصية وصورة الكارنيه وبيانات المحامي قبل الموافقة.',
     'بعد الموافقة يتمكن المحامي من استقبال طلبات «محاميك حالاً»، ويظهر للموكلين على الخريطة عند إتاحته.'));
   box.append(controlsBar([
     searchBox(q, 'ابحث بالاسم أو الهاتف أو البريد', (value) => { current.search = value; render(); }),
@@ -42,7 +42,7 @@ async function privateDocument(id) {
   const load = () => fetch(API + '/lawyers/documents/' + id, { headers: { Authorization: 'Bearer ' + session?.accessToken } });
   let res = await load();
   if (res.status === 401 && await refreshSession()) res = await load();
-  if (!res.ok) throw new Error('تعذر تحميل صورة البطاقة');
+  if (!res.ok) throw new Error('تعذر تحميل صورة الكارنيه');
   return URL.createObjectURL(await res.blob());
 }
 
@@ -68,7 +68,7 @@ async function documentsGrid(item) {
   }
 
   if (!item.card_id) {
-    grid.append(documentBox('بطاقة النقابة', missingDocument('لم يرفع المحامي صورة البطاقة بعد')));
+    grid.append(documentBox('كارنيه النقابة', missingDocument('لم يرفع المحامي صورة الكارنيه بعد')));
   } else {
     try {
       const url = await privateDocument(item.card_id);
@@ -78,29 +78,27 @@ async function documentsGrid(item) {
         view.target = '_blank';
         view.rel = 'noopener';
         view.className = 'btn btn-outline';
-        view.append(icon('open'), el('span', 'فتح ملف البطاقة'));
-        grid.append(documentBox('بطاقة النقابة', view));
+        view.append(icon('open'), el('span', 'فتح ملف الكارنيه'));
+        grid.append(documentBox('كارنيه النقابة', view));
       } else {
-        grid.append(documentBox('بطاقة النقابة', imageThumb(url, 'بطاقة النقابة')));
+        grid.append(documentBox('كارنيه النقابة', imageThumb(url, 'كارنيه النقابة')));
       }
     } catch (err) {
-      grid.append(documentBox('بطاقة النقابة', missingDocument(err.message)));
+      grid.append(documentBox('كارنيه النقابة', missingDocument(err.message)));
     }
   }
   return grid;
 }
 
-/// One application on its own page, the list already carries everything it shows
-async function applicationPage(box) {
-  const item = current.param;
+/// An application opens as the lawyer's profile, with the decision as its action
+function applicationPage(box) {
+  return userPage(box, current.param);
+}
+
+function applicationActions(item) {
   const decide = (approve, reason) => decideAndReturn(() =>
     api('POST', '/admin/urgent-applications/' + item.user_id + '/decision', { approve, reason }));
-
-  const card = el('div', undefined, 'application-card');
-  const head = el('div', undefined, 'application-head');
-  const title = el('div', undefined, 'view-title-row');
-  title.append(el('h2', item.full_name, 'view-product-title'), badge('بانتظار المراجعة', 'amber'));
-  head.append(title, actionButton([
+  return [
     {
       title: 'الموافقة على الطلب', description: 'يتيح للمحامي استقبال طلبات «محاميك حالاً».', steps: [], success: 'تمت الموافقة',
       summary: () => [['المحامي', item.full_name]], run: () => decide(true),
@@ -110,12 +108,5 @@ async function applicationPage(box) {
       steps: [{ key: 'reason', type: 'text', label: 'ما سبب الرفض؟', min: 3 }],
       summary: (values) => [['المحامي', item.full_name], ['السبب', values.reason]], run: (values) => decide(false, values.reason),
     },
-  ]));
-  const content = el('div', undefined, 'application-body');
-  content.append(details([
-    ['الهاتف', item.phone], ['رقم القيد', item.syndicate_number || 'غير مسجل'],
-    ['سنوات الخبرة', item.experience_years ?? 0],
-  ]), await documentsGrid(item));
-  card.append(head, content);
-  box.append(card);
+  ];
 }

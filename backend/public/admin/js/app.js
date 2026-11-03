@@ -2,7 +2,7 @@ const PAGES = {
   overview: ['الرئيسية', 'home', overviewPage],
   tickets: ['تذاكر الدعم الفني', 'complaint', ticketsPage],
   reports: ['بلاغات التقييمات', 'review', reportsPage],
-  applications: ['مستخدمو محاميك حالاً', 'apply', applicationsPage],
+  applications: ['محاميك حالاً', 'apply', applicationsPage],
   lawyers: ['حسابات المحامين', 'lawyer', usersPage('lawyer')],
   clients: ['حسابات الموكلين', 'client', usersPage('client')],
   orders: ['إدارة الطلبات', 'orders', ordersPage],
@@ -21,7 +21,8 @@ const SUBTITLES = {
 };
 const NAV_GROUPS = [
   [null, ['overview']],
-  ['المتابعة', ['tickets', 'applications', 'reports']],
+  ['الخدمات', ['applications']],
+  ['المتابعة', ['tickets', 'reports']],
   ['الطلبات والحسابات', ['orders', 'lawyers', 'clients', 'reviews', 'decisions']],
   ['الأموال', ['money', 'prices']],
 ];

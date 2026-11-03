@@ -46,7 +46,7 @@ async function orderPage(box) {
 
   const buttons = orderActions.length ? [actionButton(orderActions)] : [];
   data.tickets.filter((item) => item.status !== 'CLOSED').forEach((item) => buttons.push(link('تذكرة ' + item.reference, () => open('ticket', item.id), 'btn-primary', 'complaint')));
-  box.append(hero(avatarBox(null, 'orders'), 'طلب ' + order.order_number, [tag(order.status)],
+  box.append(hero(avatarBox(null, 'orders'), 'طلب ' + order.order_number, [statusRow('orders', 'حالة الطلب', tag(order.status))],
     [['orders', copyable(order.order_number)], ['calendar', 'تاريخ الطلب: ' + date(order.created_at)], ['money', order.price + ' ج.م']], buttons));
 
   box.append(summaryBar([

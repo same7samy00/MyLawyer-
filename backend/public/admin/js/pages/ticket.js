@@ -11,7 +11,7 @@ async function ticketPage(box) {
   ];
   buttons.push(link(data.user_name, () => open('user', data.user_id), 'btn-outline', 'open'));
   if (data.order) buttons.push(link('الطلب', () => open('order', data.order.id), 'btn-outline', 'orders'));
-  box.append(hero(avatarBox(null, 'complaint'), data.title, [ticketStatus(data.status), badge(TICKET_CATEGORY[data.category] || data.category, 'purple')],
+  box.append(hero(avatarBox(null, 'complaint'), data.title, [statusRow('ticket', 'حالة التذكرة', ticketStatus(data.status)), statusRow('note', 'نوع التذكرة', badge(TICKET_CATEGORY[data.category] || data.category, 'purple'))],
     [[data.user_role === 'lawyer' ? 'lawyer' : 'client', data.user_name + ' • ' + data.user_phone], ['calendar', date(data.created_at)],
       ['ticket', copyable(data.reference)], ...(data.order ? [['orders', orderLink(data.order.order_number)]] : [])], buttons));
 

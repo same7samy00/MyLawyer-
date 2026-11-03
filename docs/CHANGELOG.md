@@ -1,7 +1,7 @@
 # 📝 CHANGELOG - My Lawyer
 
 ## [Control Page: Main Tables] - 2026-11-03
-- Main tables now start with a running number and have shorter rows. Tables inside sections are unchanged.
+- Main tables now start with a running number and have shorter rows.  The name column is wider, and the experience and rating columns are narrower. Status in tables and inner page headers is coloured text with a matching dot, and those headers are split into separate parts with labelled status lines and icons side by side, which now include availability and location. The control page now says «كارنيه النقابة». An application now opens as the lawyer's profile, and its activity and balance tables stay covered until approval. Tables inside sections are unchanged.
 
 ## [Control Page: Speed] - 2026-11-03
 - The control page script is now compressed by Nginx, and its fonts moved to WOFF2 with the two main weights preloaded. Page files are read once at server start.
@@ -12,7 +12,7 @@
 - Tables across the control page now form one connected grid of dashed lines that meets the edges of their containers, with the same 5px corners. Account tables no longer show photos, which stay in the profile.
 
 ## [Control Page: Service Users] - 2026-11-03
-- Added the «مستخدمو محاميك حالاً» page, replacing the join requests page: it holds applications with their decisions, approved lawyers, and rejected ones.
+- Added the «محاميك حالاً» page under a new «الخدمات» menu group, replacing the join requests page: it holds applications with their decisions, approved lawyers, and rejected ones.
 - «حسابات المحامين» now lists every lawyer from sign-up, with a service column and service filters. The service name shows in the profile header only when the service is active.
 
 ## [App Font] - 2026-11-03

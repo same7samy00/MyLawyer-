@@ -14,7 +14,7 @@ async function reviewReportPage(box) {
   const item = current.param;
   const moderate = (hide) => decideAndReturn(() => api('POST', '/admin/reviews/' + item.id + '/moderate', { hide }));
 
-  box.append(hero(avatarBox(null, 'review'), 'بلاغ عن تقييم', [badge('مفتوح', 'amber')],
+  box.append(hero(avatarBox(null, 'review'), 'بلاغ عن تقييم', [statusRow('complaint', 'حالة البلاغ', badge('مفتوح', 'amber'))],
     [['lawyer', item.lawyer_name], ['calendar', date(item.reported_at)]], [actionButton([
       {
         title: 'إبقاء التعليق', description: 'يغلق البلاغ ويبقى التعليق ظاهرًا في ملف المحامي.', steps: [], success: 'تم إبقاء التعليق',
