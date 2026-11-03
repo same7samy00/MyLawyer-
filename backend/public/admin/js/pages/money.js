@@ -43,7 +43,7 @@ async function moneyPage(box) {
   box.append(tabs(list, active, (key) => { current.tab = key; render(); }));
 
   if (active === 'frozen') {
-    box.append(guide('هذه الأموال لا يستطيع المحامي سحبها. افتح العملية لتتخذ القرار. وتظهر الأقدم أولًا.'));
+    box.append(guide('هذه الأموال لا يستطيع المحامي سحبها. افتح العملية لتتخذ القرار.'));
     box.append(table(['رقم الطلب', 'المبلغ', 'المحامي', 'الموكل', 'سبب التجميد', 'مجمدة منذ', 'الإجراءات'], data.frozen.map((item) => ({
       item,
       cells: [
@@ -63,11 +63,11 @@ async function moneyPage(box) {
   box.append(controlsBar([
     ...(active === 'payments' ? [
       searchBox(current.search, 'ابحث برقم الدفعة أو الطلب أو الموكل', (value) => { current.search = value; render(); }),
-      filterButtons([['', 'كل الطرق'], ['WALLET', 'من الرصيد'], ['DIRECT', 'دون بوابة دفع']], current.method || '', (value) => { current.method = value; render(); }),
+      filterButtons([['', 'كل الطرق'], ['WALLET', 'من الرصيد'], ['DIRECT', 'دون بوابة دفع']], current.method || '', (value) => { current.method = value; render(); }, 'طريقة الدفع', 'money'),
     ] : []),
     ...(active === 'movements' ? [
       searchBox(current.search, 'ابحث بالاسم أو رقم الطلب أو السبب', (value) => { current.search = value; render(); }),
-      stateFilter([['', 'كل الحركات'], ['add', 'إضافة'], ['deduct', 'خصم']]),
+      stateFilter([['', 'كل الحركات'], ['add', 'إضافة'], ['deduct', 'خصم']], 'نوع الحركة', 'money'),
     ] : []),
     ...dateFilters(),
   ]));

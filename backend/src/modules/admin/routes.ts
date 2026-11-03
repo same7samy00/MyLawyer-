@@ -92,7 +92,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
          WHERE d.lawyer_profile_id = lp.id AND d.document_type = 'syndicate_card' AND d.is_current
          ORDER BY uploaded_at DESC LIMIT 1
        ) card ON TRUE
-       WHERE lp.urgent_status = 'PENDING' ORDER BY lp.urgent_terms_accepted_at ASC`
+       WHERE lp.urgent_status = 'PENDING' ORDER BY lp.urgent_terms_accepted_at DESC`
     );
     return reply.send({ success: true, data: res.rows });
   });
@@ -151,7 +151,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       `SELECT r.id, r.rating, r.comment, r.report_reason, r.reported_at, r.lawyer_id, lp.full_name as lawyer_name
        FROM reviews r JOIN lawyer_profiles lp ON lp.user_id = r.lawyer_id
        WHERE r.reported_at IS NOT NULL AND r.is_hidden = FALSE
-       ORDER BY r.reported_at ASC`
+       ORDER BY r.reported_at DESC`
     );
     return reply.send({ success: true, data: res.rows });
   });

@@ -29,12 +29,17 @@ async function ticketsPage(box) {
   const { data } = await api('GET', '/admin/support');
   const active = TICKET_TABS.some(([key]) => key === current.state) ? current.state : 'UNDER_REVIEW';
   const sided = current.side ? data.filter((item) => item.user_role === current.side) : data;
+  box.append(summaryBar([
+    ['كل التذاكر', data.length, 'complaint', 'brand'], ['تنتظر ردك', data.filter((item) => item.status === 'UNDER_REVIEW').length, 'calendar', 'amber'],
+    ['من الموكلين', data.filter((item) => item.user_role === 'client').length, 'client', 'blue'], ['من المحامين', data.filter((item) => item.user_role === 'lawyer').length, 'lawyer', 'blue'],
+  ]));
   box.append(tabs(TICKET_TABS.map(([key, label]) => [key, label, sided.filter((item) => item.status === key).length]), active, (key) => { current.state = key; render(); }));
   box.append(controlsBar([
-    filterButtons([['', 'الكل'], ['client', 'الموكلون'], ['lawyer', 'المحامون']], current.side || '', (value) => { current.side = value; render(); }),
+    searchBox(current.search, 'ابحث برقم التذكرة أو العنوان أو صاحبها', (value) => { current.search = value; render(); }),
+    filterButtons([['', 'الكل'], ['client', 'الموكلون'], ['lawyer', 'المحامون']], current.side || '', (value) => { current.side = value; render(); }, 'صاحب التذكرة', 'client'),
     ...dateFilters(),
   ]));
-  const shown = applyFilters(sided.filter((item) => item.status === active), (item) => item.created_at);
+  const shown = applyFilters(sided.filter((item) => item.status === active && matchesSearch(item, ['reference', 'title', 'user_name', 'user_phone', 'order_number'])), (item) => item.created_at);
   box.append(table(['رقم التذكرة', 'العنوان', 'النوع', 'صاحب التذكرة', 'الطلب', active === 'UNDER_REVIEW' ? 'تنتظر منذ' : 'آخر تحديث', 'الإجراءات'], shown.map((item) => ({
     item,
     cells: [

@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 
 // Loaded together in this order, because later files use what earlier ones define
-const STYLES = ['css/base.css', 'css/panel.css'];
+const STYLES = ['css/base.css', 'css/panel.css', 'css/lists.css', 'css/profile.css'];
 const SCRIPTS = [
   'js/core.js',
   'js/components.js',

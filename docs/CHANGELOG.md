@@ -1,5 +1,17 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Control Page: Style Files] - 2026-11-03
+- Moved the latest control page styles into `css/lists.css` and `css/profile.css`, merged rules that overrode each other, and removed unused ones. Header action buttons now sit two on each line and fill their part.
+
+## [Control Page: Home and Tasks] - 2026-11-03
+- The home page now shows whole-app totals only, and its menu name is stretched by the Arabic line ـ to match the names under it. A new «متابعة المهام» page below it lists what needs the admin now, and opens each list with all dates. Every menu page now has quick numbers at the top.
+
+## [Control Page: List Layout] - 2026-11-03
+- Main list pages now read: numbers, full-width search, filters, then dates with quick choices, each filter in a box with an icon and a name. They open on today. Search works while typing, looks through all dates, and has a clear button that brings today back. Reports, reviews, decisions and tickets gained a search box.
+
+## [Control Page: Table Order] - 2026-11-03
+- Applications, reported reviews, frozen money, and tickets now list the newest first, like the other tables. Order timelines and chat messages stay in time order.
+
 ## [Control Page: Main Tables] - 2026-11-03
 - Main tables now start with a running number and have shorter rows.  The name column is wider, and the experience and rating columns are narrower. Status in tables and inner page headers is coloured text with a matching dot, and those headers are split into separate parts with labelled status lines and icons side by side, which now include availability and location. The control page now says «كارنيه النقابة». An application now opens as the lawyer's profile, and its activity and balance tables stay covered until approval. Tables inside sections are unchanged.
 

@@ -51,7 +51,7 @@ export async function registerAdminMoney(fastify: FastifyInstance) {
            WHERE order_id = o.id AND status <> 'CLOSED' ORDER BY created_at DESC LIMIT 1
          ) t ON TRUE
          WHERE o.payout_status = 'FROZEN'
-         ORDER BY e.created_at ASC NULLS FIRST LIMIT $1`, [LIST_LIMIT]),
+         ORDER BY e.created_at DESC NULLS LAST LIMIT $1`, [LIST_LIMIT]),
       query(
         `SELECT m.id, m.account_role, m.user_id, m.amount, m.reason, m.created_at, m.order_id, o.order_number,
                 COALESCE(lp.full_name, u.full_name, u.phone) AS account_name, a.email AS created_by

@@ -1,5 +1,6 @@
 const PAGES = {
   overview: ['الرئيسية', 'home', overviewPage],
+  tasks: ['متابعة المهام', 'check', tasksPage],
   tickets: ['تذاكر الدعم الفني', 'complaint', ticketsPage],
   reports: ['بلاغات التقييمات', 'review', reportsPage],
   applications: ['محاميك حالاً', 'apply', applicationsPage],
@@ -14,19 +15,21 @@ const PAGES = {
 const INNER = { user: userPage, order: orderPage, application: applicationPage, ticket: ticketPage, reviewReport: reviewReportPage };
 const INNER_TITLES = { user: 'الملف الشخصي', order: 'تفاصيل الطلب', application: 'طلب تقديم على محاميك حالاً', ticket: 'تذكرة دعم فني', reviewReport: 'بلاغ عن تقييم' };
 const SUBTITLES = {
-  overview: 'ما يحتاج إلى متابعتك الآن', tickets: 'كل ما يرسله الموكلون والمحامون إلى الدعم الفني', reports: 'تعليقات أبلغ عنها المحامون',
+  overview: 'إجمالي إحصائيات التطبيق', tasks: 'ما يحتاج إلى متابعتك الآن', tickets: 'كل ما يرسله الموكلون والمحامون إلى الدعم الفني', reports: 'تعليقات أبلغ عنها المحامون',
   reviewReport: 'مراجعة التعليق والقرار', ticket: 'الرسائل والرد والإغلاق', applications: 'طلبات التقديم على الخدمة والمحامون المفعلة لهم', lawyers: 'كل حسابات المحامين',
   clients: 'كل حسابات الموكلين', orders: 'البحث في الطلبات ومتابعة حالتها', reviews: 'تقييمات الموكلين للمحامين',
   decisions: 'من اتخذ كل قرار في اللوحة ومتى', money: 'المدفوعات والأموال المجمدة والحركات', prices: 'أسعار الخدمات ونسبة المنصة والضريبة', application: 'مراجعة بيانات المحامي والقرار', user: 'البيانات والطلبات والتقييمات', order: 'البيانات ودورة حياة الطلب',
 };
 const NAV_GROUPS = [
   [null, ['overview']],
+  ['المتابعة', ['tasks', 'tickets', 'reports']],
   ['الخدمات', ['applications']],
-  ['المتابعة', ['tickets', 'reports']],
   ['الطلبات والحسابات', ['orders', 'lawyers', 'clients', 'reviews', 'decisions']],
   ['الأموال', ['money', 'prices']],
 ];
-const NAV_COUNTS = { tickets: 'waiting_tickets', applications: 'pending_lawyers', reports: 'reported_reviews', money: 'frozen_orders' };
+// Stretched so the first menu word lines up with the longer names under it
+const NAV_LABELS = { overview: 'الرئيــــــــــسية' };
+const NAV_COUNTS = { tasks: 'all_tasks', tickets: 'waiting_tickets', applications: 'pending_lawyers', reports: 'reported_reviews', money: 'frozen_orders' };
 let navCounts = {};
 let navCountsAt = 0;
 let renderTurn = 0;
@@ -66,7 +69,7 @@ function renderNav() {
   const activePage = trail.length ? trail[0].page : current.page;
   $('nav').replaceChildren(...NAV_GROUPS.flatMap(([group, keys]) => [
     ...(group ? [el('div', group, 'nav-group-title')] : []),
-    ...keys.map((key) => navItem(PAGES[key][0], PAGES[key][1], () => { setMenu(false); open(key, undefined, true); }, key === activePage, navCounts[NAV_COUNTS[key]])),
+    ...keys.map((key) => navItem(NAV_LABELS[key] || PAGES[key][0], PAGES[key][1], () => { setMenu(false); open(key, undefined, true); }, key === activePage, navCounts[NAV_COUNTS[key]])),
   ]));
   $('nav-footer').replaceChildren(navItem('تسجيل الخروج', 'logout', () => { setMenu(false); showLogin(); }, false));
 }
@@ -88,12 +91,34 @@ async function refreshNavCounts() {
   try {
     const before = navCounts;
     navCounts = (await api('GET', '/admin/overview')).data;
+    navCounts.all_tasks = navCounts.waiting_tickets + navCounts.frozen_orders + navCounts.pending_lawyers + navCounts.reported_reviews;
     announceNewWork(before, navCounts);
     renderNav();
   } catch {
     // Try again on the next page, the page itself shows its own errors
     navCountsAt = 0;
   }
+}
+
+/// The page is drawn again after each search, so typing carries on in the new box without losing letters
+function restoreSearchFocus(typed) {
+  if (!keepSearchFocus) return;
+  keepSearchFocus = false;
+  const field = $('content').querySelector('.table-search-input');
+  if (!field) return;
+  field.focus();
+  if (typed !== undefined && typed !== field.value) {
+    field.value = typed;
+    field.dispatchEvent(new Event('input'));
+  }
+  field.setSelectionRange(field.value.length, field.value.length);
+}
+
+/// A list page reads from the top: numbers, search, filters, dates, then its note and table
+function arrangeMainPage(box) {
+  const controls = box.querySelector(':scope > .table-controls-bar');
+  const note = box.querySelector(':scope > .page-guide');
+  if (controls && note) controls.after(note);
 }
 
 /// The page's main tables start with a running number, tables inside a section stay as they are
@@ -115,6 +140,8 @@ async function render() {
   renderNav();
   refreshNavCounts();
   if (!INNER[current.page] && !PAGES[current.page]) current = { page: 'overview' };
+  // Every list opens on today
+  if (PAGES[current.page] && current.from === undefined && current.to === undefined) current.from = current.to = dayText(0);
   $('page-title').textContent = INNER_TITLES[current.page] || PAGES[current.page][0];
   $('page-subtitle').textContent = SUBTITLES[current.page] || '';
   $('back-button').hidden = trail.length === 0;
@@ -134,8 +161,11 @@ async function render() {
   try {
     await (INNER[current.page] || PAGES[current.page][2])(box);
     if (turn !== renderTurn) return;
+    arrangeMainPage(box);
     numberMainTables(box);
+    const typed = $('content').querySelector('.table-search-input')?.value;
     $('content').replaceChildren(page);
+    restoreSearchFocus(typed);
     $('content').scrollTop = 0;
   } catch (err) {
     console.error(err);

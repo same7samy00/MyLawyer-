@@ -23,7 +23,7 @@ async function applicationsPage(box) {
     'بعد الموافقة يتمكن المحامي من استقبال طلبات «محاميك حالاً»، ويظهر للموكلين على الخريطة عند إتاحته.'));
   box.append(controlsBar([
     searchBox(q, 'ابحث بالاسم أو الهاتف أو البريد', (value) => { current.search = value; render(); }),
-    filterButtons(SERVICE_FILTERS, filter, (key) => { current.filter = key; render(); }),
+    filterButtons(SERVICE_FILTERS, filter, (key) => { current.filter = key; render(); }, 'حالة الخدمة', 'apply'),
     ...dateFilters(),
   ]));
 

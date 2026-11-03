@@ -131,7 +131,7 @@
 | `/admin/money` | `GET` | الأموال المجمدة والمحجوزة، والمدفوعات، والحركات، وسجل التجميد. يقبل `from` و`to` بصيغة `YYYY-MM-DD` |
 | `/admin/support/:id/transfer` | `POST` | تحويل مبلغ بين طرفي طلب التذكرة في خطوة واحدة: `from` (`lawyer` أو `client`) و`amount` و`reason` |
 | `/admin/support/:id/close` | `POST` | قفل التذكرة برسالة اختيارية `body`. لا يغير الفلوس، والقرار المالي من `/admin/orders/:id/settle` |
-| `/admin/urgent-applications` | `GET` | طلبات الانضمام بالصورة الشخصية وبيانات الكارنيه |
+| `/admin/urgent-applications` | `GET` | طلبات التقديم على «محاميك حالاً» بالصورة الشخصية وبيانات الكارنيه |
 | `/admin/urgent-applications/:id/decision` | `POST` | الموافقة على طلب الانضمام أو رفضه بسبب |
 | `/admin/reviews` و`/admin/reviews/reported` | `GET` | كل التقييمات، والمبلغ عنها |
 | `/admin/reviews/:id/moderate` | `POST` | إخفاء تعليق أو إبقاؤه |

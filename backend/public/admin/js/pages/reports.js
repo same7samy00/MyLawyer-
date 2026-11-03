@@ -1,9 +1,17 @@
 async function reportsPage(box) {
   const { data } = await api('GET', '/admin/reviews/reported');
-  const shown = applyFilters(data, (item) => item.reported_at, () => '');
-  box.append(summaryBar([['بلاغات مفتوحة', data.length, 'review', 'blue']]));
+  const found = data.filter((item) => matchesSearch(item, ['lawyer_name', 'comment', 'report_reason']));
+  const shown = applyFilters(found, (item) => item.reported_at, () => '');
+  box.append(summaryBar([
+    ['بلاغات مفتوحة', data.length, 'review', 'blue'],
+    ['اليوم', data.filter((item) => dayText(0, new Date(item.reported_at)) === dayText(0)).length, 'calendar', 'amber'],
+    ['آخر 7 أيام', data.filter((item) => new Date(item.reported_at) > Date.now() - 7 * 86400000).length, 'calendar', 'brand'],
+  ]));
   box.append(guide('تظهر هنا التعليقات التي أبلغ عنها المحامون في تقييماتهم.', 'افتح البلاغ لتقرر إخفاء التعليق أو إبقاءه.'));
-  box.append(controlsBar([...dateFilters()]));
+  box.append(controlsBar([
+    searchBox(current.search, 'ابحث باسم المحامي أو التعليق أو سبب البلاغ', (value) => { current.search = value; render(); }),
+    ...dateFilters(),
+  ]));
   box.append(table(['المحامي', 'التقييم', 'التعليق', 'سبب البلاغ', 'التاريخ', 'الإجراءات'], shown.map((item) => ({
     item,
     cells: [personCell(item.lawyer_name), item.rating + ' / 5', item.comment || '-', item.report_reason || '-', date(item.reported_at), openButton('فتح', 'reviewReport', item)],

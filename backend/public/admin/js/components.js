@@ -279,10 +279,19 @@ function summaryBar(items) {
   return bar;
 }
 
+/// A filter in its own box: an icon and a name, then its choices
+function filterBox(iconName, label, ...content) {
+  const box = el('div', undefined, 'filter-box');
+  const head = el('span', undefined, 'filter-box-head');
+  head.append(icon(iconName), el('span', label));
+  box.append(head, ...content);
+  return box;
+}
+
 function controlsBar(right, left) {
   const bar = el('div', undefined, 'table-controls-bar');
   const start = el('div', undefined, 'controls-right');
-  start.append(...right);
+  start.append(...right.map((node) => (node.classList.contains('filter-buttons') ? filterBox(node.dataset.icon, node.dataset.label, node) : node)));
   bar.append(start);
   if (left && left.length) {
     const end = el('div', undefined, 'controls-left');
@@ -292,14 +301,49 @@ function controlsBar(right, left) {
   return bar;
 }
 
+let keepSearchFocus = false;
+
+/// Searches while typing. It looks through all dates if the page was on today, and clearing it brings today back
 function searchBox(value, placeholder, onSearch) {
   const box = el('div', undefined, 'search-input-box icon-pos-start');
   box.append(icon('search', 'search-icon'));
   const input = el('input', undefined, 'table-search-input');
   input.placeholder = placeholder;
   input.value = value || '';
-  input.addEventListener('keydown', (event) => { if (event.key === 'Enter') onSearch(input.value.trim()); });
-  box.append(input);
+  const clear = el('button', undefined, 'search-clear');
+  clear.type = 'button';
+  clear.setAttribute('aria-label', 'مسح البحث');
+  clear.append(icon('close'));
+  clear.hidden = !input.value;
+
+  let timer;
+  const run = () => {
+    clearTimeout(timer);
+    const text = input.value.trim();
+    if (text && current.from === dayText(0) && current.to === dayText(0)) {
+      current.from = '';
+      current.to = '';
+      current.searchWidened = true;
+    } else if (!text && current.searchWidened && !current.from && !current.to) {
+      current.from = dayText(0);
+      current.to = dayText(0);
+      current.searchWidened = false;
+    }
+    keepSearchFocus = true;
+    onSearch(text);
+  };
+  input.addEventListener('input', () => {
+    clear.hidden = !input.value;
+    clearTimeout(timer);
+    timer = setTimeout(run, 300);
+  });
+  input.addEventListener('keydown', (event) => { if (event.key === 'Enter') run(); });
+  clear.addEventListener('click', () => {
+    input.value = '';
+    clear.hidden = true;
+    run();
+  });
+  box.append(input, clear);
   return box;
 }
 
@@ -315,8 +359,10 @@ function filterSelect(options, value, onPick, iconName) {
 }
 
 /// A filter as buttons: pressing one applies it at once
-function filterButtons(options, value, onPick) {
+function filterButtons(options, value, onPick, label = 'الحالة', iconName = 'power') {
   const bar = el('div', undefined, 'filter-buttons');
+  bar.dataset.label = label;
+  bar.dataset.icon = iconName;
   options.forEach(([key, label]) => {
     const node = el('button', label, 'filter-button' + (key === value ? ' active' : ''));
     node.type = 'button';
@@ -484,12 +530,47 @@ function dateInput(key, placeholder) {
   return box;
 }
 
-function dateFilters() {
-  return [dateInput('from', 'من'), dateInput('to', 'إلى')];
+/// A date as the date field writes it, counted in days from today
+function dayText(offset, from = new Date()) {
+  const day = new Date(from.getFullYear(), from.getMonth(), from.getDate() + offset);
+  return day.getFullYear() + '-' + String(day.getMonth() + 1).padStart(2, '0') + '-' + String(day.getDate()).padStart(2, '0');
 }
 
-function stateFilter(options) {
-  return filterButtons(options, current.state || '', (value) => { current.state = value; render(); });
+function quickDates() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return [
+    ['اليوم', dayText(0), dayText(0)],
+    ['أمس', dayText(-1), dayText(-1)],
+    ['آخر 7 أيام', dayText(-6), dayText(0)],
+    ['آخر 30 يومًا', dayText(-29), dayText(0)],
+    ['هذا الشهر', dayText(0, monthStart), dayText(0)],
+    ['الشهر الماضي', dayText(0, lastMonthStart), dayText(-1, monthStart)],
+    ['كل الأوقات', '', ''],
+  ];
+}
+
+function dateFilters() {
+  const ranges = quickDates();
+  const chosen = ranges.findIndex(([, from, to]) => (current.from || '') === from && (current.to || '') === to);
+  const quick = filterButtons(ranges.map(([label], index) => [String(index), label]), String(chosen), (key) => {
+    [, current.from, current.to] = ranges[Number(key)];
+    render();
+  });
+  const box = filterBox('calendar', 'الفترة', quick, dateInput('from', 'من'), dateInput('to', 'إلى'));
+  box.classList.add('date-filters');
+  return [box];
+}
+
+/// Keeps the rows that contain what the admin searched for
+function matchesSearch(item, keys) {
+  const q = (current.search || '').trim().toLowerCase();
+  return !q || keys.some((key) => String(item[key] ?? '').toLowerCase().includes(q));
+}
+
+function stateFilter(options, label, iconName) {
+  return filterButtons(options, current.state || '', (value) => { current.state = value; render(); }, label, iconName);
 }
 
 /// Keeps the rows inside the chosen dates and state

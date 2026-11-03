@@ -33,7 +33,14 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
         (SELECT COUNT(*)::int FROM support_tickets WHERE status = 'OPEN') AS open_tickets,
         (SELECT COUNT(*)::int FROM reviews WHERE reported_at IS NOT NULL AND is_hidden = FALSE) AS reported_reviews,
         (SELECT COUNT(*)::int FROM service_orders WHERE payout_status = 'FROZEN') AS frozen_orders,
-        (SELECT COALESCE(SUM(price), 0) FROM service_orders WHERE status = 'COMPLETED') AS completed_value
+        (SELECT COALESCE(SUM(price), 0) FROM service_orders WHERE status = 'COMPLETED') AS completed_value,
+        (SELECT COUNT(*)::int FROM lawyer_profiles WHERE urgent_status = 'APPROVED') AS service_lawyers,
+        (SELECT COUNT(*)::int FROM service_orders) AS total_orders,
+        (SELECT COUNT(*)::int FROM service_orders WHERE status = 'CANCELLED') AS cancelled_orders,
+        (SELECT COALESCE(SUM(amount), 0) FROM payments) AS total_paid,
+        (SELECT COALESCE(SUM(payout_amount), 0) FROM service_orders WHERE payout_status = 'FROZEN') AS frozen_value,
+        (SELECT COUNT(*)::int FROM reviews) AS total_reviews,
+        (SELECT COALESCE(AVG(rating), 0) FROM reviews) AS average_rating
     `);
     return reply.send({ success: true, data: res.rows[0] });
   });

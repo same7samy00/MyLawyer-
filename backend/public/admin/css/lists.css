@@ -1,0 +1,51 @@
+/* List pages: tables, filters and search */
+
+/* Tables: one connected grid of dashed lines inside 5px corners that meets its container's edges */
+@media screen {
+  .form-card-section:has(.custom-table), .clothing-page-container > .table-wrapper, .tab-content-pane > .table-wrapper { border: 1px dashed #94a3b8 !important; border-radius: 5px !important; overflow: hidden; }
+  .form-card-section:has(.custom-table) > .form-card-header { border-bottom: 1px dashed #94a3b8 !important; }
+  .form-card-body:has(> .table-wrapper), .form-card-body:has(> .custom-table) { padding: 0 !important; }
+  .custom-table thead th, .custom-table tbody td { border-top: 0 !important; border-right: 0 !important; border-left: 1px dashed #94a3b8 !important; border-bottom: 1px dashed #94a3b8 !important; }
+  .custom-table tr > :last-child { border-left: 0 !important; }
+  .custom-table tbody tr:last-child td { border-bottom: 0 !important; }
+}
+.custom-table tbody th { border-top: 0 !important; border-right: 0 !important; border-left: 1px dashed #94a3b8 !important; border-bottom: 1px dashed #94a3b8 !important; }
+.custom-table tbody tr:last-child th { border-bottom: 0 !important; }
+
+/* Only the header cells stick, which keeps scrolling light */
+.custom-table thead { position: static !important; }
+
+/* Main tables: a narrow running number and shorter rows */
+.main-table .serial-cell { width: 44px; padding-inline: 0.2rem !important; color: var(--text-muted); font-weight: 700; }
+.main-table .custom-table thead th { padding-block: 0.4rem !important; }
+.main-table .custom-table tbody td { padding-block: 0.3rem !important; line-height: 1.3; }
+.main-table .btn-xs { min-height: 24px; padding-block: 0.05rem; }
+.main-table th.narrow-column { width: 92px; }
+.main-table th.wide-column { width: 26%; }
+
+/* Tables of an application under review: a white layer with a slanted note across it */
+.locked-tables .table-wrapper { position: relative; min-height: 130px; overflow: hidden !important; }
+.locked-tables .table-wrapper::after { content: ''; position: absolute; inset: 0; z-index: 30; background: rgba(255, 255, 255, 0.78); }
+.locked-tables .table-wrapper::before { content: 'تتاح بعد الموافقة على الطلب'; position: absolute; top: 50%; left: 50%; z-index: 31; transform: translate(-50%, -50%) rotate(-14deg); color: var(--brand-primary); font-size: 1.2rem; font-weight: 600; white-space: nowrap; pointer-events: none; }
+
+/* Search across the page, then each filter on its own line, then dates */
+.table-controls-bar { display: block !important; padding-inline: 0 !important; padding-block: 0 !important; margin-block: 0 !important; }
+.table-controls-bar .controls-right { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; width: 100%; }
+.controls-right > .search-input-box { order: 1; flex: 1 0 100% !important; width: 100% !important; max-width: none !important; }
+.controls-right > .filter-select-box { order: 2; }
+
+/* Each filter in its own box with an icon and a name */
+.controls-right > .filter-box { order: 2; flex: 1 0 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; padding: 0.22rem 0.5rem; background: var(--bg-surface); border: 1px dashed #94a3b8; border-radius: 5px; }
+.controls-right > .filter-box.date-filters { order: 3; }
+.filter-box-head { display: inline-flex; align-items: center; gap: 0.35rem; min-width: 92px; color: var(--text-main); font-size: 0.82rem; font-weight: 600; }
+.filter-box-head svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--brand-primary); }
+.filter-box .filter-buttons { gap: 0.2rem; }
+.filter-box .filter-button { min-height: 28px; padding-block: 0.1rem; }
+.filter-box .date-filter { margin: 0; }
+
+/* Clears the search box */
+.search-input-box { display: flex; align-items: center; }
+.search-clear { flex: 0 0 26px; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; margin-inline-end: 0.25rem; padding: 0; background: transparent; border: 0; color: var(--text-muted); cursor: pointer; }
+.search-clear[hidden] { display: none; }
+.search-clear:hover { color: #dc2626; }
+.search-clear svg { width: 15px; height: 15px; }

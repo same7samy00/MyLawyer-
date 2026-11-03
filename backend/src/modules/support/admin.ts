@@ -32,7 +32,7 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
        LEFT JOIN lawyer_profiles lp ON lp.user_id = u.id
        LEFT JOIN service_orders o ON o.id = t.order_id
        WHERE ($1::text IS NULL OR u.role::text = $1)
-       ORDER BY CASE t.status WHEN 'UNDER_REVIEW' THEN 0 WHEN 'OPEN' THEN 1 ELSE 2 END, t.updated_at ASC
+       ORDER BY t.created_at DESC
        LIMIT 500`,
       [role === 'client' || role === 'lawyer' ? role : null]
     );
