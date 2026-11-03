@@ -4,7 +4,6 @@ class LawyerModel {
   final String? profileId;
   final String? userId;
   final String name;
-  final String specialty;
   final String degree;
   final double rating;
   final int reviewsCount;
@@ -12,7 +11,6 @@ class LawyerModel {
   final bool isOnline;
   final String phone;
   final String avatar;
-  final String bio;
   final double latitude;
   final double longitude;
   final double distanceKm;
@@ -24,7 +22,6 @@ class LawyerModel {
     this.profileId,
     this.userId,
     required this.name,
-    required this.specialty,
     required this.degree,
     required this.rating,
     required this.reviewsCount,
@@ -32,7 +29,6 @@ class LawyerModel {
     required this.isOnline,
     required this.phone,
     required this.avatar,
-    required this.bio,
     required this.latitude,
     required this.longitude,
     required this.distanceKm,
@@ -58,15 +54,13 @@ class LawyerModel {
       profileId: json['profileId']?.toString(),
       userId: json['userId']?.toString() ?? json['id']?.toString(),
       name: json['name']?.toString() ?? 'محامٍ معتمد',
-      specialty: json['specialty']?.toString() ?? 'استشارات وقضايا عاجلة',
       degree: json['degree']?.toString() ?? 'محامٍ معتمد',
       rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
       reviewsCount: (json['reviewsCount'] as num?)?.toInt() ?? 0,
-      experienceYears: (json['experienceYears'] as num?)?.toInt() ?? 5,
+      experienceYears: (json['experienceYears'] as num?)?.toInt() ?? 0,
       isOnline: json['isOnline'] == true || json['isAvailable'] == true,
       phone: json['phone']?.toString() ?? '',
       avatar: json['avatar']?.toString() ?? '',
-      bio: json['bio']?.toString() ?? '',
       latitude: parseLat,
       longitude: parseLon,
       distanceKm: (json['distanceKm'] as num?)?.toDouble() ?? 0.0,
@@ -81,7 +75,6 @@ class LawyerModel {
       'profileId': profileId,
       'userId': userId,
       'name': name,
-      'specialty': specialty,
       'degree': degree,
       'rating': rating,
       'reviewsCount': reviewsCount,
@@ -89,7 +82,6 @@ class LawyerModel {
       'isOnline': isOnline,
       'phone': phone,
       'avatar': avatar,
-      'bio': bio,
       'coordinates': [latitude, longitude],
       'distanceKm': distanceKm,
       'googleProfileUrl': googleProfileUrl,

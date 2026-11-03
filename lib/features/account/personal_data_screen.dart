@@ -112,9 +112,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
       _infoRow('تاريخ التسجيل', _joinDate(profile['createdAt'])),
       if (isLawyer) ...[
         _infoRow('رقم القيد', profile['syndicateNumber']),
-        _infoRow('التخصص', profile['specialty']),
+        _infoRow('سنوات الخبرة', profile['experienceYears']),
         _infoRow('الاعتماد', profile['isApproved'] == true ? 'محامٍ معتمد' : 'محامٍ غير معتمد'),
-        _infoRow('النبذة', profile['bio']),
       ],
     ];
 

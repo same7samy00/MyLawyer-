@@ -92,7 +92,6 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
     if (profile == null) return const SizedBox(height: 150);
 
     final rating = profile['rating'] ?? 0;
-    final bio = profile['bio']?.toString() ?? '';
 
     return AppCard(
       padding: const EdgeInsets.all(14),
@@ -128,14 +127,8 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
           if (_isLawyer) ...[
             const SizedBox(height: 10),
             Text('رقم القيد: ${profile['syndicateNumber'] ?? 'غير مسجل'}', style: _detailStyle),
-            if (profile['specialty'] != null) ...[
-              const SizedBox(height: 3),
-              Text('التخصص: ${profile['specialty']}', style: _detailStyle),
-            ],
-            if (bio.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(bio, maxLines: 3, overflow: TextOverflow.ellipsis, style: _detailStyle),
-            ],
+            const SizedBox(height: 3),
+            Text('سنوات الخبرة: ${profile['experienceYears'] ?? 0}', style: _detailStyle),
           ],
           const SizedBox(height: 12),
           Row(

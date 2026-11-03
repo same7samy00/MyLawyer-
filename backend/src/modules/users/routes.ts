@@ -25,8 +25,8 @@ export async function userRoutes(fastify: FastifyInstance) {
     const userRes = await query(
       `SELECT u.id, u.phone, u.email, u.role, u.status, u.email_verified_at, u.created_at,
               COALESCE(lp.full_name, u.full_name) as full_name, COALESCE(lp.profile_photo_path, u.profile_photo_path) as profile_photo_path,
-              u.warnings_count, lp.rating, lp.specialty, lp.urgent_status,
-              (SELECT COUNT(*)::int FROM service_orders o WHERE o.client_id = u.id AND o.status = 'COMPLETED') as client_completed, lp.approval_status, lp.bio, lp.syndicate_number
+              u.warnings_count, lp.rating, lp.experience_years, lp.urgent_status,
+              (SELECT COUNT(*)::int FROM service_orders o WHERE o.client_id = u.id AND o.status = 'COMPLETED') as client_completed, lp.approval_status, lp.syndicate_number
        FROM users u
        LEFT JOIN lawyer_profiles lp ON u.id = lp.user_id
        WHERE u.id = $1`,
@@ -50,10 +50,9 @@ export async function userRoutes(fastify: FastifyInstance) {
         createdAt: user.created_at,
         fullName: user.full_name || null,
         profilePhotoPath: user.profile_photo_path || null,
-        bio: user.bio || null,
         syndicateNumber: user.syndicate_number || null,
         approvalStatus: user.approval_status || null,
-        specialty: user.specialty || null,
+        experienceYears: user.experience_years ?? null,
         isApproved: user.urgent_status === 'APPROVED',
         // A client starts at five and loses a point for each proven refusal
         rating: user.role === 'lawyer' ? Number(user.rating ?? 0) : Math.max(1, 5 - Number(user.warnings_count ?? 0)),
@@ -93,19 +92,17 @@ export async function userRoutes(fastify: FastifyInstance) {
   // PATCH /api/v1/users/me
   fastify.patch('/me', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId, role } = request.user as { userId: string; role: string };
-    const body = request.body as { fullName?: string; bio?: string };
+    const body = request.body as { fullName?: string };
 
-    if (role === 'lawyer' && (body.fullName || body.bio)) {
+    if (role === 'lawyer' && body.fullName) {
       const cleanName = body.fullName ? sanitizeText(body.fullName, 255) : undefined;
-      const cleanBio = body.bio ? sanitizeText(body.bio, 1000) : undefined;
 
       await query(
         `UPDATE lawyer_profiles
          SET full_name = COALESCE($1, full_name),
-             bio = COALESCE($2, bio),
              updated_at = NOW()
-         WHERE user_id = $3`,
-        [cleanName, cleanBio, userId]
+         WHERE user_id = $2`,
+        [cleanName, userId]
       );
     }
 

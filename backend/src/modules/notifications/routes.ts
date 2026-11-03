@@ -94,6 +94,20 @@ export async function notificationRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // POST /api/v1/notifications/read - Marks one notification, or those of the order or ticket a push opened
+  fastify.post('/read', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
+    const body = (request.body || {}) as { id?: string; orderId?: string; ticketId?: string };
+    if (!body.id && !body.orderId && !body.ticketId) return reply.status(400).send({ success: false, error: 'الإشعار غير محدد' });
+    await query(
+      `UPDATE notifications SET read_at = NOW()
+       WHERE user_id = $1 AND read_at IS NULL
+         AND (id::text = $2 OR order_id::text = $3 OR ticket_id::text = $4)`,
+      [userId, body.id ?? null, body.orderId ?? null, body.ticketId ?? null]
+    );
+    return reply.send({ success: true });
+  });
+
   // POST /api/v1/notifications/read-all
   fastify.post('/read-all', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = request.user as AuthenticatedUser;

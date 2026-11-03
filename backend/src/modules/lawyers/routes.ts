@@ -57,7 +57,6 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
       lat?: string;
       lon?: string;
       radius_km?: string;
-      specialty?: string;
     };
 
     const userLat = parseFloat(queryParams.lat || '');
@@ -91,7 +90,6 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
         lp.id as profile_id,
         lp.full_name,
         lp.profile_photo_path,
-        lp.specialty,
         lp.degree,
         lp.rating,
         lp.reviews_count,
@@ -139,11 +137,10 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
           profileId: lawyer.profile_id,
           userId: lawyer.user_id,
           name: lawyer.full_name,
-          specialty: lawyer.specialty || 'محامٍ معتمد ومستشار قانوني',
           degree: lawyer.degree || 'محامي استئناف',
           rating: Number(lawyer.rating) || 0,
           reviewsCount: Number(lawyer.reviews_count) || 0,
-          experienceYears: Number(lawyer.experience_years) || 5,
+          experienceYears: Number(lawyer.experience_years) || 0,
           isOnline: lawyer.is_available === true,
           avatar: lawyer.profile_photo_path || null,
           // The exact place is shared with the client only after payment
@@ -160,7 +157,6 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
       return reply.status(500).send({
         success: false,
         error: 'حدث خطأ أثناء البحث عن المحامين المتاحين',
-        detail: err?.message,
       });
     }
   });
@@ -220,8 +216,8 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
 
     const lawyerRes = await query(
       `SELECT lp.id as profile_id, lp.full_name, lp.profile_photo_path, lp.approval_status,
-              lp.syndicate_number, lp.specialty, lp.degree, lp.rating, lp.reviews_count,
-              lp.experience_years, lp.bio, lp.is_available, lp.latitude, lp.longitude,
+              lp.syndicate_number, lp.degree, lp.rating, lp.reviews_count,
+              lp.experience_years, lp.is_available, lp.latitude, lp.longitude,
               lp.last_location_updated_at, lp.last_active_at, lp.availability_off_reason, lp.urgent_status, lp.urgent_rejection_reason, lp.submitted_at, lp.approved_at,
               lp.rejected_at, lp.rejection_reason,
               u.id as user_id, u.email, u.phone, u.status

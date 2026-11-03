@@ -31,6 +31,14 @@ export async function logPayoutEvent(db: Db, orderId: string, action: 'FREEZE' |
     'INSERT INTO payout_events (order_id, action, amount, reason, created_by) VALUES ($1, $2, $3, $4, $5)',
     [orderId, action, amount, reason, actorId]
   );
+  // A settlement writes its own stage, so only freezing and releasing are added here
+  if (action !== 'SETTLE') {
+    await db.query(
+      `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)
+       SELECT id, $2::uuid, status, status, $3 FROM service_orders WHERE id = $1`,
+      [orderId, actorId, `${action === 'FREEZE' ? 'تجميد الأتعاب' : 'فك تجميد الأتعاب'}: ${reason}`]
+    );
+  }
 }
 
 /// The meeting decides the money: no meeting refunds the client, a meeting pays the lawyer
@@ -56,7 +64,7 @@ const OUTCOME_LABELS: Record<SettlementOutcome, string> = {
 };
 
 /// Applies one settlement to an order
-export async function applySettlement(db: pg.PoolClient, order: any, outcome: SettlementOutcome, actorId: string, note: string) {
+export async function applySettlement(db: pg.PoolClient, order: any, outcome: SettlementOutcome, actorId: string | null, note: string) {
   const price = Number(order.price);
   const clientAmount = outcomeAmount(outcome, price);
   const lawyerAmount = lawyerShare(price - clientAmount, Number(order.commission_percent), Number(order.tax_percent));
@@ -72,7 +80,7 @@ export async function applySettlement(db: pg.PoolClient, order: any, outcome: Se
   await db.query(
     `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)
      VALUES ($1, $2, $3, $4, $5)`,
-    [order.id, actorId, order.status, newStatus, `تسوية الطلب: ${OUTCOME_LABELS[outcome]}`]
+    [order.id, actorId, order.status, newStatus, `تسوية الطلب: ${OUTCOME_LABELS[outcome]}${note ? ` (${note})` : ''}`]
   );
 
   if (order.payout_status === 'FROZEN') {

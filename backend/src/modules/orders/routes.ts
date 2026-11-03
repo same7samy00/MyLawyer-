@@ -231,7 +231,6 @@ export async function orderRoutes(fastify: FastifyInstance) {
              u_lawyer.phone as lawyer_phone,
              lp.full_name as lawyer_name,
              lp.profile_photo_path as lawyer_avatar,
-             lp.specialty as lawyer_specialty,
              lp.rating as lawyer_rating,
              EXISTS (SELECT 1 FROM reviews r WHERE r.order_id = o.id) as has_review,
              (SELECT st.id FROM support_tickets st WHERE st.order_id = o.id AND st.user_id = $1 AND st.status <> 'CLOSED' LIMIT 1) as open_ticket_id,
@@ -301,7 +300,6 @@ export async function orderRoutes(fastify: FastifyInstance) {
         clientPhone: PAID_STATUSES.includes(o.status) ? o.client_phone : null,
         clientChoice: o.problem_type || o.service_title,
         problemDescription: o.problem_description,
-        specialty: o.lawyer_specialty || 'محامٍ معتمد',
         lawyerName: o.lawyer_name,
         lawyerPhone: PAID_STATUSES.includes(o.status) ? o.lawyer_phone : null,
         lawyerAvatar: o.lawyer_avatar,
@@ -348,8 +346,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
               u_client.email as client_email,
               u_lawyer.phone as lawyer_phone,
               lp.full_name as lawyer_name,
-              lp.profile_photo_path as lawyer_avatar,
-              lp.specialty as lawyer_specialty
+              lp.profile_photo_path as lawyer_avatar
        FROM service_orders o
        JOIN users u_client ON o.client_id = u_client.id
        JOIN users u_lawyer ON o.lawyer_id = u_lawyer.id

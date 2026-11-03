@@ -300,7 +300,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     final closingReason = order.cancellationReason ?? order.rejectionReason;
     final rows = <Widget>[
       _infoRow(isLawyer ? 'الموكل' : 'المحامي', (isLawyer ? order.clientName : order.lawyerName) ?? '-'),
-      if (!isLawyer && order.lawyerSpecialty != null) _infoRow('التخصص', order.lawyerSpecialty!),
       if (order.isPaid && phone != null && phone.isNotEmpty) _infoRow('رقم الهاتف', phone),
       _infoRow('نوع المشكلة', order.problemType ?? order.serviceTitle),
       if (order.problemDescription.isNotEmpty) _infoRow('تفاصيل المشكلة', order.problemDescription),

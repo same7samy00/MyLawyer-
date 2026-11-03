@@ -9,7 +9,6 @@ class MapLawyer {
   final String id;
   final String name;
   final String title;
-  final String specialization;
   final double rating;
   final int reviewsCount;
   final int experienceYears;
@@ -24,7 +23,6 @@ class MapLawyer {
     required this.id,
     required this.name,
     required this.title,
-    required this.specialization,
     required this.rating,
     this.reviewsCount = 0,
     this.experienceYears = 0,
@@ -44,7 +42,6 @@ class MapLawyer {
       id: lawyer.id,
       name: lawyer.name,
       title: lawyer.degree,
-      specialization: lawyer.specialty,
       rating: lawyer.rating,
       reviewsCount: lawyer.reviewsCount,
       experienceYears: lawyer.experienceYears,

@@ -3,6 +3,7 @@ import { dbPool, query, withTransaction } from '../../database/index.js';
 import { registerAdminDirectory, userStats } from './directory.js';
 import { registerAdminSupport } from '../support/admin.js';
 import { registerAdminMoney } from './money.js';
+import { logAdminAction, registerAdminActions } from './actions.js';
 import { sanitizeText } from '../../utils/security.js';
 import { notify, refreshLawyerRating } from '../lifecycle/service.js';
 
@@ -23,6 +24,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
   await registerAdminDirectory(fastify);
   await registerAdminSupport(fastify);
   await registerAdminMoney(fastify);
+  await registerAdminActions(fastify);
 
   // GET /api/v1/admin/prices
   fastify.get('/prices', async (_request: FastifyRequest, reply: FastifyReply) => {
@@ -32,6 +34,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
   // PUT /api/v1/admin/prices
   fastify.put('/prices', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
     const body = (request.body || {}) as { problemType?: string; minPrice?: number; maxPrice?: number; commissionPercent?: number };
     const minPrice = Number(body.minPrice);
     const maxPrice = Number(body.maxPrice);
@@ -44,6 +47,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: 'نسبة المنصة غير صالحة' });
     }
 
+    const before = await query('SELECT min_price, max_price, commission_percent FROM problem_prices WHERE problem_type = $1', [body.problemType ?? '']);
     const res = await query(
       `UPDATE problem_prices SET min_price = $1, max_price = $2, commission_percent = $4, updated_at = NOW()
        WHERE problem_type = $3 RETURNING problem_type`,
@@ -56,25 +60,30 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
     // Saved client prices follow the new range from the next quote
     await query('DELETE FROM client_problem_prices WHERE problem_type = $1', [body.problemType]);
+    const old = before.rows[0];
+    await logAdminAction(adminId, 'PRICE_UPDATE', body.problemType ?? null,
+      `من ${Number(old.min_price)}-${Number(old.max_price)} ج.م ونسبة ${Number(old.commission_percent)}% إلى ${minPrice}-${maxPrice} ج.م ونسبة ${commission}%`);
 
     return reply.send({ success: true, message: 'تم تحديث السعر' });
   });
 
   // POST /api/v1/admin/commission - One percent for every service, new orders only
   fastify.post('/commission', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
     const percent = Number(((request.body || {}) as { percent?: number }).percent);
     if (!(percent >= 0 && percent < 100)) {
       return reply.status(400).send({ success: false, error: 'نسبة المنصة غير صالحة' });
     }
 
     await query('UPDATE problem_prices SET commission_percent = $1, updated_at = NOW()', [percent]);
+    await logAdminAction(adminId, 'COMMISSION_UPDATE', 'كل الخدمات', `النسبة الجديدة ${percent}%`);
     return reply.send({ success: true, message: 'تم تطبيق النسبة على كل الخدمات' });
   });
 
   // GET /api/v1/admin/urgent-applications
   fastify.get('/urgent-applications', async (_request: FastifyRequest, reply: FastifyReply) => {
     const res = await query(
-      `SELECT lp.user_id, lp.full_name, lp.syndicate_number, lp.specialty, lp.bio, u.phone, u.email, lp.urgent_terms_accepted_at,
+      `SELECT lp.user_id, lp.full_name, lp.syndicate_number, lp.experience_years, u.phone, u.email, lp.urgent_terms_accepted_at,
               COALESCE(lp.profile_photo_path, u.profile_photo_path) AS photo,
               card.id AS card_id, card.mime_type AS card_mime
        FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id
@@ -90,6 +99,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
   // POST /api/v1/admin/urgent-applications/:id/decision
   fastify.post('/urgent-applications/:id/decision', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
     const { id } = request.params as { id: string };
     const body = (request.body || {}) as { approve?: boolean; reason?: string };
     const approved = body.approve === true;
@@ -97,12 +107,14 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
     const res = await query(
       `UPDATE lawyer_profiles SET urgent_status = $1, urgent_rejection_reason = $2, updated_at = NOW()
-       WHERE user_id = $3 AND urgent_status = 'PENDING' RETURNING user_id`,
+       WHERE user_id = $3 AND urgent_status = 'PENDING' RETURNING user_id, full_name`,
       [approved ? 'APPROVED' : 'REJECTED', approved ? null : reason, id]
     );
     if (res.rows.length === 0) {
       return reply.status(404).send({ success: false, error: 'الطلب غير موجود أو تم الفصل فيه' });
     }
+
+    await logAdminAction(adminId, approved ? 'LAWYER_APPROVE' : 'LAWYER_REJECT', res.rows[0].full_name, approved ? null : reason, id);
 
     await notify(
       dbPool,
@@ -121,12 +133,15 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
   // POST /api/v1/admin/tax - New orders only, open orders keep their locked tax
   fastify.post('/tax', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
     const percent = Number(((request.body || {}) as { percent?: number }).percent);
     if (!(percent >= 0 && percent < 100)) {
       return reply.status(400).send({ success: false, error: 'نسبة الضريبة غير صالحة' });
     }
 
+    const oldTax = await query('SELECT tax_percent FROM platform_settings LIMIT 1');
     await query('UPDATE platform_settings SET tax_percent = $1, updated_at = NOW()', [percent]);
+    await logAdminAction(adminId, 'TAX_UPDATE', 'نسبة الضريبة', `من ${Number(oldTax.rows[0]?.tax_percent ?? 0)}% إلى ${percent}%`);
     return reply.send({ success: true, message: 'تم تحديث نسبة الضريبة' });
   });
 
@@ -143,12 +158,13 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
   // POST /api/v1/admin/reviews/:id/moderate
   fastify.post('/reviews/:id/moderate', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
     const { id } = request.params as { id: string };
     const body = (request.body || {}) as { hide?: boolean };
 
     const res = await query(
       `UPDATE reviews SET is_hidden = $1, reported_at = CASE WHEN $1 THEN reported_at ELSE NULL END
-       WHERE id::text = $2 RETURNING lawyer_id`,
+       WHERE id::text = $2 RETURNING lawyer_id, comment, (SELECT full_name FROM lawyer_profiles lp WHERE lp.user_id = reviews.lawyer_id) AS lawyer_name`,
       [body.hide === true, id]
     );
 
@@ -157,6 +173,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
 
     await refreshLawyerRating(dbPool, res.rows[0].lawyer_id);
+    await logAdminAction(adminId, body.hide === true ? 'REVIEW_HIDE' : 'REVIEW_KEEP', res.rows[0].lawyer_name, res.rows[0].comment, res.rows[0].lawyer_id);
     return reply.send({ success: true, message: 'تم تحديث التقييم' });
   });
 }

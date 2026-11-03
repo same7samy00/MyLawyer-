@@ -377,7 +377,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
       const Duration(seconds: 10),
       onTimeout: () => const LocationResult(
         status: LocationServiceStatus.error,
-        errorMessage: 'Location request timed out',
+        errorMessage: 'تحديد الموقع أخد وقت طويل، حاول تاني.',
       ),
     );
     if (!mounted) return;
@@ -1080,7 +1080,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                       ),
                       name: _selectedLawyer!.name,
                       title: _selectedLawyer!.title,
-                      specialization: _selectedLawyer!.specialization,
                       rating: _selectedLawyer!.rating,
                       reviewsCount: _selectedLawyer!.reviewsCount,
                       experienceYears: _selectedLawyer!.experienceYears,

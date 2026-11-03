@@ -90,6 +90,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       if (target == null || !mounted) return;
       NotificationCenter.openRequest.value = null;
       Navigator.of(context).popUntil((route) => route.isFirst);
+      NotificationCenter.markTargetRead(target);
       if (!await NotificationRouter.open(context, target) && mounted) _onTabSelected(1);
     });
   }

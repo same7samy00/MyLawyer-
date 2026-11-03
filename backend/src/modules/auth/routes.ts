@@ -30,7 +30,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       });
     }
 
-    const { phone, email, password, role, fullName, syndicateNumber, specialty, bio } = parseResult.data;
+    const { phone, email, password, role, fullName, syndicateNumber, experienceYears } = parseResult.data;
 
     // Check unique phone and email
     const existing = await query(
@@ -83,14 +83,13 @@ export async function authRoutes(fastify: FastifyInstance) {
         const cleanName = sanitizeText(fullName || 'محامٍ جديد', 255);
         await client.query(
           // No place until the phone sends a real one, so the lawyer stays off the map
-          `INSERT INTO lawyer_profiles (user_id, full_name, syndicate_number, specialty, bio, approval_status, is_available)
-           VALUES ($1, $2, $3, $4, $5, 'approved', FALSE)`,
+          `INSERT INTO lawyer_profiles (user_id, full_name, syndicate_number, experience_years, approval_status, is_available)
+           VALUES ($1, $2, $3, $4, 'approved', FALSE)`,
           [
             user.id,
             cleanName,
             syndicateNumber || null,
-            specialty ? sanitizeText(specialty, 100) : null,
-            bio ? sanitizeText(bio, 150) : null,
+            experienceYears ?? 0,
           ]
         );
       }
@@ -364,7 +363,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/refresh', async (request: FastifyRequest, reply: FastifyReply) => {
     const { refreshToken } = request.body as { refreshToken?: string };
     if (!refreshToken) {
-      return reply.status(400).send({ success: false, error: 'Refresh Token مطلوب' });
+      return reply.status(400).send({ success: false, error: 'انتهت الجلسة، سجل الدخول مرة أخرى' });
     }
 
     const refreshHash = hashSha256(refreshToken);

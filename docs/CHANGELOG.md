@@ -1,5 +1,19 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 3.16] - 2026-11-03
+### Lawyer Experience
+- Pressing a notification marks it read. A request to act (new order, complete the payment, start the task) disappears once the order has passed it, and old ones were cleared (migration `020`). The control page notifications use strong colors.
+- Existing lawyers' experience was reset to 0.
+- Lawyer sign-up asks for years of experience, which show in the lawyer's profile. Specialty and bio were removed from sign-up and every profile view. Their old values stay in the database, unused.
+- Clearer names for the control page menu.
+
+## [Phase 3.15] - 2026-11-03
+### Records and Screenshot Mark
+- Errors on the control page and in the app's location messages are always clear Arabic. Buttons and pages show loading, and moving between pages sends fewer requests.
+- New "سجل القرارات" page records account suspension, prices and rates, lawyer applications, and comment decisions, with who and when (migration `019`).
+- Order stages now also record deadlines that close an order, fees becoming available, tickets, and freezing, with who did each. Settlement notes are kept.
+- The app name and signed-in account repeat faintly over the page. Notifications moved to the bottom left, the menu button is a dashed circle on the header line, the logo is larger, and tables have icons beside their titles.
+
 ## [Phase 3.14] - 2026-11-03
 ### Payments Log and Copying
 - Every client payment now has its own number (`ML-PAY`) and method (migration `018`, old payments included). They show on the money page, the order and the client profile.

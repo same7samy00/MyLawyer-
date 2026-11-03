@@ -16,7 +16,6 @@ void main() {
                   avatar: const SizedBox(width: 56, height: 56),
                   name: 'الأستاذ الدكتور عبد الرحمن محمد عبد العزيز الشافعي',
                   title: 'محامٍ بالنقض والإدارية العليا ومستشار قانوني معتمد',
-                  specialization: 'القانون الجنائي والأحوال الشخصية وتأسيس الشركات',
                   rating: 4.9,
                   reviewsCount: 1250,
                   experienceYears: 25,

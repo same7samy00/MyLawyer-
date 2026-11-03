@@ -115,6 +115,10 @@ export async function supportRoutes(fastify: FastifyInstance) {
         await addMessage(db, row.id, 'USER', userId, fields.body ?? '', images);
 
         if (order) {
+          await db.query(
+            `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note) VALUES ($1, $2, $3, $3, $4)`,
+            [order.id, userId, order.status, `فُتحت تذكرة ${row.reference}`]
+          );
           const frozen = await freezePayout(db, order, `تذكرة ${row.reference}`);
           const other = order.client_id === userId ? order.lawyer_id : order.client_id;
           await notify(db, other, 'مراجعة على طلب', frozen ? `فيه مشكلة على طلب ${order.order_number}، والأتعاب متجمدة لحد قرار الإدارة` : `فيه مشكلة على طلب ${order.order_number}، والإدارة بتراجعها`, { orderId: order.id });

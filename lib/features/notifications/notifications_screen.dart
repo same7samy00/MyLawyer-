@@ -7,7 +7,7 @@ import '../../core/widgets/app_state_message.dart';
 import '../../data/models/lifecycle_models.dart';
 import 'notification_router.dart';
 
-/// صفحة الإشعارات، والتعليم كمقروء يتم بزر من المستخدم
+/// صفحة الإشعارات، والضغط على إشعار بيعلمه كمقروء
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
@@ -36,6 +36,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _items = res.data ?? const [];
       _error = res.isOk ? null : res.error;
     });
+  }
+
+  Future<void> _openItem(AppNotification item) async {
+    if (!item.isRead) {
+      setState(() {
+        _items = _items
+            .map((other) => other.id != item.id
+                ? other
+                : AppNotification(id: other.id, title: other.title, body: other.body, isRead: true, orderId: other.orderId, ticketId: other.ticketId))
+            .toList();
+      });
+      NotificationCenter.markRead(item.id);
+    }
+    await NotificationRouter.open(context, NotificationTarget(orderId: item.orderId, ticketId: item.ticketId));
+    // ممكن الطلب يكون اتقدم من الصفحة اللي اتفتحت
+    if (mounted) _load();
   }
 
   Future<void> _markAllRead() async {
@@ -129,7 +145,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           for (final item in _items) ...[
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => NotificationRouter.open(context, NotificationTarget(orderId: item.orderId, ticketId: item.ticketId)),
+              onTap: () => _openItem(item),
               child: _NotificationCard(item: item),
             ),
             const SizedBox(height: 10),

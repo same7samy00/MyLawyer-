@@ -86,8 +86,7 @@ class RegistrationData {
   final String? syndicateNumber;
   final String? syndicateCardPath;
   final String? profilePhotoPath;
-  final String? specialty;
-  final String? bio;
+  final int? experienceYears;
 
   const RegistrationData({
     required this.accountType,
@@ -98,8 +97,7 @@ class RegistrationData {
     this.syndicateNumber,
     this.syndicateCardPath,
     this.profilePhotoPath,
-    this.specialty,
-    this.bio,
+    this.experienceYears,
   });
 
   String get firstName {
@@ -404,8 +402,7 @@ class AuthService {
       'fullName': data.fullName.trim(),
       if (role == 'lawyer' && data.syndicateNumber != null)
         'syndicateNumber': data.syndicateNumber!.trim(),
-      if (role == 'lawyer' && data.specialty != null) 'specialty': data.specialty,
-      if (role == 'lawyer' && data.bio != null) 'bio': data.bio,
+      if (role == 'lawyer' && data.experienceYears != null) 'experienceYears': data.experienceYears,
     });
 
     if (res.isOk) {

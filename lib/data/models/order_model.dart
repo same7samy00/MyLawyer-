@@ -20,7 +20,6 @@ class OrderModel {
   final String createdAt;
   final String? lawyerName;
   final String? lawyerPhone;
-  final String? lawyerSpecialty;
   final String? lawyerAvatar;
   final double? lawyerRating;
   final String? clientName;
@@ -59,7 +58,6 @@ class OrderModel {
     required this.createdAt,
     this.lawyerName,
     this.lawyerPhone,
-    this.lawyerSpecialty,
     this.lawyerAvatar,
     this.lawyerRating,
     this.clientName,
@@ -113,7 +111,6 @@ class OrderModel {
       createdAt: json['createdAt']?.toString() ?? json['created_at']?.toString() ?? DateTime.now().toIso8601String(),
       lawyerName: lawyerObj?['name']?.toString() ?? json['lawyerName']?.toString() ?? json['lawyer_name']?.toString(),
       lawyerPhone: lawyerObj?['phone']?.toString() ?? json['lawyerPhone']?.toString() ?? json['lawyer_phone']?.toString(),
-      lawyerSpecialty: lawyerObj?['specialty']?.toString() ?? json['lawyerSpecialty']?.toString() ?? json['specialty']?.toString() ?? json['lawyer_specialty']?.toString(),
       lawyerAvatar: lawyerObj?['avatar']?.toString() ?? json['lawyerAvatar']?.toString() ?? json['lawyer_avatar']?.toString(),
       lawyerRating: _toDouble(lawyerObj?['rating'] ?? json['lawyerRating']),
       clientName: clientObj?['name']?.toString() ?? json['clientName']?.toString() ?? json['client_name']?.toString(),
@@ -156,7 +153,6 @@ class OrderModel {
       'lawyer': {
         'name': lawyerName,
         'phone': lawyerPhone,
-        'specialty': lawyerSpecialty,
         'avatar': lawyerAvatar,
         'rating': lawyerRating,
       },

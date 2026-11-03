@@ -115,7 +115,6 @@ void main() {
         id: 'lawyer_1',
         name: 'أ. أحمد الشافعي',
         title: 'محامٍ بالاستئناف',
-        specialization: 'عقود واستشارات',
         rating: 4.9,
         position: LatLng(30.045, 31.238),
         distanceMeters: 450,
@@ -125,7 +124,6 @@ void main() {
         id: 'lawyer_2',
         name: 'أ. سارة عبد الرحمن',
         title: 'محامية بالاستئناف',
-        specialization: 'قضايا مدنية',
         rating: 4.8,
         position: LatLng(30.048, 31.240),
         distanceMeters: 750,
@@ -273,7 +271,6 @@ void main() {
         id: 'lawyer_custom',
         name: 'أ. سامح خليل',
         title: 'محامٍ بالنقض',
-        specialization: 'قضايا عاجلة',
         rating: 4.9,
         position: LatLng(30.0444, 31.2357),
         googleProfileUrl: 'https://maps.google.com/?cid=12345',
@@ -284,7 +281,6 @@ void main() {
         id: 'lawyer_default',
         name: 'أ. أحمد الشافعي',
         title: 'محامٍ استئناف',
-        specialization: 'جنائي وتحقيقات',
         rating: 4.8,
         position: LatLng(30.0444, 31.2357),
       );
@@ -559,12 +555,7 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(0), 'سامي إبراهيم أحمد السيد');
       await tester.enterText(find.byType(TextFormField).at(1), '01123456789');
       await tester.enterText(find.byType(TextFormField).at(2), '984512');
-      await tester.ensureVisible(find.text('اختار تخصصك').last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('اختار تخصصك').last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('القانون الجنائي'));
-      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).at(3), '7');
       await tester.ensureVisible(find.text('بيانات الحساب'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('بيانات الحساب'));

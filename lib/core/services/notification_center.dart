@@ -86,6 +86,22 @@ class NotificationCenter {
     );
   }
 
+  /// إشعار واحد من القائمة
+  static Future<void> markRead(String id) async {
+    if (unread.value > 0) unread.value -= 1;
+    await ApiService.post('/notifications/read', {'id': id});
+  }
+
+  /// الإشعار اللي فتحه المستخدم من خارج التطبيق
+  static Future<void> markTargetRead(NotificationTarget target) async {
+    if (target.orderId == null && target.ticketId == null) return;
+    await ApiService.post('/notifications/read', {
+      if (target.orderId != null) 'orderId': target.orderId,
+      if (target.ticketId != null) 'ticketId': target.ticketId,
+    });
+    await refresh();
+  }
+
   static Future<void> markAllRead() async {
     unread.value = 0;
     await ApiService.post('/notifications/read-all', {});

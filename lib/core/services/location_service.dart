@@ -36,7 +36,7 @@ class LocationService {
       if (!serviceEnabled) {
         return const LocationResult(
           status: LocationServiceStatus.serviceDisabled,
-          errorMessage: 'Location services are disabled on this device. Please turn on GPS.',
+          errorMessage: 'خدمة الموقع مقفولة على جهازك، شغّلها وحاول تاني.',
         );
       }
 
@@ -46,7 +46,7 @@ class LocationService {
         if (permission == LocationPermission.denied) {
           return const LocationResult(
             status: LocationServiceStatus.permissionDenied,
-            errorMessage: 'Location permission was denied. Location access is required to determine your area.',
+            errorMessage: 'لازم تسمح بإذن الموقع عشان نحدد منطقتك.',
           );
         }
       }
@@ -54,7 +54,7 @@ class LocationService {
       if (permission == LocationPermission.deniedForever) {
         return const LocationResult(
           status: LocationServiceStatus.permissionDeniedForever,
-          errorMessage: 'Location permissions are permanently denied. Please enable them in app settings.',
+          errorMessage: 'إذن الموقع مرفوض، فعّله من إعدادات التطبيق.',
         );
       }
 
@@ -74,9 +74,9 @@ class LocationService {
       );
     } catch (e) {
       debugPrint('Location check error: $e');
-      return LocationResult(
+      return const LocationResult(
         status: LocationServiceStatus.error,
-        errorMessage: 'Failed to obtain GPS position: ${e.toString()}',
+        errorMessage: 'تعذر تحديد موقعك، حاول تاني.',
       );
     }
   }

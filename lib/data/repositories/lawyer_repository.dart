@@ -9,16 +9,12 @@ class LawyerRepository {
     required double lat,
     required double lon,
     double radiusKm = 1500.0,
-    String? specialty,
   }) async {
     final queryParams = <String, String>{
       'lat': lat.toString(),
       'lon': lon.toString(),
       'radius_km': radiusKm.toString(),
     };
-    if (specialty != null && specialty.isNotEmpty) {
-      queryParams['specialty'] = specialty;
-    }
 
     final response = await ApiService.get('/lawyers/nearby', queryParams: queryParams);
 

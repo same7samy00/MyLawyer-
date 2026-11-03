@@ -38,6 +38,19 @@ export async function notify(db: Db, userId: string, title: string, body: string
     [userId, title, body, orderId ?? null, ticketId ?? null]
   );
 
+  // A request to act goes away once the order has moved past it
+  if (orderId) {
+    await db.query(
+      `DELETE FROM notifications n USING service_orders o
+       WHERE n.order_id = $1 AND o.id = n.order_id AND (
+         (n.title = 'طلب جديد' AND o.status <> 'PENDING')
+         OR (n.title = 'المحامي وافق' AND o.status <> 'ACCEPTED')
+         OR (n.title = 'الموكل دفع' AND (o.status <> 'ACTIVE' OR o.arrived_at IS NOT NULL))
+       )`,
+      [orderId]
+    );
+  }
+
   // The order never waits for the phone
   void sendPush(userId, title, body, { orderId, ticketId });
 }
@@ -168,6 +181,10 @@ async function closeUnansweredOrders() {
   );
 
   for (const order of res.rows) {
+    await dbPool.query(
+      `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note) VALUES ($1, NULL, 'PENDING', 'NO_RESPONSE', 'انتهت مهلة رد المحامي دون رد')`,
+      [order.id]
+    );
     await notify(dbPool, order.client_id, 'المحامي ما ردش', 'الطلب اتقفل وتقدر تختار محامي تاني', order.id);
 
     const missed = await dbPool.query(
@@ -196,6 +213,10 @@ async function closeUnpaidOrders() {
   );
 
   for (const order of res.rows) {
+    await dbPool.query(
+      `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note) VALUES ($1, NULL, 'ACCEPTED', 'PAYMENT_EXPIRED', 'انتهت مهلة الدفع دون دفع')`,
+      [order.id]
+    );
     await notify(dbPool, order.client_id, 'انتهت مهلة الدفع', 'تقدر تبدأ طلب جديد في أي وقت', order.id);
     await notify(dbPool, order.lawyer_id, 'الموكل ما دفعش', 'الطلب اتقفل وتقدر تستقبل طلبات جديدة', order.id);
   }
@@ -266,7 +287,7 @@ async function expireUnfinishedOrders() {
       const fresh = await client.query(`SELECT * FROM service_orders WHERE id = $1 AND status = 'ACTIVE' FOR UPDATE`, [order.id]);
       if (fresh.rows.length === 0) return;
       const settlement = await evaluateSettlement(client, fresh.rows[0]);
-      await applySettlement(client, fresh.rows[0], settlement.outcome, order.lawyer_id, 'انتهت مهلة المهمة');
+      await applySettlement(client, fresh.rows[0], settlement.outcome, null, 'انتهت مهلة المهمة');
       // They met, so the client can rate the lawyer like any finished task
       if (fresh.rows[0].arrived_at && settlement.outcome !== 'REFUND') {
         await notify(client, order.client_id, 'المهمة اتقفلت', 'قيّم المحامي، ولو فيه مشكلة دوس «عندك مشكلة؟» في الطلب', order.id);
@@ -300,6 +321,10 @@ async function releaseHeldPayouts() {
   );
 
   for (const order of res.rows) {
+    await dbPool.query(
+      `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note) VALUES ($1, NULL, 'COMPLETED', 'COMPLETED', 'أصبحت الأتعاب متاحة للمحامي بعد مرور 24 ساعة')`,
+      [order.id]
+    );
     await notify(dbPool, order.lawyer_id, 'أتعابك جاهزة', 'أتعاب المهمة بقت متاحة في محفظتك', order.id);
   }
 }

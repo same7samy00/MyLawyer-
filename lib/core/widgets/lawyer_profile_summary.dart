@@ -7,7 +7,6 @@ class LawyerProfileSummary extends StatelessWidget {
   final Widget avatar;
   final String name;
   final String title;
-  final String specialization;
   final double rating;
   final int reviewsCount;
   final int experienceYears;
@@ -20,7 +19,6 @@ class LawyerProfileSummary extends StatelessWidget {
     required this.avatar,
     required this.name,
     required this.title,
-    required this.specialization,
     required this.rating,
     required this.reviewsCount,
     required this.experienceYears,
@@ -100,21 +98,6 @@ class LawyerProfileSummary extends StatelessWidget {
               _LawyerStat(value: distanceText, caption: distanceCaption),
             ],
           ),
-        ),
-        const SizedBox(height: 12),
-
-        // 3. التخصص الدقيق
-        Text(
-          specialization,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'AppFont',
-            fontFamilyFallback: appFontFallback,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-            color: AppColors.primary,
-          ),
-          maxLines: 2,
         ),
       ],
     );

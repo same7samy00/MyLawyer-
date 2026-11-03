@@ -64,7 +64,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
         const Duration(seconds: 4),
         onTimeout: () => const LocationResult(
           status: LocationServiceStatus.error,
-          errorMessage: 'Location request timed out',
+          errorMessage: 'تحديد الموقع أخد وقت طويل، حاول تاني.',
         ),
       );
       position = result.position;
@@ -477,7 +477,6 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
                                 ),
                                 name: _selectedLawyer!.name,
                                 title: _selectedLawyer!.title,
-                                specialization: _selectedLawyer!.specialization,
                                 rating: _selectedLawyer!.rating,
                                 reviewsCount: _selectedLawyer!.reviewsCount,
                                 experienceYears: _selectedLawyer!.experienceYears,

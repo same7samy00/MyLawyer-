@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { notify } from '../lifecycle/service.js';
 import { sanitizeText } from '../../utils/security.js';
+import { logAdminAction } from './actions.js';
 import { addWarning, adjustBalance, applySettlement, evaluateSettlement, logPayoutEvent, revokeWarning, SettlementOutcome } from '../lifecycle/settlement.js';
 
 const PAGE_LIMIT = 100;
@@ -74,7 +75,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     const res = await query(
       `SELECT u.id, u.role, u.status, u.phone, u.email, u.created_at, u.warnings_count,
               COALESCE(lp.full_name, u.full_name) AS full_name,
-              lp.specialty, lp.syndicate_number, lp.rating, lp.reviews_count, lp.is_available, lp.urgent_status,
+              lp.experience_years, lp.syndicate_number, lp.rating, lp.reviews_count, lp.is_available, lp.urgent_status,
               (SELECT COUNT(*)::int FROM service_orders o WHERE o.client_id = u.id OR o.lawyer_id = u.id) AS orders_count,
               ${userStats('u.id', 'user')}
        FROM users u LEFT JOIN lawyer_profiles lp ON lp.user_id = u.id
@@ -95,7 +96,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
       `SELECT u.id, u.role, u.status, u.phone, u.email, u.created_at, u.warnings_count,
               COALESCE(lp.full_name, u.full_name) AS full_name,
               COALESCE(lp.profile_photo_path, u.profile_photo_path) AS photo,
-              lp.specialty, lp.bio, lp.syndicate_number, lp.rating, lp.reviews_count, lp.is_available,
+              lp.experience_years, lp.syndicate_number, lp.rating, lp.reviews_count, lp.is_available,
               lp.availability_off_reason, lp.urgent_status, lp.last_location_updated_at, lp.suspended_until,
               ${userStats('u.id', 'user')}
        FROM users u LEFT JOIN lawyer_profiles lp ON lp.user_id = u.id
@@ -167,15 +168,18 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
 
   // POST /api/v1/admin/users/:id/status
   fastify.post('/users/:id/status', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
     const { id } = request.params as { id: string };
     const { suspend } = (request.body || {}) as { suspend?: boolean };
     if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
 
     const res = await query(
-      `UPDATE users SET status = $1::user_status, suspended_until = NULL, updated_at = NOW() WHERE id = $2 AND role <> 'admin' RETURNING id`,
+      `UPDATE users SET status = $1::user_status, suspended_until = NULL, updated_at = NOW() WHERE id = $2 AND role <> 'admin' RETURNING id, COALESCE(full_name, phone) AS label`,
       [suspend ? 'suspended' : 'active', id]
     );
     if (res.rows.length === 0) return reply.status(404).send({ success: false, error: 'الحساب غير موجود' });
+
+    await logAdminAction(adminId, suspend ? 'ACCOUNT_SUSPEND' : 'ACCOUNT_ACTIVATE', res.rows[0].label, null, id);
 
     if (suspend) {
       await query(`UPDATE lawyer_profiles SET is_available = FALSE, availability_off_reason = 'SUSPENDED' WHERE user_id = $1`, [id]);
@@ -230,7 +234,9 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     if (orderRes.rows.length === 0) return reply.status(404).send({ success: false, error: 'الطلب غير موجود' });
 
     const [logs, tickets, reviews, movements, events, payments] = await Promise.all([
-      query('SELECT old_status, new_status, note, created_at FROM order_status_logs WHERE order_id = $1 ORDER BY created_at ASC', [id]),
+      query(`SELECT l.old_status, l.new_status, l.note, l.created_at, u.role AS actor_role
+             FROM order_status_logs l LEFT JOIN users u ON u.id = l.changed_by_user_id
+             WHERE l.order_id = $1 ORDER BY l.created_at ASC`, [id]),
       query(`SELECT t.id, t.reference, t.title, t.category, t.status, t.created_at, u.role AS user_role
              FROM support_tickets t JOIN users u ON u.id = t.user_id WHERE t.order_id = $1 ORDER BY t.created_at DESC`, [id]),
       query('SELECT rating, comment, created_at FROM reviews WHERE order_id = $1', [id]),

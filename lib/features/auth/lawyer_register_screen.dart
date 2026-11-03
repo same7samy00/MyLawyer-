@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_pressable.dart';
@@ -9,7 +10,6 @@ import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/password_strength_widget.dart';
 import 'email_verification_screen.dart';
-import 'specialty_picker_screen.dart';
 
 /// شاشة إنشاء حساب محامي جديد بنظام متعدد الخطوات (Step-by-Step)
 class LawyerRegisterScreen extends StatefulWidget {
@@ -29,8 +29,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _syndicateNumberController = TextEditingController();
-  final _bioController = TextEditingController();
-  String? _specialty;
+  final _experienceController = TextEditingController();
   final _passwordController = TextEditingController();
 
   final ImagePicker _imagePicker = ImagePicker();
@@ -64,7 +63,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
     _phoneController.dispose();
     _emailController.dispose();
     _syndicateNumberController.dispose();
-    _bioController.dispose();
+    _experienceController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -252,16 +251,6 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
     );
   }
 
-  Future<void> _pickSpecialty(FormFieldState<String> field) async {
-    final picked = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (context) => SpecialtyPickerScreen(selected: _specialty)),
-    );
-    if (picked == null || !mounted) return;
-
-    setState(() => _specialty = picked);
-    field.validate();
-  }
-
   void _validateAndAdvanceStep1() {
     setState(() => _errorMessage = null);
     if (_step1FormKey.currentState!.validate()) {
@@ -315,8 +304,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
       syndicateNumber: _syndicateNumberController.text.trim(),
       syndicateCardPath: _syndicateCardPath,
       profilePhotoPath: _profilePhotoPath,
-      specialty: _specialty,
-      bio: _bioController.text.trim(),
+      experienceYears: int.tryParse(_experienceController.text.trim()),
     );
 
     final result = await AuthService.registerUser(regData);
@@ -554,42 +542,25 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
           ),
           const SizedBox(height: 18),
 
-          _buildInputLabel('التخصص', isRequired: true),
-          const SizedBox(height: 8),
-          FormField<String>(
-            validator: (_) => _specialty == null ? 'اختار تخصصك' : null,
-            builder: (field) => InputDecorator(
-              decoration: _inputDecoration(
-                hintText: 'اختار تخصصك',
-                prefixIcon: Icons.policy_outlined,
-              ).copyWith(errorText: field.errorText),
-              child: InkWell(
-                onTap: () => _pickSpecialty(field),
-                child: Text(
-                  _specialty ?? 'اختار تخصصك',
-                  style: TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 14,
-                    color: _specialty == null ? AppColors.textMuted : AppColors.dark,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          _buildInputLabel('نبذة تعريفية قصيرة'),
+          _buildInputLabel('سنوات الخبرة', isRequired: true),
           const SizedBox(height: 8),
           TextFormField(
-            controller: _bioController,
-            maxLength: 150,
-            maxLines: 3,
+            controller: _experienceController,
+            keyboardType: TextInputType.number,
+            textDirection: TextDirection.ltr,
+            textInputAction: TextInputAction.done,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
             style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 14),
             decoration: _inputDecoration(
-              hintText: 'اكتب سطرين عن خبرتك',
-              prefixIcon: Icons.edit_note_rounded,
+              hintText: 'مثال: 5',
+              prefixIcon: Icons.verified_outlined,
             ),
+            validator: (value) {
+              final years = int.tryParse(value?.trim() ?? '');
+              if (years == null) return 'اكتب عدد سنوات خبرتك';
+              if (years > 70) return 'سنوات الخبرة غير صحيحة';
+              return null;
+            },
           ),
           const SizedBox(height: 32),
 

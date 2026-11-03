@@ -842,6 +842,70 @@ describe('الدعم الفني', () => {
     assert.equal((await sql('SELECT method FROM payments WHERE order_id = $1', [order.id]))[0].method, 'WALLET');
   });
 
+  it('سنوات الخبرة بتتسجل مع حساب المحامي وتظهر في ملفه', async () => {
+    const res = await call('POST', '/auth/register', null, {
+      phone: '01000000088', email: 'years@example.com', password: 'Strong12345', confirmPassword: 'Strong12345',
+      role: 'lawyer', fullName: 'محامٍ خبير', syndicateNumber: '778899', experienceYears: 12, agreeTerms: true,
+    });
+    assert.equal(res.status, 201);
+    const row = (await sql(`SELECT lp.experience_years, lp.user_id FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id WHERE u.phone = '01000000088'`))[0];
+    assert.equal(row.experience_years, 12);
+    const token = app.jwt.sign({ userId: row.user_id, role: 'lawyer' });
+    await sql(`UPDATE users SET status = 'active' WHERE id = $1`, [row.user_id]);
+    const me = (await call('GET', '/users/me', token)).body.data;
+    assert.equal(me.experienceYears, 12);
+    assert.equal('specialty' in me, false);
+    assert.equal('bio' in me, false);
+  });
+
+  it('إشعارات الطلب القديمة بتختفي لما الطلب يتقدم، والضغط على إشعار بيقراه', async () => {
+    const titles = async (user: string) => (await sql('SELECT title FROM notifications WHERE user_id = $1', [user])).map((row: any) => row.title);
+    const order = await createOrder();
+    assert.ok((await titles(lawyerId)).includes('طلب جديد'));
+    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
+    assert.equal((await titles(lawyerId)).includes('طلب جديد'), false);
+    assert.ok((await titles(clientId)).includes('المحامي وافق'));
+    await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, {});
+    assert.equal((await titles(clientId)).includes('المحامي وافق'), false);
+
+    const note = (await sql(`SELECT id FROM notifications WHERE user_id = $1 AND title = 'الموكل دفع'`, [lawyerId]))[0];
+    assert.equal((await call('POST', '/notifications/read', lawyerToken, { id: note.id })).status, 200);
+    assert.ok((await sql('SELECT read_at FROM notifications WHERE id = $1', [note.id]))[0].read_at);
+    assert.equal((await call('POST', '/notifications/read', lawyerToken, {})).status, 400);
+
+    await sql('UPDATE notifications SET read_at = NULL WHERE id = $1', [note.id]);
+    await call('POST', '/notifications/read', clientToken, { id: note.id });
+    assert.equal((await sql('SELECT read_at FROM notifications WHERE id = $1', [note.id]))[0].read_at, null);
+  });
+
+  it('قرارات الإدارة بتتسجل بمين عملها', async () => {
+    await sql('DELETE FROM admin_actions');
+    const other = await createUser('01000000077', 'client');
+    await call('POST', `/admin/users/${other}/status`, adminToken, { suspend: true });
+    await call('POST', `/admin/users/${other}/status`, adminToken, { suspend: false });
+    await call('POST', '/admin/tax', adminToken, { percent: 0 });
+    await call('POST', '/admin/commission', adminToken, { percent: 0 });
+    const actions = (await call('GET', '/admin/actions', adminToken)).body.data;
+    assert.deepEqual(actions.map((item: any) => item.action).sort(), ['ACCOUNT_ACTIVATE', 'ACCOUNT_SUSPEND', 'COMMISSION_UPDATE', 'TAX_UPDATE']);
+    assert.ok(actions.every((item: any) => item.created_by));
+    assert.equal((await call('GET', '/admin/actions', clientToken)).status, 403);
+  });
+
+  it('انتهاء المهل والتذاكر والتجميد بيتسجلوا في مراحل الطلب', async () => {
+    const unanswered = await createOrder();
+    await sql(`UPDATE service_orders SET response_deadline = NOW() - INTERVAL '1 minute' WHERE id = $1`, [unanswered.id]);
+    await sweepLifecycle();
+    const logs = (await call('GET', `/admin/orders/${unanswered.id}`, adminToken)).body.data.logs;
+    assert.equal(logs.at(-1).new_status, 'NO_RESPONSE');
+    assert.equal(logs.at(-1).actor_role, null);
+
+    const done = await createCompletedOrder();
+    await openTicket(clientToken, done.id);
+    const notes = (await call('GET', `/admin/orders/${done.id}`, adminToken)).body.data.logs.map((log: any) => log.note);
+    assert.ok(notes.some((note: string) => note.startsWith('فُتحت تذكرة')));
+    assert.ok(notes.some((note: string) => note.startsWith('تجميد الأتعاب')));
+  });
+
   it('التحويل من التذكرة بيخصم من طرف ويضيف للتاني في نفس اللحظة', async () => {
     const order = await createCompletedOrder();
     const ticket = (await openTicket(clientToken, order.id)).body.data;
