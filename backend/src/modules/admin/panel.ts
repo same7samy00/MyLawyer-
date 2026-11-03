@@ -3,29 +3,47 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
-const CONTENT_TYPES: Record<string, string> = {
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.png': 'image/png',
-};
+// Loaded together in this order, because later files use what earlier ones define
+const STYLES = ['css/base.css', 'css/panel.css'];
+const SCRIPTS = [
+  'js/core.js',
+  'js/components.js',
+  'js/pages/overview.js',
+  'js/pages/tickets.js',
+  'js/windows.js',
+  'js/actions.js',
+  'js/pages/ticket.js',
+  'js/pages/reports.js',
+  'js/pages/applications.js',
+  'js/pages/accounts.js',
+  'js/pages/orders.js',
+  'js/pages/reviews.js',
+  'js/pages/prices.js',
+  'js/pages/money.js',
+  'js/pages/decisions.js',
+  'js/app.js',
+];
+const YEAR_CACHE = 'public, max-age=31536000, immutable';
 
-/// Serves the control page. Its files change name with every release, so browsers can keep them for a year
+/// Serves the control page. Links have no file extension because Nginx answers those itself,
+/// and they change with every release, so browsers can keep the files for a year.
 export function registerAdminPanel(api: FastifyInstance) {
   const root = path.resolve(process.cwd(), 'public/admin');
   const version = crypto.randomBytes(6).toString('hex');
-  const page = () => fs.readFileSync(path.join(root, 'index.html'), 'utf-8').replaceAll('__VERSION__', version);
+  const read = (file: string) => fs.readFileSync(path.join(root, file));
+  const joined = (files: string[]) => files.map((file) => read(file).toString('utf-8')).join('\n');
 
   api.get('/admin-panel', async (_request, reply) => {
-    return reply.header('Cache-Control', 'no-cache').type('text/html; charset=utf-8').send(page());
+    const page = read('index.html').toString('utf-8').replaceAll('__VERSION__', version);
+    return reply.header('Cache-Control', 'no-cache').type('text/html; charset=utf-8').send(page);
   });
-
-  api.get('/admin-panel/assets/*', async (request, reply) => {
-    const relative = (request.params as { '*': string })['*'];
-    const file = path.resolve(root, relative);
-    const type = CONTENT_TYPES[path.extname(file)];
-    if (!type || !file.startsWith(root + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
-      return reply.status(404).send({ success: false, error: 'الملف غير موجود' });
-    }
-    return reply.header('Cache-Control', 'public, max-age=31536000, immutable').type(type).send(fs.readFileSync(file));
+  api.get('/admin-panel/styles', async (_request, reply) => {
+    return reply.header('Cache-Control', YEAR_CACHE).type('text/css; charset=utf-8').send(joined(STYLES));
+  });
+  api.get('/admin-panel/script', async (_request, reply) => {
+    return reply.header('Cache-Control', YEAR_CACHE).type('text/javascript; charset=utf-8').send(joined(SCRIPTS));
+  });
+  api.get('/admin-panel/logo', async (_request, reply) => {
+    return reply.header('Cache-Control', YEAR_CACHE).type('image/png').send(read('assets/logo.png'));
   });
 }

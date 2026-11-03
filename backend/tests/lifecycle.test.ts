@@ -882,11 +882,16 @@ describe('الدعم الفني', () => {
     const page = await app.inject({ method: 'GET', url: '/api/v1/admin-panel' });
     assert.equal(page.statusCode, 200);
     assert.equal(page.body.includes('__VERSION__'), false);
-    const asset = page.body.match(/\/api\/v1\/admin-panel\/assets\/js\/core\.js\?v=\w+/)![0];
-    const js = await app.inject({ method: 'GET', url: asset });
-    assert.equal(js.statusCode, 200);
-    assert.match(js.headers['cache-control'] as string, /immutable/);
-    assert.equal((await app.inject({ method: 'GET', url: '/api/v1/admin-panel/assets/..%2F..%2Fpackage.json' })).statusCode, 404);
+    for (const [name, type] of [['styles', 'text/css'], ['script', 'text/javascript'], ['logo', 'image/png']]) {
+      const link = page.body.match(new RegExp(`/api/v1/admin-panel/${name}\\?v=\\w+`))![0];
+      assert.equal(/\.\w+\?/.test(link), false);
+      const file = await app.inject({ method: 'GET', url: link });
+      assert.equal(file.statusCode, 200);
+      assert.ok((file.headers['content-type'] as string).startsWith(type));
+      assert.match(file.headers['cache-control'] as string, /immutable/);
+    }
+    const script = await app.inject({ method: 'GET', url: '/api/v1/admin-panel/script' });
+    assert.ok(script.body.indexOf('function readSession') < script.body.indexOf('const PAGES = {'));
     assert.equal((await app.inject({ method: 'GET', url: '/api/v1/admin-panel/assets/index.html' })).statusCode, 404);
   });
 
