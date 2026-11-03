@@ -1,5 +1,8 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Control Page: Style Fix] - 2026-11-03
+- Restored notice and chat message colours that the style cleanup removed by mistake, because the code builds those class names.
+
 ## [Control Page: Links and Speed] - 2026-11-03
 - Every page, tab, filter and search now has its own link (`js/router.js`), so back, refresh and sharing a link work.
 - Pages open from the last answer and refresh behind it, the current page stays on screen while the next loads, menu lists load on hover, and the private card no longer holds a page.

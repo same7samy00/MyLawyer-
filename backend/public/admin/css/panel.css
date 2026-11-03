@@ -300,3 +300,11 @@ table, thead, tbody, tr, th, td, svg, path, strong, span, p, h1, h2, h3, h4, lab
 .content-container.is-busy::before, #content.is-busy::before { content: ''; position: sticky; top: 0; z-index: 40; display: block; height: 2px; margin-bottom: -2px; background: var(--brand-primary); animation: busy-bar 0.9s ease-in-out infinite alternate; transform-origin: right; }
 @keyframes busy-bar { from { transform: scaleX(0.15); } to { transform: scaleX(0.85); } }
 .doc-loading { background: var(--bg-app); }
+
+/* Colours chosen in code by the kind of notice and the kind of message */
+.header-toast-pill.type-success { background: #15803d !important; border-color: #15803d !important; color: #fff !important; }
+.header-toast-pill.type-error { background: #b91c1c !important; border-color: #b91c1c !important; color: #fff !important; }
+.ticket-note .ticket-message-head strong { color: var(--text-muted); }
+.ticket-admin .ticket-message-head strong { color: var(--brand-primary); }
+.chat-thread .ticket-admin { align-self: flex-end; background: var(--brand-light) !important; }
+.chat-thread .ticket-note { align-self: center; background: #fffbeb !important; }
