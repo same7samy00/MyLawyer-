@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Control Page: Links and Speed] - 2026-11-03
+- Every page, tab, filter and search now has its own link (`js/router.js`), so back, refresh and sharing a link work.
+- Pages open from the last answer and refresh behind it, the current page stays on screen while the next loads, menu lists load on hover, and the private card no longer holds a page.
+- A manual warning can now carry an order number. Long tables draw 50 rows at a time, and unused control page styles were removed.
+
 ## [Review Reports in the App] - 2026-11-03
 - A lawyer can now report a comment from «تقييماتي» with a reason, and the report reaches «بلاغات التقييمات» on the control page.
 

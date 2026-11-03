@@ -27,7 +27,7 @@ async function applicationsPage(box) {
     ...dateFilters(),
   ]));
 
-  const openLawyer = (item) => (applications.has(item.id) ? open('application', applications.get(item.id)) : open('user', item.id));
+  const openLawyer = (item) => (applications.has(item.id) ? open('application', item.id) : open('user', item.id));
   box.append(table(['الاسم', 'الهاتف', 'رقم القيد', 'سنوات الخبرة', 'تاريخ التسجيل', 'الحالة', 'الإجراءات'], shown.map((item) => ({
     item,
     cells: [
@@ -58,55 +58,59 @@ function missingDocument(text) {
   return node;
 }
 
-async function documentsGrid(item) {
-  const grid = el('div', undefined, 'doc-grid');
+const cardCache = new Map();
 
-  if (item.photo) {
-    grid.append(documentBox('الصورة الشخصية', imageThumb(item.photo, 'الصورة الشخصية')));
-  } else {
-    grid.append(documentBox('الصورة الشخصية', missingDocument('لم يرفع المحامي صورته بعد')));
-  }
-
-  if (!item.card_id) {
-    grid.append(documentBox('كارنيه النقابة', missingDocument('لم يرفع المحامي صورة الكارنيه بعد')));
-  } else {
-    try {
-      const url = await privateDocument(item.card_id);
-      if (item.card_mime === 'application/pdf') {
-        const view = el('a');
-        view.href = url;
-        view.target = '_blank';
-        view.rel = 'noopener';
-        view.className = 'btn btn-outline';
-        view.append(icon('open'), el('span', 'فتح ملف الكارنيه'));
-        grid.append(documentBox('كارنيه النقابة', view));
-      } else {
-        grid.append(documentBox('كارنيه النقابة', imageThumb(url, 'كارنيه النقابة')));
-      }
-    } catch (err) {
-      grid.append(documentBox('كارنيه النقابة', missingDocument(err.message)));
+/// The private card fills in when it arrives, so the page never waits for it, and it loads once
+function fillCard(slot, item) {
+  if (!cardCache.has(item.card_id)) cardCache.set(item.card_id, privateDocument(item.card_id));
+  cardCache.get(item.card_id).then((url) => {
+    if (item.card_mime === 'application/pdf') {
+      const view = el('a');
+      view.href = url;
+      view.target = '_blank';
+      view.rel = 'noopener';
+      view.className = 'btn btn-outline';
+      view.append(icon('open'), el('span', 'فتح ملف الكارنيه'));
+      slot.replaceWith(documentBox('كارنيه النقابة', view));
+    } else {
+      slot.replaceWith(documentBox('كارنيه النقابة', imageThumb(url, 'كارنيه النقابة')));
     }
+  }).catch((err) => {
+    cardCache.delete(item.card_id);
+    slot.replaceWith(documentBox('كارنيه النقابة', missingDocument(err.message)));
+  });
+}
+
+function documentsGrid(item) {
+  const grid = el('div', undefined, 'doc-grid');
+  grid.append(documentBox('الصورة الشخصية', item.photo ? imageThumb(item.photo, 'الصورة الشخصية') : missingDocument('لم يرفع المحامي صورته بعد')));
+  if (item.card_id) {
+    const slot = documentBox('كارنيه النقابة', el('div', undefined, 'doc-loading image-thumb'));
+    grid.append(slot);
+    fillCard(slot, item);
+  } else {
+    grid.append(documentBox('كارنيه النقابة', missingDocument('لم يرفع المحامي صورة الكارنيه بعد')));
   }
   return grid;
 }
 
 /// An application opens as the lawyer's profile, with the decision as its action
 function applicationPage(box) {
-  return userPage(box, current.param);
+  return userPage(box, true);
 }
 
-function applicationActions(item) {
+function applicationActions(user) {
   const decide = (approve, reason) => decideAndReturn(() =>
-    api('POST', '/admin/urgent-applications/' + item.user_id + '/decision', { approve, reason }));
+    api('POST', '/admin/urgent-applications/' + user.id + '/decision', { approve, reason }));
   return [
     {
       title: 'الموافقة على الطلب', description: 'يتيح للمحامي استقبال طلبات «محاميك حالاً».', steps: [], success: 'تمت الموافقة',
-      summary: () => [['المحامي', item.full_name]], run: () => decide(true),
+      summary: () => [['المحامي', user.full_name]], run: () => decide(true),
     },
     {
       title: 'رفض الطلب', description: 'يرفض الطلب، ويصل إلى المحامي إشعار بالسبب.', success: 'تم الرفض', danger: true,
       steps: [{ key: 'reason', type: 'text', label: 'ما سبب الرفض؟', min: 3 }],
-      summary: (values) => [['المحامي', item.full_name], ['السبب', values.reason]], run: (values) => decide(false, values.reason),
+      summary: (values) => [['المحامي', user.full_name], ['السبب', values.reason]], run: (values) => decide(false, values.reason),
     },
   ];
 }

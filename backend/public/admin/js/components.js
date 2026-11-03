@@ -139,6 +139,7 @@ function accountTag(status) {
   return badge(label, color);
 }
 
+const TABLE_STEP = 50;
 const COLUMN_SIZES = { 'الاسم': 'wide-column', 'سنوات الخبرة': 'narrow-column', 'التقييم': 'narrow-column' };
 
 function table(headers, rows, onClick) {
@@ -150,7 +151,7 @@ function table(headers, rows, onClick) {
   thead.append(head);
   const tbody = el('tbody');
 
-  rows.forEach((row) => {
+  const addRow = (row, index) => {
     const line = el('tr', undefined, onClick ? 'click' : '');
     row.cells.forEach((cell) => {
       const td = el('td');
@@ -158,8 +159,21 @@ function table(headers, rows, onClick) {
       line.append(td);
     });
     if (onClick) line.addEventListener('click', (event) => { if (!event.target.closest('button')) onClick(row.item); });
+    if (wrap.classList.contains('main-table')) line.prepend(el('td', String(index + 1), 'serial-cell'));
     tbody.append(line);
-  });
+  };
+  // Long lists draw in steps, so a big table never slows the page
+  let drawn = 0;
+  const more = el('button', undefined, 'table-more');
+  more.type = 'button';
+  const drawMore = () => {
+    const end = Math.min(drawn + TABLE_STEP, rows.length);
+    for (; drawn < end; drawn += 1) addRow(rows[drawn], drawn);
+    more.textContent = 'عرض المزيد (' + (rows.length - drawn) + ')';
+    more.hidden = drawn >= rows.length;
+  };
+  more.addEventListener('click', drawMore);
+  drawMore();
   if (rows.length === 0) {
     const empty = el('td', 'لا توجد بيانات', 'empty-table-row');
     empty.colSpan = headers.length;
@@ -168,7 +182,7 @@ function table(headers, rows, onClick) {
     tbody.append(line);
   }
   node.append(thead, tbody);
-  wrap.append(node);
+  wrap.append(node, more);
   return wrap;
 }
 

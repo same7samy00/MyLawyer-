@@ -146,29 +146,35 @@ async function refreshSession() {
   return refreshing;
 }
 
-// Moving between pages reuses recent answers, and any change clears them so nothing old stays on screen.
+// Pages open at once from the last answer. An older answer is shown and refreshed behind it, and any change clears them.
 // Counts, search and ticket messages always ask the server.
-const API_CACHE_MS = 20000;
+const API_FRESH_MS = 20000;
+const API_KEEP_MS = 300000;
 const apiCache = new Map();
 const isCacheable = (method, path) => method === 'GET' && !/^\/admin\/(overview|search|support)/.test(path);
 
+function askAndKeep(path) {
+  const text = apiRequest('GET', path).then(JSON.stringify);
+  const entry = { at: Date.now(), text };
+  apiCache.set(path, entry);
+  text.catch(() => { if (apiCache.get(path) === entry) apiCache.delete(path); });
+  return text;
+}
+
 async function api(method, path, body) {
   if (!isCacheable(method, path)) {
-    if (method !== 'GET') apiCache.clear();
     const json = await apiRequest(method, path, body);
     if (method !== 'GET') apiCache.clear();
     return json;
   }
   const saved = apiCache.get(path);
-  if (saved && Date.now() - saved.at < API_CACHE_MS) return JSON.parse(await saved.text);
-  const text = apiRequest(method, path).then(JSON.stringify);
-  apiCache.set(path, { at: Date.now(), text });
-  try {
-    return JSON.parse(await text);
-  } catch (err) {
-    apiCache.delete(path);
-    throw err;
+  const age = saved ? Date.now() - saved.at : Infinity;
+  if (age > API_KEEP_MS) return JSON.parse(await askAndKeep(path));
+  const answer = await saved.text;
+  if (age > API_FRESH_MS) {
+    askAndKeep(path).then((fresh) => { if (fresh !== answer) refreshQuietly(); }).catch(() => {});
   }
+  return JSON.parse(answer);
 }
 
 async function apiRequest(method, path, body, isRetry) {

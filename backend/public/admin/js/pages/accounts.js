@@ -50,8 +50,8 @@ function usersPage(role) {
 }
 
 /// The profile page. For an application it offers the decision only, and its tables wait for the approval
-async function userPage(box, application) {
-  const { data } = await api('GET', '/admin/users/' + (application ? application.user_id : current.param));
+async function userPage(box, isApplication = false) {
+  const { data } = await api('GET', '/admin/users/' + current.param);
   const { user } = data;
   const isLawyer = user.role === 'lawyer';
 
@@ -66,7 +66,7 @@ async function userPage(box, application) {
     badges.push(statusRow('calendar', 'آخر تحديث للموقع', el('span', date(user.last_location_updated_at), 'hero-status-text')));
   }
   box.append(hero(avatarBox(user.photo, isLawyer ? 'lawyer' : 'client'), user.full_name || 'حساب', badges,
-    [['phone', user.phone], ['mail', user.email], ['calendar', 'تاريخ التسجيل: ' + date(user.created_at)]], [actionButton(application ? applicationActions(application) : userActions(user, data))]));
+    [['phone', user.phone], ['mail', user.email], ['calendar', 'تاريخ التسجيل: ' + date(user.created_at)]], [actionButton(isApplication ? applicationActions(user) : userActions(user, data))]));
 
   const stats = [['الطلبات', user.user_orders, 'orders', 'blue'], ['شكاوى ضده', user.user_against, 'complaint', 'red'],
     ['شكاوى قدمها', user.user_filed, 'appeal', 'amber'], ['الإنذارات', user.warnings_count, 'power', 'gray']];
@@ -83,7 +83,7 @@ async function userPage(box, application) {
   const active = list.some(([key]) => key === current.tab) ? current.tab : 'data';
   box.append(tabs(list, active, (key) => { current.tab = key; render(); }));
 
-  const pane = el('div', undefined, 'tab-content-pane' + (application && active !== 'data' ? ' locked-tables' : ''));
+  const pane = el('div', undefined, 'tab-content-pane' + (isApplication && active !== 'data' ? ' locked-tables' : ''));
   if (active === 'data') {
     pane.append(section('بيانات الحساب', details([
       ['الاسم', user.full_name], ['الهاتف', user.phone], ['البريد', user.email], ['تاريخ التسجيل', date(user.created_at)],
@@ -212,9 +212,9 @@ function userActions(user, data) {
     moneyAction('إضافة', 'يزيد رصيد الحساب، وتتحمل المنصة المبلغ.', 1, 'تمت الإضافة'),
     moneyAction('خصم', 'ينقص رصيد الحساب، وإذا زاد الخصم على الرصيد أصبح سالبًا ويُسدَّد مما يدخل لاحقًا.', -1, 'تم تنفيذ الخصم'),
     {
-      title: 'إنذار', description: 'يسجل إنذارًا، وثلاثة إنذارات خلال 30 يومًا توقف الحساب أسبوعًا تلقائيًا.', steps: [REASON_STEP], success: 'تم توجيه الإنذار', danger: true,
-      summary: (values) => [['السبب', values.reason]],
-      run: (values) => api('POST', '/admin/users/' + user.id + '/warnings', { reason: values.reason }),
+      title: 'إنذار', description: 'يسجل إنذارًا، وثلاثة إنذارات خلال 30 يومًا توقف الحساب أسبوعًا تلقائيًا.', steps: [REASON_STEP, { key: 'orderNumber', type: 'text', label: 'رقم الطلب (اختياري)', optional: true }], success: 'تم توجيه الإنذار', danger: true,
+      summary: (values) => [['السبب', values.reason], ...(values.orderNumber ? [['رقم الطلب', values.orderNumber]] : [])],
+      run: (values) => api('POST', '/admin/users/' + user.id + '/warnings', { reason: values.reason, orderNumber: values.orderNumber || undefined }),
     },
     ...(activeWarnings.length ? [{
       title: 'إلغاء إنذار', description: 'يلغي الإنذار الذي تختاره، ولا يرفع إيقافًا قائمًا.', success: 'تم إلغاء الإنذار',

@@ -14,12 +14,17 @@ async function reportsPage(box) {
   ]));
   box.append(table(['المحامي', 'التقييم', 'التعليق', 'سبب البلاغ', 'التاريخ', 'الإجراءات'], shown.map((item) => ({
     item,
-    cells: [personCell(item.lawyer_name), item.rating + ' / 5', item.comment || '-', item.report_reason || '-', date(item.reported_at), openButton('فتح', 'reviewReport', item)],
-  })), (item) => open('reviewReport', item)));
+    cells: [personCell(item.lawyer_name), item.rating + ' / 5', item.comment || '-', item.report_reason || '-', date(item.reported_at), openButton('فتح', 'reviewReport', item.id)],
+  })), (item) => open('reviewReport', item.id)));
 }
 
 async function reviewReportPage(box) {
-  const item = current.param;
+  const { data } = await api('GET', '/admin/reviews/reported');
+  const item = data.find((row) => String(row.id) === current.param);
+  if (!item) {
+    box.append(section('بلاغ عن تقييم', el('p', 'تم الفصل في هذا البلاغ أو لم يعد موجودًا.', 'muted')));
+    return;
+  }
   const moderate = (hide) => decideAndReturn(() => api('POST', '/admin/reviews/' + item.id + '/moderate', { hide }));
 
   box.append(hero(avatarBox(null, 'review'), 'بلاغ عن تقييم', [statusRow('complaint', 'حالة البلاغ', badge('مفتوح', 'amber'))],

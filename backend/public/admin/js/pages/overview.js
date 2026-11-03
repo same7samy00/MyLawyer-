@@ -1,12 +1,5 @@
 // Pages
 
-/// Opens a list page from a work row with every date, so old work is not hidden
-function goTo(page, state) {
-  trail = [];
-  current = { page, state, from: '', to: '' };
-  render();
-}
-
 function workRow(iconName, count, text, onClick) {
   const row = el('button', undefined, 'work-row');
   row.type = 'button';

@@ -20,14 +20,14 @@
 .view-meta-pills.hero-part, .hero-states.hero-part { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; gap: 0.25rem 0; padding-block: 0.32rem; border-top: 1px dashed #94a3b8; }
 .view-meta-pills.hero-part { grid-row: 2; }
 .hero-states.hero-part { grid-row: 3; }
-.view-meta-pill, .hero-status-row { display: inline-flex; align-items: center; gap: 0.35rem; width: auto; padding: 0 0.7rem; background: transparent !important; border: 0 !important; border-left: 1px dashed #94a3b8 !important; border-radius: 0 !important; font-size: 0.88rem; font-weight: 500; color: var(--text-main); }
+.view-meta-pill, .hero-status-row { display: inline-flex; align-items: center; gap: 0.45rem; width: auto; margin: 0; padding: 0.1rem 1rem; background: transparent !important; border: 0 !important; border-left: 1px dashed #94a3b8 !important; border-radius: 0 !important; font-size: 0.96rem; font-weight: 500; line-height: 1.5; color: var(--text-main); }
 .view-meta-pill:first-child, .hero-status-row:first-child { padding-right: 0; }
-.view-meta-pill:last-child, .hero-status-row:last-child { border-left: 0 !important; }
-.view-meta-pill svg { width: 15px; height: 15px; flex-shrink: 0; }
-.hero-status-key { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; white-space: nowrap; }
-.hero-status-key svg { width: 14px; height: 14px; flex-shrink: 0; }
-.hero-status-text { color: var(--text-main); font-size: 0.88rem; font-weight: 500; }
-.hero-status-row .status-badge, .view-hero-card .status-badge { font-size: 0.88rem; font-weight: 600; }
+.view-meta-pill:last-child, .hero-status-row:last-child { padding-left: 0; border-left: 0 !important; }
+.view-meta-pill svg { width: 16px; height: 16px; flex-shrink: 0; }
+.hero-status-key { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--text-muted); font-size: 0.93rem; font-weight: 500; white-space: nowrap; }
+.hero-status-key svg { width: 16px; height: 16px; flex-shrink: 0; }
+.hero-status-text { color: var(--text-main); font-size: 0.96rem; font-weight: 500; }
+.hero-status-row .status-badge, .view-hero-card .status-badge { font-size: 0.96rem; font-weight: 600; }
 @media (max-width: 700px) {
   .view-hero-card { grid-template-columns: minmax(0, 1fr); }
   .view-hero-actions.hero-part { grid-row: 4; grid-column: 1; max-width: none; justify-content: flex-start; border-top: 1px dashed #94a3b8; }
@@ -37,11 +37,3 @@
 /* Personal photo and card always show as equal squares, and open at their natural shape */
 .doc-box { flex: 0 0 170px; width: 170px; box-sizing: border-box; }
 .doc-box .image-thumb, .doc-box .doc-missing { width: 100%; height: auto; aspect-ratio: 1; }
-
-/* Roomier header details: clear space and a line between each item */
-.view-hero-card .view-meta-pills .view-meta-pill, .view-hero-card .hero-states .hero-status-row { gap: 0.45rem !important; margin: 0 !important; padding: 0.1rem 1rem !important; font-size: 0.96rem !important; line-height: 1.5; }
-.view-hero-card .view-meta-pills .view-meta-pill:first-child, .view-hero-card .hero-states .hero-status-row:first-child { padding-right: 0 !important; }
-.view-hero-card .view-meta-pills .view-meta-pill:last-child, .view-hero-card .hero-states .hero-status-row:last-child { padding-left: 0 !important; }
-.view-hero-card .hero-status-key { gap: 0.35rem; font-size: 0.93rem; }
-.view-hero-card .hero-status-row .status-badge, .view-hero-card .hero-status-text { font-size: 0.96rem !important; }
-.view-hero-card .view-meta-pill svg, .view-hero-card .hero-status-key svg { width: 16px; height: 16px; }

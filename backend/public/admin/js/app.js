@@ -29,27 +29,14 @@ const NAV_GROUPS = [
 ];
 // Stretched so the first menu word lines up with the longer names under it
 const NAV_LABELS = { overview: 'الرئيــــــــــسية' };
+const PREFETCH = {
+  lawyers: '/admin/users?role=lawyer&q=', clients: '/admin/users?role=client&q=', orders: '/admin/orders?q=&status=', reviews: '/admin/reviews',
+  reports: '/admin/reviews/reported', decisions: '/admin/actions', prices: '/admin/prices', applications: '/admin/urgent-applications',
+};
 const NAV_COUNTS = { tasks: 'all_tasks', tickets: 'waiting_tickets', applications: 'pending_lawyers', reports: 'reported_reviews', money: 'frozen_orders' };
 let navCounts = {};
 let navCountsAt = 0;
 let renderTurn = 0;
-let current = { page: 'overview' };
-let trail = [];
-
-/// Any page opened from inside another one can go back to it, the side menu starts fresh
-function open(page, param, fromMenu) {
-  if (fromMenu) trail = [];
-  else trail.push({ ...current });
-  current = { page, param };
-  render();
-}
-
-function goBack() {
-  if (trail.length === 0) return;
-  current = trail.pop();
-  render();
-}
-
 function setMenu(isOpen) {
   $('sidebar').classList.toggle('mobile-open', isOpen);
   $('backdrop').hidden = !isOpen;
@@ -65,13 +52,29 @@ function navItem(title, name, onClick, isActive, count) {
   return item;
 }
 
+/// The menu is rebuilt only when its active page or its numbers change
+let navSignature = '';
 function renderNav() {
-  const activePage = trail.length ? trail[0].page : current.page;
+  if (PAGES[current.page]) lastMenuPage = current.page;
+  const activePage = PAGES[current.page] ? current.page : (lastMenuPage !== 'overview' ? lastMenuPage : PARENT_PAGES[current.page]);
+  const signature = activePage + JSON.stringify(navCounts);
+  if (signature === navSignature) return;
+  navSignature = signature;
   $('nav').replaceChildren(...NAV_GROUPS.flatMap(([group, keys]) => [
     ...(group ? [el('div', group, 'nav-group-title')] : []),
-    ...keys.map((key) => navItem(NAV_LABELS[key] || PAGES[key][0], PAGES[key][1], () => { setMenu(false); open(key, undefined, true); }, key === activePage, navCounts[NAV_COUNTS[key]])),
+    ...keys.map((key) => {
+      const item = navItem(NAV_LABELS[key] || PAGES[key][0], PAGES[key][1], () => { setMenu(false); open(key, undefined, true); }, key === activePage, navCounts[NAV_COUNTS[key]]);
+      item.addEventListener('pointerenter', () => prefetchPage(key), { once: true });
+      return item;
+    }),
   ]));
   $('nav-footer').replaceChildren(navItem('تسجيل الخروج', 'logout', () => { setMenu(false); showLogin(); }, false));
+}
+
+/// Asks for a page's list when the mouse reaches its menu item, so it is ready at the press
+function prefetchPage(key) {
+  const path = PREFETCH[key];
+  if (path && session) api('GET', path).catch(() => {});
 }
 
 /// The red numbers follow every page change, and a failed refresh keeps the last ones
@@ -134,26 +137,26 @@ function numberMainTables(box) {
   });
 }
 
-async function render() {
+/// The old page stays on screen with a thin bar while the new one loads, so nothing flashes
+async function render({ quiet = false } = {}) {
+  if (waitingForBack) return;
   $('login').hidden = true;
   $('app').hidden = false;
-  renderNav();
-  refreshNavCounts();
   if (!INNER[current.page] && !PAGES[current.page]) current = { page: 'overview' };
   // Every list opens on today
   if (PAGES[current.page] && current.from === undefined && current.to === undefined) current.from = current.to = dayText(0);
+  history.replaceState(null, '', linkFor(current));
+  renderNav();
+  refreshNavCounts();
   $('page-title').textContent = INNER_TITLES[current.page] || PAGES[current.page][0];
   $('page-subtitle').textContent = SUBTITLES[current.page] || '';
-  $('back-button').hidden = trail.length === 0;
+  $('back-button').hidden = !INNER[current.page];
 
-  // Only the newest page may draw, and the loader appears only if the page is slow
   const turn = ++renderTurn;
-  const loader = setTimeout(() => {
-    if (turn !== renderTurn) return;
-    const spin = el('div', undefined, 'page-loader');
-    spin.append(el('span', undefined, 'page-spinner'), el('p', 'جارٍ التحميل...'));
-    $('content').replaceChildren(spin);
-  }, 120);
+  const shown = current.page + '/' + (current.param || '');
+  const samePage = $('content').dataset.shown === shown;
+  const scroll = $('content').scrollTop;
+  const busy = setTimeout(() => { if (turn === renderTurn) $('content').classList.add('is-busy'); }, 150);
 
   const page = el('div', undefined, 'page-view active');
   const box = el('div', undefined, 'clothing-page-container');
@@ -165,17 +168,26 @@ async function render() {
     numberMainTables(box);
     const typed = $('content').querySelector('.table-search-input')?.value;
     $('content').replaceChildren(page);
+    $('content').dataset.shown = shown;
     restoreSearchFocus(typed);
-    $('content').scrollTop = 0;
+    $('content').scrollTop = samePage ? scroll : 0;
   } catch (err) {
     console.error(err);
-    if (turn !== renderTurn || !session) return;
+    if (turn !== renderTurn || !session || quiet) return;
     const failed = el('div', undefined, 'page-loader');
     failed.append(el('p', err.message), link('إعادة المحاولة', () => render(), 'btn-primary'));
     $('content').replaceChildren(failed);
+    $('content').dataset.shown = '';
   } finally {
-    clearTimeout(loader);
+    clearTimeout(busy);
+    if (turn === renderTurn) $('content').classList.remove('is-busy');
   }
+}
+
+/// New data arrived for what is on screen: redraw it unless the admin is typing or in a window
+function refreshQuietly() {
+  if (!session || !$('dialog').hidden || document.activeElement?.matches('input, textarea, select')) return;
+  render({ quiet: true });
 }
 
 async function signIn() {
@@ -305,6 +317,7 @@ $('login-form').addEventListener('submit', (event) => {
   event.preventDefault();
   signIn();
 });
+current = stateFromLink();
 if (session) { render(); showAccount(); }
 
 // New work reaches the admin without moving between pages
