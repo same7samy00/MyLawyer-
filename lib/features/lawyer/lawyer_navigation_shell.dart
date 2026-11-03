@@ -96,6 +96,7 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
     if (isAvailable == null) return;
 
     if (!isAvailable) {
+      BackgroundLocationSheet.resetForNextTime();
       await BackgroundLocationService.stop();
       return;
     }

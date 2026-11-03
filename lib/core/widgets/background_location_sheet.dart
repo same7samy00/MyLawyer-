@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_colors.dart';
 import 'app_button.dart';
 
-/// شرح إذن الموقع في الخلفية قبل نافذة النظام، ويظهر للمحامي مرة واحدة
+/// شرح إذن الموقع طول الوقت للمحامي المتاح، ويظهر مرة في كل فتحة للتطبيق لحد ما الإذن يتفعل
 class BackgroundLocationSheet extends StatelessWidget {
   const BackgroundLocationSheet({super.key});
 
-  static const String _prefAsked = 'background_location_asked';
+  static bool _askedThisRun = false;
+
+  /// لو قفل «متاح» وفتحها تاني، يتفكر بالإذن من جديد
+  static void resetForNextTime() => _askedThisRun = false;
 
   static Future<void> showIfNeeded(BuildContext context) async {
     final permission = await Geolocator.checkPermission();
-    final prefs = await SharedPreferences.getInstance();
-    if (permission != LocationPermission.whileInUse || prefs.getBool(_prefAsked) == true) return;
-    await prefs.setBool(_prefAsked, true);
+    if (permission == LocationPermission.always || _askedThisRun) return;
+    _askedThisRun = true;
     if (!context.mounted) return;
 
     await showModalBottomSheet<void>(
@@ -25,6 +26,14 @@ class BackgroundLocationSheet extends StatelessWidget {
       ),
       builder: (context) => const BackgroundLocationSheet(),
     );
+  }
+
+  /// بعض الأجهزة ما بتعرضش نافذة «طول الوقت»، فلو الإذن ما اتفعلش بنفتح إعدادات التطبيق
+  static Future<void> _requestAlways() async {
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.whileInUse) permission = await Geolocator.requestPermission();
+    if (permission != LocationPermission.always) await Geolocator.openAppSettings();
   }
 
   @override
@@ -60,7 +69,7 @@ class BackgroundLocationSheet extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             const Text(
-              'طول ما أنت «متاح»، التطبيق بياخد موقعك كل فترة حتى وهو مقفول، عشان تفضل ظاهر للموكلين القريبين. لما تقفل «متاح»، الموقع بيقف. من فضلك اختار «السماح طول الوقت».',
+              'طول ما أنت «متاح»، التطبيق بياخد موقعك كل فترة حتى وهو مقفول، عشان تفضل ظاهر للموكلين. ولما تقفل «متاح» الموقع بيقف.\n\nلو فتحت الإعدادات: اختار الأذونات، ثم الموقع، ثم «السماح طول الوقت».',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'AppFont',
@@ -76,7 +85,7 @@ class BackgroundLocationSheet extends StatelessWidget {
               height: 48,
               onPressed: () async {
                 final navigator = Navigator.of(context);
-                await Geolocator.requestPermission();
+                await _requestAlways();
                 navigator.pop();
               },
             ),

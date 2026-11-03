@@ -2,6 +2,7 @@ import '../../core/widgets/line_illustration.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_pressable.dart';
+import '../../core/services/device_permission_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../client/main_navigation_shell.dart';
@@ -22,6 +23,8 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
   Future<void> _handleProceed() async {
     // Check / request location permission via official native OS dialog
     final result = await LocationService.instance.checkAndRequestPermission();
+
+    if (result.position != null) await DevicePermissionService.instance.markLocationScreenDone();
 
     if (!mounted) return;
 

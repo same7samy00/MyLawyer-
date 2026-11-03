@@ -138,6 +138,14 @@ void main() {
       expect(find.byType(LocationPermissionScreen), findsOneWidget);
     });
 
+    testWidgets('حدد موقعه مرة: شاشة الموقع ما تظهرش تاني', (tester) async {
+      SharedPreferences.setMockInitialValues(_savedSession({'location_screen_done': true}));
+      await _launch(tester);
+
+      expect(find.byType(LocationPermissionScreen), findsNothing);
+      expect(find.byType(MainNavigationShell), findsOneWidget);
+    });
+
     testWidgets('محامٍ معتمد: رئيسية المحامي', (tester) async {
       SharedPreferences.setMockInitialValues(_savedSession());
       backend.account = lawyerAccount();

@@ -11,6 +11,7 @@ class DevicePermissionService {
   static final DevicePermissionService instance = DevicePermissionService._();
 
   static const String _prefInitialPermissionRequested = 'has_requested_initial_permissions';
+  static const String _prefLocationScreenDone = 'location_screen_done';
 
   /// فحص ما إذا كان تم طلب الأذونات الابتدائية مسبقاً لمنع الإزعاج المتكرر عند كل فتح للتطبيق
   Future<bool> hasRequestedInitialPermissions() async {
@@ -35,6 +36,17 @@ class DevicePermissionService {
       debugPrint('Request location permission error: $e');
     }
     await PushService.requestPermission();
+  }
+
+  /// شاشة تحديد الموقع بتظهر لحد ما المستخدم يحدد موقعه مرة واحدة بس
+  Future<bool> isLocationScreenDone() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_prefLocationScreenDone) ?? false;
+  }
+
+  Future<void> markLocationScreenDone() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefLocationScreenDone, true);
   }
 
   /// فحص حالة إذن الموقع الحالية دون إظهار نافذة طلب جديدة

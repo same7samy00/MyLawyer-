@@ -33,13 +33,16 @@ class SessionRouter {
         final prefs = await SharedPreferences.getInstance();
         final savedLocation = prefs.getString('user_location_name');
         final hasLocation = await DevicePermissionService.instance.isLocationPermissionGranted();
-        if (!hasLocation || savedLocation == null || savedLocation.isEmpty) return const LocationPermissionScreen();
+        final locationDone = await DevicePermissionService.instance.isLocationScreenDone() ||
+            (hasLocation && savedLocation != null && savedLocation.isNotEmpty);
+        if (!locationDone) return const LocationPermissionScreen();
         // لمس إشعار لازم يفتح صفحته على طول، ومن غيره الموكل يبدأ بالخريطة الترويجية
         return showPromoMap && NotificationCenter.openRequest.value == null
             ? const NearbyLawyersShowcaseScreen()
             : const MainNavigationShell();
       case SessionStatus.lawyerApproved:
-        return await DevicePermissionService.instance.isLocationPermissionGranted()
+        return await DevicePermissionService.instance.isLocationPermissionGranted() ||
+                await DevicePermissionService.instance.isLocationScreenDone()
             ? const LawyerNavigationShell()
             : const LocationPermissionScreen(forLawyer: true);
       case SessionStatus.lawyerPending:

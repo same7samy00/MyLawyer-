@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 3.19] - 2026-11-03
+### Location Screen and Always-On Permission
+- The location screen shows only until the location is set once. The promo map still opens on every entry.
+- An available lawyer without the always-on location permission is asked once on each app opening, and the app settings open on devices that do not show the system choice.
+
 ## [Phase 3.18] - 2026-11-03
 ### Illustrations, Promo Map and Photos
 - Removed all SVG files and `flutter_svg`. One drawn illustration replaces them, smaller, with its line running from edge to edge. Empty and error states now use it too.
