@@ -146,14 +146,39 @@ async function refreshSession() {
   return refreshing;
 }
 
-async function api(method, path, body, isRetry) {
+// Moving between pages reuses recent answers, and any change clears them so nothing old stays on screen.
+// Counts, search and ticket messages always ask the server.
+const API_CACHE_MS = 20000;
+const apiCache = new Map();
+const isCacheable = (method, path) => method === 'GET' && !/^\/admin\/(overview|search|support)/.test(path);
+
+async function api(method, path, body) {
+  if (!isCacheable(method, path)) {
+    if (method !== 'GET') apiCache.clear();
+    const json = await apiRequest(method, path, body);
+    if (method !== 'GET') apiCache.clear();
+    return json;
+  }
+  const saved = apiCache.get(path);
+  if (saved && Date.now() - saved.at < API_CACHE_MS) return JSON.parse(await saved.text);
+  const text = apiRequest(method, path).then(JSON.stringify);
+  apiCache.set(path, { at: Date.now(), text });
+  try {
+    return JSON.parse(await text);
+  } catch (err) {
+    apiCache.delete(path);
+    throw err;
+  }
+}
+
+async function apiRequest(method, path, body, isRetry) {
   const res = await safeFetch(API + path, {
     method,
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session?.accessToken },
     body: body ? JSON.stringify(body) : undefined,
   });
   if (res.status === 401) {
-    if (!isRetry && await refreshSession()) return api(method, path, body, true);
+    if (!isRetry && await refreshSession()) return apiRequest(method, path, body, true);
     showLogin('انتهت الجلسة، سجل الدخول مرة أخرى');
     throw new Error('انتهت الجلسة');
   }
@@ -164,6 +189,7 @@ async function api(method, path, body, isRetry) {
 
 function showLogin(message) {
   saveSession(null);
+  apiCache.clear();
   $('login').hidden = false;
   $('app').hidden = true;
   $('header-account').replaceChildren();

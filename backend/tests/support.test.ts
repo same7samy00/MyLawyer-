@@ -202,7 +202,7 @@ describe('الدعم الفني', () => {
     const page = await app.inject({ method: 'GET', url: '/api/v1/admin-panel' });
     assert.equal(page.statusCode, 200);
     assert.equal(page.body.includes('__VERSION__'), false);
-    for (const [name, type] of [['styles', 'text/css'], ['script', 'text/javascript'], ['logo', 'image/png']]) {
+    for (const [name, type] of [['styles', 'text/css'], ['script', 'application/javascript'], ['logo', 'image/png']]) {
       const link = page.body.match(new RegExp(`/api/v1/admin-panel/${name}\\?v=\\w+`))![0];
       assert.equal(/\.\w+\?/.test(link), false);
       const file = await app.inject({ method: 'GET', url: link });

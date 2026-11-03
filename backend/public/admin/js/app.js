@@ -95,6 +95,19 @@ async function refreshNavCounts() {
   }
 }
 
+/// The page's main tables start with a running number, tables inside a section stay as they are
+function numberMainTables(box) {
+  box.querySelectorAll(':scope > .table-wrapper, :scope > .tab-content-pane > .table-wrapper').forEach((wrap) => {
+    wrap.classList.add('main-table');
+    wrap.querySelector('thead tr').prepend(el('th', 'م', 'serial-cell'));
+    wrap.querySelectorAll('tbody tr').forEach((row, index) => {
+      const empty = row.querySelector('.empty-table-row');
+      if (empty) empty.colSpan += 1;
+      else row.prepend(el('td', String(index + 1), 'serial-cell'));
+    });
+  });
+}
+
 async function render() {
   $('login').hidden = true;
   $('app').hidden = false;
@@ -120,6 +133,7 @@ async function render() {
   try {
     await (INNER[current.page] || PAGES[current.page][2])(box);
     if (turn !== renderTurn) return;
+    numberMainTables(box);
     $('content').replaceChildren(page);
     $('content').scrollTop = 0;
   } catch (err) {

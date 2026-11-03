@@ -31,7 +31,7 @@ const FONTS: Record<string, string> = {
   medium: 'Medium',
   semibold: 'SemiBold',
 };
-const YEAR_CACHE ='public, max-age=31536000, immutable';
+const YEAR_CACHE = 'public, max-age=31536000, immutable';
 
 /// Serves the control page. Links have no file extension because Nginx answers those itself,
 /// and they change with every release, so browsers can keep the files for a year.
@@ -41,22 +41,28 @@ export function registerAdminPanel(api: FastifyInstance) {
   const read = (file: string) => fs.readFileSync(path.join(root, file));
   const joined = (files: string[]) => files.map((file) => read(file).toString('utf-8')).join('\n');
 
+  // Read once at start, a release restarts the server, so no request waits on the disk
+  const page = read('index.html').toString('utf-8').replaceAll('__VERSION__', version);
+  const styles = joined(STYLES);
+  const script = joined(SCRIPTS);
+  const logo = read('assets/logo.png');
+  const fonts = new Map(Object.entries(FONTS).map(([weight, file]) => [weight, read(`fonts/IBMPlexSansArabic-${file}.woff2`)]));
+
   api.get('/admin-panel', async (_request, reply) => {
-    const page = read('index.html').toString('utf-8').replaceAll('__VERSION__', version);
     return reply.header('Cache-Control', 'no-cache').type('text/html; charset=utf-8').send(page);
   });
   api.get('/admin-panel/styles', async (_request, reply) => {
-    return reply.header('Cache-Control', YEAR_CACHE).type('text/css; charset=utf-8').send(joined(STYLES));
+    return reply.header('Cache-Control', YEAR_CACHE).type('text/css; charset=utf-8').send(styles);
   });
   api.get('/admin-panel/script', async (_request, reply) => {
-    return reply.header('Cache-Control', YEAR_CACHE).type('text/javascript; charset=utf-8').send(joined(SCRIPTS));
+    return reply.header('Cache-Control', YEAR_CACHE).type('application/javascript; charset=utf-8').send(script);
   });
   api.get('/admin-panel/logo', async (_request, reply) => {
-    return reply.header('Cache-Control', YEAR_CACHE).type('image/png').send(read('assets/logo.png'));
+    return reply.header('Cache-Control', YEAR_CACHE).type('image/png').send(logo);
   });
   api.get('/admin-panel/font/:weight', async (request, reply) => {
-    const file = FONTS[(request.params as { weight: string }).weight];
-    if (!file) return reply.status(404).send();
-    return reply.header('Cache-Control', YEAR_CACHE).type('font/ttf').send(read(`fonts/IBMPlexSansArabic-${file}.ttf`));
+    const font = fonts.get((request.params as { weight: string }).weight);
+    if (!font) return reply.status(404).send();
+    return reply.header('Cache-Control', YEAR_CACHE).type('font/woff2').send(font);
   });
 }

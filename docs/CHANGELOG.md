@@ -1,5 +1,13 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Control Page: Main Tables] - 2026-11-03
+- Main tables now start with a running number and have shorter rows. Tables inside sections are unchanged.
+
+## [Control Page: Speed] - 2026-11-03
+- The control page script is now compressed by Nginx, and its fonts moved to WOFF2 with the two main weights preloaded. Page files are read once at server start.
+- Moving between pages reuses answers for 20 seconds, and any change clears them. Counts, search and ticket messages always ask the server.
+- Removed costly `transition: all` rules and extra sticky and paint layers.
+
 ## [Control Page: Table Lines] - 2026-11-03
 - Tables across the control page now form one connected grid of dashed lines that meets the edges of their containers, with the same 5px corners. Account tables no longer show photos, which stay in the profile.
 
