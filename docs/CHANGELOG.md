@@ -5,6 +5,7 @@
 - `/health` now reports only status and database. CORS refuses other websites, and the deploy check follows the new health reply. Removed four unused tables (migration `021`).
 - Separated map and order flow code from the tracking screen, and documents and review from lawyer registration. Split backend and app session tests into files by subject.
 - Moved old changelog entries to `CHANGELOG_ARCHIVE.md`, and aligned the documented corners with the current app and control page.
+- Deployed to the server. Nginx in `/etc/nginx/sites-available/mylawyer` now answers 404 for missing paths such as `/.env`. A database backup from before migration `021` is in `/root/backups`.
 
 ## [Phase 3.20] - 2026-11-03
 ### Project Organization
