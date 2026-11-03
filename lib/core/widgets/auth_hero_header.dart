@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../constants/app_colors.dart';
 import 'app_pressable.dart';
+import 'line_illustration.dart';
 
 /// واجهة علوية موحدة لشاشات إنشاء الحساب بدل الهيدر: رسمة بعرض الشاشة وتحتها العنوان والوصف في المنتصف
 class AuthHeroHeader extends StatelessWidget {
   final String title;
   final String? description;
-  final String illustration;
+  final IconData icon;
   final VoidCallback onBack;
 
   const AuthHeroHeader({
     super.key,
     required this.title,
     this.description,
-    this.illustration = 'assets/images/auth_hero.svg',
+    this.icon = Icons.person_add_alt_1_rounded,
     required this.onBack,
   });
 
@@ -26,12 +26,9 @@ class AuthHeroHeader extends StatelessWidget {
       children: [
         Stack(
           children: [
-            AspectRatio(
-              aspectRatio: 360 / 170,
-              child: SvgPicture.asset(
-                illustration,
-                excludeFromSemantics: true,
-              ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: LineIllustration(icon: icon, height: 110),
             ),
             PositionedDirectional(
               start: 8,
@@ -53,7 +50,7 @@ class AuthHeroHeader extends StatelessWidget {
           style: const TextStyle(
             fontFamily: 'AppFont',
             fontFamilyFallback: appFontFallback,
-            fontSize: 28,
+            fontSize: 24,
             height: 1.25,
             fontWeight: FontWeight.w900,
             color: AppColors.dark,

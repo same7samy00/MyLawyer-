@@ -1,5 +1,5 @@
+import '../../core/widgets/line_illustration.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
@@ -125,20 +125,15 @@ class _UrgentServiceProblemScreenState extends State<UrgentServiceProblemScreen>
           itemBuilder: (context, index) {
             // العنصر الأول: الهيدر الثابت مع RepaintBoundary للرسمة التوضيحية
             if (index == 0) {
-              return Column(
+              return const Column(
                 children: [
                   RepaintBoundary(
                     child: Center(
-                      child: SvgPicture.asset(
-                        'assets/images/questions_rafiki.svg',
-                        width: 170,
-                        height: 135,
-                        fit: BoxFit.contain,
-                      ),
+                      child: LineIllustration(icon: Icons.help_outline_rounded, height: 90),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
+                  SizedBox(height: 16),
+                  Text(
                     'اختار مشكلتك',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -149,8 +144,8 @@ class _UrgentServiceProblemScreenState extends State<UrgentServiceProblemScreen>
                       color: AppColors.dark,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  const Padding(
+                  SizedBox(height: 6),
+                  Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20.0),
                     child: Text(
                       'حدد نوع الموقف القانوني العاجل ليتم ربطك فورياً بأقرب محامٍ متاح في نطاقك الجغرافي.',
@@ -165,7 +160,7 @@ class _UrgentServiceProblemScreenState extends State<UrgentServiceProblemScreen>
                       ),
                     ),
                   ),
-                  const SizedBox(height: 22),
+                  SizedBox(height: 22),
                 ],
               );
             }

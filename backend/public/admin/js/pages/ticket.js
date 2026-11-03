@@ -27,8 +27,8 @@ async function ticketPage(box) {
 
   if (data.order) {
     side.append(section('أطراف الطلب', parties(
-      personCard('الموكل', data.order.client_name, data.order.client_phone, data.order.client_id),
-      personCard('المحامي', data.order.lawyer_name, data.order.lawyer_phone, data.order.lawyer_id))));
+      personCard('الموكل', data.order.client_name, data.order.client_phone, data.order.client_id, undefined, undefined, data.order.client_photo),
+      personCard('المحامي', data.order.lawyer_name, data.order.lawyer_phone, data.order.lawyer_id, undefined, undefined, data.order.lawyer_photo))));
     if (data.order.payout_status) {
       side.append(section('حالة الأموال', details([
         ['حالة الأتعاب', PAYOUT[data.order.payout_status] || data.order.payout_status], ['صافي المحامي', Number(data.order.payout_amount || 0) + ' ج.م'],

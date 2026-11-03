@@ -1,5 +1,5 @@
+import '../../core/widgets/line_illustration.dart';
 import '../../core/widgets/app_button.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/widgets/app_pressable.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
@@ -150,20 +150,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       alignment: Alignment.center,
                       children: [
                         // الخط يمتد خارج هامش المحتوى ليصل إلى حافتي الشاشة
-                        Positioned(
-                          left: -24,
-                          right: -24,
-                          top: 0,
-                          bottom: 0,
-                          child: SvgPicture.asset(
-                            'assets/images/auth_lines.svg',
-                            fit: BoxFit.fill,
-                            excludeFromSemantics: true,
-                          ),
-                        ),
+                        const Positioned.fill(child: EdgeLine()),
                         Image.asset(
                           'assets/images/app_logo.png',
-                          height: 150,
+                          height: 110,
                           fit: BoxFit.contain,
                         ),
                       ],

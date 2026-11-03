@@ -71,7 +71,7 @@ class ServiceTermsScreen extends StatelessWidget {
                   children: [
                     AuthHeroHeader(
                       title: 'شروط الخدمة',
-                      illustration: 'assets/images/terms_hero.svg',
+                      icon: Icons.policy_rounded,
                       onBack: () => Navigator.of(context).maybePop(),
                     ),
                     const Padding(

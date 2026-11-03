@@ -1,5 +1,12 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 3.18] - 2026-11-03
+### Illustrations, Promo Map and Photos
+- Removed all SVG files and `flutter_svg`. One drawn illustration replaces them, smaller, with its line running from edge to edge. Empty and error states now use it too.
+- The promo map opens on every client entry unless a notification was tapped. Its fixed sheet lists the highest rated lawyers within 50 km, and a profile opens inside the same sheet. A close button at the top leads home, and nothing can be ordered from it.
+- The control page shows client and lawyer photos, and a lawyer's syndicate card stays in their profile after approval.
+- Moved private widgets out of the two largest map screens, and removed unused control page styles.
+
 ## [Phase 3.17] - 2026-11-03
 ### Organized Control Page Files
 - Rewrote all notifications to be short and clear. Added the missing ones: a new rating for the lawyer, the result of a comment report, and frozen fees for the lawyer even when the lawyer opened the ticket. The control page announces new tickets, applications, reports and frozen money while open.

@@ -207,7 +207,7 @@ const SECTION_ICONS = {
   'إضافات وخصومات الرصيد': 'money', 'كل حركات الرصيد': 'money', 'مدفوعات الموكل': 'money', 'الدفعة': 'money', 'الأموال التي تحركت في هذا الطلب': 'transfer',
   'حالة الأتعاب': 'money', 'حالة الأموال': 'money', 'سجل التجميد': 'freeze', 'بيانات التسوية': 'apply', 'تذاكر الدعم الفني': 'ticket',
   'أطراف الطلب': 'client', 'تفاصيل المشكلة': 'appeal', 'المواعيد': 'calendar', 'مراحل الطلب': 'orders', 'الرسائل': 'appeal', 'حالة التذكرة': 'lock',
-  'بيانات الحساب': 'lawyer', 'البيانات المهنية': 'apply', 'الإتاحة والموقع': 'power', 'سبب البلاغ': 'complaint', 'المطلوب منك': 'check',
+  'بيانات الحساب': 'lawyer', 'الصورة وبطاقة النقابة': 'apply', 'البيانات المهنية': 'apply', 'الإتاحة والموقع': 'power', 'سبب البلاغ': 'complaint', 'المطلوب منك': 'check',
 };
 
 // A short line under each inner table's title, saying what the table shows
@@ -428,12 +428,20 @@ function infoLine(name, label, value) {
   return line;
 }
 
-function personCard(role, name, phone, id, stats, email) {
+/// The person's photo, or their initials when there is none. Pressing a photo opens it large
+function personAvatar(name, photo) {
+  if (!photo) return el('div', initials(name), 'person-avatar');
+  const box = imageThumb(photo, name || 'صورة الحساب');
+  box.classList.add('person-avatar');
+  return box;
+}
+
+function personCard(role, name, phone, id, stats, email, photo) {
   const card = el('div', undefined, 'person-card');
   const head = el('div', undefined, 'person-head');
   const title = el('div', undefined, 'person-info');
   title.append(el('span', role, 'person-role'), el('strong', name || '-', 'person-name'));
-  head.append(el('div', initials(name), 'person-avatar'), title);
+  head.append(personAvatar(name, photo), title);
   if (id) head.append(link('الملف', () => open('user', id), 'btn-outline btn-xs', 'open'));
 
   const lines = el('div', undefined, 'info-lines');

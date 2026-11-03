@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import 'app_button.dart';
+import 'line_illustration.dart';
 
 /// رسالة حالة موحدة للقوائم: لا توجد بيانات أو تعذر التحميل مع إعادة المحاولة
 class AppStateMessage extends StatelessWidget {
@@ -25,7 +26,7 @@ class AppStateMessage extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(icon, size: 52, color: AppColors.textMuted),
+          LineIllustration(icon: icon, height: 84),
           const SizedBox(height: 14),
           Text(
             title,

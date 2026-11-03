@@ -1,5 +1,5 @@
+import '../../core/widgets/line_illustration.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_pressable.dart';
 import '../../core/services/location_service.dart';
@@ -91,22 +91,11 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
                         RepaintBoundary(
                           child: SizedBox(
                             width: double.infinity,
-                            height: 250,
+                            height: 110,
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
-                                Positioned.fill(
-                                  child: SvgPicture.asset(
-                                    'assets/images/auth_lines.svg',
-                                    fit: BoxFit.fill,
-                                    excludeFromSemantics: true,
-                                  ),
-                                ),
-                                SvgPicture.asset(
-                                  'assets/images/directions_rafiki.svg',
-                                  height: 240,
-                                  fit: BoxFit.contain,
-                                ),
+                                const LineIllustration(icon: Icons.location_on_rounded, height: 110),
                                 if (ModalRoute.of(context)?.canPop ?? false)
                                   PositionedDirectional(
                                     start: 8,

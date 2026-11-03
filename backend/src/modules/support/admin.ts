@@ -61,7 +61,8 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
       const orderRes = await query(
         `SELECT o.id, o.order_number, o.status, o.payout_status, o.payout_amount, o.price, o.arrived_at, o.completed_at,
                 COALESCE(c.full_name, c.phone) AS client_name, c.phone AS client_phone, o.client_id,
-                lp.full_name AS lawyer_name, l.phone AS lawyer_phone, o.lawyer_id
+                lp.full_name AS lawyer_name, l.phone AS lawyer_phone, o.lawyer_id,
+                c.profile_photo_path AS client_photo, COALESCE(lp.profile_photo_path, l.profile_photo_path) AS lawyer_photo
          FROM service_orders o
          JOIN users c ON c.id = o.client_id
          JOIN users l ON l.id = o.lawyer_id

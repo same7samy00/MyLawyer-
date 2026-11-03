@@ -31,7 +31,8 @@ function usersPage(role) {
     const rows = shown.map((item) => {
       const tools = link('الملف', () => open('user', item.id), 'btn-outline btn-xs', 'open');
 
-      const name = el('strong', item.full_name || 'دون اسم', 'prod-name-ar');
+      const name = el('div', undefined, 'person-inline');
+      name.append(personAvatar(item.full_name, item.photo), el('strong', item.full_name || 'دون اسم', 'prod-name-ar'));
       const cells = isLawyer
         ? [name, item.phone, item.experience_years ?? 0, Number(item.rating ?? 0).toFixed(1) + ' / 5', accountTag(item.status), tools]
         : [name, item.phone, date(item.created_at), accountTag(item.status), tools];
@@ -72,6 +73,7 @@ async function userPage(box) {
       ['الاسم', user.full_name], ['الهاتف', user.phone], ['البريد', user.email], ['تاريخ التسجيل', date(user.created_at)],
     ])));
     if (isLawyer) {
+      pane.append(section('الصورة وبطاقة النقابة', await documentsGrid(user)));
       pane.append(section('البيانات المهنية', details([
         ['رقم القيد', user.syndicate_number], ['سنوات الخبرة', user.experience_years ?? 0], ['عدد التقييمات', user.reviews_count],
       ])));

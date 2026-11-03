@@ -75,6 +75,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     const res = await query(
       `SELECT u.id, u.role, u.status, u.phone, u.email, u.created_at, u.warnings_count,
               COALESCE(lp.full_name, u.full_name) AS full_name,
+              COALESCE(lp.profile_photo_path, u.profile_photo_path) AS photo,
               lp.experience_years, lp.syndicate_number, lp.rating, lp.reviews_count, lp.is_available, lp.urgent_status,
               (SELECT COUNT(*)::int FROM service_orders o WHERE o.client_id = u.id OR o.lawyer_id = u.id) AS orders_count,
               ${userStats('u.id', 'user')}
@@ -98,8 +99,14 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
               COALESCE(lp.profile_photo_path, u.profile_photo_path) AS photo,
               lp.experience_years, lp.syndicate_number, lp.rating, lp.reviews_count, lp.is_available,
               lp.availability_off_reason, lp.urgent_status, lp.last_location_updated_at, lp.suspended_until,
+              card.id AS card_id, card.mime_type AS card_mime,
               ${userStats('u.id', 'user')}
        FROM users u LEFT JOIN lawyer_profiles lp ON lp.user_id = u.id
+       LEFT JOIN LATERAL (
+         SELECT id, mime_type FROM lawyer_documents d
+         WHERE d.lawyer_profile_id = lp.id AND d.document_type = 'syndicate_card' AND d.is_current
+         ORDER BY uploaded_at DESC LIMIT 1
+       ) card ON TRUE
        WHERE u.id = $1`,
       [id]
     );
@@ -222,6 +229,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
 
     const orderRes = await query(
       `SELECT o.*, COALESCE(c.full_name, 'موكل') AS client_name, c.phone AS client_phone, c.email AS client_email, l.email AS lawyer_email,
+              c.profile_photo_path AS client_photo, COALESCE(lp.profile_photo_path, l.profile_photo_path) AS lawyer_photo,
               lp.full_name AS lawyer_name, l.phone AS lawyer_phone,
               ${userStats('o.client_id', 'client')}, ${userStats('o.lawyer_id', 'lawyer')}
        FROM service_orders o

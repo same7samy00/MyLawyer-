@@ -1,5 +1,5 @@
+import '../../core/widgets/line_illustration.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/widgets/app_button.dart';
@@ -114,13 +114,9 @@ class _LawyerUrgentServiceIntroScreenState extends State<LawyerUrgentServiceIntr
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // رسم توضيحي للمحامي
-              Center(
+              const Center(
                 child: RepaintBoundary(
-                  child: SvgPicture.asset(
-                    'assets/images/lawyer_pana.svg',
-                    height: 180,
-                    fit: BoxFit.contain,
-                  ),
+                  child: LineIllustration(icon: Icons.shield_rounded, height: 100),
                 ),
               ),
 

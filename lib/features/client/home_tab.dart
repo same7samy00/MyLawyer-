@@ -1,6 +1,6 @@
+import '../../core/widgets/line_illustration.dart';
 import '../../core/widgets/app_pressable.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
@@ -138,14 +138,7 @@ class _HomeTabState extends State<HomeTab> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  RepaintBoundary(
-                    child: SvgPicture.asset(
-                      'assets/images/lawyer_pana.svg',
-                      width: 120,
-                      height: 110,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
+                  const IllustrationBadge(icon: Icons.shield_rounded, size: 60),
                 ],
               ),
             ),
@@ -168,7 +161,8 @@ class _HomeTabState extends State<HomeTab> {
             _buildServiceListItem(
               title: 'محاميك حالاً',
               desc: 'طلب مساعدة قانونية عاجلة ومباشرة من أقرب محامٍ متاح لموقعك الآن',
-              svgAsset: 'assets/images/lawyer_pana.svg',
+              icon: Icons.shield_rounded,
+              highlighted: true,
               onTap: _openUrgentService,
             ),
             const SizedBox(height: 10),
@@ -241,7 +235,7 @@ class _HomeTabState extends State<HomeTab> {
     required String title,
     required String desc,
     IconData? icon,
-    String? svgAsset,
+    bool highlighted = false,
     required VoidCallback onTap,
   }) {
     return AppCard(
@@ -250,15 +244,8 @@ class _HomeTabState extends State<HomeTab> {
       child: Row(
         children: [
           // Icon or SVG with RepaintBoundary for optimal scrolling performance
-          if (svgAsset != null)
-            RepaintBoundary(
-              child: SvgPicture.asset(
-                svgAsset,
-                width: 44,
-                height: 44,
-                fit: BoxFit.contain,
-              ),
-            )
+          if (highlighted)
+            IllustrationBadge(icon: icon!, size: 36)
           else
             Container(
               width: 44,

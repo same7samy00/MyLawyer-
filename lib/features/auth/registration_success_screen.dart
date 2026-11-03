@@ -1,6 +1,6 @@
+import '../../core/widgets/line_illustration.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/widgets/app_button.dart';
@@ -82,12 +82,8 @@ class _RegistrationSuccessScreenState extends State<RegistrationSuccessScreen> {
                 const Spacer(),
 
                 // الرسم التوضيحي للنجاح
-                Center(
-                  child: SvgPicture.asset(
-                    'assets/images/done_rafiki.svg',
-                    height: 220,
-                    fit: BoxFit.contain,
-                  ),
+                const Center(
+                  child: LineIllustration(icon: Icons.verified_rounded, height: 110),
                 ),
 
                 const SizedBox(height: 28),

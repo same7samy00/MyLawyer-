@@ -1,3 +1,5 @@
+import '../../core/services/notification_center.dart';
+import '../client/nearby_lawyers_showcase_screen.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,6 +24,8 @@ class SessionRouter {
   static bool _isHandlingExpiry = false;
   static bool _isSuspendedScreenOpen = false;
 
+  static bool showPromoMap = true;
+
   /// الشاشة الصحيحة لحالة الجلسة
   static Future<Widget> screenFor(SessionCheck check) async {
     switch (check.status) {
@@ -29,9 +33,11 @@ class SessionRouter {
         final prefs = await SharedPreferences.getInstance();
         final savedLocation = prefs.getString('user_location_name');
         final hasLocation = await DevicePermissionService.instance.isLocationPermissionGranted();
-        return hasLocation && savedLocation != null && savedLocation.isNotEmpty
-            ? const MainNavigationShell()
-            : const LocationPermissionScreen();
+        if (!hasLocation || savedLocation == null || savedLocation.isEmpty) return const LocationPermissionScreen();
+        // لمس إشعار لازم يفتح صفحته على طول، ومن غيره الموكل يبدأ بالخريطة الترويجية
+        return showPromoMap && NotificationCenter.openRequest.value == null
+            ? const NearbyLawyersShowcaseScreen()
+            : const MainNavigationShell();
       case SessionStatus.lawyerApproved:
         return await DevicePermissionService.instance.isLocationPermissionGranted()
             ? const LawyerNavigationShell()

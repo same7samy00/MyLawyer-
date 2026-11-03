@@ -62,8 +62,8 @@ async function orderPage(box) {
 
   if (active === 'summary') {
     pane.append(section('أطراف الطلب', parties(
-      personCard('الموكل', order.client_name, order.client_phone, order.client_id, statsOf(order, 'client'), order.client_email),
-      personCard('المحامي', order.lawyer_name, order.lawyer_phone, order.lawyer_id, statsOf(order, 'lawyer'), order.lawyer_email))));
+      personCard('الموكل', order.client_name, order.client_phone, order.client_id, statsOf(order, 'client'), order.client_email, order.client_photo),
+      personCard('المحامي', order.lawyer_name, order.lawyer_phone, order.lawyer_id, statsOf(order, 'lawyer'), order.lawyer_email, order.lawyer_photo))));
     pane.append(section('تفاصيل المشكلة', details([['المشكلة', order.problem_type], ['الوصف', order.problem_description]])));
     if (data.tickets.length) {
       pane.append(section('تذاكر الدعم الفني', table(['رقم التذكرة', 'العنوان', 'من', 'الحالة', 'التاريخ'], data.tickets.map((item) => ({

@@ -1,5 +1,5 @@
+import '../../core/widgets/line_illustration.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
@@ -59,14 +59,9 @@ class _ProblemDescriptionScreenState extends State<ProblemDescriptionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // رسمة توضيحية أعلى الصفحة بصيغة SVG مع RepaintBoundary لتحسين أداء التمرير
-                    RepaintBoundary(
+                    const RepaintBoundary(
                       child: Center(
-                        child: SvgPicture.asset(
-                          'assets/images/mail_sent_rafiki.svg',
-                          width: 180,
-                          height: 155,
-                          fit: BoxFit.contain,
-                        ),
+                        child: LineIllustration(icon: Icons.edit_note_rounded, height: 90),
                       ),
                     ),
                     const SizedBox(height: 16),

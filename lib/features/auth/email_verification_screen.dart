@@ -249,7 +249,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
             children: [
             AuthHeroHeader(
               title: 'أدخــل رمز التحقــق',
-              illustration: 'assets/images/auth_hero_otp.svg',
+              icon: Icons.mark_email_read_rounded,
               onBack: () => Navigator.of(context).pop(),
             ),
 

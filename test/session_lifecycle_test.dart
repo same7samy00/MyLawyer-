@@ -91,6 +91,8 @@ Future<void> _settleAsync(WidgetTester tester) async {
 }
 
 void main() {
+  SessionRouter.showPromoMap = false;
+
   late FakeBackend backend;
 
   setUp(() {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_header.dart';
-import '../../core/widgets/edge_lines_illustration.dart';
+import '../../core/widgets/line_illustration.dart';
 import '../../data/models/map_lawyer.dart';
 import '../client/main_navigation_shell.dart';
 import '../auth/session_router.dart';
@@ -96,11 +96,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
               const SizedBox(height: 10),
 
               // رسمة النجاح make it rain في الأعلى
-              const EdgeLinesIllustration(
-                asset: 'assets/images/payment_success_rain.svg',
-                height: 150,
-                bleed: 20,
-              ),
+              const LineIllustration(icon: Icons.verified_rounded, height: 100),
               const SizedBox(height: 16),
 
               // أيقونة وعنوان النجاح

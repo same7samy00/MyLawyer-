@@ -1,5 +1,5 @@
+import '../../core/widgets/line_illustration.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
@@ -106,20 +106,15 @@ class _LawyerHomeTabState extends State<LawyerHomeTab> {
                   ),
                 );
               },
-              child: Row(
+              child: const Row(
                 children: [
                   RepaintBoundary(
-                    child: SvgPicture.asset(
-                      'assets/images/lawyer_pana.svg',
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.contain,
-                    ),
+                    child: IllustrationBadge(icon: Icons.shield_rounded, size: 40),
                   ),
-                  const SizedBox(width: 14),
+                  SizedBox(width: 14),
 
                   // عنوان ووصف الخدمة الخاص بالمحامي
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -149,8 +144,8 @@ class _LawyerHomeTabState extends State<LawyerHomeTab> {
                     ),
                   ),
 
-                  const SizedBox(width: 8),
-                  const Icon(
+                  SizedBox(width: 8),
+                  Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 16,
                     color: AppColors.textMuted,

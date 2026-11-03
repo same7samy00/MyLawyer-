@@ -1,5 +1,5 @@
+import '../../core/widgets/line_illustration.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/notification_center.dart';
 import '../../core/widgets/app_header.dart';
@@ -89,13 +89,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     if (_items.isEmpty) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SvgPicture.asset('assets/images/notifications_empty.svg', height: 150, excludeFromSemantics: true),
-            const SizedBox(height: 14),
-            const Text(
+            LineIllustration(icon: Icons.notifications_none_rounded),
+            SizedBox(height: 14),
+            Text(
               'لا توجد إشعارات',
               style: TextStyle(
                 fontFamily: 'AppFont',

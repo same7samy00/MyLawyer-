@@ -4,7 +4,7 @@ import '../../core/widgets/app_pressable.dart';
 import '../../core/services/routing_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_header.dart';
-import '../../core/widgets/edge_lines_illustration.dart';
+import '../../core/widgets/line_illustration.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/repositories/order_repository.dart';
 import 'payment_success_screen.dart';
@@ -120,11 +120,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // رسمة الدفع في الأعلى
-                    const EdgeLinesIllustration(
-                      asset: 'assets/images/credit_card_rafiki.svg',
-                      height: 150,
-                      bleed: 18,
-                    ),
+                    const LineIllustration(icon: Icons.credit_card_rounded, height: 100),
                     const SizedBox(height: 16),
 
                     const Center(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:lottie/lottie.dart' hide Marker;
@@ -8,21 +7,26 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/app_map_layer.dart';
 import '../../core/widgets/lawyer_profile_summary.dart';
 import '../../core/widgets/lawyer_reviews_panel.dart';
 import '../../core/widgets/map_cards.dart';
-import '../../core/widgets/sheet_lines.dart';
+import '../../core/widgets/line_illustration.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/repositories/lawyer_repository.dart';
 import '../urgent_service/lawyer_google_profile_screen.dart';
 import 'main_navigation_shell.dart';
 import '../auth/session_router.dart';
 
-/// خريطة العرض الترويجية للمحامين القريبين (Nearby Lawyers Showcase Screen)
-/// تظهر بعد تحديد الموقع للمستخدم الجديد كعرض تعريفي وترويجي للمحامين القريبين
-/// بدون هيدر علوي، وبدون زر رجوع علوي، وبدون أي عناصر لطلب خدمة "محاميك حالاً"
-/// يظهر البوتن شيت فقط عند الضغط على محامٍ معين، ويختفي بالضغط خارج البطاقة أو زر الإغلاق
+part 'nearby_lawyers_showcase_widgets.dart';
+
+/// الخريطة الترويجية: تظهر للموكل كل مرة يدخل فيها التطبيق، وزر الإغلاق فوق يوديه للرئيسية.
+/// البوتن شيت ثابت ويعرض أعلى المحامين تقييماً في نطاق 50 كم، وملف المحامي يفتح جواه بنفس الحجم.
+/// الخريطة للعرض بس، ومفيش منها أي طلب خدمة.
+const double _showcaseRadiusKm = 50;
+const double _showcaseSheetHeight = 360;
+
 class NearbyLawyersShowcaseScreen extends StatefulWidget {
   const NearbyLawyersShowcaseScreen({super.key});
 
@@ -85,13 +89,17 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
         ? await GeoNamingService.instance.getCityAndGovernorate(position.latitude, position.longitude)
         : 'محافظة القاهرة';
 
-    final res = await LawyerRepository.getNearbyLawyers(lat: center.latitude, lon: center.longitude);
+    final res = await LawyerRepository.getNearbyLawyers(lat: center.latitude, lon: center.longitude, radiusKm: _showcaseRadiusKm);
     if (!mounted) return;
 
     setState(() {
       _currentPosition = position;
       _locationName = locationName;
-      _nearbyLawyers = (res.data ?? const []).map(MapLawyer.fromModel).toList();
+      _nearbyLawyers = (res.data ?? const []).map(MapLawyer.fromModel).toList()
+        ..sort((a, b) {
+          final byRating = b.rating.compareTo(a.rating);
+          return byRating != 0 ? byRating : a.distanceMeters.compareTo(b.distanceMeters);
+        });
       _isInitialLoading = false;
     });
   }
@@ -169,6 +177,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
   void _closeLawyerProfile() {
     setState(() {
       _selectedLawyer = null;
+      _showReviews = false;
     });
   }
 
@@ -253,7 +262,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
                           child: _ShowcaseLawyerPin(
                             lawyer: lawyer,
                             isSelected: _selectedLawyer?.id == lawyer.id,
-                            isNearest: lawyer.id == _nearbyLawyers.firstOrNull?.id,
+                            isNearest: false,
                           ),
                         ),
                       ),
@@ -271,9 +280,13 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-                child: Center(
-                  child: Material(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 44),
+                    Expanded(
+                      child: Center(
+                        child: Material(
                     color: Colors.white,
                     elevation: 3,
                     shadowColor: Colors.black.withOpacity(0.12),
@@ -307,6 +320,20 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
                       ),
                     ),
                   ),
+                      ),
+                    ),
+                    Material(
+                      color: Colors.white,
+                      elevation: 3,
+                      shadowColor: Colors.black.withOpacity(0.12),
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        icon: const Icon(Icons.close_rounded, color: AppColors.dark),
+                        tooltip: 'إغلاق',
+                        onPressed: _proceedToMainApp,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -315,7 +342,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
           // 3. أزرار التحكم بالخريطة (تكبير / تصغير / إعادة التمركز)
           Positioned(
             right: 16,
-            bottom: _selectedLawyer != null ? 405 : 88,
+            bottom: _showcaseSheetHeight + MediaQuery.paddingOf(context).bottom + 12,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -352,183 +379,8 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
             ),
           ),
 
-          // 4. زر عائم ثابت للانتقال إلى الرئيسية (يظهر حينما لا يكون هناك محامٍ محدد)
-          if (_selectedLawyer == null)
-            Positioned(
-              left: 20,
-              right: 20,
-              bottom: 24,
-              child: SafeArea(
-                top: false,
-                child: AppButton.primary(
-                  text: 'المتابعة إلى الرئيسية',
-                  icon: Icons.arrow_forward_rounded,
-                  onPressed: _proceedToMainApp,
-                  height: 50,
-                ),
-              ),
-            ),
-
-          // 5. البوتن شيت التعريفي للمحامي (مطابق 100% لاستايل ملف المحامي في محاميك حالاً)
-          if (_selectedLawyer != null)
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: SafeArea(
-                top: false,
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.18),
-                        blurRadius: 24,
-                        offset: const Offset(0, -6),
-                      ),
-                    ],
-                  ),
-                  child: Stack(
-                    children: [
-                      const SheetLines(top: 86),
-                      Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // مقبض السحب العلوي وزر الإغلاق
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10, left: 16, right: 16, bottom: 4),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 32),
-                            const Spacer(),
-                            // مقبض السحب
-                            Container(
-                              width: 44,
-                              height: 4.0,
-                              decoration: BoxDecoration(
-                                color: AppColors.cardBorder,
-                                borderRadius: BorderRadius.circular(4.0),
-                              ),
-                            ),
-                            const Spacer(),
-                            // زر الإغلاق
-                            GestureDetector(
-                              onTap: _closeLawyerProfile,
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: AppColors.background,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: AppColors.cardBorder),
-                                ),
-                                child: const Icon(
-                                  Icons.close_rounded,
-                                  size: 18,
-                                  color: AppColors.dark,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // عنوان "أقرب المحامين إليك" في المنتصف
-                      const Text(
-                        'أقرب المحامين إليك',
-                        style: TextStyle(
-                          fontFamily: 'AppFont',
-                          fontFamilyFallback: appFontFallback,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.dark,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // خط منقط فاصل
-                      const _ShowcaseDashedLineSeparator(),
-                      const SizedBox(height: 10),
-
-                      // محتوى الملف التعريفي الكامل
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 14.0),
-                        child: _showReviews
-                            ? SizedBox(
-                                height: MediaQuery.sizeOf(context).height * 0.6,
-                                child: LawyerReviewsPanel(
-                                  lawyerId: _selectedLawyer!.id,
-                                  onClose: () => setState(() => _showReviews = false),
-                                ),
-                              )
-                            : Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // 1. ملخص الملف التعريفي الموحد مع TrackingScreen
-                            SingleChildScrollView(
-                              physics: const BouncingScrollPhysics(),
-                              child: LawyerProfileSummary(
-                                avatar: _ShowcaseAvatarPhoto(
-                                  imageUrl: _selectedLawyer!.imageUrl,
-                                  initials: _selectedLawyer!.avatarInitials,
-                                  fallbackColor: _selectedLawyer!.avatarColor,
-                                  size: 56,
-                                ),
-                                name: _selectedLawyer!.name,
-                                title: _selectedLawyer!.title,
-                                rating: _selectedLawyer!.rating,
-                                reviewsCount: _selectedLawyer!.reviewsCount,
-                                experienceYears: _selectedLawyer!.experienceYears,
-                                distanceText: '${_selectedLawyer!.distanceMeters.round()} م',
-                                isNearest: _selectedLawyer!.id == _nearbyLawyers.firstOrNull?.id,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-
-                            // 2. ملف Google والتقييمات جنب بعض
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: AppButton.outlined(
-                                    text: 'ملف Google',
-                                    customIcon: SvgPicture.asset(
-                                      'assets/images/google_logo.svg',
-                                      width: 18,
-                                      height: 18,
-                                    ),
-                                    onPressed: _openGoogleProfile,
-                                    height: 44,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: AppButton.outlined(
-                                    text: 'التقييمات (${_selectedLawyer!.reviewsCount})',
-                                    onPressed: () => setState(() => _showReviews = true),
-                                    height: 44,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-
-                            // 3. زر المتابعة إلى الرئيسية
-                            AppButton.primary(
-                              text: 'المتابعة إلى الرئيسية',
-                                            onPressed: _proceedToMainApp,
-                              height: 44,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          // 4. البوتن شيت الثابت
+          _buildFixedSheet(),
 
           // 6. طبقة التغبيش والتحميل لحين اكتمال تجهيز الخريطة ومواقع المحامين (مطابقة لخريطة محاميك حالاً)
           if (_isInitialLoading)
@@ -567,6 +419,211 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
     );
   }
 
+  Widget _buildFixedSheet() {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        width: double.infinity,
+        height: _showcaseSheetHeight + MediaQuery.paddingOf(context).bottom,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 24, offset: const Offset(0, -6)),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildSheetTitle(),
+              const _ShowcaseDashedLineSeparator(),
+              Expanded(
+                child: _selectedLawyer == null ? _buildTopLawyersList() : _buildLawyerProfile(_selectedLawyer!),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSheetTitle() {
+    final hasLawyer = _selectedLawyer != null;
+    return SizedBox(
+      height: 52,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Text(
+            hasLawyer ? 'ملف المحامي' : 'الأعلى تقييماً حولك',
+            style: const TextStyle(
+              fontFamily: 'AppFont',
+              fontFamilyFallback: appFontFallback,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: AppColors.dark,
+            ),
+          ),
+          if (hasLawyer)
+            PositionedDirectional(
+              start: 6,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, color: AppColors.dark),
+                tooltip: 'رجوع',
+                onPressed: _closeLawyerProfile,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopLawyersList() {
+    if (_nearbyLawyers.isEmpty) {
+      return const SingleChildScrollView(
+        child: AppStateMessage(icon: Icons.location_on_rounded, title: 'لا يوجد محامون في نطاق 50 كم حالياً'),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      physics: const BouncingScrollPhysics(),
+      itemCount: _nearbyLawyers.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final lawyer = _nearbyLawyers[index];
+        return Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(7.0),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(7.0),
+            onTap: () => _onLawyerMarkerTapped(lawyer),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(7.0),
+                border: Border.all(color: AppColors.cardBorder),
+              ),
+              child: Row(
+                children: [
+                  _ShowcaseAvatarPhoto(
+                    imageUrl: lawyer.imageUrl,
+                    initials: lawyer.avatarInitials,
+                    fallbackColor: lawyer.avatarColor,
+                    size: 46,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          lawyer.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'AppFont',
+                            fontFamilyFallback: appFontFallback,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.dark,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${lawyer.experienceYears} سنوات خبرة • ${_distanceText(lawyer)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'AppFont',
+                            fontFamilyFallback: appFontFallback,
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.star_rounded, color: Color(0xFFEAB308), size: 18),
+                  const SizedBox(width: 3),
+                  Text(
+                    lawyer.rating.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontFamily: 'AppFont',
+                      fontFamilyFallback: appFontFallback,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.dark,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _distanceText(MapLawyer lawyer) {
+    final meters = lawyer.distanceMeters;
+    return meters < 1000 ? '${meters.round()} م' : '${(meters / 1000).toStringAsFixed(1)} كم';
+  }
+
+  Widget _buildLawyerProfile(MapLawyer lawyer) {
+    if (_showReviews) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
+        child: LawyerReviewsPanel(lawyerId: lawyer.id, onClose: () => setState(() => _showReviews = false)),
+      );
+    }
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LawyerProfileSummary(
+            avatar: _ShowcaseAvatarPhoto(
+              imageUrl: lawyer.imageUrl,
+              initials: lawyer.avatarInitials,
+              fallbackColor: lawyer.avatarColor,
+              size: 56,
+            ),
+            name: lawyer.name,
+            title: lawyer.title,
+            rating: lawyer.rating,
+            reviewsCount: lawyer.reviewsCount,
+            experienceYears: lawyer.experienceYears,
+            distanceText: _distanceText(lawyer),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: AppButton.outlined(
+                  text: 'ملف Google',
+                  customIcon: const GoogleMark(),
+                  onPressed: _openGoogleProfile,
+                  height: 44,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: AppButton.outlined(
+                  text: 'التقييمات (${lawyer.reviewsCount})',
+                  onPressed: () => setState(() => _showReviews = true),
+                  height: 44,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMapFloatingBtn({
     required IconData icon,
     required Color color,
@@ -585,261 +642,6 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
           height: 42,
           child: Icon(icon, color: color, size: 20),
         ),
-      ),
-    );
-  }
-}
-
-/// دبوس المحامي المربع الاحترافي على الخريطة الترويجية (مطابق لـ TrackingScreen لمنع أي Overflow)
-class _ShowcaseLawyerPin extends StatelessWidget {
-  final MapLawyer lawyer;
-  final bool isSelected;
-  final bool isNearest;
-
-  const _ShowcaseLawyerPin({
-    required this.lawyer,
-    required this.isSelected,
-    this.isNearest = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final Color badgeBg = isSelected ? AppColors.dark : Colors.white;
-    final Color borderColor = isSelected ? AppColors.primary : Colors.transparent;
-    final double borderWidth = isSelected ? 2.0 : 0.0;
-
-    return CustomPaint(
-      painter: _ShowcaseBubblePainter(
-        color: badgeBg,
-        borderColor: borderColor,
-        borderWidth: borderWidth,
-        hasBorder: isSelected,
-        isSelected: isSelected,
-      ),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(6, 4, 6, 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _ShowcaseAvatarPhoto(
-              imageUrl: lawyer.imageUrl,
-              initials: lawyer.avatarInitials,
-              fallbackColor: lawyer.avatarColor,
-              size: 28,
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          lawyer.name,
-                          style: TextStyle(
-                            fontFamily: 'AppFont',
-                            fontFamilyFallback: appFontFallback,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: isSelected ? Colors.white : AppColors.dark,
-                          ),
-                          maxLines: 1,
-                        ),
-                      ),
-                      if (isNearest) ...[
-                        const SizedBox(width: 4),
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.success,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.star_rounded, size: 12, color: Color(0xFFEAB308)),
-                      const SizedBox(width: 2),
-                      Text(
-                        lawyer.rating.toString(),
-                        style: TextStyle(
-                          fontFamily: 'AppFont',
-                          fontFamilyFallback: appFontFallback,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: isSelected ? Colors.white70 : AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// رسام فيكتور لعلامة المحامي مع السهم والظلال الناعمة
-class _ShowcaseBubblePainter extends CustomPainter {
-  final Color color;
-  final Color borderColor;
-  final double borderWidth;
-  final bool hasBorder;
-  final bool isSelected;
-
-  _ShowcaseBubblePainter({
-    required this.color,
-    required this.borderColor,
-    this.borderWidth = 1.2,
-    this.hasBorder = true,
-    this.isSelected = false,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const double notchHeight = 5.0;
-    const double notchWidth = 10.0;
-    final double cardBottom = size.height - notchHeight;
-    final double midX = size.width / 2;
-
-    final rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, size.width, cardBottom),
-      const Radius.circular(7.0),
-    );
-
-    final path = Path()
-      ..addRRect(rrect)
-      ..moveTo(midX - (notchWidth / 2), cardBottom)
-      ..lineTo(midX, size.height)
-      ..lineTo(midX + (notchWidth / 2), cardBottom)
-      ..close();
-
-    canvas.drawShadow(
-      path,
-      Colors.black.withOpacity(isSelected ? 0.28 : 0.16),
-      isSelected ? 5.0 : 3.5,
-      false,
-    );
-
-    final fillPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-    canvas.drawPath(path, fillPaint);
-
-    if (hasBorder && borderWidth > 0) {
-      final strokePaint = Paint()
-        ..color = borderColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = borderWidth
-        ..strokeJoin = StrokeJoin.round;
-      canvas.drawPath(path, strokePaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ShowcaseBubblePainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.borderColor != borderColor ||
-        oldDelegate.borderWidth != borderWidth ||
-        oldDelegate.hasBorder != hasBorder ||
-        oldDelegate.isSelected != isSelected;
-  }
-}
-
-/// صورة المحامي الدائرية/المربعة بحواف 7.0px مع معالجة التحميل والأخطاء بدون تمدد أو overflow
-class _ShowcaseAvatarPhoto extends StatelessWidget {
-  final String imageUrl;
-  final String initials;
-  final Color fallbackColor;
-  final double size;
-
-  const _ShowcaseAvatarPhoto({
-    required this.imageUrl,
-    required this.initials,
-    required this.fallbackColor,
-    required this.size,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: fallbackColor,
-        borderRadius: BorderRadius.circular(7.0),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: imageUrl.isNotEmpty
-          ? Image.network(
-              imageUrl,
-              width: size,
-              height: size,
-              cacheWidth: (size * 2).toInt(),
-              cacheHeight: (size * 2).toInt(),
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return _buildFallback();
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return _buildFallback();
-              },
-            )
-          : _buildFallback(),
-    );
-  }
-
-  Widget _buildFallback() {
-    return Center(
-      child: Text(
-        initials,
-        style: TextStyle(
-          fontFamily: 'AppFont',
-          fontFamilyFallback: appFontFallback,
-          fontSize: size * 0.38,
-          fontWeight: FontWeight.w800,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
-}
-
-/// شريط خط فاصل منقط أنيق
-class _ShowcaseDashedLineSeparator extends StatelessWidget {
-  const _ShowcaseDashedLineSeparator();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          const dashWidth = 4.0;
-          const dashGap = 4.0;
-          final count = (constraints.maxWidth / (dashWidth + dashGap)).floor();
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(count, (_) {
-              return Container(
-                width: dashWidth,
-                height: 1.2,
-                color: AppColors.cardBorder,
-              );
-            }),
-          );
-        },
       ),
     );
   }

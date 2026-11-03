@@ -333,14 +333,12 @@ void main() {
       // 2. Verify no "طلب الآن" or emergency order button
       expect(find.text('طلب الآن'), findsNothing);
 
-      // 3. Verify no automatic bottom sheet (initially no lawyer profile displayed)
+      // 3. The fixed sheet shows the list first, with no profile open
+      expect(find.text('الأعلى تقييماً حولك'), findsOneWidget);
       expect(find.text('ملف Google'), findsNothing);
 
-      // 4. Verify "المتابعة إلى الرئيسية" button is visible
-      expect(find.text('المتابعة إلى الرئيسية'), findsOneWidget);
-
-      // 5. Verify no back button at the top of the map
-      expect(find.byIcon(Icons.arrow_back_rounded), findsNothing);
+      // 4. The close button leads to the home page
+      expect(find.byTooltip('إغلاق'), findsOneWidget);
 
       // 6. Verify loading overlay is present during initial fetch
       expect(find.text('جاري تجهيز الخريطة وعرض أقرب المحامين'), findsOneWidget);

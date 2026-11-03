@@ -310,3 +310,8 @@ table, thead, tbody, tr, th, td, svg, path, strong, span, p, h1, h2, h3, h4, lab
 .header-toast-pill .header-toast-text { color: #fff !important; white-space: normal; font-weight: 700; }
 .header-toast-pill svg { color: #fff !important; stroke: #fff; }
 .header-toast-close-btn { background: transparent !important; color: #fff !important; }
+
+/* People photos */
+.person-avatar.image-thumb { width: 40px; height: 40px; padding: 0; flex-shrink: 0; }
+.person-inline { display: inline-flex; align-items: center; gap: 0.45rem; }
+.person-inline .person-avatar { width: 32px; height: 32px; font-size: 0.72rem; }
