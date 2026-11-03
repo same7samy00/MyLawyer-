@@ -4,7 +4,7 @@
 - A lawyer can now report a comment from «تقييماتي» with a reason, and the report reaches «بلاغات التقييمات» on the control page.
 
 ## [Control Page: Style Files] - 2026-11-03
-- Moved the latest control page styles into `css/lists.css` and `css/profile.css`, merged rules that overrode each other, and removed unused ones. Header action buttons now sit two on each line, side by side and centered in their part.
+- Moved the latest control page styles into `css/lists.css` and `css/profile.css`, merged rules that overrode each other, and removed unused ones. Page headers now use three compact lines with smaller text, and their buttons sit directly on the header at a normal size.
 
 ## [Control Page: Home and Tasks] - 2026-11-03
 - The home page now shows whole-app totals only, and its menu name is stretched by the Arabic line ـ to match the names under it. A new «متابعة المهام» page below it lists what needs the admin now, and opens each list with all dates. Every menu page now has quick numbers at the top.
