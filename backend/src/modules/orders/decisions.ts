@@ -3,7 +3,7 @@ import { dbPool, query, withTransaction } from '../../database/index.js';
 import { sanitizeText } from '../../utils/security.js';
 import { HttpError } from '../../utils/http.js';
 import { addClientCredit, lawyerHasOpenOrder, notify, ORDER_DEADLINE_HOURS, PAYMENT_MINUTES } from '../lifecycle/service.js';
-import { AuthenticatedUser } from './shared.js';
+import { AuthenticatedUser, lockOrder } from './shared.js';
 
 /// The lawyer answer and the client payment
 export async function registerOrderDecisions(fastify: FastifyInstance) {
@@ -144,62 +144,46 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
     const { userId } = request.user as AuthenticatedUser;
     const { id } = request.params as { id: string };
 
-    const orderRes = await query(
-      `SELECT * FROM service_orders WHERE (id::text = $1 OR order_number = $1) AND client_id = $2`,
-      [id, userId]
-    );
-
-    if (orderRes.rows.length === 0) {
-      return reply.status(404).send({ success: false, error: 'الطلب غير موجود' });
-    }
-
-    const order = orderRes.rows[0];
-    if (order.status !== 'ACCEPTED') {
-      return reply.status(400).send({
-        success: false,
-        error: 'لا يمكن الدفع قبل موافقة المحامي على الطلب',
-      });
-    }
-
-    if (new Date(order.payment_deadline).getTime() <= Date.now()) {
-      return reply.status(409).send({ success: false, error: 'انتهت مهلة الدفع لهذا الطلب' });
-    }
-
     const body = (request.body || {}) as { method?: string };
-    if (body.method === 'wallet') {
-      const balanceRes = await query(
-        'SELECT COALESCE(SUM(amount), 0) AS balance FROM client_credits WHERE client_id = $1',
-        [userId]
-      );
-      if (Number(balanceRes.rows[0].balance) < Number(order.price)) {
-        return reply.status(400).send({ success: false, error: 'رصيدك مش كفاية' });
-      }
-    }
 
-    await withTransaction(async (client) => {
+    const order = await withTransaction(async (client) => {
+      // The balance is shared with wallet transfers, which take the same account lock
+      await client.query('SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);
+      const locked = await lockOrder(client, id);
+
+      if (!locked || locked.client_id !== userId) throw new HttpError(404, 'الطلب غير موجود');
+      if (locked.status !== 'ACCEPTED') throw new HttpError(400, 'لا يمكن الدفع قبل موافقة المحامي على الطلب');
+      if (new Date(locked.payment_deadline).getTime() <= Date.now()) throw new HttpError(409, 'انتهت مهلة الدفع لهذا الطلب');
+
       if (body.method === 'wallet') {
-        await addClientCredit(client, userId, order.id, -Number(order.price), 'سداد طلب من الرصيد');
+        const balanceRes = await client.query(
+          'SELECT COALESCE(SUM(amount), 0) AS balance FROM client_credits WHERE client_id = $1',
+          [userId]
+        );
+        if (Number(balanceRes.rows[0].balance) < Number(locked.price)) throw new HttpError(400, 'رصيدك مش كفاية');
+        await addClientCredit(client, userId, locked.id, -Number(locked.price), 'سداد طلب من الرصيد');
       }
 
       await client.query(
         `UPDATE service_orders
          SET status = 'ACTIVE', paid_at = NOW(), expires_at = NOW() + make_interval(hours => $2), updated_at = NOW()
          WHERE id = $1`,
-        [order.id, ORDER_DEADLINE_HOURS]
+        [locked.id, ORDER_DEADLINE_HOURS]
       );
 
       await client.query(
         'INSERT INTO payments (order_id, client_id, amount, method) VALUES ($1, $2, $3, $4) ON CONFLICT (order_id) DO NOTHING',
-        [order.id, userId, order.price, body.method === 'wallet' ? 'WALLET' : 'DIRECT']
+        [locked.id, userId, locked.price, body.method === 'wallet' ? 'WALLET' : 'DIRECT']
       );
 
       await client.query(
         `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)
          VALUES ($1, $2, $3, 'ACTIVE', 'تم سداد الرسوم وبدء سريان المهمة')`,
-        [order.id, userId, order.status]
+        [locked.id, userId, locked.status]
       );
 
-      await notify(client, order.lawyer_id, 'الموكل دفع', 'ابدأ المهمة، ودوس «وصلت» عند الموكل', order.id);
+      await notify(client, locked.lawyer_id, 'الموكل دفع', 'ابدأ المهمة، ودوس «وصلت» عند الموكل', locked.id);
+      return locked;
     });
 
     return reply.send({

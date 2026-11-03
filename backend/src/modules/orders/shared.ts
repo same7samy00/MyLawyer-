@@ -1,6 +1,14 @@
+import pg from 'pg';
 import { approximateCoordinate } from '../lifecycle/service.js';
 
 export type { AuthenticatedUser } from '../../utils/http.js';
+
+/// Holds the order until the transaction ends, so two actions on it run one after the other
+/// and the second one sees what the first one did. Every step that moves money starts here.
+export async function lockOrder(db: pg.PoolClient, id: string) {
+  const res = await db.query('SELECT * FROM service_orders WHERE id::text = $1 OR order_number = $1 FOR UPDATE', [id]);
+  return res.rows[0];
+}
 
 // Contact details stay hidden until payment so the deal stays on the platform
 export const PAID_STATUSES = ['ACTIVE', 'COMPLETED'];

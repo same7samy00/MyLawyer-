@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { app, adminToken, call, clientId, clientToken, closeOrders, createOrder, createPaidOrder, createUser, lawyerId, lawyerToken, sql } from './harness.js';
+import { app, adminToken, call, clientBalance, clientId, clientToken, closeOrders, createArrivedOrder, createOrder, createPaidOrder, createUser, lawyerId, lawyerToken, sql } from './harness.js';
 import { hashPassword, hashSha256 } from '../src/utils/security.js';
 import { detectFileType } from '../src/utils/files.js';
 import { assertProductionSecrets } from '../src/config/index.js';
@@ -244,5 +244,79 @@ describe('تزامن الطلبات', () => {
       call('POST', `/orders/${order.id}/reject`, lawyerToken, {}),
     ]);
     assert.equal(results.filter((res) => res.status === 200).length, 1, JSON.stringify(results.map((res) => res.status)));
+  });
+});
+
+describe('الفلوس لما عمليتين ييجوا في نفس اللحظة', () => {
+  const statuses = (results: { status: number }[]) => results.filter((res) => res.status === 200).length;
+
+  it('الدفع من الرصيد مرتين بيخصم مرة واحدة', async () => {
+    await sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, 700, 'رصيد')`, [clientId]);
+    const order = await createOrder();
+    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
+    const pay = () => call('POST', `/orders/${order.id}/confirm-payment`, clientToken, { method: 'wallet' });
+    const results = await Promise.all([pay(), pay()]);
+    assert.equal(statuses(results), 1, JSON.stringify(results.map((res) => res.status)));
+    assert.equal(await clientBalance(), 350);
+    assert.equal((await sql('SELECT COUNT(*)::int AS total FROM payments WHERE order_id = $1', [order.id]))[0].total, 1);
+  });
+
+  it('طلبين من نفس الرصيد ما يقدروش يخصموا أكتر من الموجود', async () => {
+    await sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, 350, 'رصيد')`, [clientId]);
+    const recipientPhone = newPhone();
+    await createUser(recipientPhone, 'client');
+    const order = await createOrder();
+    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
+    await Promise.all([
+      call('POST', `/orders/${order.id}/confirm-payment`, clientToken, { method: 'wallet' }),
+      call('POST', '/wallet/transfer', clientToken, { phone: recipientPhone, amount: 350 }),
+    ]);
+    assert.ok((await clientBalance()) >= 0);
+  });
+
+  it('الإلغاء مرتين بيرد المبلغ مرة واحدة', async () => {
+    const order = await createPaidOrder();
+    const cancel = () => call('POST', `/orders/${order.id}/cancel`, clientToken, {});
+    const results = await Promise.all([cancel(), cancel()]);
+    assert.equal(statuses(results), 1, JSON.stringify(results.map((res) => res.status)));
+    assert.equal(await clientBalance(), 350);
+  });
+
+  it('إلغاء الموكل مع اعتذار المحامي بيرد المبلغ مرة واحدة', async () => {
+    const order = await createPaidOrder();
+    const results = await Promise.all([
+      call('POST', `/orders/${order.id}/cancel`, clientToken, {}),
+      call('POST', `/orders/${order.id}/withdraw`, lawyerToken, {}),
+    ]);
+    assert.equal(statuses(results), 1, JSON.stringify(results.map((res) => res.status)));
+    assert.equal(await clientBalance(), 350);
+  });
+
+  it('الإنهاء مع الاعتذار: واحد بس يتنفذ، والفلوس في مكان واحد', async () => {
+    const order = await createArrivedOrder();
+    const results = await Promise.all([
+      call('POST', `/orders/${order.id}/complete`, lawyerToken, {}),
+      call('POST', `/orders/${order.id}/withdraw`, lawyerToken, {}),
+    ]);
+    assert.equal(statuses(results), 1, JSON.stringify(results.map((res) => res.status)));
+    const [row] = await sql('SELECT status, payout_status FROM service_orders WHERE id = $1', [order.id]);
+    const refunded = await clientBalance();
+    assert.ok(row.status === 'COMPLETED' ? refunded === 0 && row.payout_status === 'HELD' : refunded === 350 && row.payout_status === 'REFUNDED', JSON.stringify(row));
+  });
+
+  it('الإنهاء مرتين بيتنفذ مرة واحدة', async () => {
+    const order = await createArrivedOrder();
+    const complete = () => call('POST', `/orders/${order.id}/complete`, lawyerToken, {});
+    const results = await Promise.all([complete(), complete()]);
+    assert.equal(statuses(results), 1, JSON.stringify(results.map((res) => res.status)));
+  });
+
+  it('الوصول بعد الإلغاء ما يتسجلش، لأنه هو اللي بيقرر الفلوس', async () => {
+    const order = await createPaidOrder();
+    const results = await Promise.all([
+      call('POST', `/orders/${order.id}/cancel`, clientToken, {}),
+      call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.0502, longitude: 31.25 }),
+    ]);
+    assert.equal(statuses(results), 1, JSON.stringify(results.map((res) => res.status)));
   });
 });

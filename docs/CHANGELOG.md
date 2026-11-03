@@ -10,7 +10,7 @@
 - **Packages:** the API explorer moved to development only, so `/docs` is gone from production and `npm audit --omit=dev` went from 4 moderate warnings to 0.
 - **Speed:** migration `022` adds 4 indexes. On 200,000 notifications in the in-memory database, clearing stale ones went from 16.7 ms to 0.9 ms and a sweep round from 13.2 ms to 7.2 ms. The app's periodic refresh now stops in the background, and order and notification lists build only the visible rows.
 - **Control page:** the page now carries a Content-Security-Policy. All 12 menu pages opened with no violations.
-- **Not touched, waiting for the owner:** the money races listed in `docs/TASKS.md`.
+- **Money (approved by the owner):** paying, cancelling, withdrawing, finishing and arriving now lock the order and check its state inside one transaction, so two presses at once can't charge or refund twice. Wallet payment also takes the same account lock as transfers. The money rules themselves did not change.
 
 ## [Control Page: Style Fix] - 2026-11-03
 - Restored notice and chat message colours that the style cleanup removed by mistake, because the code builds those class names.

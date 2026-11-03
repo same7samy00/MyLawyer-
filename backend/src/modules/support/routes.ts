@@ -65,7 +65,7 @@ export async function supportRoutes(fastify: FastifyInstance) {
 
       return withTransaction(async (db) => {
         // One sender at a time, so the open tickets count stays right
-        await db.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
+        await db.query('SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);
         const waiting = await db.query(`SELECT reference FROM support_tickets WHERE user_id = $1 AND status = 'UNDER_REVIEW' LIMIT 1`, [userId]);
         if (waiting.rows.length > 0) {
           throw new HttpError(409, `تذكرتك ${waiting.rows[0].reference} لسه تحت المراجعة، استنى رد الإدارة الأول`);
