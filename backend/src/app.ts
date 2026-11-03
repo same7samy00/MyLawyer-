@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -33,7 +31,8 @@ export function buildApp() {
 
   // CORS
   fastify.register(cors, {
-    origin: true,
+    // The app sends no Origin and the control page is same-origin, so other sites are refused
+    origin: config.corsOrigin.includes('*') ? false : config.corsOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
@@ -97,31 +96,13 @@ export function buildApp() {
     },
   });
 
+  // Public, so it says only whether the service works
   const healthHandler = async () => {
     try {
-      const dbRes = await dbPool.query('SELECT 1 as healthy');
-      let appliedMigrations: any[] = [];
-      try {
-        const migRes = await dbPool.query('SELECT name, applied_at FROM schema_migrations ORDER BY applied_at ASC');
-        appliedMigrations = migRes.rows;
-      } catch {
-        // table might not exist yet
-      }
-
-      return {
-        status: 'UP',
-        database: dbRes.rows[0].healthy === 1 ? 'CONNECTED' : 'DISCONNECTED',
-        timestamp: new Date().toISOString(),
-        version: '1.0.0',
-        appliedMigrations,
-      };
-    } catch (err: any) {
-      return {
-        status: 'DEGRADED',
-        database: 'ERROR',
-        error: err.message,
-        timestamp: new Date().toISOString(),
-      };
+      await dbPool.query('SELECT 1');
+      return { status: 'UP', database: 'CONNECTED' };
+    } catch {
+      return { status: 'DEGRADED', database: 'ERROR' };
     }
   };
 

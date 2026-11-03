@@ -65,7 +65,7 @@ sleep 5
 PORT="$(grep -E '^PORT=' .env 2>/dev/null | cut -d= -f2 | tr -d ' \r' || true)"
 HEALTH="$(curl -s "http://127.0.0.1:${PORT:-4000}/api/v1/health")"
 echo "$HEALTH"
-echo "$HEALTH" | grep -q '003_service_lifecycle.sql' || { echo "Migration 003 is not applied. Check the server logs."; exit 1; }
+echo "$HEALTH" | grep -q '"status":"UP"' || { echo "The server is not healthy. Check it."; exit 1; }
 curl -s -o /dev/null -w 'Control page: %{http_code}\n' "http://127.0.0.1:${PORT:-4000}/api/v1/admin-panel"
 curl -sk -o /dev/null -w 'Website: %{http_code}\n' --resolve my-lawyer.online:443:127.0.0.1 https://my-lawyer.online/
 

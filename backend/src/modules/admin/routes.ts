@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { dbPool, query, withTransaction } from '../../database/index.js';
-import { registerAdminDirectory, userStats } from './directory.js';
+import { dbPool, query } from '../../database/index.js';
+import { registerAdminDirectory } from './directory.js';
 import { registerAdminSupport } from '../support/admin.js';
 import { registerAdminMoney } from './money.js';
 import { logAdminAction, registerAdminActions } from './actions.js';

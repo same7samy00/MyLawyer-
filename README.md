@@ -1,124 +1,41 @@
-# ⚖️ My Lawyer - Comprehensive Legal Platform
+# My Lawyer
 
-> الوضع الحالي والمهام التالية في [`docs/HANDOFF.md`](docs/HANDOFF.md).
+منصة قانونية عربية تربط الموكلين بالمحامين. الخدمة الشغالة دلوقتي هي «محاميك حالاً»، والمشروع لسه في مرحلة التطوير.
 
-[![Flutter](https://img.shields.io/badge/Flutter-3.x-blue.svg)](https://flutter.dev)
-[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-green.svg)]()
-[![Code Quality](https://img.shields.io/badge/Analyze-0%20Issues-brightgreen.svg)]()
-[![License](https://img.shields.io/badge/License-Proprietary-red.svg)]()
+| الجزء | المكان | التقنية |
+|---|---|---|
+| التطبيق | `lib/` | Flutter |
+| الخادم | `backend/src/` | Fastify وTypeScript وPostgreSQL |
+| لوحة التحكم | `backend/public/admin/` | HTML وJavaScript، على `/api/v1/admin-panel` |
+| الموقع العام | `backend/public/site/` | HTML، وNginx بيعرضه |
+| الخرائط | `backend/map-services/` | TileServer GL وOSRM |
 
-> **My Lawyer** هي منصة قانونية متكاملة عالية الاعتمادية مبنية بإطار عمل Flutter وموجهة للهواتف الذكية (Android و iOS).  
-> تهدف المنصة إلى ربط العملاء بنخبة من المحامين والمستشارين القانونيين المعتمدين لتقديم باقة متكاملة من الخدمات القانونية بيسر وأمان.
+## التوثيق
+| الملف | المحتوى |
+|---|---|
+| [`AGENTS.md`](AGENTS.md) | القواعد الملزمة ودورة العمل |
+| [`docs/HANDOFF.md`](docs/HANDOFF.md) | الوضع الحالي والتشغيل |
+| [`docs/TASKS.md`](docs/TASKS.md) | المهام |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | قرارات صاحب المشروع |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | المعمارية |
+| [`docs/API_DOCUMENTATION.md`](docs/API_DOCUMENTATION.md) | مسارات الخادم |
+| [`docs/DATABASE_ARCHITECTURE.md`](docs/DATABASE_ARCHITECTURE.md) | قاعدة البيانات |
+| [`docs/GPS_SYSTEM.md`](docs/GPS_SYSTEM.md) | الموقع والخريطة |
+| [`docs/VPS_SERVER_AND_MAPS.md`](docs/VPS_SERVER_AND_MAPS.md) | السيرفر |
+| [`docs/DEVELOPMENT_GUIDE.md`](docs/DEVELOPMENT_GUIDE.md) | التشغيل والرفع |
 
----
-
-## 🌟 ميزات المنصة الحالية (Current Core Features)
-
-1. **باقة الخدمات القانونية المتعددة:**
-   - استشارات قانونية فورية ومتخصصة.
-   - صياغة ومراجعة العقود والاتفاقيات.
-   - تأسيس الشركات والسجلات التجارية.
-   - قضايا وتمثيل قضائي وتوكيلات.
-   - خدمة **«محاميك حالاً»** للوصول السريع إلى أقرب محامٍ متاح في النطاق الجغرافي.
-2. **تسجيل دخول آمن وسريع:**
-   - مصادقة برقم الهاتف المحمول المصري (`01xxxxxxxxx`) وكلمة المرور.
-   - دعم حفظ الجلسة على الجهاز والملء السريع للتجربة.
-3. **تحديد موقع فردي وعرض النطاق الجغرافي:**
-   - فحص ذكي لأذونات الموقع وحالة الـ GPS.
-   - تحديد نقطة الموقع الحالي على الخريطة التفاعلية بنقطة فردية بدون تتبع لحظي، ووصول المحامي عبر Google Maps بعد الدفع.
-   - عرض اسم عام للمنطقة والمحافظة من ملف مناطق مصر داخل التطبيق (`GeoNamingService`).
-   - تأكيد الموقع عبر نافذة سفلية (Bottom Sheet) بحواف `7.0px`.
-4. **الهيدر العلوي وشريط التنقل السفلي:**
-   - **الهيدر العلوي الموحد (`AppHeader`):** هيدر مركزي ثابت يظهر على كافة شاشات التطبيق باستثناء تسجيل الدخول، يعرض عنوان الشاشة في المنتصف وأيقونات مباشرة للبحث والرجوع والإشعارات.
-   - **شريط التنقل السفلي (`AppBottomBar`):**
-     - **الرئيسية (Home):** عرض النطاق الجغرافي، بانر خدمة «محاميك حالاً»، وقائمة الخدمات القانونية بنمط LIST.
-     - **الطلبات (Orders):** متابعة حالة الطلبات النشطة والسابقة مع خيارات التواصل المباشر والشكاوى.
-     - **المحفظة (Wallet):** متابعة الرصيد المالي وشحن المحفظة لسداد الأتعاب.
-     - **الحساب (Account):** البيانات الشخصية، الأمان، الدعم الفني، وتسجيل الخروج.
-5. **نظام تصميم صارم وموحد:**
-   - خط **`flat-jooza`** (جذور مسطح) للنصوص، مع أرقام إنجليزية من `assets/fonts/app-digits.ttf`.
-   - حواف دائرية موحدة: **`12.0px`** لجميع أزرار التطبيق، و **`7.0px`** لكافة الكروت وحقول الإدخال والبدجات.
-   - واجهات عربية بلهجة وقورة وبلمسة مصرية خفيفة مع دعم كامل للـ RTL.
-   - استعراض ملف المحامي وتقييماته على Google عبر شاشة WebView مدمجة (`LawyerGoogleProfileScreen`).
-   - شاشة بداية بيضاء بالكامل مع موشن جرافيك رشيق وناعم لاسم التطبيق.
-
----
-
-## 🏗️ البنية المعمارية للمجلدات (Architecture Overview)
-
-```text
-D:\KAREM\
-├── AGENTS.md                  # دستور المشروع وقواعد الحوكمة الإلزامية للذكاء الاصطناعي
-├── GEMINI.md                  # توجيهات نماذج Gemini
-├── .cursorrules               # قواعد محررات التطوير
-├── docs/                      # التوثيق الشامل
-│   ├── ARCHITECTURE.md        # المعمارية الفنية وهيكل الطبقات
-│   ├── GPS_SYSTEM.md          # مواصفات نظام تحديد الموقع الجغرافي
-│   ├── DEVELOPMENT_GUIDE.md   # دليل التطوير ووضع Hot Reload السريع
-│   └── CHANGELOG.md           # سجل التغييرات المتزامن
-├── assets/
-│   ├── fonts/                 # خط flat-jooza وخط الأرقام الإنجليزية
-│   └── images/                # رسومات SVG
-├── lib/
-│   ├── core/
-│   │   ├── constants/         # ثوابت الألوان (AppColors)
-│   │   ├── theme/             # ثيم 7px وتكوين الخطوط
-│   │   ├── services/          # خدمات الموقع والتحويل الجغرافي
-│   │   └── widgets/           # المكونات المشتركة (AppCard, StatusBadge, AppBottomBar)
-│   ├── features/              # الشاشات مقسمة: auth و client و lawyer و urgent_service
-│   └── main.dart              # نقطة البداية وإعدادات اللغة والاتجاه RTL
-└── test/
-    └── widget_test.dart       # الاختبارات المؤتمتة
-```
-
----
-
-## 🚀 دليل التشغيل والتطوير السريع (Getting Started)
-
-### المتطلبات الأساسية (Prerequisites)
-- Flutter SDK (الإصدار 3.29+ أو المضمن في `C:\src\flutter`).
-- Android SDK (minSdk 21، compileSdk 35).
-- هاتف محمول متصل عبر USB بنمط تصحيح الأخطاء (ADB Debugging).
-
-### فحص الأجهزة المتصلة
+## التشغيل
 ```bash
-& "C:\src\flutter\bin\flutter.bat" devices
+flutter run
 ```
-
-### التشغيل في وضع التطوير (Hot Reload)
 ```bash
-& "C:\src\flutter\bin\flutter.bat" run -d OFDI4TCAFA9XBQOJ
+cd backend && npm run preview:panel
 ```
-*(حيث `OFDI4TCAFA9XBQOJ` هو معرف جهاز الاختبار المحمول).*
 
-أثناء تشغيل التطبيق في التيرمينال:
-- اضغط **`r`** لتطبيق **Hot Reload** في أقل من ثانية.
-- اضغط **`R`** لتطبيق **Hot Restart** وإعادة بناء الحالة في ثانية أو ثانيتين.
-- اضغط **`q`** لإنهاء الجلسة.
-
----
-
-## 🧪 التحقق والاختبارات (Verification & Quality Gates)
-
-أي كود أو تعديل يجب أن يجتاز الفحوصات التالية بنجاح تام:
-
-1. **فحص التحليل البرمجي (Static Analysis):**
-   ```bash
-   & "C:\src\flutter\bin\flutter.bat" analyze
-   ```
-   *المعيار:* الخروج بنتيجة `No issues found!` بدون أي أخطاء أو تحذيرات.
-
-2. **تشغيل الاختبارات المؤتمتة (Unit & Widget Tests):**
-   ```bash
-   & "C:\src\flutter\bin\flutter.bat" test
-   ```
-   *المعيار:* نجاح كافة الاختبارات `All tests passed!`.
-
----
-
-## 📜 ميثاق الحوكمة والمطورين (Governance Policy)
-هذا المشروع يخضع لميثاق حوكمة صارم مفصل في ملف **[`AGENTS.md`](./AGENTS.md)**.  
-يجب على أي مطور أو نموذج ذكاء اصطناعي الاطلاع على ميثاق الحوكمة والالتزام بدورة العمل المكونة من 6 خطوات (فهم -> تخطيط -> تنفيذ -> تحقق -> توثيق -> تسليم).
-
-## لوحة التحكم
-على `/api/v1/admin-panel`، والكود في `backend/public/admin/`، والمعاينة المحلية بـ `cd backend && npm run preview:panel`. التفاصيل في `docs/ARCHITECTURE.md`.
+## الفحوصات
+```bash
+flutter analyze && flutter test
+```
+```bash
+cd backend && npx tsc --noEmit && npm test
+```

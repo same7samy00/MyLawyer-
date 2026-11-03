@@ -123,3 +123,5 @@ erDiagram
 | `order_status_logs` | كل مراحل الطلب، و`changed_by_user_id` فاضي لما النظام هو اللي نفذ (migration `019`). |
 
 عمودا `specialty` و`bio` في `lawyer_profiles` مش مستخدمين في النظام، و`experience_years` بيتكتب عند تسجيل المحامي وقيمته الافتراضية 0 (migration `020`).
+
+جداول `complaints` و`lawyer_reports` و`order_appeals` و`lawyer_approval_history` اتشالت في migration `021` بعد ما حلت محلها تذاكر الدعم.

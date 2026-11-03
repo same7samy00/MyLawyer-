@@ -1,0 +1,381 @@
+part of 'tracking_screen.dart';
+
+extension _TrackingMapControls on _TrackingScreenState {
+  void _snapSheetTo(double targetHeight, {bool moveCamera = true}) {
+    final hasChanged = (targetHeight - _sheetHeight).abs() > 1;
+    _sheetTween = Tween<double>(begin: _sheetHeight, end: targetHeight);
+    _sheetAnimController.forward(from: 0.0);
+
+    final selected = _selectedLawyer;
+    if (moveCamera && hasChanged && selected != null) {
+      _zoomFitRouteAndLawyer(_searchCenter, selected.position, sheetHeight: targetHeight);
+    }
+  }
+
+  /// كل حركات الكاميرا تمر من هنا: حركة واحدة تلغي اللي قبلها ومدتها حسب المسافة
+  void _animatedMapMove(LatLng destLocation, double destZoom) {
+    _stopCamera();
+
+    final camera = _mapController.camera;
+    final targetZoom = destZoom.clamp(appMapMinZoom, appMapMaxZoom);
+    final zoomChange = (targetZoom - camera.zoom).abs();
+    final distanceKm = const Distance().as(LengthUnit.Kilometer, camera.center, destLocation);
+    final distanceMeters = const Distance().as(LengthUnit.Meter, camera.center, destLocation);
+    if (distanceMeters < 5 && zoomChange < 0.05) return;
+
+    final latTween = Tween<double>(begin: camera.center.latitude, end: destLocation.latitude);
+    final lngTween = Tween<double>(begin: camera.center.longitude, end: destLocation.longitude);
+    final zoomTween = Tween<double>(begin: camera.zoom, end: targetZoom);
+
+    final controller = AnimationController(
+      duration: Duration(milliseconds: (350 + zoomChange * 90 + distanceKm * 4).clamp(350, 800).round()),
+      vsync: this,
+    );
+    _cameraAnimController = controller;
+
+    final animation = CurvedAnimation(parent: controller, curve: Curves.easeOutCubic);
+
+    controller.addListener(() {
+      _mapController.move(
+        LatLng(latTween.evaluate(animation), lngTween.evaluate(animation)),
+        zoomTween.evaluate(animation),
+      );
+    });
+
+    controller.forward();
+  }
+
+  /// لمس الخريطة يوقف أي حركة تلقائية فوراً، فالتحكم يرجع للمستخدم
+  void _stopCamera() {
+    _cameraAnimController?.dispose();
+    _cameraAnimController = null;
+  }
+
+  /// يوضع النقطة في نص الجزء الظاهر من الخريطة فوق الشيت
+  void _focusPoint(LatLng point, double zoom) {
+    final camera = _mapController.camera;
+    final target = camera.project(point, zoom) + math.Point<double>(0, _sheetHeight / 2);
+    _animatedMapMove(camera.unproject(target, zoom), zoom);
+  }
+
+  /// حساب ورسم المسار بين المستخدم والمحامي والتأكد من اتصاله بمربع المحامي مباشرة
+  Future<void> _calculateRouteToLawyer(MapLawyer lawyer) async {
+    final userPos = _currentPosition != null
+        ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
+        : const LatLng(30.0444, 31.2357);
+
+    _update(() {
+      _selectedLawyer = lawyer;
+    });
+
+    await _drawRoute(userPos, lawyer.position);
+  }
+
+  /// خط منحني يوضح اتصال الطرفين، ويترسم على الموبايل فقط
+  List<LatLng> _connectionLine(LatLng start, LatLng end) {
+    const segments = 24;
+    final control = LatLng(
+      (start.latitude + end.latitude) / 2 + (end.longitude - start.longitude) * 0.14,
+      (start.longitude + end.longitude) / 2 - (end.latitude - start.latitude) * 0.14,
+    );
+
+    return [
+      for (var i = 0; i <= segments; i++)
+        () {
+          final t = i / segments;
+          final rest = 1 - t;
+          return LatLng(
+            rest * rest * start.latitude + 2 * rest * t * control.latitude + t * t * end.latitude,
+            rest * rest * start.longitude + 2 * rest * t * control.longitude + t * t * end.longitude,
+          );
+        }(),
+    ];
+  }
+
+  /// حساب الوقت والمسافة على الطرق بين نقطتين، ورسم خط الاتصال بينهما
+  Future<void> _drawRoute(LatLng start, LatLng destination) async {
+    // الخط يظهر فوراً، والوقت يكمل لما الخادم يرد
+    _update(() {
+      _routePoints = _connectionLine(start, destination);
+      _isInitialLoading = false;
+    });
+
+    final estimate = await _routingService.calculateDrivingRoute(
+      start: start,
+      destination: destination,
+    );
+
+    if (mounted) {
+      _update(() {
+        _routeEstimate = estimate;
+      });
+    }
+  }
+
+  /// ضبط كاميرا الخريطة لعرض المسار كاملاً بين موقعي وموقع المحامي المختار مهما كانت المسافة مع مراعاة البوتن شيت
+  void _zoomFitRouteAndLawyer(LatLng userPos, LatLng lawyerPos, {double? sheetHeight}) {
+    if (!mounted) return;
+    final effectiveSheetHeight = sheetHeight ?? _sheetHeight;
+    try {
+      final List<LatLng> fitCoordinates = [userPos, lawyerPos];
+      if (_routePoints.isNotEmpty) {
+        fitCoordinates.addAll(_routePoints);
+      }
+
+      final fit = CameraFit.coordinates(
+        coordinates: fitCoordinates,
+        padding: EdgeInsets.only(
+          bottom: effectiveSheetHeight + 45.0, // مساحة البوتن شيت الفعلية + هامش مريح لعدم حجب أي جزء من المسار
+          top: 80.0,                           // هامش أسفل الهيدر العلوي الثابت
+          left: 55.0,
+          right: 55.0,
+        ),
+        maxZoom: appMapMaxZoom,
+        minZoom: appMapMinZoom,
+      );
+
+      final fittedCamera = fit.fit(_mapController.camera);
+      _animatedMapMove(fittedCamera.center, fittedCamera.zoom);
+    } catch (_) {
+      final midLat = (userPos.latitude + lawyerPos.latitude) / 2 - (effectiveSheetHeight / 85000.0);
+      final midLng = (userPos.longitude + lawyerPos.longitude) / 2;
+      _animatedMapMove(LatLng(midLat, midLng), 14.2);
+    }
+  }
+
+  /// التفاعل عند الضغط على محامٍ من الخريطة: تحديث بيانات البوتن شيت المثبت وفتحه إذا كان مغلقاً
+  void _onLawyerTapped(MapLawyer lawyer) {
+    _currentLawyerIndex = _nearbyLawyers.indexWhere((l) => l.id == lawyer.id);
+    if (_currentLawyerIndex < 0) _currentLawyerIndex = 0;
+
+    _calculateRouteToLawyer(lawyer);
+
+    if (_orderFlowStage != _OrderFlowStage.idle) {
+      _returnToLawyerProfile();
+    }
+
+    // حركة كاميرا واحدة تضبط المحامي والموكل فوق ارتفاع الشيت النهائي
+    if (_sheetHeight < _expandedHeight) {
+      _snapSheetTo(_expandedHeight, moveCamera: false);
+    }
+    _zoomFitRouteAndLawyer(_searchCenter, lawyer.position, sheetHeight: _expandedHeight);
+  }
+
+  LatLng get _searchCenter => _currentPosition != null
+      ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
+      : const LatLng(30.0444, 31.2357);
+
+  /// زر «بحث جديد»: يبحث فعلياً من السيرفر ثم يعرض المحامي التالي أو يوضح أنه لا يوجد غيره
+  Future<void> _searchForNewLawyer() async {
+    if (_isSearchingAgain) return;
+    final currentId = _selectedLawyer?.id;
+
+    _update(() {
+      _isSearchingAgain = true;
+    });
+
+    final res = await LawyerRepository.getNearbyLawyers(
+      lat: _searchCenter.latitude,
+      lon: _searchCenter.longitude,
+      radiusKm: _TrackingScreenState._allEgyptRadiusKm,
+    );
+    if (!mounted) return;
+
+    _update(() {
+      _isSearchingAgain = false;
+    });
+
+    if (!res.isOk) {
+      _showMessage(res.error ?? 'تعذر البحث، جرب تاني');
+      return;
+    }
+
+    final lawyers = (res.data ?? const []).map(MapLawyer.fromModel).toList();
+    _update(() {
+      _nearbyLawyers = lawyers;
+      _lawyersError = null;
+      if (lawyers.isEmpty) {
+        _selectedLawyer = null;
+        _routePoints = [];
+      }
+    });
+
+    if (lawyers.isEmpty) {
+      _showMessage('مفيش محامين متاحين دلوقتي');
+      return;
+    }
+
+    if (lawyers.length == 1 && lawyers.first.id == currentId) {
+      _showMessage('مفيش محامي تاني متاح دلوقتي، ده المحامي الوحيد المتاح');
+      return;
+    }
+
+    final currentIndex = lawyers.indexWhere((lawyer) => lawyer.id == currentId);
+    _onLawyerTapped(lawyers[(currentIndex + 1) % lawyers.length]);
+  }
+
+  /// جلب الموقع الفعلي والمحامين المتاحين وحساب المسار لأقربهم تلقائياً
+  Future<void> _fetchCurrentLocation() async {
+    _update(() {
+      _isLoading = true;
+      _isInitialLoading = true;
+      _lawyersError = null;
+    });
+
+    // تعذر الموقع لا يترك الخريطة في التحميل إلى ما لا نهاية
+    final result = await LocationService.instance.checkAndRequestPermission().timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => const LocationResult(
+        status: LocationServiceStatus.error,
+        errorMessage: 'تحديد الموقع أخد وقت طويل، حاول تاني.',
+      ),
+    );
+    if (!mounted) return;
+
+    LatLng centerLatLng = const LatLng(30.0444, 31.2357);
+
+    if (result.isSuccess && result.position != null) {
+      _currentPosition = result.position;
+      centerLatLng = LatLng(result.position!.latitude, result.position!.longitude);
+
+      try {
+        _mapController.move(centerLatLng, appMapMaxZoom);
+      } catch (_) {}
+
+      final resolvedName = await GeoNamingService.instance.getCityAndGovernorate(
+        result.position!.latitude,
+        result.position!.longitude,
+      );
+
+      if (mounted) {
+        _update(() {
+          _locationName = resolvedName;
+        });
+      }
+    } else {
+      if (mounted) {
+        _update(() {
+          _locationName = 'محافظة القاهرة';
+        });
+      }
+    }
+
+    if (!mounted) return;
+
+    final res = await LawyerRepository.getNearbyLawyers(
+      lat: centerLatLng.latitude,
+      lon: centerLatLng.longitude,
+    );
+    if (!mounted) return;
+
+    final lawyers = (res.data ?? const []).map(MapLawyer.fromModel).toList();
+
+    _update(() {
+      _nearbyLawyers = lawyers;
+      _isLoading = false;
+      _isInitialLoading = lawyers.isNotEmpty;
+      _lawyersError = res.isOk ? null : (res.error ?? 'تعذر البحث عن المحامين المتاحين');
+    });
+
+    if (lawyers.isNotEmpty) {
+      _currentLawyerIndex = 0;
+      _calculateRouteToLawyer(lawyers.first);
+      _zoomFitRouteAndLawyer(centerLatLng, lawyers.first.position);
+    }
+
+    // المحامون يتحدثون وهو فاتح الخريطة ليظهر الموجود فعلاً فقط
+    _lawyersRefreshTimer?.cancel();
+    _lawyersRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) => _loadAllLawyers());
+    _loadAllLawyers();
+  }
+
+  void _onMapMoved(MapCamera camera, bool hasGesture) {
+    if (camera.zoom.floor() != _mapZoom.floor()) {
+      _update(() {
+        _mapZoom = camera.zoom;
+      });
+    }
+  }
+
+  /// كل المحامين المتاحين في مصر، فكل دبوس يفضل مكانه مهما اتحركت الخريطة
+  Future<void> _loadAllLawyers() async {
+    if (!mounted || _orderFlowStage != _OrderFlowStage.idle) return;
+
+    final res = await LawyerRepository.getNearbyLawyers(
+      lat: _searchCenter.latitude,
+      lon: _searchCenter.longitude,
+      radiusKm: _TrackingScreenState._allEgyptRadiusKm,
+    );
+    if (!mounted || !res.isOk || _orderFlowStage != _OrderFlowStage.idle) return;
+
+    final lawyers = (res.data ?? const []).map(MapLawyer.fromModel).toList();
+
+    // المحامي المختار يفضل ظاهر حتى لو المنطقة الحالية بعيدة عنه
+    final selected = _selectedLawyer;
+    if (selected != null && !lawyers.any((lawyer) => lawyer.id == selected.id)) {
+      lawyers.add(selected);
+    }
+
+    _update(() {
+      _nearbyLawyers = lawyers;
+      _lawyersError = null;
+    });
+  }
+
+  /// أقرب محامي لموقع الموكل، والقائمة نفسها ممكن تكون لمنطقة تانية على الخريطة
+  String? get _nearestLawyerId {
+    MapLawyer? nearest;
+    var nearestDistance = double.infinity;
+    for (final lawyer in _nearbyLawyers) {
+      final distance = const Distance().as(LengthUnit.Meter, _searchCenter, lawyer.position);
+      if (distance < nearestDistance) {
+        nearest = lawyer;
+        nearestDistance = distance;
+      }
+    }
+    return nearest?.id;
+  }
+
+  /// دبوس الموكل يختفي لو محامي في نفس مكانه عشان ما يبانش ورا الكارت
+  bool get _isLawyerAtClientSpot => _nearbyLawyers.any(
+        (lawyer) => const Distance().as(LengthUnit.Meter, _searchCenter, lawyer.position) < 40,
+      );
+
+  /// كل محامٍ يظهر بكارته، والكروت تصغر مع تصغير الخريطة
+  List<Marker> _buildLawyerMarkers(double zoom) {
+    final nearestId = _nearestLawyerId;
+    final scale = mapCardScaleFor(zoom);
+
+    return [
+      for (final lawyer in _nearbyLawyers)
+        Marker(
+          point: lawyer.position,
+          width: _TrackingScreenState._cardWidth * scale,
+          height: _TrackingScreenState._cardHeight * scale,
+          alignment: Alignment.topCenter,
+          child: GestureDetector(
+            onTap: () => _onLawyerTapped(lawyer),
+            child: ScaledMapCard(
+              width: _TrackingScreenState._cardWidth,
+              height: _TrackingScreenState._cardHeight,
+              child: _LawyerMapSquareMarker(
+                lawyer: lawyer,
+                isSelected: _selectedLawyer?.id == lawyer.id,
+                isNearest: lawyer.id == nearestId,
+              ),
+            ),
+          ),
+        ),
+    ];
+  }
+
+  void _centerMapOnCurrentPosition() {
+    _focusPoint(_searchCenter, appMapMaxZoom);
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message, style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback))),
+    );
+  }
+}
