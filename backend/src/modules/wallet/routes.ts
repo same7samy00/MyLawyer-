@@ -141,8 +141,8 @@ export async function walletRoutes(fastify: FastifyInstance) {
       const reference = transfer.rows[0].reference;
       await addToLedger(db, { id: userId, role }, -amount, `تحويل ${reference} إلى ${shortName(recipient.full_name)}`);
       await addToLedger(db, recipient, amount, `تحويل ${reference} من ${senderName}`);
-      await notify(db, userId, 'تم التحويل', `حوّلت ${amount} ج.م إلى ${shortName(recipient.full_name)}، رقم التحويل ${reference}`);
-      await notify(db, recipient.id, 'وصلك تحويل', `وصلك ${amount} ج.م من ${senderName}، رقم التحويل ${reference}`);
+      await notify(db, userId, 'تم التحويل', `${amount} ج.م إلى ${shortName(recipient.full_name)}. رقم ${reference}`);
+      await notify(db, recipient.id, 'وصلك تحويل', `${amount} ج.م من ${senderName}. رقم ${reference}`);
 
       return {
         id: transfer.rows[0].id,

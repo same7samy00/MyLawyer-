@@ -91,8 +91,8 @@ export async function applySettlement(db: pg.PoolClient, order: any, outcome: Se
     await addClientCredit(db, order.client_id, order.id, clientAmount, `تسوية طلب ${order.order_number}: ${OUTCOME_LABELS[outcome]}`);
   }
 
-  const clientMessage = clientAmount > 0 ? `تمت تسوية الطلب، وأُضيف ${clientAmount} ج.م إلى رصيدك.` : 'تمت تسوية الطلب، وصُرفت الأتعاب للمحامي.';
-  const lawyerMessage = lawyerAmount > 0 ? `تمت تسوية الطلب، وأُضيف ${lawyerAmount} ج.م إلى محفظتك.` : 'تمت تسوية الطلب، ورُد المبلغ إلى الموكل.';
+  const clientMessage = clientAmount > 0 ? `رجعلك ${clientAmount} ج.م في رصيدك` : 'الأتعاب اتصرفت للمحامي';
+  const lawyerMessage = lawyerAmount > 0 ? `اتضاف ${lawyerAmount} ج.م لمحفظتك` : 'المبلغ رجع للموكل';
   await notify(db, order.client_id, 'تسوية الطلب', clientMessage, order.id);
   await notify(db, order.lawyer_id, 'تسوية الطلب', lawyerMessage, order.id);
   return { clientAmount, lawyerAmount, outcome };
@@ -119,9 +119,9 @@ export async function addWarning(db: Db, userId: string, reason: string, orderId
       [SUSPENSION_DAYS, userId]
     );
     await db.query(`UPDATE lawyer_profiles SET is_available = FALSE, availability_off_reason = 'SUSPENDED' WHERE user_id = $1`, [userId]);
-    await notify(db, userId, 'تم إيقاف حسابك مؤقتًا', 'حسابك موقوف لمدة أسبوع بسبب تكرار الإنذارات');
+    await notify(db, userId, 'حسابك اتوقف أسبوع', 'بسبب تكرار الإنذارات');
   } else {
-    await notify(db, userId, 'إنذار', reason, orderId ?? undefined);
+    await notify(db, userId, 'وصلك إنذار', reason, orderId ?? undefined);
   }
 }
 
@@ -132,7 +132,7 @@ export async function revokeWarning(db: Db, warningId: string, actorId: string) 
   );
   if (res.rows.length === 0) return false;
   await db.query('UPDATE users SET warnings_count = GREATEST(warnings_count - 1, 0) WHERE id = $1', [res.rows[0].user_id]);
-  await notify(db, res.rows[0].user_id, 'إلغاء إنذار', 'ألغت الإدارة أحد الإنذارات المسجلة على حسابك');
+  await notify(db, res.rows[0].user_id, 'اتلغى إنذار', 'الإدارة لغت إنذار من على حسابك');
   return true;
 }
 
@@ -144,7 +144,7 @@ export async function liftUserSuspensions(db: Db) {
      RETURNING id`
   );
   for (const user of res.rows) {
-    await notify(db, user.id, 'انتهى الإيقاف', 'حسابك اشتغل تاني وتقدر تستخدم التطبيق');
+    await notify(db, user.id, 'انتهى الإيقاف', 'حسابك رجع يشتغل');
   }
 }
 
@@ -161,6 +161,6 @@ export async function adjustBalance(db: Db, user: { id: string; role: string }, 
       [user.id, orderId, amount, reason, actorId]
     );
   }
-  const title = amount > 0 ? 'إضافة إلى رصيدك' : 'خصم من رصيدك';
+  const title = amount > 0 ? 'اتضاف لرصيدك' : 'اتخصم من رصيدك';
   await notify(db, user.id, title, `${Math.abs(amount)} ج.م: ${reason}`, orderId ?? undefined);
 }

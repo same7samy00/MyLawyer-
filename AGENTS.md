@@ -160,6 +160,7 @@ D:\KAREM\
 │   ├── DEVELOPMENT_GUIDE.md             # دليل التطوير ووضع Hot Reload
 │   ├── HANDOFF.md                       # الوضع الحالي والمهام التالية
 │   └── CHANGELOG.md                     # سجل التغييرات المتزامن
+├── backend/                             # الخادم ولوحة التحكم (public/admin/)
 ├── assets/
 │   ├── fonts/                           # خط flat-jooza وخط الأرقام الإنجليزية
 │   └── images/                          # رسومات SVG التوضيحية

@@ -17,6 +17,7 @@ import { lawyerRoutes } from './modules/lawyers/routes.js';
 import { orderRoutes } from './modules/orders/routes.js';
 import { adminRoutes } from './modules/admin/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
+import { registerAdminPanel } from './modules/admin/panel.js';
 import { dbPool } from './database/index.js';
 
 export function buildApp() {
@@ -141,10 +142,7 @@ export function buildApp() {
     });
 
     api.get('/health', healthHandler);
-    api.get('/admin-panel', async (_request, reply) => {
-      const page = fs.readFileSync(path.resolve(process.cwd(), 'public/admin.html'), 'utf-8');
-      return reply.type('text/html; charset=utf-8').send(page);
-    });
+    registerAdminPanel(api);
     api.register(authRoutes, { prefix: '/auth' });
     api.register(userRoutes, { prefix: '/users' });
     api.register(walletRoutes, { prefix: '/wallet' });

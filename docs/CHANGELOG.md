@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 3.17] - 2026-11-03
+### Organized Control Page Files
+- Rewrote all notifications to be short and clear. Added the missing ones: a new rating for the lawyer, the result of a comment report, and frozen fees for the lawyer even when the lawyer opened the ticket. The control page announces new tickets, applications, reports and frozen money while open.
+- The one large control page file was split into `backend/public/admin/`: structure, styles, shared code, windows, and one file per page. Browsers keep these files until the next release, which makes the page lighter.
+- Removed a note about when the decisions log started. Brought the architecture, database, development and handoff documents up to date, and removed the old `ANTIGRAVITY_REPORT.md`, which no longer matched the system.
+
 ## [Phase 3.16] - 2026-11-03
 ### Lawyer Experience
 - Pressing a notification marks it read. A request to act (new order, complete the payment, start the task) disappears once the order has passed it, and old ones were cleared (migration `020`). The control page notifications use strong colors.

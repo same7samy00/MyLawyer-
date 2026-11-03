@@ -119,8 +119,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
     await notify(
       dbPool,
       id,
-      approved ? 'تمت الموافقة على تقديمك' : 'تم رفض تقديمك',
-      approved ? 'بقيت محامٍ معتمد، فعّل حالتك عشان تستقبل الطلبات' : reason || 'تقدر تراجع بياناتك وتقدم تاني'
+      approved ? 'تمت الموافقة على تقديمك' : 'تقديمك اترفض',
+      approved ? 'فعّل حالتك عشان تستقبل الطلبات' : reason || 'راجع بياناتك وقدّم تاني'
     );
     return reply.send({ success: true, message: 'تم تسجيل القرار' });
   });
@@ -173,6 +173,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
 
     await refreshLawyerRating(dbPool, res.rows[0].lawyer_id);
+    await notify(dbPool, res.rows[0].lawyer_id, 'نتيجة بلاغك', body.hide === true ? 'التعليق اتخفى من ملفك' : 'التعليق هيفضل ظاهر في ملفك');
     await logAdminAction(adminId, body.hide === true ? 'REVIEW_HIDE' : 'REVIEW_KEEP', res.rows[0].lawyer_name, res.rows[0].comment, res.rows[0].lawyer_id);
     return reply.send({ success: true, message: 'تم تحديث التقييم' });
   });

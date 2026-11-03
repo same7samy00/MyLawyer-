@@ -154,7 +154,7 @@ export async function addLawyerStrike(db: Db, lawyerId: string, orderId: string,
        WHERE user_id = $2`,
       [SUSPENSION_DAYS, lawyerId]
     );
-    await notify(db, lawyerId, 'تم إيقاف حسابك مؤقتاً', 'حسابك موقوف لمدة أسبوع بسبب تكرار المخالفات');
+    await notify(db, lawyerId, 'حسابك اتوقف أسبوع', 'بسبب تكرار المخالفات');
   }
 }
 
@@ -185,7 +185,7 @@ async function closeUnansweredOrders() {
       `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note) VALUES ($1, NULL, 'PENDING', 'NO_RESPONSE', 'انتهت مهلة رد المحامي دون رد')`,
       [order.id]
     );
-    await notify(dbPool, order.client_id, 'المحامي ما ردش', 'الطلب اتقفل وتقدر تختار محامي تاني', order.id);
+    await notify(dbPool, order.client_id, 'المحامي ما ردش', 'اختار محامي تاني', order.id);
 
     const missed = await dbPool.query(
       `UPDATE lawyer_profiles SET missed_orders = missed_orders + 1
@@ -198,9 +198,9 @@ async function closeUnansweredOrders() {
         `UPDATE lawyer_profiles SET is_available = FALSE, availability_off_reason = 'MISSED', missed_orders = 0 WHERE user_id = $1`,
         [order.lawyer_id]
       );
-      await notify(dbPool, order.lawyer_id, 'اتحولت لغير متاح', 'ما رديتش على طلبين متتاليين، فعّل حالتك لما تكون جاهز', order.id);
+      await notify(dbPool, order.lawyer_id, 'اتحولت لغير متاح', 'ما رديتش على طلبين. فعّل حالتك لما تكون جاهز', order.id);
     } else {
-      await notify(dbPool, order.lawyer_id, 'فاتك طلب', 'مهلة الرد دقيقتين، والمرة الجاية هتتحول لغير متاح', order.id);
+      await notify(dbPool, order.lawyer_id, 'فاتك طلب', 'لو فاتك طلب كمان هتتحول لغير متاح', order.id);
     }
   }
 }
@@ -217,8 +217,8 @@ async function closeUnpaidOrders() {
       `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note) VALUES ($1, NULL, 'ACCEPTED', 'PAYMENT_EXPIRED', 'انتهت مهلة الدفع دون دفع')`,
       [order.id]
     );
-    await notify(dbPool, order.client_id, 'انتهت مهلة الدفع', 'تقدر تبدأ طلب جديد في أي وقت', order.id);
-    await notify(dbPool, order.lawyer_id, 'الموكل ما دفعش', 'الطلب اتقفل وتقدر تستقبل طلبات جديدة', order.id);
+    await notify(dbPool, order.client_id, 'انتهت مهلة الدفع', 'الطلب اتلغى، وتقدر تبدأ طلب جديد', order.id);
+    await notify(dbPool, order.lawyer_id, 'الموكل ما دفعش', 'الطلب اتلغى، وتقدر تستقبل طلبات جديدة', order.id);
   }
 }
 
@@ -229,7 +229,7 @@ async function liftSuspensions() {
   );
 
   for (const lawyer of res.rows) {
-    await notify(dbPool, lawyer.user_id, 'انتهى الإيقاف', 'فعّل حالتك لما تكون جاهز تستقبل طلبات');
+    await notify(dbPool, lawyer.user_id, 'انتهى الإيقاف', 'فعّل حالتك عشان تستقبل طلبات');
   }
 }
 
@@ -248,14 +248,14 @@ async function hideSilentLawyers() {
   );
 
   for (const lawyer of res.rows) {
-    await notify(dbPool, lawyer.user_id, 'اتحولت لغير متاح', 'موقعك ما وصلش من ساعة، افتح التطبيق وفعّل حالتك لما تكون جاهز');
+    await notify(dbPool, lawyer.user_id, 'اتحولت لغير متاح', 'موقعك ما اتحدثش من ساعة. افتح التطبيق وفعّل حالتك');
   }
 }
 
 async function sendDeadlineReminders() {
   const reminders = [
-    { column: 'reminder_first_sent', hoursLeft: 12, body: 'باقي 12 ساعة، سجّل وصولك عند الموكل وأنهِ المهمة قبل انتهاء المهلة' },
-    { column: 'reminder_second_sent', hoursLeft: 4, body: 'باقي 4 ساعات، لو المهلة خلصت من غير ما توصل للموكل المبلغ هيرجعله' },
+    { column: 'reminder_first_sent', hoursLeft: 12, body: 'باقي 12 ساعة. سجّل وصولك وأنهِ المهمة' },
+    { column: 'reminder_second_sent', hoursLeft: 4, body: 'باقي 4 ساعات. لو ما وصلتش المبلغ هيرجع للموكل' },
   ];
 
   for (const reminder of reminders) {
@@ -290,7 +290,7 @@ async function expireUnfinishedOrders() {
       await applySettlement(client, fresh.rows[0], settlement.outcome, null, 'انتهت مهلة المهمة');
       // They met, so the client can rate the lawyer like any finished task
       if (fresh.rows[0].arrived_at && settlement.outcome !== 'REFUND') {
-        await notify(client, order.client_id, 'المهمة اتقفلت', 'قيّم المحامي، ولو فيه مشكلة دوس «عندك مشكلة؟» في الطلب', order.id);
+        await notify(client, order.client_id, 'انتهت المهمة', 'قيّم المحامي. ولو فيه مشكلة افتح «عندك مشكلة؟»', order.id);
       }
     });
   }
@@ -309,7 +309,7 @@ async function sendReviewReminders() {
   );
 
   for (const order of res.rows) {
-    await notify(dbPool, order.client_id, 'قيّم المحامي', `رأيك بيفرق، قيّم المحامي على طلب ${order.order_number}`, order.id);
+    await notify(dbPool, order.client_id, 'قيّم المحامي', `طلب ${order.order_number}`, order.id);
   }
 }
 
@@ -325,7 +325,7 @@ async function releaseHeldPayouts() {
       `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note) VALUES ($1, NULL, 'COMPLETED', 'COMPLETED', 'أصبحت الأتعاب متاحة للمحامي بعد مرور 24 ساعة')`,
       [order.id]
     );
-    await notify(dbPool, order.lawyer_id, 'أتعابك جاهزة', 'أتعاب المهمة بقت متاحة في محفظتك', order.id);
+    await notify(dbPool, order.lawyer_id, 'أتعابك جاهزة', 'تقدر تستخدمها من محفظتك', order.id);
   }
 }
 

@@ -121,7 +121,8 @@ export async function supportRoutes(fastify: FastifyInstance) {
           );
           const frozen = await freezePayout(db, order, `تذكرة ${row.reference}`);
           const other = order.client_id === userId ? order.lawyer_id : order.client_id;
-          await notify(db, other, 'مراجعة على طلب', frozen ? `فيه مشكلة على طلب ${order.order_number}، والأتعاب متجمدة لحد قرار الإدارة` : `فيه مشكلة على طلب ${order.order_number}، والإدارة بتراجعها`, { orderId: order.id });
+          await notify(db, other, 'مراجعة على طلب', `فيه مشكلة على طلب ${order.order_number}، والإدارة بتراجعها`, { orderId: order.id });
+          if (frozen) await notify(db, order.lawyer_id, 'أتعابك اتجمدت', `طلب ${order.order_number}، لحد قرار الإدارة`, { orderId: order.id });
         }
 
         return {

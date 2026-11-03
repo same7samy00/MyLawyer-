@@ -190,7 +190,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
         [createdOrder.id, userId]
       );
 
-      await notify(client, targetLawyer.user_id, 'طلب جديد', cleanProblemType || cleanServiceTitle, createdOrder.id);
+      await notify(client, targetLawyer.user_id, 'طلب جديد', `${cleanProblemType || cleanServiceTitle}. رد خلال دقيقتين`, createdOrder.id);
 
       return createdOrder;
     });
@@ -484,7 +484,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
         [order.id, userId]
       );
 
-      await notify(client, order.client_id, 'المحامي وافق', 'كمّل الدفع عشان يبدأ المحامي المهمة', order.id);
+      await notify(client, order.client_id, 'المحامي وافق', 'ادفع خلال 10 دقايق عشان يبدأ', order.id);
     });
 
     return reply.send({
@@ -537,7 +537,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
         [order.id, userId, `اعتذر المحامي: ${cleanReason}`]
       );
 
-      await notify(client, order.client_id, 'المحامي اعتذر', 'تقدر تختار محامي تاني', order.id);
+      await notify(client, order.client_id, 'المحامي اعتذر', 'اختار محامي تاني', order.id);
     });
 
     return reply.send({
@@ -607,7 +607,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
         [order.id, userId, order.status]
       );
 
-      await notify(client, order.lawyer_id, 'الموكل دفع', 'ابدأ المهمة، ودوس «وصلت» لما تكون جنب الموكل، وبعدها أنهِ المهمة', order.id);
+      await notify(client, order.lawyer_id, 'الموكل دفع', 'ابدأ المهمة، ودوس «وصلت» عند الموكل', order.id);
     });
 
     return reply.send({
@@ -664,7 +664,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
         [order.id, userId, order.status]
       );
 
-      await notify(client, order.client_id, 'المهمة اتقفلت', 'قيّم المحامي، ولو فيه مشكلة دوس «عندك مشكلة؟» في الطلب', order.id);
+      await notify(client, order.client_id, 'انتهت المهمة', 'قيّم المحامي. ولو فيه مشكلة افتح «عندك مشكلة؟»', order.id);
 
       return res.rows[0];
     });
@@ -730,7 +730,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
       );
 
       const otherParty = userId === order.client_id ? order.lawyer_id : order.client_id;
-      await notify(client, otherParty, 'الطلب اتلغى', order.service_title, order.id);
+      await notify(client, otherParty, 'الطلب اتلغى', userId === order.client_id ? 'الموكل لغى الطلب' : 'المحامي لغى الطلب', order.id);
     });
 
     return reply.send({
@@ -833,6 +833,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
     }
 
     await refreshLawyerRating(dbPool, order.lawyer_id);
+    await notify(dbPool, order.lawyer_id, 'تقييم جديد', `${rating} من 5 على طلب ${order.order_number}`, order.id);
     return reply.status(201).send({ success: true, message: 'شكراً لتقييمك' });
   });
 
@@ -877,7 +878,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
          VALUES ($1, $2, 'ACTIVE', 'ACTIVE', 'وصل المحامي إلى موقع الموكل')`,
         [order.id, userId]
       );
-      await notify(client, order.client_id, 'المحامي وصل', 'المحامي وصل لموقعك', order.id);
+      await notify(client, order.client_id, 'المحامي وصل', 'المحامي عند موقعك دلوقتي', order.id);
     });
 
     return reply.send({ success: true, message: 'تم تسجيل وصولك' });
@@ -919,7 +920,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
       );
       await addClientCredit(client, order.client_id, order.id, Number(order.price), 'رد قيمة بعد اعتذار المحامي');
       await addLawyerStrike(client, userId, order.id, 'WITHDRAWAL');
-      await notify(client, order.client_id, 'المحامي اعتذر', 'رجعلك المبلغ في رصيدك وتقدر تختار محامي تاني', order.id);
+      await notify(client, order.client_id, 'المحامي اعتذر', 'رجعلك المبلغ في رصيدك', order.id);
     });
 
     return reply.send({ success: true, message: 'تم تسجيل الاعتذار ورد المبلغ للموكل' });

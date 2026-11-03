@@ -187,8 +187,8 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     await notify(
       dbPool,
       id,
-      suspend ? 'تم إيقاف حسابك' : 'تم تفعيل حسابك',
-      suspend ? 'تواصل مع الدعم لمعرفة التفاصيل' : 'تقدر تستخدم التطبيق دلوقتي'
+      suspend ? 'حسابك اتوقف' : 'حسابك اتفعّل',
+      suspend ? 'كلم الدعم الفني لمعرفة السبب' : 'تقدر تستخدم التطبيق'
     );
     return reply.send({ success: true, message: suspend ? 'تم إيقاف الحساب' : 'تم تفعيل الحساب' });
   });
@@ -378,8 +378,8 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     if (res.rows.length === 0) return reply.status(409).send({ success: false, error: 'لا يمكن تنفيذ ذلك على أتعاب هذا الطلب الآن' });
 
     await logPayoutEvent(dbPool, id, freeze ? 'FREEZE' : 'UNFREEZE', Number(res.rows[0].payout_amount || 0), 'إجراء من الإدارة', adminId);
-    await notify(dbPool, res.rows[0].lawyer_id, freeze ? 'تجميد أتعاب' : 'فك تجميد الأتعاب',
-      freeze ? 'الإدارة جمدت أتعاب طلب لحين المراجعة' : 'الإدارة فكت تجميد أتعاب طلب', id);
+    await notify(dbPool, res.rows[0].lawyer_id, freeze ? 'أتعابك اتجمدت' : 'التجميد اتفك',
+      freeze ? 'أتعاب طلب، لحد قرار الإدارة' : 'أتعاب الطلب رجعتلك', id);
     return reply.send({ success: true, message: freeze ? 'تم تجميد الأتعاب' : 'تم فك تجميد الأتعاب' });
   });
 

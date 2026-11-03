@@ -103,3 +103,9 @@ flutter build apk --release -PlawyerTestApp=true
 ```bash
 git archive HEAD backend | ssh -i ~/.ssh/mylawyer_deploy -o UserKnownHostsFile=~/.ssh/known_hosts_mylawyer root@13.140.141.32 'cat > /tmp/mylawyer-backend.tar && tar -xOf /tmp/mylawyer-backend.tar backend/deploy.sh | tr -d "\r" | bash'
 ```
+
+## لوحة التحكم
+- الكود في `backend/public/admin/`، وتقسيمه في `docs/ARCHITECTURE.md` (4.1).
+- المعاينة المحلية: `cd backend && npm run preview:panel`، ثم `http://127.0.0.1:3900/api/v1/admin-panel`.
+- كل نصوص اللوحة عربية فصحى، وأي إجراء جديد يتضاف في زر «اتخاذ إجراء» بخطوات ومراجعة.
+- أي قرار إداري جديد يتسجل بـ `logAdminAction`، وأي تغيير في حالة طلب أو أتعابه يتسجل في `order_status_logs`.

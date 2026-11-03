@@ -90,7 +90,7 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
         if (ticket.status === 'CLOSED') throw new TicketError(409, 'التذكرة مغلقة');
         await addMessage(db, ticket.id, 'ADMIN', adminId, fields.body ?? '', images);
         await db.query(`UPDATE support_tickets SET status = 'OPEN' WHERE id = $1`, [ticket.id]);
-        await notify(db, ticket.user_id, 'رد الدعم الفني', `الإدارة ردت على تذكرتك ${ticket.reference}`, { ticketId: ticket.id });
+        await notify(db, ticket.user_id, 'رد من الدعم الفني', `على تذكرة ${ticket.reference}`, { ticketId: ticket.id });
         return { message: 'تم إرسال الرد' };
       });
     });
@@ -148,7 +148,7 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
 
       if (body.body && body.body.trim()) await addMessage(db, ticket.id, 'ADMIN', adminId, body.body, []);
       await db.query(`UPDATE support_tickets SET status = 'CLOSED', closed_at = NOW(), closed_by = $2, updated_at = NOW() WHERE id = $1`, [ticket.id, adminId]);
-      await notify(db, ticket.user_id, 'التذكرة اتقفلت', `الإدارة قفلت تذكرتك ${ticket.reference}، ولو عندك مشكلة جديدة افتح تذكرة جديدة`, { ticketId: ticket.id });
+      await notify(db, ticket.user_id, 'تذكرتك اتقفلت', `تذكرة ${ticket.reference}`, { ticketId: ticket.id });
       return { message: 'تم إغلاق التذكرة' };
     }));
   });

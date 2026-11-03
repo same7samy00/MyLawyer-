@@ -366,7 +366,7 @@ describe('تذاكر الفلوس والتسوية بالالتقاء', () => {
 
     await call('POST', `/admin/support/${ticket.id}/reply`, adminToken, { body: 'بنراجع' });
     const list = (await call('GET', '/notifications', lawyerToken)).body.data;
-    const reply = list.find((n: any) => n.title === 'رد الدعم الفني');
+    const reply = list.find((n: any) => n.title === 'رد من الدعم الفني');
     assert.equal(reply.ticketId, ticket.id);
   });
 });
@@ -878,6 +878,18 @@ describe('الدعم الفني', () => {
     assert.equal((await sql('SELECT read_at FROM notifications WHERE id = $1', [note.id]))[0].read_at, null);
   });
 
+  it('لوحة التحكم بتتفتح بملفاتها، ومفيش وصول لملفات تانية', async () => {
+    const page = await app.inject({ method: 'GET', url: '/api/v1/admin-panel' });
+    assert.equal(page.statusCode, 200);
+    assert.equal(page.body.includes('__VERSION__'), false);
+    const asset = page.body.match(/\/api\/v1\/admin-panel\/assets\/js\/core\.js\?v=\w+/)![0];
+    const js = await app.inject({ method: 'GET', url: asset });
+    assert.equal(js.statusCode, 200);
+    assert.match(js.headers['cache-control'] as string, /immutable/);
+    assert.equal((await app.inject({ method: 'GET', url: '/api/v1/admin-panel/assets/..%2F..%2Fpackage.json' })).statusCode, 404);
+    assert.equal((await app.inject({ method: 'GET', url: '/api/v1/admin-panel/assets/index.html' })).statusCode, 404);
+  });
+
   it('قرارات الإدارة بتتسجل بمين عملها', async () => {
     await sql('DELETE FROM admin_actions');
     const other = await createUser('01000000077', 'client');
@@ -1218,7 +1230,7 @@ describe('تذكير التقييم', () => {
     const order = await createArrivedOrder();
     await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
     await sweepLifecycle();
-    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'المهمة اتقفلت'`, [clientId])).length, 1);
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'انتهت المهمة'`, [clientId])).length, 1);
     assert.equal((await call('POST', `/orders/${order.id}/review`, clientToken, { rating: 4 })).status, 201);
   });
 });
