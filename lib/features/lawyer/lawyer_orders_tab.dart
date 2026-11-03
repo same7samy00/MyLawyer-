@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/app_visibility.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/order_summary_card.dart';
 import '../../data/models/order_model.dart';
@@ -35,7 +36,9 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
     ApiService.isServerReachable.addListener(_onReachabilityChanged);
     _loadOrders();
     // الطلب الجديد وانتهاء مهلته يظهران من غير سحب الصفحة
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) => _loadOrders());
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (isAppVisible) _loadOrders();
+    });
   }
 
   @override
@@ -101,33 +104,38 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
       );
     }
 
-    final activeOrders = _orders.where((order) => order.isOngoing).toList();
-    final pastOrders = _orders.where((order) => !order.isOngoing).toList();
+    final orders = [
+      ..._orders.where((order) => order.isOngoing),
+      ..._orders.where((order) => !order.isOngoing),
+    ];
 
     return SafeArea(
       child: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: _loadOrders,
-        child: ListView(
+        child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 16.0),
-          children: [
-            if (_orders.isEmpty)
-              const AppStateMessage(
+          itemCount: orders.isEmpty ? 1 : orders.length,
+          itemBuilder: (context, index) {
+            if (orders.isEmpty) {
+              return const AppStateMessage(
                 icon: Icons.receipt_long_rounded,
                 title: 'لا توجد طلبات حتى الآن',
                 message: 'هتظهر الطلبات الواردة إليك هنا فور إرسالها من الموكلين.',
-              ),
-            for (final order in [...activeOrders, ...pastOrders]) ...[
-              OrderSummaryCard(
-                key: ValueKey(order.id),
+              );
+            }
+            final order = orders[index];
+            return Padding(
+              key: ValueKey(order.id),
+              padding: const EdgeInsets.only(bottom: 12),
+              child: OrderSummaryCard(
                 order: order,
                 isLawyer: true,
                 onOpen: () => _openDetails(order),
               ),
-              const SizedBox(height: 12),
-            ],
-          ],
+            );
+          },
         ),
       ),
     );

@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart' hide Path;
 import 'package:lottie/lottie.dart' hide Marker;
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/app_visibility.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/routing_service.dart';

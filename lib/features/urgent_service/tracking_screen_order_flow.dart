@@ -11,7 +11,7 @@ extension _TrackingOrderFlow on _TrackingScreenState {
         return;
       }
       // بطء الشبكة لا يراكم طلبات متزامنة
-      if (isChecking) return;
+      if (isChecking || !isAppVisible) return;
       isChecking = true;
 
       final res = await OrderRepository.getOrderById(orderId);

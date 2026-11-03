@@ -285,7 +285,9 @@ extension _TrackingMapControls on _TrackingScreenState {
 
     // المحامون يتحدثون وهو فاتح الخريطة ليظهر الموجود فعلاً فقط
     _lawyersRefreshTimer?.cancel();
-    _lawyersRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) => _loadAllLawyers());
+    _lawyersRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (isAppVisible) _loadAllLawyers();
+    });
     _loadAllLawyers();
   }
 

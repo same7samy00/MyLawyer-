@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import '../../data/models/lifecycle_models.dart';
 import 'api_service.dart';
+import 'app_visibility.dart';
 
 /// الصفحة اللي الإشعار بيفتحها
 class NotificationTarget {
@@ -44,8 +45,7 @@ class NotificationCenter {
     _timer?.cancel();
     refresh();
     _timer = Timer.periodic(interval, (_) {
-      // مفيش طلبات والتطبيق في الخلفية، والإشعارات شغالة من غيرها
-      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) refresh();
+      if (isAppVisible) refresh();
     });
     _lifecycle ??= AppLifecycleListener(onResume: refresh);
   }

@@ -1,5 +1,17 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Engineering Review] - 2026-11-03
+- **Accounts:** a suspended or rejected account can no longer lift its status through the sign-up code. Reset codes allow 5 wrong tries, and only the latest one counts. A new reset code waits 60 seconds. 10 failed sign-ins on one account stop it for 10 minutes. Changing the password ends all sessions. One refresh token renews once.
+- **Privacy:** order details no longer send the other side's phone or email before payment, and the client no longer receives the lawyer's net amount.
+- **Server:** production refuses to start on a missing or known `JWT_SECRET`, and the old default secrets left the code. The caller's address comes from the local Nginx only. One error handler hides technical wording, and production now writes warnings and errors to the log. A failed migration stops the start. The server finishes open requests before it stops, and sweep rounds no longer overlap.
+- **Orders:** two requests at once can no longer book one lawyer or open two orders, and accept and reject can't both succeed.
+- **Rules that drifted:** a review is reported once and edited within 7 days. A new lawyer stays unavailable until pressing the button. Videos are no longer accepted as HEIC images. `GET /orders` works for admins.
+- **Structure:** `utils/http.ts` holds the shared sign-in check and error type, and `lifecycle/sweep.ts` holds the time-based steps, which ends a circular import. Removed `POST /lawyers/me/profile-photo` (no caller, and it trusted the file type the phone sent) and the `lint` script (its tool isn't installed).
+- **Packages:** the API explorer moved to development only, so `/docs` is gone from production and `npm audit --omit=dev` went from 4 moderate warnings to 0.
+- **Speed:** migration `022` adds 4 indexes. On 200,000 notifications in the in-memory database, clearing stale ones went from 16.7 ms to 0.9 ms and a sweep round from 13.2 ms to 7.2 ms. The app's periodic refresh now stops in the background, and order and notification lists build only the visible rows.
+- **Control page:** the page now carries a Content-Security-Policy. All 12 menu pages opened with no violations.
+- **Not touched, waiting for the owner:** the money races listed in `docs/TASKS.md`.
+
 ## [Control Page: Style Fix] - 2026-11-03
 - Restored notice and chat message colours that the style cleanup removed by mistake, because the code builds those class names.
 

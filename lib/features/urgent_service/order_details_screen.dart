@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/app_visibility.dart';
 import '../../core/services/external_navigation.dart';
 import '../../core/services/location_service.dart';
 import '../../core/widgets/app_button.dart';
@@ -39,7 +40,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     super.initState();
     // الحالة تتحدث من غير سحب الصفحة طول ما الطلب جاري
     _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      if (_order.isOngoing) _load();
+      if (isAppVisible && _order.isOngoing) _load();
     });
   }
 

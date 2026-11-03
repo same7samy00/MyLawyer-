@@ -115,42 +115,47 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _load,
-      child: ListView(
+      child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
-        children: [
-          if (hasUnread)
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: TextButton(
-                onPressed: _markAllRead,
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text(
-                  'تعليم الكل كمقروء',
-                  style: TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
+        itemCount: _items.length + (hasUnread ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (hasUnread && index == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: TextButton(
+                  onPressed: _markAllRead,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'تعليم الكل كمقروء',
+                    style: TextStyle(
+                      fontFamily: 'AppFont',
+                      fontFamilyFallback: appFontFallback,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
               ),
-            ),
-          if (hasUnread) const SizedBox(height: 6),
-          for (final item in _items) ...[
-            GestureDetector(
+            );
+          }
+          final item = _items[hasUnread ? index - 1 : index];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => _openItem(item),
               child: _NotificationCard(item: item),
             ),
-            const SizedBox(height: 10),
-          ],
-        ],
+          );
+        },
       ),
     );
   }
