@@ -42,13 +42,24 @@ flutter:
     - assets/videos/
 
   fonts:
-    # الأرقام الإنجليزية فقط، لأن FlatJooza يرسم 0-9 بأشكال عربية
+    # الأرقام الإنجليزية فقط، وباقي النصوص من IBMPlexSansArabic
     - family: AppFont
       fonts:
         - asset: assets/fonts/app-digits.ttf
-    - family: FlatJooza
+    - family: IBMPlexSansArabic
       fonts:
-        - asset: assets/fonts/flat-jooza-regular.ttf
+        - asset: assets/fonts/IBMPlexSansArabic-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/IBMPlexSansArabic-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/IBMPlexSansArabic-Light.ttf
+          weight: 300
+        - asset: assets/fonts/IBMPlexSansArabic-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/IBMPlexSansArabic-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/IBMPlexSansArabic-SemiBold.ttf
+          weight: 600
     - family: Nunito
       fonts:
         - asset: assets/fonts/Nunito-Variable.ttf

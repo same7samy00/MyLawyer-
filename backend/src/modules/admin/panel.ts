@@ -23,7 +23,15 @@ const SCRIPTS = [
   'js/pages/decisions.js',
   'js/app.js',
 ];
-const YEAR_CACHE = 'public, max-age=31536000, immutable';
+const FONTS: Record<string, string> = {
+  thin: 'Thin',
+  extralight: 'ExtraLight',
+  light: 'Light',
+  regular: 'Regular',
+  medium: 'Medium',
+  semibold: 'SemiBold',
+};
+const YEAR_CACHE ='public, max-age=31536000, immutable';
 
 /// Serves the control page. Links have no file extension because Nginx answers those itself,
 /// and they change with every release, so browsers can keep the files for a year.
@@ -45,5 +53,10 @@ export function registerAdminPanel(api: FastifyInstance) {
   });
   api.get('/admin-panel/logo', async (_request, reply) => {
     return reply.header('Cache-Control', YEAR_CACHE).type('image/png').send(read('assets/logo.png'));
+  });
+  api.get('/admin-panel/font/:weight', async (request, reply) => {
+    const file = FONTS[(request.params as { weight: string }).weight];
+    if (!file) return reply.status(404).send();
+    return reply.header('Cache-Control', YEAR_CACHE).type('font/ttf').send(read(`fonts/IBMPlexSansArabic-${file}.ttf`));
   });
 }

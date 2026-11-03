@@ -32,7 +32,7 @@ class SmoothRtlPageTransitionsBuilder extends PageTransitionsBuilder {
   }
 }
 
-/// Central Design System ThemeData with the Flat Jooza font & Minimal UI pill buttons (24.0px)
+/// Central Design System ThemeData with the IBM Plex Sans Arabic font & Minimal UI pill buttons (24.0px)
 class AppTheme {
   AppTheme._();
 

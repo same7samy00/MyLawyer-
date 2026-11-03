@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [App Font] - 2026-11-03
+- The app text font is now IBM Plex Sans Arabic (SIL OFL, licence inside the font files) in six weights from Thin to SemiBold, replacing flat-jooza. Bold text uses SemiBold, the heaviest weight included. English digits still come from `app-digits.ttf`. The control page uses the same six weights through `/admin-panel/font/:weight`, replacing the Vodafone font. The public website keeps its own font.
+
+## [Load Test] - 2026-11-03
+- Measured a separate copy of the backend on the live server with a temporary database (55,006 users, 200,000 orders), then deleted it. One process, no Nginx or TLS in the path. Per second: nearby search 86, order list 480, wallet read 966, login 17, wallet transfer 325, full order flow 108. Mixed use peaks near 200 operations per second. Nearby search returns 328 KB with 5,000 available lawyers.
+
 ## [Phase 3.21] - 2026-11-03
 ### Server and Code Quality
 - `/health` now reports only status and database. CORS refuses other websites, and the deploy check follows the new health reply. Removed four unused tables (migration `021`).

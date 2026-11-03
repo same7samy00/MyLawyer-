@@ -41,7 +41,7 @@
 ## 🎨 2. نظام التصميم الحصري (Strict Design System)
 
 1. **عائلة الخطوط المعتمدة حصراً:**
-   - خط **`flat-jooza`** (جذور مسطح) للنصوص، مع أرقام إنجليزية من `assets/fonts/app-digits.ttf`.
+   - خط **`IBM Plex Sans Arabic`** للنصوص، مع أرقام إنجليزية من `assets/fonts/app-digits.ttf`.
    - خط **`Nunito`** الناعم والدائري المضمن لنص العلامة التجارية الإنجليزي **"My Lawyer"**.
 
 2. **لوحة الألوان الرسمية (`AppColors`):**
@@ -170,7 +170,7 @@ D:\KAREM\
 │   └── CHANGELOG.md                     # سجل التغييرات المتزامن
 ├── backend/                             # الخادم ولوحة التحكم (public/admin/)
 ├── assets/
-│   ├── fonts/                           # خط flat-jooza وخط الأرقام الإنجليزية
+│   ├── fonts/                           # خط IBM Plex Sans Arabic وخط الأرقام الإنجليزية
 │   └── images/                          # لوجو التطبيق وأنيميشن التحميل
 ├── lib/
 │   ├── core/

@@ -252,7 +252,7 @@ void main() {
     test('النصوص تستخدم خط الأرقام الإنجليزية ثم الخط الأساسي', () {
       final style = AppTheme.lightTheme.textTheme.bodyMedium!;
       expect(style.fontFamily, 'AppFont');
-      expect(style.fontFamilyFallback, ['FlatJooza']);
+      expect(style.fontFamilyFallback, ['IBMPlexSansArabic']);
     });
 
     test('كل نص يحدد الخط الأساسي صراحة', () {

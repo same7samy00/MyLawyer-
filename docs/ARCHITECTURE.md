@@ -24,7 +24,7 @@ lib/
 │   │   ├── app_colors.dart         # لوحة الألوان الحصرية للمنصة
 │   │   └── map_config.dart         # إعدادات ونقاط نهاية خوادم الخرائط VPS
 │   ├── theme/
-│   │   └── app_theme.dart          # ثيم الحواف وخط AppFont (أرقام إنجليزية ثم flat-jooza)
+│   │   └── app_theme.dart          # ثيم الحواف وخط AppFont (أرقام إنجليزية ثم IBM Plex Sans Arabic)
 │   ├── services/
 │   │   ├── api_service.dart        # عميل HTTP المركزي للاتصال بالخادم والـ JWT والـ Interceptors
 │   │   ├── auth_service.dart       # خدمة المصادقة والتسجيل وتشفير SHA-256 والتحقق من البريد
@@ -91,7 +91,7 @@ lib/
 ## 4. نظام التصميم والواجهات (Design System & Tokens)
 
 1. **الخطوط:**
-   - خط **`flat-jooza`** (جذور مسطح) للنصوص، مع أرقام إنجليزية من `assets/fonts/app-digits.ttf`.
+   - خط **`IBM Plex Sans Arabic`** للنصوص، مع أرقام إنجليزية من `assets/fonts/app-digits.ttf`.
    - عائلة خط **`Nunito`** لنص العلامة التجارية الإنجليزي **"My Lawyer"** لإضفاء لمسة ناعمة وانسيابية غير حادة.
 2. **الألوان المعتمدة (`AppColors`):**
    - الأساسي: `#1D4ED8`
