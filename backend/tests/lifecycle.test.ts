@@ -806,6 +806,42 @@ describe('الدعم الفني', () => {
     assert.equal((await call('GET', '/admin/money', clientToken)).status, 403);
   });
 
+  it('البحث الشامل يلاقي الطلب والتذكرة والحساب، وللإدارة بس', async () => {
+    const order = await createCompletedOrder();
+    const ticket = (await openTicket(clientToken, order.id)).body.data;
+    const search = async (q: string) => (await call('GET', `/admin/search?q=${encodeURIComponent(q)}`, adminToken)).body.data;
+
+    const number = (await call('GET', `/admin/orders/${order.id}`, adminToken)).body.data.order.order_number;
+    assert.equal((await search(number)).orders[0].id, order.id);
+    assert.equal((await search(ticket.reference)).tickets[0].id, ticket.id);
+    const phone = (await sql('SELECT phone FROM users WHERE id = $1', [clientId]))[0].phone;
+    assert.equal((await search(phone)).users[0].id, clientId);
+    assert.equal((await search('%%')).users.length, 0);
+    assert.equal((await search('ا')).users.length, 0);
+    assert.equal((await call('GET', '/admin/search?q=test', clientToken)).status, 403);
+  });
+
+  it('كل دفعة بتتسجل برقم وطريقة، وتظهر في الأموال والطلب وملف الموكل', async () => {
+    const order = await createPaidOrder();
+    const money = (await call('GET', '/admin/money', adminToken)).body.data;
+    assert.equal(money.payments.length, 1);
+    assert.match(money.payments[0].reference, /^ML-PAY-\d+$/);
+    assert.equal(money.payments[0].order_id, order.id);
+    assert.equal(money.payments[0].method, 'DIRECT');
+    assert.equal(Number(money.totals.paid), Number(money.payments[0].amount));
+
+    assert.equal((await call('GET', `/admin/orders/${order.id}`, adminToken)).body.data.payment.reference, money.payments[0].reference);
+    assert.equal((await call('GET', `/admin/users/${clientId}`, adminToken)).body.data.payments[0].reference, money.payments[0].reference);
+  });
+
+  it('الدفع من الرصيد بيتسجل بطريقة الرصيد', async () => {
+    await call('POST', `/admin/users/${clientId}/balance`, adminToken, { amount: 1000, reason: 'رصيد للتجربة' });
+    const order = await createOrder();
+    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
+    assert.equal((await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, { method: 'wallet' })).status, 200);
+    assert.equal((await sql('SELECT method FROM payments WHERE order_id = $1', [order.id]))[0].method, 'WALLET');
+  });
+
   it('التحويل من التذكرة بيخصم من طرف ويضيف للتاني في نفس اللحظة', async () => {
     const order = await createCompletedOrder();
     const ticket = (await openTicket(clientToken, order.id)).body.data;

@@ -1,5 +1,34 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Phase 3.14] - 2026-11-03
+### Payments Log and Copying
+- Every client payment now has its own number (`ML-PAY`) and method (migration `018`, old payments included). They show on the money page, the order and the client profile.
+- Order, ticket and payment numbers copy when pressed.
+- The login page and side menu use the app logo without text, the side menu collapses to icons, and the top header shows the signed-in account.
+
+## [Phase 3.13] - 2026-11-03
+### Take Action and Chat
+- Ticket, order, account, application and report pages now have one "اتخاذ إجراء" button in their header. It opens a window that asks one step at a time and shows a review before running. The prices page keeps its actions at the end.
+- A ticket has a "الشات" button that opens the conversation in a window: Enter sends, Shift+Enter starts a new line, and up to 5 images can be attached.
+- Images open in a floating viewer instead of leaving the page, application documents show small, and every window has a close icon.
+- A join request now shows in one container: name and action button, then data beside the documents.
+- Every inner table has a short description, and order money shows as plain sentences.
+
+## [Phase 3.12] - 2026-11-03
+### One Box per Action
+- Every action on every page sits at the end in its own box, side by side, with a short description of what it does. This includes the ticket reply and note, cancelling a warning, and editing a service price.
+- Filters are now buttons that apply when pressed, instead of drop-down lists.
+- Action boxes stand alone with no box around them, and the ticket reply and internal note open in a floating window.
+- Each action box has its own icon.
+- Related actions share a row: deductions together, additions together, warnings together, and so on.
+- The control page corners are now 5px, and containers have dashed edges.
+- Added one search in the top header for accounts, orders and tickets, and a light shadow on every container.
+
+## [Phase 3.11] - 2026-11-03
+### Control Page Short Names
+- Shortened button names across the control page, since each box title already says the action, and the confirming window keeps the full name.
+- Reviewed all texts in formal Arabic, including "بطاقة النقابة" instead of "كارنيه".
+
 ## [Phase 3.10] - 2026-11-03
 ### Control Page Finish
 - Every page now uses the same action boxes in one "الإجراءات" section, with a small window for what a decision needs.

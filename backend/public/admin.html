@@ -40,12 +40,12 @@
   --sidebar-w-collapsed: 72px;
   --header-h: 64px;
   --control-h: 40px;
-  --control-radius: 0;
+  --control-radius: 5px;
   --control-font-size: 0.875rem;
-  --radius-sm: 0;
-  --radius-md: 0;
-  --radius-lg: 0;
-  --radius-full: 0;
+  --radius-sm: 5px;
+  --radius-md: 5px;
+  --radius-lg: 5px;
+  --radius-full: 5px;
   
   --transition-fast: 0.18s ease;
 
@@ -6105,8 +6105,6 @@ body .custom-switch-toggle.active.sm .switch-knob {
 .action-group + .action-group { margin-top: 0.6rem; }
 .custom-tabs-container { margin-bottom: 0; }
 
-/* Sharp corners everywhere */
-*, *::before, *::after { border-radius: 0 !important; }
 
 /* One container level: the section or table is the only box, what sits inside it is plain */
 .form-card-header { background: transparent !important; border-right: 0 !important; border-bottom: 1px solid var(--border-color) !important; }
@@ -6199,15 +6197,173 @@ body .custom-switch-toggle.active.sm .switch-knob {
 .action-tile p { margin: 0; font-size: 0.78rem; line-height: 1.5; }
 .view-hero-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; max-width: 100%; }
 .view-hero-actions .btn { white-space: normal; height: auto; min-height: 36px; }
+/* Actions: one box per action, stacked, with what it does */
+.action-tiles { display: flex !important; flex-direction: column; gap: 0.4rem; }
+.action-tile { display: flex !important; flex-direction: row !important; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem !important; }
+.action-text { flex: 1 1 260px; min-width: 0; }
+.action-text p { margin: 0.1rem 0 0; font-size: 0.78rem; line-height: 1.5; color: var(--text-muted); }
+.action-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.4rem; flex: 0 1 auto; max-width: 100%; }
+.action-controls .btn { width: auto !important; min-width: 96px; }
+.action-controls .field-input { width: 110px; }
+.action-controls textarea.field-input { flex: 1 1 100%; width: 100%; }
+.action-tile:has(textarea) .action-controls { flex: 1 1 100%; }
+.action-tile:has(textarea) .action-text { flex-basis: 100%; }
+/* Filters as buttons */
+.table-controls-bar, .controls-right { flex-wrap: wrap; }
+.filter-buttons { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.filter-button { min-height: 34px; padding: 0.2rem 0.7rem; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-secondary); font: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+.filter-button:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+.filter-button.active { background: var(--brand-primary); border-color: var(--brand-primary); color: #fff; }
+/* Actions side by side, equal boxes with the button at the bottom */
+.action-tiles { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 0.5rem; align-items: stretch; }
+.action-tile { flex-direction: column !important; flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; gap: 0.5rem !important; }
+.action-text { flex: 1 1 auto; }
+.action-controls { flex: 0 0 auto; justify-content: flex-start; }
+.action-controls .btn { flex: 1 1 100%; width: 100% !important; justify-content: center; }
+.action-controls .field-input, .action-controls .filter-select-box { flex: 1 1 100%; width: 100%; }
+.action-tile:has(textarea) { grid-column: span 2; }
+@media (max-width: 560px) { .action-tile:has(textarea) { grid-column: auto; } }
+/* Each action stands alone on the page background */
+.actions-area { display: flex; flex-direction: column; gap: 0.4rem; }
+.actions-title { margin: 0.2rem 0 0; font-size: 0.95rem; font-weight: 800; color: var(--text-main); }
+.action-tile { background: var(--bg-surface); }
+/* Action icons */
+.action-head { display: flex; align-items: center; gap: 0.45rem; }
+.action-head h4 { margin: 0; }
+.action-icon { flex: 0 0 28px; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; }
+.action-icon svg { width: 17px; height: 17px; }
+.action-text p { margin-top: 0.3rem; }
+.tone-blue { background: #eff6ff; color: #1d4ed8; }
+.tone-green { background: #f0fdf4; color: #16a34a; }
+.tone-red { background: #fef2f2; color: #dc2626; }
+.tone-amber { background: #fffbeb; color: #b45309; }
+/* Search in the top header */
+.global-search { position: relative; width: min(340px, 42vw); }
+.global-search-icon { position: absolute; top: 50%; right: 0.6rem; width: 16px; height: 16px; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+.global-search-input { width: 100%; height: 36px; padding: 0 2rem 0 0.6rem; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main); font: inherit; font-size: 0.82rem; }
+.global-search-input:focus { outline: 2px solid var(--brand-border); border-color: var(--brand-primary); }
+.global-search-results { position: absolute; top: calc(100% + 4px); right: 0; left: 0; z-index: 60; min-width: 260px; max-height: 60vh; overflow-y: auto; background: var(--bg-surface); border: 1px solid var(--border-color); box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14); }
+.global-search-results[hidden] { display: none; }
+.global-search-group { padding: 0.35rem 0.65rem; background: var(--brand-light); color: var(--text-secondary); font-size: 0.72rem; font-weight: 800; }
+.global-search-row { display: flex; flex-direction: column; align-items: flex-start; gap: 0.05rem; width: 100%; padding: 0.4rem 0.65rem; background: transparent; border: 0; border-bottom: 1px solid var(--border-color); color: var(--text-main); font: inherit; font-size: 0.8rem; text-align: right; cursor: pointer; }
+.global-search-row:hover { background: var(--bg-app); }
+.global-search-row span { color: var(--text-muted); font-size: 0.73rem; }
+.global-search-empty { margin: 0; padding: 0.6rem 0.65rem; color: var(--text-muted); font-size: 0.8rem; }
+.header-actions { display: flex; align-items: center; gap: 0.6rem; }
+@media (max-width: 640px) { .global-search { width: 44vw; } .global-search-results { right: auto; left: 0; width: 80vw; } .header-toast-wrapper { position: absolute; top: 100%; left: 0.5rem; z-index: 70; } }
+
+/* A light shadow on every container */
+.form-card-section, .view-hero-card, .summary-card, .action-tile, .person-card, .page-guide, .system-alert, .clothing-page-container > .table-wrapper, .tab-content-pane > .table-wrapper {
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08) !important;
+}
+/* Related actions share a row, and every row has the same two columns */
+.action-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; align-items: stretch; }
+@media (max-width: 640px) { .action-row { grid-template-columns: minmax(0, 1fr); } }
+/* 5px corners on the whole page, and dashed edges on containers */
+*, *::before, *::after { border-radius: 5px !important; }
+table, thead, tbody, tr, th, td, svg, path, strong, span, p, h1, h2, h3, h4, label, ul, li, .form-card-body, .form-card-header, .sidebar, .main-wrapper, .top-header { border-radius: 0 !important; }
+.status-badge, .nav-count, .work-count, .tab-badge-pill { border-radius: 5px !important; }
+.form-card-section, .view-hero-card, .summary-card, .action-tile, .person-card, .page-guide, .system-alert, .clothing-page-container > .table-wrapper, .tab-content-pane > .table-wrapper, .custom-tabs-container, .global-search-results {
+  border-style: dashed !important;
+  border-width: 1px !important;
+  border-color: #94a3b8 !important;
+}
+.system-alert { border-color: #dc2626 !important; }
+.page-guide { border-color: var(--brand-primary) !important; }
+.form-card-section, .table-wrapper, .person-card { overflow: hidden; }
+.form-card-header, .person-head, .info-line, .ticket-message { border-bottom-style: dashed !important; }
+.custom-tabs-container { padding: 0.3rem !important; }
+/* Step by step action window */
+.wizard-step { display: block; margin-top: 0.1rem; color: var(--text-muted); font-size: 0.75rem; }
+.wizard-label { font-size: 0.85rem; font-weight: 800; color: var(--text-main); }
+.wizard-list { display: flex; flex-direction: column; gap: 0.35rem; }
+.wizard-row { display: flex; align-items: center; gap: 0.6rem; width: 100%; padding: 0.5rem 0.6rem; background: var(--bg-surface); border: 1px dashed #94a3b8; color: var(--text-main); font: inherit; text-align: right; cursor: pointer; }
+.wizard-row:hover, .wizard-choice:hover { border-color: var(--brand-primary); background: var(--brand-light); }
+.wizard-row-text { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.wizard-row-text strong { font-size: 0.85rem; }
+.wizard-row-text small { color: var(--text-muted); font-size: 0.75rem; line-height: 1.5; }
+.wizard-choice { width: 100%; min-height: 40px; padding: 0.4rem 0.7rem; background: var(--bg-surface); border: 1px dashed #94a3b8; color: var(--text-main); font: inherit; font-weight: 700; text-align: right; cursor: pointer; }
+.wizard-choice.active { border-color: var(--brand-primary); background: var(--brand-light); }
+.wizard-review { display: flex; flex-direction: column; }
+.wizard-review-line { display: grid; grid-template-columns: 90px 1fr; gap: 0.5rem; padding: 0.4rem 0; border-bottom: 1px dashed #94a3b8; font-size: 0.85rem; overflow-wrap: anywhere; }
+.wizard-review-line span { color: var(--text-muted); }
+.modal-card .modal-body { max-height: 65vh; overflow-y: auto; }
+
+/* Ticket chat window */
+.chat-card { display: flex; flex-direction: column; width: min(620px, calc(100vw - 24px)); height: min(640px, calc(100vh - 32px)); max-width: none; }
+.chat-card .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.chat-thread { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.4rem; padding: 0.6rem 0.8rem; background: var(--bg-app); }
+.chat-thread .ticket-message { background: var(--bg-surface) !important; border: 1px dashed #94a3b8 !important; padding: 0.45rem 0.65rem !important; max-width: 85%; align-self: flex-start; }
+.chat-thread .ticket-admin { align-self: flex-end; background: var(--brand-light) !important; }
+.chat-thread .ticket-note { align-self: center; background: #fffbeb !important; }
+.chat-previews { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0 0.8rem; }
+.chat-previews:not(:empty) { padding-top: 0.5rem; }
+.chat-preview { position: relative; width: 52px; height: 52px; padding: 0; border: 1px solid var(--border-color); background: none; cursor: pointer; overflow: hidden; }
+.chat-preview img { width: 100%; height: 100%; object-fit: cover; }
+.chat-preview svg { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #fff; color: #dc2626; }
+.chat-error { margin: 0; padding: 0 0.8rem; font-size: 0.78rem; }
+.chat-composer { display: flex; align-items: flex-end; gap: 0.4rem; padding: 0.5rem 0.8rem 0.7rem; border-top: 1px dashed #94a3b8; }
+.chat-input { flex: 1; min-height: 40px; max-height: 110px; resize: none; padding: 0.5rem 0.65rem; line-height: 1.5; }
+.chat-attach { flex: 0 0 40px; display: inline-flex; align-items: center; justify-content: center; height: 40px; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--brand-primary); cursor: pointer; }
+.chat-attach svg { width: 20px; height: 20px; }
+.chat-composer .btn { flex: 0 0 auto; height: 40px; }
+/* Close icon on every window */
+.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.window-close { flex: 0 0 32px; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-secondary); cursor: pointer; }
+.window-close:hover { border-color: #dc2626; color: #dc2626; }
+.window-close svg { width: 16px; height: 16px; }
+
+/* Small documents that open large */
+.doc-grid { display: flex !important; flex-wrap: wrap; gap: 0.6rem; }
+.doc-box { flex: 0 0 150px; width: 150px; margin: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.doc-box figcaption { font-size: 0.75rem; text-align: center; color: var(--text-secondary); }
+.image-thumb { display: block; width: 100%; height: 110px; padding: 0; background: var(--bg-app); border: 1px solid var(--border-color); cursor: zoom-in; overflow: hidden; }
+.image-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.doc-missing { min-height: 110px; }
+.ticket-image { cursor: zoom-in; }
+.image-viewer { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 2.5rem 1rem 1rem; background: rgba(15, 23, 42, 0.8); }
+.image-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; background: #fff; }
+.image-viewer .window-close { position: absolute; top: 0.6rem; left: 0.6rem; }
+/* Join request: everything in one container */
+.application-card { background: var(--bg-surface); border: 1px dashed #94a3b8; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08); overflow: hidden; }
+.application-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.6rem 0.85rem; border-bottom: 1px dashed #94a3b8; }
+.application-body { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.85rem; align-items: start; padding: 0.7rem 0.85rem; }
+.application-body .table-wrapper { border: 0 !important; box-shadow: none !important; }
+@media (max-width: 760px) { .application-body { grid-template-columns: minmax(0, 1fr); } }
+/* Short description under an inner table's title */
+.form-card-header { flex-wrap: wrap; row-gap: 0.1rem; }
+.section-help { flex: 1 0 100%; margin: 0; color: var(--text-muted); font-size: 0.75rem; font-weight: 400; line-height: 1.5; }
+.message-author { display: inline-flex; align-items: center; gap: 0.35rem; min-width: 0; }
+.message-author svg { flex: 0 0 16px; width: 16px; height: 16px; color: var(--brand-primary); }
+/* Numbers that copy when pressed */
+.copy-number { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.1rem 0.3rem; background: transparent; border: 1px dashed transparent; color: var(--text-main); font: inherit; font-weight: 700; direction: ltr; cursor: copy; white-space: nowrap; }
+.copy-number:hover { border-color: var(--brand-primary); background: var(--brand-light); color: var(--brand-primary); }
+.copy-number svg { flex: 0 0 13px; width: 13px; height: 13px; opacity: 0.6; }
+.order-link { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.15rem; justify-content: center; }
+/* Logo, collapsible side menu, and the signed-in account */
+.login-logo { display: block; width: 96px; height: 96px; margin: 0 auto 0.5rem; object-fit: contain; }
+.sidebar-logo-box { display: flex; align-items: center; justify-content: center; padding: 0.6rem; height: var(--header-h); }
+.sidebar-logo { width: 44px; height: 44px; object-fit: contain; }
+.sidebar-toggle { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; width: 36px; height: 36px; padding: 0; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-secondary); cursor: pointer; }
+.sidebar-toggle:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+.sidebar.collapsed { width: var(--sidebar-w-collapsed) !important; }
+.sidebar.collapsed .nav-label, .sidebar.collapsed .nav-group-title { display: none !important; }
+.sidebar.collapsed .nav-item { position: relative; justify-content: center; padding-inline: 0; }
+.sidebar.collapsed .nav-count { position: absolute; top: 2px; left: 6px; min-width: 16px; margin: 0; padding: 0 0.15rem; font-size: 0.62rem; line-height: 16px; }
+.sidebar.collapsed .sidebar-logo { width: 38px; height: 38px; }
+.header-actions { margin-inline-start: auto; }
+.header-account { display: inline-flex; align-items: center; gap: 0.35rem; max-width: 190px; color: var(--text-main); font-size: 0.82rem; font-weight: 800; white-space: nowrap; }
+.header-account:empty { display: none; }
+.header-account span { overflow: hidden; text-overflow: ellipsis; }
+.header-account svg { flex: 0 0 18px; width: 18px; height: 18px; color: var(--brand-primary); }
+@media (max-width: 860px) { .sidebar-toggle { display: none; } .sidebar.collapsed { width: var(--sidebar-w-expanded) !important; } .sidebar.collapsed .nav-label, .sidebar.collapsed .nav-group-title { display: revert !important; } .header-account span { display: none; } }
 </style>
 </head>
 <body>
 <section id="login" class="login-page-wrapper">
   <div class="login-card-box">
     <div style="text-align: center; margin-bottom: 2rem">
-      <div class="login-brand-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6zM9 12l2 2 4-4"/></svg></div>
-      <h1 class="login-title">تسجيل الدخول للوحة My Lawyer</h1>
-      <p class="login-subtitle">أدخل بيانات حساب الإدارة للوصول إلى لوحة التحكم</p>
+      <img class="login-logo" src="data:image/png;base64,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" alt="My Lawyer">
     </div>
     <div class="login-error" id="login-error"></div>
     <form class="login-form" id="login-form">
@@ -6233,18 +6389,14 @@ body .custom-switch-toggle.active.sm .switch-knob {
 <div id="app" class="app-layout" hidden>
   <div class="sidebar-backdrop" id="backdrop" hidden></div>
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header" style="justify-content: center">
-      <div class="brand-logo" style="justify-content: center; width: 100%">
-        <div class="logo-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6zM9 12l2 2 4-4"/></svg></div>
-        <div class="brand-info"><h1 class="brand-name">My Lawyer</h1><span class="brand-tag">لوحة الإدارة</span></div>
-      </div>
-    </div>
+    <div class="sidebar-header sidebar-logo-box"><img class="sidebar-logo" src="data:image/png;base64,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" alt="My Lawyer"></div>
     <nav class="sidebar-nav" id="nav"></nav>
     <div class="sidebar-footer" id="nav-footer"></div>
   </aside>
   <main class="main-wrapper">
     <header class="top-header">
       <div class="header-left">
+        <button class="sidebar-toggle" id="sidebar-toggle" type="button" title="فتح القائمة أو إغلاقها" aria-label="فتح القائمة أو إغلاقها"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4zM15 4v16"/></svg></button>
         <button class="mobile-menu-btn" id="menu-button" type="button" title="القائمة"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
         <button class="top-back-btn" id="back-button" type="button" title="رجوع" aria-label="رجوع" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
         <div class="page-title-box">
@@ -6252,7 +6404,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
           <span class="current-page-subtitle" id="page-subtitle"></span>
         </div>
       </div>
-      <div class="header-actions"><div class="header-toast-wrapper" id="toasts" aria-live="polite" role="status"></div></div>
+      <div class="header-actions"><div class="global-search" id="global-search"></div><div class="header-toast-wrapper" id="toasts" aria-live="polite" role="status"></div><div class="header-account" id="header-account"></div></div>
     </header>
     <section class="content-container" id="content"></section>
   </main>
@@ -6289,13 +6441,25 @@ body .custom-switch-toggle.active.sm .switch-knob {
     money: 'M3 7h18v10H3zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5',
     filter: 'M4 5h16l-6 8v6l-4-2v-4z',
     close: 'M6 6l12 12M18 6 6 18',
+    copy: 'M9 9h11v11H9zM5 15H4V4h11v1',
+    image: 'M4 5h16v14H4zM4 16l5-5 4 4 2-2 5 5M15.5 8.5h.01',
+    transfer: 'M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4',
+    minus: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12h8',
+    plus: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12h8M12 8v8',
+    freeze: 'M12 2v20M4 7l16 10M20 7 4 17M9 4l3 3 3-3M9 20l3-3 3 3',
+    unlock: 'M6 11h12v10H6zM8 11V7a4 4 0 0 1 7.5-2',
+    lock: 'M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4',
+    reject: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8.5 8.5l7 7M15.5 8.5l-7 7',
+    show: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+    hide: 'M3 3l18 18M10 5.3A10 10 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3 3.7M6.5 6.8A17 17 0 0 0 2 12s4 7 10 7a10 10 0 0 0 4.5-1',
+    percent: 'M19 5 5 19M7 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM17 15a2 2 0 1 0 0 4 2 2 0 0 0 0-4z',
     note: 'M5 3h14v12l-6 6H5zM13 21v-6h6M9 8h6M9 12h3',
   };
 
   // Status badge colors follow the EGY-ORDER badges
   const STATUS = {
     PENDING: ['بانتظار المحامي', 'amber'], ACCEPTED: ['بانتظار الدفع', 'amber'], ACTIVE: ['قيد التنفيذ', 'blue'],
-    COMPLETED: ['مكتمل', 'green'], CANCELLED: ['ملغي', 'gray'], REJECTED: ['اعتذر المحامي', 'red'],
+    COMPLETED: ['مكتمل', 'green'], CANCELLED: ['ملغى', 'gray'], REJECTED: ['اعتذر المحامي', 'red'],
     NO_RESPONSE: ['دون رد', 'red'], PAYMENT_EXPIRED: ['انتهت مهلة الدفع', 'red'],
     EXPIRED: ['انتهت المهلة', 'red'], REFUNDED: ['مردود للموكل', 'purple'],
   };
@@ -6387,6 +6551,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     saveSession(null);
     $('login').hidden = false;
     $('app').hidden = true;
+    $('header-account').replaceChildren();
     $('login-error').textContent = message || '';
   }
 
@@ -6423,6 +6588,68 @@ body .custom-switch-toggle.active.sm .switch-knob {
     return node;
   }
 
+  /// A number that copies itself when pressed, without opening the row around it
+  function copyable(text) {
+    const node = el('button', undefined, 'copy-number');
+    node.type = 'button';
+    node.title = 'اضغط للنسخ';
+    node.append(el('span', text), icon('copy'));
+    node.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const area = el('textarea');
+        area.value = text;
+        document.body.append(area);
+        area.select();
+        document.execCommand('copy');
+        area.remove();
+      }
+      toast('تم نسخ ' + text);
+    });
+    return node;
+  }
+
+  const copyOr = (text) => (text ? copyable(text) : '-');
+
+  function closeIcon(onClick) {
+    const node = el('button', undefined, 'window-close');
+    node.type = 'button';
+    node.title = 'إغلاق';
+    node.setAttribute('aria-label', 'إغلاق');
+    node.append(icon('close'));
+    node.addEventListener('click', onClick);
+    return node;
+  }
+
+  /// Shows one image over everything, even over another window, without leaving the page
+  function openImage(src, alt) {
+    const overlay = el('div', undefined, 'image-viewer');
+    const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
+    const onKey = (event) => { if (event.key === 'Escape') close(); };
+    const image = el('img');
+    image.src = src;
+    image.alt = alt || '';
+    overlay.append(closeIcon(close), image);
+    overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
+    document.addEventListener('keydown', onKey);
+    document.body.append(overlay);
+  }
+
+  /// A small image that opens large when pressed
+  function imageThumb(src, alt) {
+    const node = el('button', undefined, 'image-thumb');
+    node.type = 'button';
+    node.setAttribute('aria-label', 'عرض ' + alt);
+    const image = el('img');
+    image.src = src;
+    image.alt = alt;
+    node.append(image);
+    node.addEventListener('click', () => openImage(src, alt));
+    return node;
+  }
+
   function askConfirm(message) {
     return new Promise((resolve) => {
       const close = (answer) => { $('dialog').hidden = true; $('dialog').replaceChildren(); resolve(answer); };
@@ -6431,7 +6658,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
       const head = el('div', undefined, 'modal-header');
       const titleBox = el('div', undefined, 'modal-title-box');
       titleBox.append(el('h3', 'تأكيد الإجراء'));
-      head.append(titleBox);
+      head.append(titleBox, closeIcon(() => close(false)));
       const body = el('div', undefined, 'modal-body');
       body.style.padding = '1.1rem 1.35rem';
       body.append(el('p', message));
@@ -6529,11 +6756,29 @@ body .custom-switch-toggle.active.sm .switch-knob {
     return wrap;
   }
 
+  // A short line under each inner table's title, saying what the table shows
+  const SECTION_HELP = {
+    'الطلبات': 'كل الطلبات التي كان هذا الحساب طرفًا فيها. اضغط على طلب لفتحه.',
+    'التذاكر': 'كل المشكلات التي أرسلها صاحب هذا الحساب إلى الدعم الفني. اضغط على تذكرة لفتحها.',
+    'التقييمات': 'التقييمات المسجلة على طلبات هذا الحساب. اضغط على تقييم لفتح طلبه.',
+    'المخالفات': 'المخالفات التي سجلها النظام على المحامي، مثل الاعتذار بعد الدفع. وتكرارها قد يوقف حسابه.',
+    'إضافات وخصومات الرصيد': 'كل مبلغ أُضيف إلى رصيد المحامي أو خُصم منه خارج أتعاب الطلبات، مثل إجراءات الإدارة والتحويلات، مع سببه.',
+    'مدفوعات الموكل': 'كل دفعة دفعها هذا الموكل برقمها. اضغط على الرقم لنسخه، أو على السطر لفتح الطلب.',
+    'الدفعة': 'الدفعة التي دفعها الموكل لهذا الطلب.',
+    'كل حركات الرصيد': 'كل مبلغ دخل رصيد الموكل أو خرج منه، مثل رد قيمة طلب أو الدفع من الرصيد، مع سببه.',
+    'الإنذارات': 'الإنذارات الموجهة إلى هذا الحساب. وثلاثة إنذارات سارية خلال 30 يومًا توقفه أسبوعًا.',
+    'تذاكر الدعم الفني': 'المشكلات التي فتحها الموكل أو المحامي على هذا الطلب. اضغط على تذكرة لفتحها.',
+    'التقييم': 'تقييم الموكل للمحامي على هذا الطلب.',
+    'الأموال التي تحركت في هذا الطلب': 'كل مبلغ أُضيف إلى رصيد الموكل أو المحامي أو خُصم منه بسبب هذا الطلب.',
+    'سجل التجميد': 'كل مرة جُمدت فيها أتعاب هذا الطلب أو فُك تجميدها أو سُويت، ومن قام بذلك.',
+  };
+
   /// A titled card like form-card-section, its content goes into the body
   function section(title, ...nodes) {
     const card = el('div', undefined, 'form-card-section');
     const head = el('div', undefined, 'form-card-header');
     head.append(el('h3', title));
+    if (SECTION_HELP[title]) head.append(el('p', SECTION_HELP[title], 'section-help'));
     const body = el('div', undefined, 'form-card-body');
     body.append(...nodes);
     card.append(head, body);
@@ -6611,6 +6856,19 @@ body .custom-switch-toggle.active.sm .switch-knob {
     return box;
   }
 
+  /// A filter as buttons: pressing one applies it at once
+  function filterButtons(options, value, onPick) {
+    const bar = el('div', undefined, 'filter-buttons');
+    options.forEach(([key, label]) => {
+      const node = el('button', label, 'filter-button' + (key === value ? ' active' : ''));
+      node.type = 'button';
+      node.setAttribute('aria-pressed', String(key === value));
+      node.addEventListener('click', () => onPick(key));
+      bar.append(node);
+    });
+    return bar;
+  }
+
   function input(value, placeholder, className) {
     const node = el('input', undefined, 'field-input ' + (className || ''));
     if (value !== undefined) node.value = value;
@@ -6641,7 +6899,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const meta = el('div', undefined, 'view-meta-pills');
     pills.forEach(([name, text]) => {
       const pill = el('span', undefined, 'view-meta-pill');
-      pill.append(icon(name), document.createTextNode(text ?? '-'));
+      pill.append(icon(name), text instanceof Node ? text : document.createTextNode(text ?? '-'));
       meta.append(pill);
     });
     info.append(row, meta);
@@ -6720,7 +6978,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const title = el('div', undefined, 'person-info');
     title.append(el('span', role, 'person-role'), el('strong', name || '-', 'person-name'));
     head.append(el('div', initials(name), 'person-avatar'), title);
-    if (id) head.append(link('الملف الشخصي', () => open('user', id), 'btn-outline btn-xs', 'open'));
+    if (id) head.append(link('الملف', () => open('user', id), 'btn-outline btn-xs', 'open'));
 
     const lines = el('div', undefined, 'info-lines');
     lines.append(infoLine('phone', 'الهاتف', phone));
@@ -6758,7 +7016,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
   }
 
   function stateFilter(options) {
-    return filterSelect(options, current.state || '', (value) => { current.state = value; render(); }, 'filter');
+    return filterButtons(options, current.state || '', (value) => { current.state = value; render(); });
   }
 
   /// Keeps the rows inside the chosen dates and state
@@ -6788,8 +7046,8 @@ body .custom-switch-toggle.active.sm .switch-knob {
   }
 
   const OUTCOMES = {
-    REFUND: ['رد المبلغ كاملًا إلى الموكل', 'btn-outline-danger'],
-    LAWYER: ['صرف الأتعاب كاملة للمحامي', 'btn-outline'],
+    REFUND: ['رد للموكل', 'btn-outline-danger'],
+    LAWYER: ['صرف للمحامي', 'btn-outline'],
   };
 
   /// The order facts behind a money decision, and the equal decision buttons
@@ -6801,14 +7059,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['إنذارات الموكل السارية', data.clientWarnings], ['إنذارات المحامي السارية', data.lawyerWarnings],
       ['قيمة الطلب', data.price + ' ج.م'],
     ]);
-    if (!data.open) return { facts, controls: [el('p', 'تمت تسوية هذا الطلب، ولا يمكن تنفيذ قرار مالي جديد عليه.', 'muted')] };
-
-    const decide = (key, label) => async () => {
-      const note = input('', 'ملاحظة القرار (اختيارية)');
-      if (!await askForm(label, [el('p', 'سيُنفَّذ هذا القرار على الطلب ولا يمكن التراجع عنه.', 'muted'), note], 'تنفيذ', () => null)) return CANCELLED;
-      return api('POST', '/admin/orders/' + orderId + '/settle', { outcome: key, note: note.value });
-    };
-    return { facts, controls: Object.entries(OUTCOMES).map(([key, [label, style]]) => button(label, style, decide(key, label), 'تم تنفيذ القرار')) };
+    return { facts, open: data.open };
   }
 
   /// The title lives in the top header, and the page keeps only its extra details
@@ -6882,10 +7133,17 @@ body .custom-switch-toggle.active.sm .switch-knob {
       .then((blob) => {
         if (!blob) return;
         img.src = URL.createObjectURL(blob);
-        img.addEventListener('click', () => window.open(img.src, '_blank'));
+        img.addEventListener('click', () => openImage(img.src, 'صورة مرفقة'));
       });
     return img;
   }
+
+  const orderLink = (number) => {
+    if (!number) return 'غير مربوطة بطلب';
+    const node = el('span', undefined, 'order-link');
+    node.append(el('span', 'مربوطة بطلب رقم '), copyable(number));
+    return node;
+  };
 
   const TICKET_TABS = [['UNDER_REVIEW', 'تنتظر الرد'], ['OPEN', 'مفتوحة'], ['CLOSED', 'مغلقة']];
 
@@ -6895,59 +7153,336 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const sided = current.side ? data.filter((item) => item.user_role === current.side) : data;
     box.append(tabs(TICKET_TABS.map(([key, label]) => [key, label, sided.filter((item) => item.status === key).length]), active, (key) => { current.state = key; render(); }));
     box.append(controlsBar([
-      filterSelect([['', 'الموكلون والمحامون'], ['client', 'الموكلون'], ['lawyer', 'المحامون']], current.side || '', (value) => { current.side = value; render(); }, 'client'),
+      filterButtons([['', 'الكل'], ['client', 'الموكلون'], ['lawyer', 'المحامون']], current.side || '', (value) => { current.side = value; render(); }),
       ...dateFilters(),
     ]));
     const shown = applyFilters(sided.filter((item) => item.status === active), (item) => item.created_at);
-    box.append(table(['رقم التذكرة', 'العنوان', 'النوع', 'صاحب التذكرة', 'رقم الطلب', active === 'UNDER_REVIEW' ? 'تنتظر منذ' : 'آخر تحديث', 'الإجراءات'], shown.map((item) => ({
+    box.append(table(['رقم التذكرة', 'العنوان', 'النوع', 'صاحب التذكرة', 'الطلب', active === 'UNDER_REVIEW' ? 'تنتظر منذ' : 'آخر تحديث', 'الإجراءات'], shown.map((item) => ({
       item,
       cells: [
-        el('strong', item.reference, 'prod-name-ar'), item.title, TICKET_CATEGORY[item.category] || item.category,
-        personCell(item.user_name, (item.user_role === 'lawyer' ? 'محامٍ' : 'موكل') + ' • ' + item.user_phone), item.order_number || '-',
+        copyable(item.reference), item.title, TICKET_CATEGORY[item.category] || item.category,
+        personCell(item.user_name, (item.user_role === 'lawyer' ? 'محامٍ' : 'موكل') + ' • ' + item.user_phone), orderLink(item.order_number),
         active === 'UNDER_REVIEW' ? waitingTime(item.updated_at) : date(item.updated_at), openButton('فتح', 'ticket', item.id),
       ],
     })), (item) => open('ticket', item.id)));
   }
 
-  /// A small form window: resolves with true after validate passes, or false when dismissed
-  function askForm(title, nodes, confirmLabel, validate) {
-    return new Promise((resolve) => {
-      const close = (answer) => { $('dialog').hidden = true; $('dialog').replaceChildren(); resolve(answer); };
+  const AMOUNT_STEP = { key: 'amount', type: 'number', label: 'كم المبلغ بالجنيه؟' };
+  const REASON_STEP = { key: 'reason', type: 'text', label: 'ما السبب؟', min: 5 };
+
+  /// One action at a time: pick it, answer its steps, review, then run it
+  function openActionWindow(actions) {
+    let action = null;
+    let index = 0;
+    let values = {};
+    const close = () => { $('dialog').hidden = true; $('dialog').replaceChildren(); };
+    const stepsNow = () => action.steps.filter((step) => !step.when || step.when(values));
+
+    const frame = (title, stepText, bodyNodes, footNodes) => {
       const backdrop = el('div', undefined, 'modal-backdrop');
       const card = el('div', undefined, 'modal-card modal-md');
       const head = el('div', undefined, 'modal-header');
       const titleBox = el('div', undefined, 'modal-title-box');
       titleBox.append(el('h3', title));
-      head.append(titleBox);
+      if (stepText) titleBox.append(el('span', stepText, 'wizard-step'));
+      head.append(titleBox, closeIcon(close));
       const body = el('div', undefined, 'modal-body dialog-form');
-      const error = el('p', '', 'text-danger');
-      body.append(...nodes, error);
+      body.append(...bodyNodes);
       const foot = el('div', undefined, 'modal-actions');
-      foot.append(link('تراجع', () => close(false)), link(confirmLabel, () => {
-        const problem = validate();
-        if (problem) error.textContent = problem;
-        else close(true);
-      }, 'btn-primary'));
+      foot.append(...footNodes);
       card.append(head, body, foot);
       backdrop.append(card);
       $('dialog').replaceChildren(backdrop);
       $('dialog').hidden = false;
-    });
+    };
+    const stepLabel = () => 'الخطوة ' + (index + 2) + ' من ' + (stepsNow().length + (action.noReview ? 1 : 2));
+    const back = () => {
+      if (index > 0) index -= 1;
+      else { action = null; values = {}; }
+      draw();
+    };
+    const next = () => { index += 1; draw(); };
+
+    const execute = async (errorNode, trigger) => {
+      trigger.disabled = true;
+      try {
+        await action.run(values);
+        const { success } = action;
+        close();
+        toast(success);
+        await render();
+      } catch (err) {
+        errorNode.textContent = err.message;
+        trigger.disabled = false;
+      }
+    };
+
+    const drawPicker = () => {
+      const list = el('div', undefined, 'wizard-list');
+      actions.forEach((item) => {
+        const row = el('button', undefined, 'wizard-row');
+        row.type = 'button';
+        const match = ACTION_ICONS.find(([pattern]) => pattern.test(item.title));
+        const glyph = el('span', undefined, 'action-icon ' + (match ? match[2] : 'tone-blue'));
+        glyph.append(icon(match ? match[1] : 'ticket'));
+        const text = el('span', undefined, 'wizard-row-text');
+        text.append(el('strong', item.title), el('small', item.description));
+        row.append(glyph, text);
+        row.addEventListener('click', () => { action = item; index = 0; values = {}; draw(); });
+        list.append(row);
+      });
+      frame('اتخاذ إجراء', 'اختر الإجراء', [list], []);
+    };
+
+    const drawStep = (step) => {
+      const error = el('p', '', 'text-danger');
+      if (step.type === 'choice') {
+        const list = el('div', undefined, 'wizard-list');
+        step.options.forEach(([value, label]) => {
+          const row = el('button', label, 'wizard-choice' + (values[step.key] === value ? ' active' : ''));
+          row.type = 'button';
+          row.addEventListener('click', () => { values[step.key] = value; next(); });
+          list.append(row);
+        });
+        frame(action.title, stepLabel(), [el('label', step.label, 'wizard-label'), list], [link('رجوع', back)]);
+        return;
+      }
+      const field = step.type === 'long' ? textarea(values[step.key] || '', step.placeholder || '') : input(values[step.key] || '', step.placeholder || '');
+      if (step.type === 'number') { field.type = 'number'; field.min = '0'; }
+      const submit = () => {
+        const value = field.value.trim();
+        if (step.type === 'number' && !(Number(value) > 0)) { error.textContent = 'أدخل مبلغًا صحيحًا'; return; }
+        if (!step.optional && step.type !== 'number' && value.length < (step.min || 1)) {
+          error.textContent = step.min ? 'اكتب ' + step.min + ' أحرف على الأقل' : 'هذه الخانة مطلوبة';
+          return;
+        }
+        values[step.key] = value;
+        if (action.noReview && index === stepsNow().length - 1) { execute(error, nextButton); return; }
+        next();
+      };
+      const isLast = action.noReview && index === stepsNow().length - 1;
+      const nextButton = link(isLast ? 'حفظ' : 'التالي', submit, 'btn-primary');
+      if (step.type !== 'long') field.addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); submit(); } });
+      frame(action.title, stepLabel(), [el('label', step.label, 'wizard-label'), field, error], [link('رجوع', back), nextButton]);
+      field.focus();
+    };
+
+    const drawReview = () => {
+      const error = el('p', '', 'text-danger');
+      const list = el('div', undefined, 'wizard-review');
+      action.summary(values).forEach(([label, value]) => {
+        const line = el('div', undefined, 'wizard-review-line');
+        line.append(el('span', label), el('strong', value));
+        list.append(line);
+      });
+      const runButton = link('تنفيذ', () => execute(error, runButton), action.danger ? 'btn-danger' : 'btn-primary');
+      frame('مراجعة: ' + action.title, stepLabel(), [el('p', action.description, 'muted'), list, error], [link('رجوع', back), runButton]);
+    };
+
+    const draw = () => {
+      if (!action) { drawPicker(); return; }
+      const steps = stepsNow();
+      if (index < steps.length) drawStep(steps[index]);
+      else drawReview();
+    };
+    draw();
   }
 
-  /// Asks for an amount and a reason; the title names who the money moves between
-  async function askMoney(title, withOrder) {
-    const amount = input('', 'المبلغ بالجنيه');
-    amount.type = 'number';
-    amount.min = '0';
-    const reason = input('', 'السبب (إلزامي)');
-    const orderNumber = input('', 'رقم الطلب (اختياري)');
-    const ok = await askForm(title, [amount, reason, ...(withOrder ? [orderNumber] : [])], 'تنفيذ', () => {
-      if (!(Number(amount.value) > 0)) return 'أدخل مبلغًا صحيحًا';
-      if (reason.value.trim().length < 5) return 'اكتب السبب في 5 أحرف على الأقل';
-      return null;
+  function actionButton(actions) {
+    return link('اتخاذ إجراء', () => openActionWindow(actions), 'btn-primary', 'check');
+  }
+
+  /// Sends a form with files, which needs the sign-in header without a JSON body
+  async function sendForm(path, form, isRetry) {
+    const res = await fetch(API + path, { method: 'POST', headers: { Authorization: 'Bearer ' + session?.accessToken }, body: form });
+    if (res.status === 401 && !isRetry && await refreshSession()) return sendForm(path, form, true);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'تعذر تنفيذ العملية');
+    return json;
+  }
+
+  function messageCard(message, owner) {
+    const kind = message.author === 'ADMIN' ? 'admin' : message.author === 'NOTE' ? 'note' : 'user';
+    const card = el('div', undefined, 'ticket-message ticket-' + kind);
+    const head = el('div', undefined, 'ticket-message-head');
+    const who = el('span', undefined, 'message-author');
+    who.append(
+      icon(kind === 'admin' ? 'apply' : kind === 'note' ? 'note' : owner.user_role === 'lawyer' ? 'lawyer' : 'client'),
+      el('strong', kind === 'admin' ? 'رد الإدارة' : kind === 'note' ? 'ملاحظة داخلية (لا يراها ' + owner.user_name + ')' : owner.user_name));
+    head.append(who, el('span', date(message.createdAt), 'muted'));
+    card.append(head);
+    if (message.body) card.append(el('p', message.body));
+    if (message.images.length) {
+      const images = el('div', undefined, 'ticket-images');
+      message.images.forEach((path) => images.append(privateImage(path)));
+      card.append(images);
+    }
+    return card;
+  }
+
+  /// The ticket conversation in a window: Enter sends, Shift+Enter starts a new line
+  function openChat(ticket) {
+    const MAX_IMAGES = 5;
+    let files = [];
+    let sending = false;
+    const close = () => { $('dialog').hidden = true; $('dialog').replaceChildren(); render(); };
+
+    const backdrop = el('div', undefined, 'modal-backdrop');
+    const card = el('div', undefined, 'modal-card chat-card');
+    const head = el('div', undefined, 'modal-header');
+    const titleBox = el('div', undefined, 'modal-title-box');
+    titleBox.append(el('h3', 'الشات: ' + ticket.reference), el('span', ticket.user_name, 'wizard-step'));
+    head.append(titleBox, closeIcon(close));
+    const thread = el('div', undefined, 'chat-thread');
+    const previews = el('div', undefined, 'chat-previews');
+    const error = el('p', '', 'text-danger chat-error');
+
+    const picker = el('input');
+    picker.type = 'file';
+    picker.accept = 'image/*';
+    picker.multiple = true;
+    picker.hidden = true;
+    const showPreviews = () => {
+      previews.replaceChildren(...files.map((file, index) => {
+        const item = el('button', undefined, 'chat-preview');
+        item.type = 'button';
+        item.title = 'إزالة الصورة';
+        const image = el('img');
+        image.src = URL.createObjectURL(file);
+        image.alt = '';
+        item.append(image, icon('close', 'ui-icon'));
+        item.addEventListener('click', () => { files.splice(index, 1); showPreviews(); });
+        return item;
+      }));
+    };
+    picker.addEventListener('change', () => {
+      files = [...files, ...picker.files].slice(0, MAX_IMAGES);
+      if (picker.files.length + files.length > MAX_IMAGES) error.textContent = 'الحد الأقصى ' + MAX_IMAGES + ' صور';
+      picker.value = '';
+      showPreviews();
     });
-    return ok ? { value: Number(amount.value), reason: reason.value, orderNumber: orderNumber.value.trim() || undefined } : null;
+
+    const attach = el('button', undefined, 'chat-attach');
+    attach.type = 'button';
+    attach.title = 'إرفاق صور';
+    attach.setAttribute('aria-label', 'إرفاق صور');
+    attach.append(icon('image'));
+    attach.addEventListener('click', () => picker.click());
+
+    const field = el('textarea', undefined, 'field-input chat-input');
+    field.rows = 1;
+    field.placeholder = 'اكتب رسالتك، واضغط Enter للإرسال';
+
+    const load = async () => {
+      const { data } = await api('GET', '/admin/support/' + ticket.id);
+      thread.replaceChildren(...data.messages.map((message) => messageCard(message, data)));
+      thread.scrollTop = thread.scrollHeight;
+    };
+    const send = async () => {
+      if (sending) return;
+      const text = field.value.trim();
+      if (!text && !files.length) return;
+      sending = true;
+      error.textContent = '';
+      const form = new FormData();
+      form.append('body', text);
+      files.forEach((file) => form.append('images', file));
+      try {
+        await sendForm('/admin/support/' + ticket.id + '/reply', form);
+        field.value = '';
+        files = [];
+        showPreviews();
+        await load();
+      } catch (err) {
+        error.textContent = err.message;
+      } finally {
+        sending = false;
+        field.focus();
+      }
+    };
+    field.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+        event.preventDefault();
+        send();
+      }
+    });
+    const sendButton = link('إرسال', send, 'btn-primary', 'check');
+
+    const composer = el('div', undefined, 'chat-composer');
+    composer.append(attach, field, sendButton, picker);
+    card.append(head, thread, previews, error, composer);
+    backdrop.append(card);
+    $('dialog').replaceChildren(backdrop);
+    $('dialog').hidden = false;
+    load().catch((err) => { error.textContent = err.message; });
+    field.focus();
+  }
+
+  const FREEZE_TEXT = {
+    freeze: ['تجميد الأتعاب', 'يمنع المحامي من سحب أتعاب هذا الطلب حتى يُفك التجميد.'],
+    unfreeze: ['فك تجميد الأتعاب', 'يسمح للمحامي بسحب أتعاب هذا الطلب بعد مرور 24 ساعة من إنهاء المهمة، أو فورًا إذا كانت قد مرت.'],
+  };
+
+  function freezeAction(orderId, frozen) {
+    const [title, description] = FREEZE_TEXT[frozen ? 'unfreeze' : 'freeze'];
+    return {
+      title, description, steps: [], danger: !frozen, success: frozen ? 'تم فك التجميد' : 'تم تجميد الأتعاب',
+      summary: () => [['الإجراء', title]],
+      run: () => api('POST', '/admin/orders/' + orderId + '/freeze', { freeze: !frozen }),
+    };
+  }
+
+  /// The actions of one ticket, each with its steps
+  function ticketActions(data) {
+    const people = data.order
+      ? [[data.order.lawyer_id, 'المحامي'], [data.order.client_id, 'الموكل']]
+      : [[data.user_id, data.user_role === 'lawyer' ? 'المحامي' : 'الموكل']];
+    const nameOf = (id) => people.find(([value]) => value === id)[1];
+    const personOf = (values) => values.person || people[0][0];
+    const personSteps = (label) => (people.length > 1 ? [{ key: 'person', type: 'choice', label, options: people }] : []);
+
+    const moneyAction = (title, description, sign, success, question) => ({
+      title, description, success, danger: sign < 0,
+      steps: [...personSteps(question), AMOUNT_STEP, REASON_STEP],
+      summary: (values) => [['الحساب', nameOf(personOf(values))], ['المبلغ', values.amount + ' ج.م'], ['السبب', values.reason]],
+      run: (values) => api('POST', '/admin/users/' + personOf(values) + '/balance', { amount: sign * Number(values.amount), reason: values.reason, orderNumber: data.order?.order_number }),
+    });
+
+    const list = [{
+      title: 'ملاحظة داخلية', description: 'تُحفظ للفريق فقط، ولا يراها صاحب التذكرة.', success: 'تم حفظ الملاحظة', noReview: true,
+      steps: [{ key: 'body', type: 'long', label: 'اكتب الملاحظة' }],
+      run: (values) => api('POST', '/admin/support/' + data.id + '/note', { body: values.body }),
+    }];
+    if (data.order) {
+      list.push({
+        title: 'تحويل', description: 'يخصم المبلغ من طرف ويضيفه إلى الطرف الآخر في خطوة واحدة.', success: 'تم تنفيذ التحويل',
+        steps: [{ key: 'from', type: 'choice', label: 'من أين إلى أين؟', options: [['lawyer', 'من المحامي إلى الموكل'], ['client', 'من الموكل إلى المحامي']] }, AMOUNT_STEP, REASON_STEP],
+        summary: (values) => [['الاتجاه', values.from === 'lawyer' ? 'من المحامي إلى الموكل' : 'من الموكل إلى المحامي'], ['المبلغ', values.amount + ' ج.م'], ['السبب', values.reason]],
+        run: (values) => api('POST', '/admin/support/' + data.id + '/transfer', { from: values.from, amount: Number(values.amount), reason: values.reason }),
+      });
+    }
+    list.push(
+      moneyAction('خصم', 'ينقص رصيد الطرف الذي تختاره، دون إضافة المبلغ إلى أحد.', -1, 'تم تنفيذ الخصم', 'من تريد الخصم منه؟'),
+      moneyAction('إضافة', 'يزيد رصيد الطرف الذي تختاره، وتتحمل المنصة المبلغ.', 1, 'تمت الإضافة', 'لمن تريد الإضافة؟'),
+      {
+        title: 'إنذار', description: 'يسجل إنذارًا، وثلاثة إنذارات خلال 30 يومًا توقف الحساب أسبوعًا تلقائيًا.', success: 'تم توجيه الإنذار', danger: true,
+        steps: [...personSteps('من تريد إنذاره؟'), REASON_STEP],
+        summary: (values) => [['الحساب', nameOf(personOf(values))], ['السبب', values.reason]],
+        run: (values) => api('POST', '/admin/users/' + personOf(values) + '/warnings', { reason: values.reason, orderNumber: data.order?.order_number }),
+      });
+    if (data.order && ['HELD', 'AVAILABLE', 'FROZEN'].includes(data.order.payout_status)) {
+      list.push(freezeAction(data.order.id, data.order.payout_status === 'FROZEN'));
+    }
+    list.push({
+      title: 'إغلاق التذكرة', description: 'يغلق التذكرة فلا يمكن الرد عليها، ولا يغير الأموال.', success: 'تم إغلاق التذكرة', danger: true,
+      steps: [
+        { key: 'mode', type: 'choice', label: 'كيف تريد الإغلاق؟', options: [['message', 'برسالة أخيرة'], ['silent', 'دون رسالة']] },
+        { key: 'body', type: 'long', label: 'اكتب الرسالة الأخيرة', when: (values) => values.mode === 'message' },
+      ],
+      summary: (values) => [['الإغلاق', values.mode === 'message' ? 'برسالة أخيرة' : 'دون رسالة'], ...(values.mode === 'message' ? [['الرسالة', values.body]] : [])],
+      run: (values) => decideAndReturn(() => api('POST', '/admin/support/' + data.id + '/close', { body: values.mode === 'message' ? values.body : undefined })),
+    });
+    return list;
   }
 
   async function ticketPage(box) {
@@ -6957,11 +7492,15 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
     if (data.order?.payout_status === 'FROZEN') box.append(frozenNote(data.order.payout_amount));
 
-    const buttons = [link('الملف الشخصي لصاحب التذكرة', () => open('user', data.user_id), 'btn-outline', 'open')];
-    if (data.order) buttons.push(link('تفاصيل الطلب', () => open('order', data.order.id), 'btn-outline', 'orders'));
+    const buttons = closed ? [] : [
+      actionButton(ticketActions(data)),
+      link('الشات', () => openChat(data), 'btn-outline', 'appeal'),
+    ];
+    buttons.push(link(data.user_name, () => open('user', data.user_id), 'btn-outline', 'open'));
+    if (data.order) buttons.push(link('الطلب', () => open('order', data.order.id), 'btn-outline', 'orders'));
     box.append(hero(avatarBox(null, 'complaint'), data.title, [ticketStatus(data.status), badge(TICKET_CATEGORY[data.category] || data.category, 'purple')],
       [[data.user_role === 'lawyer' ? 'lawyer' : 'client', data.user_name + ' • ' + data.user_phone], ['calendar', date(data.created_at)],
-        ...(data.order ? [['orders', 'طلب ' + data.order.order_number]] : [])], buttons));
+        ['ticket', copyable(data.reference)], ...(data.order ? [['orders', orderLink(data.order.order_number)]] : [])], buttons));
 
     const layout = el('div', undefined, 'ticket-layout');
     const main = el('div', undefined, 'ticket-main');
@@ -6970,20 +7509,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     box.append(layout);
 
     const thread = el('div', undefined, 'ticket-thread');
-    data.messages.forEach((message) => {
-      const kind = message.author === 'ADMIN' ? 'admin' : message.author === 'NOTE' ? 'note' : 'user';
-      const card = el('div', undefined, 'ticket-message ticket-' + kind);
-      const head = el('div', undefined, 'ticket-message-head');
-      head.append(el('strong', kind === 'admin' ? 'رد الإدارة' : kind === 'note' ? 'ملاحظة داخلية (لا يراها صاحب التذكرة)' : 'صاحب التذكرة'), el('span', date(message.createdAt), 'muted'));
-      card.append(head);
-      if (message.body) card.append(el('p', message.body));
-      if (message.images.length) {
-        const images = el('div', undefined, 'ticket-images');
-        message.images.forEach((path) => images.append(privateImage(path)));
-        card.append(images);
-      }
-      thread.append(card);
-    });
+    thread.append(...data.messages.map((message) => messageCard(message, data)));
     main.append(section('الرسائل', thread));
 
     if (data.order) {
@@ -6999,69 +7525,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
     if (closed) {
       main.append(section('حالة التذكرة', el('p', 'أُغلقت التذكرة في ' + date(data.closed_at) + (data.closed_by_email ? ' بواسطة ' + data.closed_by_email : '') + '، ولا يمكن الرد عليها.', 'muted')));
-      return;
     }
-
-    const reply = textarea('', 'اكتب ردك إلى صاحب التذكرة...');
-    main.append(section('الرد', reply, actionRow(button('إرسال الرد', 'btn-primary', () => {
-      if (!reply.value.trim()) throw new Error('اكتب الرد أولًا');
-      return api('POST', '/admin/support/' + data.id + '/reply', { body: reply.value });
-    }, 'تم إرسال الرد', 'check'))));
-
-    const note = textarea('', 'ملاحظة للفريق فقط...');
-    side.append(section('ملاحظة داخلية', note, actionRow(button('حفظ الملاحظة', 'btn-outline', () => {
-      if (!note.value.trim()) throw new Error('اكتب الملاحظة أولًا');
-      return api('POST', '/admin/support/' + data.id + '/note', { body: note.value });
-    }, 'تم حفظ الملاحظة'))));
-
-    const moveMoney = (userId, sign, title) => async () => {
-      const entry = await askMoney(title);
-      if (!entry) return CANCELLED;
-      return api('POST', '/admin/users/' + userId + '/balance', { amount: sign * entry.value, reason: entry.reason, orderNumber: data.order?.order_number });
-    };
-    const transfer = (from, title) => async () => {
-      const entry = await askMoney(title);
-      if (!entry) return CANCELLED;
-      return api('POST', '/admin/support/' + data.id + '/transfer', { from, amount: entry.value, reason: entry.reason });
-    };
-    const people = data.order
-      ? [['المحامي', data.order.lawyer_id], ['الموكل', data.order.client_id]]
-      : [[data.user_role === 'lawyer' ? 'المحامي' : 'الموكل', data.user_id]];
-    const warn = (userId, title) => async () => {
-      const reason = input('', 'سبب الإنذار (إلزامي)');
-      const notice = guide('ثلاثة إنذارات سارية خلال 30 يومًا توقف الحساب أسبوعًا تلقائيًا.');
-      if (!await askForm(title, [notice, reason], 'توجيه الإنذار', () => (reason.value.trim().length < 5 ? 'اكتب السبب في 5 أحرف على الأقل' : null))) return CANCELLED;
-      return api('POST', '/admin/users/' + userId + '/warnings', { reason: reason.value, orderNumber: data.order?.order_number });
-    };
-    const closeWithMessage = async () => {
-      const message = textarea('', 'رسالتك الأخيرة إلى صاحب التذكرة...');
-      if (!await askForm('إغلاق التذكرة مع رسالة', [message], 'إغلاق', () => (message.value.trim() ? null : 'اكتب الرسالة أولًا'))) return CANCELLED;
-      return decideAndReturn(() => api('POST', '/admin/support/' + data.id + '/close', { body: message.value.trim() }));
-    };
-
-    const perPerson = (verb, style, action, success) => people.map(([name, id]) =>
-      button(verb + ' ' + name, style, action(id, verb + ' ' + name), success));
-
-    const tiles = [
-      actionTile('الخصم', ...perPerson('خصم من', 'btn-outline-danger', (id, title) => moveMoney(id, -1, title), 'تم تنفيذ الخصم')),
-      actionTile('الإضافة', ...perPerson('إضافة إلى', 'btn-outline', (id, title) => moveMoney(id, 1, title), 'تمت الإضافة')),
-      actionTile('الإنذارات', ...perPerson('إنذار', 'btn-outline-danger', warn, 'تم توجيه الإنذار')),
-    ];
-    if (data.order) {
-      tiles.unshift(actionTile('التحويل', ...[['lawyer', 'تحويل من المحامي إلى الموكل'], ['client', 'تحويل من الموكل إلى المحامي']].map(([from, title]) =>
-        button(title, 'btn-outline', transfer(from, title), 'تم تنفيذ التحويل'))));
-    }
-    const payout = data.order?.payout_status;
-    if (data.order && ['HELD', 'AVAILABLE', 'FROZEN'].includes(payout)) {
-      const frozen = payout === 'FROZEN';
-      tiles.push(actionTile('تجميد الأتعاب', button(frozen ? 'فك تجميد العملية' : 'تجميد رصيد العملية للمحامي', frozen ? 'btn-primary' : 'btn-outline-danger',
-        () => api('POST', '/admin/orders/' + data.order.id + '/freeze', { freeze: !frozen }), frozen ? 'تم فك التجميد' : 'تم تجميد الأتعاب', 'power')));
-    }
-    tiles.push(actionTile('إغلاق التذكرة',
-      button('إغلاق مع رسالة', 'btn-outline-danger', closeWithMessage, 'تم إغلاق التذكرة'),
-      button('إغلاق دون رسالة', 'btn-outline-danger', confirmed('هل تريد إغلاق التذكرة؟', () => decideAndReturn(() => api('POST', '/admin/support/' + data.id + '/close', {}))), 'تم إغلاق التذكرة')));
-
-    box.append(actionsSection(tiles));
   }
 
   function frozenNote(amount) {
@@ -7089,15 +7553,18 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const moderate = (hide) => decideAndReturn(() => api('POST', '/admin/reviews/' + item.id + '/moderate', { hide }));
 
     box.append(hero(avatarBox(null, 'review'), 'بلاغ عن تقييم', [badge('مفتوح', 'amber')],
-      [['lawyer', item.lawyer_name], ['calendar', date(item.reported_at)]], []));
+      [['lawyer', item.lawyer_name], ['calendar', date(item.reported_at)]], [actionButton([
+        {
+          title: 'إبقاء التعليق', description: 'يغلق البلاغ ويبقى التعليق ظاهرًا في ملف المحامي.', steps: [], success: 'تم إبقاء التعليق',
+          summary: () => [['التعليق', item.comment || 'دون تعليق']], run: () => moderate(false),
+        },
+        {
+          title: 'إخفاء التعليق', description: 'يحذف التعليق من ملف المحامي.', steps: [], success: 'تم إخفاء التعليق', danger: true,
+          summary: () => [['التعليق', item.comment || 'دون تعليق']], run: () => moderate(true),
+        },
+      ])]));
     box.append(section('سبب البلاغ', el('p', item.report_reason || '-')));
-    box.append(section('التقييم', details([['التقييم', item.rating + ' / 5'], ['التعليق', item.comment || 'بدون تعليق']])));
-    box.append(actionsSection([
-      actionTile('قرار البلاغ',
-        el('p', 'الإخفاء يحذف التعليق من ملف المحامي، والإبقاء يغلق البلاغ مع بقاء التعليق ظاهرًا.', 'muted'),
-        button('إبقاء التعليق', 'btn-primary', confirmed('هل تريد إبقاء التعليق؟', () => moderate(false)), 'تم إبقاء التعليق', 'check'),
-        button('إخفاء التعليق', 'btn-outline-danger', confirmed('هل تريد إخفاء التعليق؟', () => moderate(true)), 'تم إخفاء التعليق')),
-    ]));
+    box.append(section('التقييم', details([['التقييم', item.rating + ' / 5'], ['التعليق', item.comment || 'دون تعليق']])));
   }
 
   async function applicationsPage(box) {
@@ -7109,15 +7576,15 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['آخر 7 أيام', data.filter((item) => new Date(item.urgent_terms_accepted_at || 0) > week).length, 'calendar', 'blue'],
       ['مستندات مكتملة', data.filter((item) => item.photo && item.card_id).length, 'check', 'green'],
     ]));
-    box.append(guide('راجع الصورة الشخصية وصورة الكارنيه وبيانات المحامي قبل الموافقة.',
+    box.append(guide('راجع الصورة الشخصية وصورة البطاقة وبيانات المحامي قبل الموافقة.',
       'بعد الموافقة ينتقل المحامي إلى قائمة المحامين ويصبح له ملف شخصي، ويتمكن من استقبال طلبات «محاميك حالاً».'));
     box.append(controlsBar(dateFilters()));
 
     box.append(table(['الاسم', 'الهاتف', 'رقم القيد', 'التخصص', 'تاريخ التقديم', 'الحالة', 'الإجراءات'], shown.map((item) => ({
       item,
       cells: [
-        el('strong', item.full_name, 'prod-name-ar'), item.phone, item.syndicate_number || 'غير مسجل', item.specialty || 'بدون تخصص',
-        date(item.urgent_terms_accepted_at), badge('بانتظار المراجعة', 'amber'), link('فتح الطلب', () => open('application', item), 'btn-outline btn-xs', 'open'),
+        el('strong', item.full_name, 'prod-name-ar'), item.phone, item.syndicate_number || 'غير مسجل', item.specialty || 'دون تخصص',
+        date(item.urgent_terms_accepted_at), badge('بانتظار المراجعة', 'amber'), link('فتح', () => open('application', item), 'btn-outline btn-xs', 'open'),
       ],
     })), (item) => open('application', item)));
   }
@@ -7127,7 +7594,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const load = () => fetch(API + '/lawyers/documents/' + id, { headers: { Authorization: 'Bearer ' + session?.accessToken } });
     let res = await load();
     if (res.status === 401 && await refreshSession()) res = await load();
-    if (!res.ok) throw new Error('تعذر تحميل صورة الكارنيه');
+    if (!res.ok) throw new Error('تعذر تحميل صورة البطاقة');
     return URL.createObjectURL(await res.blob());
   }
 
@@ -7147,40 +7614,29 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const grid = el('div', undefined, 'doc-grid');
 
     if (item.photo) {
-      const image = el('img');
-      image.src = item.photo;
-      image.alt = 'الصورة الشخصية';
-      const view = el('a');
-      view.href = item.photo;
-      view.target = '_blank';
-      view.rel = 'noopener';
-      view.append(image);
-      grid.append(documentBox('الصورة الشخصية', view));
+      grid.append(documentBox('الصورة الشخصية', imageThumb(item.photo, 'الصورة الشخصية')));
     } else {
       grid.append(documentBox('الصورة الشخصية', missingDocument('لم يرفع المحامي صورته بعد')));
     }
 
     if (!item.card_id) {
-      grid.append(documentBox('كارنيه النقابة', missingDocument('لم يرفع المحامي صورة الكارنيه بعد')));
+      grid.append(documentBox('بطاقة النقابة', missingDocument('لم يرفع المحامي صورة البطاقة بعد')));
     } else {
       try {
         const url = await privateDocument(item.card_id);
-        const view = el('a');
-        view.href = url;
-        view.target = '_blank';
-        view.rel = 'noopener';
         if (item.card_mime === 'application/pdf') {
+          const view = el('a');
+          view.href = url;
+          view.target = '_blank';
+          view.rel = 'noopener';
           view.className = 'btn btn-outline';
-          view.append(icon('open'), el('span', 'فتح ملف الكارنيه'));
+          view.append(icon('open'), el('span', 'فتح ملف البطاقة'));
+          grid.append(documentBox('بطاقة النقابة', view));
         } else {
-          const image = el('img');
-          image.src = url;
-          image.alt = 'كارنيه النقابة';
-          view.append(image);
+          grid.append(documentBox('بطاقة النقابة', imageThumb(url, 'بطاقة النقابة')));
         }
-        grid.append(documentBox('كارنيه النقابة', view));
       } catch (err) {
-        grid.append(documentBox('كارنيه النقابة', missingDocument(err.message)));
+        grid.append(documentBox('بطاقة النقابة', missingDocument(err.message)));
       }
     }
     return grid;
@@ -7191,28 +7647,29 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const item = current.param;
     const decide = (approve, reason) => decideAndReturn(() =>
       api('POST', '/admin/urgent-applications/' + item.user_id + '/decision', { approve, reason }));
-    const reject = async () => {
-      const reason = input('', 'سبب الرفض، ويصل إلى المحامي');
-      if (!await askForm('رفض طلب ' + item.full_name, [reason], 'رفض الطلب', () => (reason.value.trim() ? null : 'اكتب سبب الرفض'))) return CANCELLED;
-      return decide(false, reason.value);
-    };
 
-    box.append(hero(avatarBox(null, 'lawyer'), item.full_name, [badge('بانتظار المراجعة', 'amber')],
-      [['phone', item.phone], ['apply', 'قيد ' + (item.syndicate_number || 'غير مسجل')]], []));
-
-    box.append(section('الصورة الشخصية وكارنيه النقابة', await documentsGrid(item)));
-
-    box.append(section('بيانات المحامي', details([
-      ['الاسم', item.full_name], ['الهاتف', item.phone], ['رقم القيد', item.syndicate_number || 'غير مسجل'],
-      ['التخصص', item.specialty || 'بدون تخصص'], ['النبذة', item.bio || '-'],
-    ])));
-
-    box.append(actionsSection([
-      actionTile('قرار الطلب',
-        el('p', 'تتيح الموافقة للمحامي استقبال طلبات «محاميك حالاً»، ويصله عند الرفض إشعار بالسبب.', 'muted'),
-        button('موافقة', 'btn-primary', confirmed('هل تريد الموافقة على طلب ' + item.full_name + '؟', () => decide(true)), 'تمت الموافقة', 'check'),
-        button('رفض', 'btn-outline-danger', reject, 'تم الرفض')),
+    const card = el('div', undefined, 'application-card');
+    const head = el('div', undefined, 'application-head');
+    const title = el('div', undefined, 'view-title-row');
+    title.append(el('h2', item.full_name, 'view-product-title'), badge('بانتظار المراجعة', 'amber'));
+    head.append(title, actionButton([
+      {
+        title: 'الموافقة على الطلب', description: 'يتيح للمحامي استقبال طلبات «محاميك حالاً».', steps: [], success: 'تمت الموافقة',
+        summary: () => [['المحامي', item.full_name]], run: () => decide(true),
+      },
+      {
+        title: 'رفض الطلب', description: 'يرفض الطلب، ويصل إلى المحامي إشعار بالسبب.', success: 'تم الرفض', danger: true,
+        steps: [{ key: 'reason', type: 'text', label: 'ما سبب الرفض؟', min: 3 }],
+        summary: (values) => [['المحامي', item.full_name], ['السبب', values.reason]], run: (values) => decide(false, values.reason),
+      },
     ]));
+    const content = el('div', undefined, 'application-body');
+    content.append(details([
+      ['الهاتف', item.phone], ['رقم القيد', item.syndicate_number || 'غير مسجل'],
+      ['التخصص', item.specialty || 'دون تخصص'], ['النبذة', item.bio || '-'],
+    ]), await documentsGrid(item));
+    card.append(head, content);
+    box.append(card);
   }
 
   const ACCOUNT_FILTERS = [['', 'كل الحالات'], ['active', 'نشط'], ['suspended', 'موقوف']];
@@ -7238,7 +7695,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
         isLawyer ? 'لا يظهر المحامي في هذه القائمة إلا بعد الموافقة على طلب انضمامه.' : 'إيقاف الحساب يمنع صاحبه من استخدام التطبيق كليًا حتى تفعيله مرة أخرى.'));
       box.append(controlsBar([
         searchBox(q, 'ابحث بالاسم أو الهاتف أو البريد', (value) => { current.search = value; render(); }),
-        filterSelect(ACCOUNT_FILTERS, filter, (key) => { current.filter = key; render(); }, 'power'),
+        filterButtons(ACCOUNT_FILTERS, filter, (key) => { current.filter = key; render(); }),
         ...dateFilters(),
       ]));
 
@@ -7246,9 +7703,9 @@ body .custom-switch-toggle.active.sm .switch-knob {
         ? ['الاسم', 'الهاتف', 'التخصص', 'التقييم', 'الحالة', 'الإجراءات']
         : ['الاسم', 'الهاتف', 'تاريخ التسجيل', 'الحالة', 'الإجراءات'];
       const rows = shown.map((item) => {
-        const tools = link('الملف الشخصي', () => open('user', item.id), 'btn-outline btn-xs', 'open');
+        const tools = link('الملف', () => open('user', item.id), 'btn-outline btn-xs', 'open');
 
-        const name = el('strong', item.full_name || 'بدون اسم', 'prod-name-ar');
+        const name = el('strong', item.full_name || 'دون اسم', 'prod-name-ar');
         const cells = isLawyer
           ? [name, item.phone, item.specialty || '-', Number(item.rating ?? 0).toFixed(1) + ' / 5', accountTag(item.status), tools]
           : [name, item.phone, date(item.created_at), accountTag(item.status), tools];
@@ -7266,7 +7723,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const badges = [badge(isLawyer ? 'محامٍ' : 'موكل', 'blue'), accountTag(user.status)];
     if (isLawyer) badges.push(badge(user.urgent_status === 'APPROVED' ? 'معتمد للخدمة' : 'غير معتمد', user.urgent_status === 'APPROVED' ? 'green' : 'gray'));
     box.append(hero(avatarBox(user.photo, isLawyer ? 'lawyer' : 'client'), user.full_name || 'حساب', badges,
-      [['phone', user.phone], ['mail', user.email], ['calendar', 'تاريخ التسجيل: ' + date(user.created_at)]], []));
+      [['phone', user.phone], ['mail', user.email], ['calendar', 'تاريخ التسجيل: ' + date(user.created_at)]], [actionButton(userActions(user, data))]));
 
     const stats = [['الطلبات', user.user_orders, 'orders', 'blue'], ['شكاوى ضده', user.user_against, 'complaint', 'red'],
       ['شكاوى قدمها', user.user_filed, 'appeal', 'amber'], ['الإنذارات', user.warnings_count, 'power', 'gray']];
@@ -7279,7 +7736,6 @@ body .custom-switch-toggle.active.sm .switch-knob {
       ['data', 'البيانات'],
       ['activity', 'النشاط', data.orders.length + data.tickets.length + data.reviews.length],
       ['wallet', 'الرصيد والإنذارات', data.warnings.filter((item) => !item.revoked_at).length],
-      ['actions', 'الإجراءات'],
     ];
     const active = list.some(([key]) => key === current.tab) ? current.tab : 'data';
     box.append(tabs(list, active, (key) => { current.tab = key; render(); }));
@@ -7300,19 +7756,17 @@ body .custom-switch-toggle.active.sm .switch-knob {
       }
     } else if (active === 'activity') {
       pane.append(section('الطلبات', table(['رقم الطلب', 'المشكلة', 'المبلغ', 'الحالة', 'التاريخ'], data.orders.map((item) => ({
-        item, cells: [item.order_number, item.problem_type, item.price + ' ج.م', tag(item.status), date(item.created_at)],
+        item, cells: [copyable(item.order_number), item.problem_type, item.price + ' ج.م', tag(item.status), date(item.created_at)],
       })), (item) => open('order', item.id))));
-      pane.append(section('التذاكر', table(['رقم التذكرة', 'العنوان', 'النوع', 'رقم الطلب', 'الحالة', 'التاريخ'], data.tickets.map((item) => ({
-        item, cells: [item.reference, item.title, TICKET_CATEGORY[item.category] || item.category, item.order_number || '-', ticketStatus(item.status), date(item.created_at)],
+      pane.append(section('التذاكر', table(['رقم التذكرة', 'العنوان', 'النوع', 'الطلب', 'الحالة', 'التاريخ'], data.tickets.map((item) => ({
+        item, cells: [copyable(item.reference), item.title, TICKET_CATEGORY[item.category] || item.category, orderLink(item.order_number), ticketStatus(item.status), date(item.created_at)],
       })), (item) => open('ticket', item.id))));
       pane.append(section('التقييمات', table(['رقم الطلب', 'التقييم', 'التعليق', 'التاريخ'], data.reviews.map((item) => ({
-        item, cells: [item.order_number, item.rating + ' / 5', item.comment, date(item.created_at)],
+        item, cells: [copyable(item.order_number), item.rating + ' / 5', item.comment, date(item.created_at)],
       })), (item) => open('order', item.order_id))));
       if (isLawyer) {
         pane.append(section('المخالفات', table(['النوع', 'التاريخ'], data.strikes.map((item) => ({ item, cells: [{ WITHDRAWAL: 'اعتذار بعد الدفع', COMPLAINT: 'شكوى' }[item.kind] || item.kind, date(item.created_at)] })))));
       }
-    } else if (active === 'actions') {
-      pane.append(userActions(user));
     } else {
       walletPane(pane, data, user, isLawyer);
     }
@@ -7332,60 +7786,103 @@ body .custom-switch-toggle.active.sm .switch-knob {
         ['أتعاب محجوزة', Number(wallet.held) + ' ج.م', 'calendar', 'amber'], ['أتعاب مجمدة', Number(wallet.frozen) + ' ج.م', 'power', 'blue']]
       : [['رصيد الموكل', Number(wallet.client_balance) + ' ج.م', 'money', Number(wallet.client_balance) < 0 ? 'red' : 'green']]));
 
+    if (!isLawyer) pane.append(section('مدفوعات الموكل', paymentsTable(data.payments, false)));
+
     const ledger = isLawyer ? data.adjustments : data.credits;
-    pane.append(section(isLawyer ? 'حركات الرصيد اليدوية' : 'كل حركات الرصيد', table(['المبلغ', 'السبب', 'رقم الطلب', 'بواسطة', 'التاريخ'], ledger.map((item) => ({
-      item, cells: [money(item.amount), item.reason, item.order_number || '-', item.created_by || 'تلقائي', date(item.created_at)],
+    pane.append(section(isLawyer ? 'إضافات وخصومات الرصيد' : 'كل حركات الرصيد', table(['المبلغ', 'السبب', 'رقم الطلب', 'بواسطة', 'التاريخ'], ledger.map((item) => ({
+      item, cells: [money(item.amount), item.reason, copyOr(item.order_number), item.created_by || 'تلقائي', date(item.created_at)],
     })))));
 
     const rows = data.warnings.map((item) => ({
       item,
       cells: [
-        item.reason, item.order_number || '-', item.created_by || 'تلقائي', date(item.created_at),
+        item.reason, copyOr(item.order_number), item.created_by || 'تلقائي', date(item.created_at),
         item.revoked_at ? badge('ملغى', 'gray') : badge('سارٍ', 'red'),
-        item.revoked_at ? '-' : button('إلغاء', 'btn-outline btn-xs', confirmed('إلغاء هذا الإنذار؟', () => api('POST', '/admin/warnings/' + item.id + '/revoke', {})), 'تم إلغاء الإنذار'),
       ],
     }));
     pane.append(section('الإنذارات',
-      table(['السبب', 'رقم الطلب', 'بواسطة', 'التاريخ', 'الحالة', 'الإجراء'], rows)));
+      table(['السبب', 'رقم الطلب', 'بواسطة', 'التاريخ', 'الحالة'], rows)));
   }
 
-  /// One kind of action in one box, the same on every page
-  function actionTile(title, ...nodes) {
+  // First match wins, so the specific names come before the general ones
+  const ACTION_ICONS = [
+    [/^فك تجميد/, 'unlock', 'tone-green'], [/^تجميد/, 'freeze', 'tone-blue'],
+    [/^تحويل/, 'transfer', 'tone-blue'], [/^خصم/, 'minus', 'tone-red'], [/^إضافة/, 'plus', 'tone-green'],
+    [/^إلغاء إنذار/, 'close', 'tone-blue'], [/إنذار/, 'complaint', 'tone-amber'],
+    [/^الرد/, 'appeal', 'tone-blue'], [/ملاحظة/, 'note', 'tone-blue'], [/^إغلاق/, 'lock', 'tone-red'],
+    [/^رد المبلغ/, 'money', 'tone-red'], [/^صرف/, 'money', 'tone-green'],
+    [/^إيقاف/, 'power', 'tone-red'], [/^تفعيل/, 'power', 'tone-green'],
+    [/^الموافقة/, 'check', 'tone-green'], [/^رفض/, 'reject', 'tone-red'],
+    [/^إبقاء/, 'show', 'tone-green'], [/^إخفاء/, 'hide', 'tone-red'],
+    [/^تعديل سعر/, 'price', 'tone-blue'], [/نسبة/, 'percent', 'tone-blue'],
+  ];
+
+  // Icons that share a row because their actions are close to each other
+  const ACTION_ROWS = { appeal: 'write', note: 'write', complaint: 'warnings', close: 'warnings', check: 'decision', reject: 'decision', show: 'decision', hide: 'decision', freeze: 'freezing', unlock: 'freezing' };
+
+  /// One action in its own box: what it is, what it does, and its controls
+  function actionTile(title, description, ...controls) {
     const box = el('div', undefined, 'action-tile');
-    box.append(el('h4', title), ...nodes);
+    const text = el('div', undefined, 'action-text');
+    const match = ACTION_ICONS.find(([pattern]) => pattern.test(title));
+    box.dataset.row = (match && ACTION_ROWS[match[1]]) || (match ? match[1] : 'other');
+    const glyph = el('span', undefined, 'action-icon ' + (match ? match[2] : 'tone-blue'));
+    glyph.append(icon(match ? match[1] : 'ticket'));
+    const head = el('div', undefined, 'action-head');
+    head.append(glyph, el('h4', title));
+    text.append(head, el('p', description));
+    const tools = el('div', undefined, 'action-controls');
+    tools.append(...controls);
+    box.append(text, tools);
     return box;
   }
 
+  /// The actions come last: a title, then separate boxes with no box around them
   function actionsSection(tiles) {
-    const grid = el('div', undefined, 'action-tiles');
-    grid.append(...tiles);
-    return section('الإجراءات', grid);
+    const wrap = el('div', undefined, 'actions-area');
+    const rows = new Map();
+    tiles.forEach((tile) => {
+      if (!rows.has(tile.dataset.row)) {
+        const row = el('div', undefined, 'action-row');
+        rows.set(tile.dataset.row, row);
+      }
+      rows.get(tile.dataset.row).append(tile);
+    });
+    wrap.append(el('h3', 'الإجراءات', 'actions-title'), ...rows.values());
+    return wrap;
   }
 
-  /// Everything the admin can do to an account, in one place
-  function userActions(user) {
-    const suspend = (value) => api('POST', '/admin/users/' + user.id + '/status', { suspend: value });
-    const moveMoney = (sign, title) => async () => {
-      const entry = await askMoney(title, true);
-      if (!entry) return CANCELLED;
-      return api('POST', '/admin/users/' + user.id + '/balance', { amount: sign * entry.value, reason: entry.reason, orderNumber: entry.orderNumber });
-    };
-    const warn = async () => {
-      const reason = input('', 'سبب الإنذار (إلزامي)');
-      const notice = guide('ثلاثة إنذارات سارية خلال 30 يومًا توقف الحساب أسبوعًا تلقائيًا.');
-      if (!await askForm('توجيه إنذار', [notice, reason], 'توجيه الإنذار', () => (reason.value.trim().length < 5 ? 'اكتب السبب في 5 أحرف على الأقل' : null))) return CANCELLED;
-      return api('POST', '/admin/users/' + user.id + '/warnings', { reason: reason.value });
-    };
-
-    return actionsSection([
-      actionTile('حالة الحساب', user.status === 'suspended'
-        ? button('تفعيل الحساب', 'btn-primary', () => suspend(false), undefined, 'power')
-        : button('إيقاف الحساب', 'btn-outline-danger', confirmed('هل تريد إيقاف هذا الحساب؟', () => suspend(true)), undefined, 'power')),
-      actionTile('الرصيد',
-        button('إضافة رصيد', 'btn-outline', moveMoney(1, 'إضافة رصيد'), 'تمت الإضافة'),
-        button('خصم رصيد', 'btn-outline-danger', moveMoney(-1, 'خصم رصيد'), 'تم تنفيذ الخصم')),
-      actionTile('الإنذارات', button('توجيه إنذار', 'btn-outline-danger', warn, 'تم توجيه الإنذار')),
-    ]);
+  /// Everything the admin can do to an account, each with its steps
+  function userActions(user, data) {
+    const moneyAction = (title, description, sign, success) => ({
+      title, description, success, danger: sign < 0,
+      steps: [AMOUNT_STEP, REASON_STEP, { key: 'orderNumber', type: 'text', label: 'رقم الطلب (اختياري)', optional: true }],
+      summary: (values) => [['المبلغ', values.amount + ' ج.م'], ['السبب', values.reason], ...(values.orderNumber ? [['رقم الطلب', values.orderNumber]] : [])],
+      run: (values) => api('POST', '/admin/users/' + user.id + '/balance', { amount: sign * Number(values.amount), reason: values.reason, orderNumber: values.orderNumber || undefined }),
+    });
+    const suspended = user.status === 'suspended';
+    const activeWarnings = data.warnings.filter((item) => !item.revoked_at);
+    return [
+      {
+        title: suspended ? 'تفعيل الحساب' : 'إيقاف الحساب', description: suspended ? 'يعيد لصاحب الحساب استخدام التطبيق.' : 'يمنع صاحب الحساب من استخدام التطبيق حتى تفعّله مرة أخرى.',
+        steps: [], danger: !suspended, success: suspended ? 'تم تفعيل الحساب' : 'تم إيقاف الحساب',
+        summary: () => [['الحساب', user.full_name || user.phone]],
+        run: () => api('POST', '/admin/users/' + user.id + '/status', { suspend: !suspended }),
+      },
+      moneyAction('إضافة', 'يزيد رصيد الحساب، وتتحمل المنصة المبلغ.', 1, 'تمت الإضافة'),
+      moneyAction('خصم', 'ينقص رصيد الحساب، وإذا زاد الخصم على الرصيد أصبح سالبًا ويُسدَّد مما يدخل لاحقًا.', -1, 'تم تنفيذ الخصم'),
+      {
+        title: 'إنذار', description: 'يسجل إنذارًا، وثلاثة إنذارات خلال 30 يومًا توقف الحساب أسبوعًا تلقائيًا.', steps: [REASON_STEP], success: 'تم توجيه الإنذار', danger: true,
+        summary: (values) => [['السبب', values.reason]],
+        run: (values) => api('POST', '/admin/users/' + user.id + '/warnings', { reason: values.reason }),
+      },
+      ...(activeWarnings.length ? [{
+        title: 'إلغاء إنذار', description: 'يلغي الإنذار الذي تختاره، ولا يرفع إيقافًا قائمًا.', success: 'تم إلغاء الإنذار',
+        steps: [{ key: 'warning', type: 'choice', label: 'أي إنذار تريد إلغاءه؟', options: activeWarnings.map((item) => [item.id, item.reason]) }],
+        summary: (values) => [['الإنذار', activeWarnings.find((item) => item.id === values.warning).reason]],
+        run: (values) => api('POST', '/admin/warnings/' + values.warning + '/revoke', {}),
+      }] : []),
+    ];
   }
 
   async function ordersPage(box) {
@@ -7402,13 +7899,13 @@ body .custom-switch-toggle.active.sm .switch-knob {
     box.append(guide('افتح الطلب لمراجعة مراحله وأطرافه، أو لتسويته ماليًا، أو لتجميد أتعابه.'));
     box.append(controlsBar([
       searchBox(q, 'ابحث برقم الطلب أو الاسم أو الهاتف', (value) => { current.search = value; render(); }),
-      filterSelect([['', 'كل الحالات'], ...Object.entries(STATUS).map(([key, [label]]) => [key, label])], status,
-        (value) => { current.status = value; render(); }, 'filter'),
+      filterButtons([['', 'كل الحالات'], ...Object.entries(STATUS).map(([key, [label]]) => [key, label])], status,
+        (value) => { current.status = value; render(); }),
       ...dateFilters(),
     ]));
     box.append(table(['رقم الطلب', 'الموكل', 'المحامي', 'المشكلة', 'المبلغ', 'الحالة', 'التاريخ'], data.map((item) => ({
       item, cells: [
-        el('strong', item.order_number, 'prod-name-ar'), personCell(item.client_name, null, statsOf(item, 'client')),
+        copyable(item.order_number), personCell(item.client_name, null, statsOf(item, 'client')),
         personCell(item.lawyer_name, null, statsOf(item, 'lawyer')), item.problem_type, item.price + ' ج.م', tag(item.status), date(item.created_at),
       ],
     })), (item) => open('order', item.id)));
@@ -7421,17 +7918,30 @@ body .custom-switch-toggle.active.sm .switch-knob {
 
     if (order.payout_status === 'FROZEN') box.append(frozenNote(order.payout_amount));
 
-    const buttons = [];
+    const canSettle = order.status === 'ACTIVE' || ['HELD', 'FROZEN'].includes(order.payout_status);
+    const settlement = canSettle ? await settlementParts(order.id) : null;
+    const orderActions = [];
+    if (settlement?.open) {
+      const settle = (outcome) => (values) => api('POST', '/admin/orders/' + order.id + '/settle', { outcome, note: values.note });
+      const noteStep = { key: 'note', type: 'text', label: 'ملاحظة القرار (اختيارية)', optional: true };
+      const noteLine = (values) => [['قيمة الطلب', order.price + ' ج.م'], ...(values.note ? [['الملاحظة', values.note]] : [])];
+      orderActions.push(
+        { title: 'رد المبلغ إلى الموكل', description: 'يعيد قيمة الطلب كاملة إلى رصيد الموكل، ولا يأخذ المحامي شيئًا. ولا يمكن التراجع عن ذلك.', steps: [noteStep], success: 'تم تنفيذ القرار', danger: true, summary: noteLine, run: settle('REFUND') },
+        { title: 'صرف الأتعاب للمحامي', description: 'يجعل أتعاب الطلب كاملة متاحة للمحامي ليسحبها. ولا يمكن التراجع عن ذلك.', steps: [noteStep], success: 'تم تنفيذ القرار', summary: noteLine, run: settle('LAWYER') });
+    }
+    if (['HELD', 'AVAILABLE', 'FROZEN'].includes(order.payout_status)) orderActions.push(freezeAction(order.id, order.payout_status === 'FROZEN'));
+
+    const buttons = orderActions.length ? [actionButton(orderActions)] : [];
     data.tickets.filter((item) => item.status !== 'CLOSED').forEach((item) => buttons.push(link('تذكرة ' + item.reference, () => open('ticket', item.id), 'btn-primary', 'complaint')));
     box.append(hero(avatarBox(null, 'orders'), 'طلب ' + order.order_number, [tag(order.status)],
-      [['calendar', 'تاريخ الطلب: ' + date(order.created_at)], ['money', order.price + ' ج.م']], buttons));
+      [['orders', copyable(order.order_number)], ['calendar', 'تاريخ الطلب: ' + date(order.created_at)], ['money', order.price + ' ج.م']], buttons));
 
     box.append(summaryBar([
       ['السعر', order.price + ' ج.م', 'money', 'brand'], ['صافي المحامي', order.lawyer_amount + ' ج.م', 'lawyer', 'green'],
       ['نسبة المنصة', order.commission_percent + '%', 'price', 'blue'], ['الضريبة', order.tax_percent + '%', 'orders', 'amber'],
     ]));
 
-    const list = [['summary', 'الملخص'], ['stages', 'المراحل', data.logs.length], ['money', 'الأموال', data.movements.length], ['actions', 'الإجراءات']];
+    const list = [['summary', 'الملخص'], ['stages', 'المراحل', data.logs.length], ['money', 'الأموال', data.movements.length]];
     const active = list.some(([key]) => key === current.tab) ? current.tab : 'summary';
     box.append(tabs(list, active, (key) => { current.tab = key; render(); }));
     const pane = el('div', undefined, 'tab-content-pane');
@@ -7444,7 +7954,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
       pane.append(section('تفاصيل المشكلة', details([['المشكلة', order.problem_type], ['الوصف', order.problem_description]])));
       if (data.tickets.length) {
         pane.append(section('تذاكر الدعم الفني', table(['رقم التذكرة', 'العنوان', 'من', 'الحالة', 'التاريخ'], data.tickets.map((item) => ({
-          item, cells: [item.reference, item.title, item.user_role === 'lawyer' ? 'المحامي' : 'الموكل', ticketStatus(item.status), date(item.created_at)],
+          item, cells: [copyable(item.reference), item.title, item.user_role === 'lawyer' ? 'المحامي' : 'الموكل', ticketStatus(item.status), date(item.created_at)],
         })), (item) => open('ticket', item.id))));
       }
       if (data.reviews.length) {
@@ -7468,29 +7978,35 @@ body .custom-switch-toggle.active.sm .switch-knob {
     }
 
     if (active === 'money') {
+      if (settlement) pane.append(section('بيانات التسوية', settlement.facts));
+      if (data.payment) {
+        pane.append(section('الدفعة', details([
+          ['رقم الدفعة', copyable(data.payment.reference)], ['المبلغ', Number(data.payment.amount) + ' ج.م'],
+          ['الطريقة', badge(...(PAYMENT_METHODS[data.payment.method] || [data.payment.method, 'gray']))], ['تاريخ الدفع', date(data.payment.paid_at)],
+        ])));
+      }
       pane.append(section('حالة الأتعاب', details([
         ['حالة الأتعاب', PAYOUT[order.payout_status] || order.payout_status], ['صافي المحامي', Number(order.payout_amount ?? order.lawyer_amount ?? 0) + ' ج.م'],
       ])));
-      pane.append(section('حركات الرصيد على هذا الطلب', table(['التاريخ', 'المبلغ', 'الحساب', 'السبب', 'بواسطة'], data.movements.map((item) => ({
-        item, cells: [date(item.created_at), money(item.amount), personCell(item.account_name, item.account_role === 'lawyer' ? 'محامٍ' : 'موكل'), item.reason, item.created_by || 'النظام'],
-      })))));
+      const moveText = (item) => {
+        const amount = Math.abs(Number(item.amount)) + ' ج.م';
+        const who = item.account_name + ' (' + (item.account_role === 'lawyer' ? 'المحامي' : 'الموكل') + ')';
+        return Number(item.amount) > 0 ? 'أُضيف ' + amount + ' إلى ' + who : 'خُصم ' + amount + ' من ' + who;
+      };
+      pane.append(section('الأموال التي تحركت في هذا الطلب', data.movements.length
+        ? table(['ماذا حدث؟', 'السبب', 'من نفذها؟', 'متى؟'], data.movements.map((item) => ({
+          item, cells: [
+            el('strong', moveText(item), Number(item.amount) > 0 ? 'text-success' : 'text-danger'), item.reason,
+            item.created_by ? 'الإدارة' : 'النظام تلقائيًا', date(item.created_at),
+          ],
+        })))
+        : el('p', 'لم تتحرك أي أموال على هذا الطلب حتى الآن.', 'muted')));
       pane.append(section('سجل التجميد', table(['التاريخ', 'الإجراء', 'المبلغ', 'السبب', 'بواسطة'], data.events.map((item) => ({
         item, cells: [date(item.created_at), badge(...(PAYOUT_ACTIONS[item.action] || [item.action, 'gray'])), Number(item.amount) + ' ج.م', item.reason, item.created_by || 'تلقائي من النظام'],
       })))));
       return;
     }
 
-    const canSettle = order.status === 'ACTIVE' || ['HELD', 'FROZEN'].includes(order.payout_status);
-    const settlement = canSettle ? await settlementParts(order.id) : null;
-    if (settlement) pane.append(section('بيانات التسوية', settlement.facts));
-    const tiles = [];
-    if (settlement) tiles.push(actionTile('التسوية المالية', ...settlement.controls));
-    if (['HELD', 'AVAILABLE', 'FROZEN'].includes(order.payout_status)) {
-      const frozen = order.payout_status === 'FROZEN';
-      tiles.push(actionTile('تجميد الأتعاب', button(frozen ? 'فك التجميد' : 'تجميد الأتعاب', frozen ? 'btn-primary' : 'btn-outline-danger',
-        () => api('POST', '/admin/orders/' + order.id + '/freeze', { freeze: !frozen }), frozen ? 'تم فك التجميد' : 'تم تجميد الأتعاب', 'power')));
-    }
-    pane.append(tiles.length ? actionsSection(tiles) : section('الإجراءات', el('p', 'لا توجد إجراءات متاحة على هذا الطلب الآن.', 'muted')));
   }
 
   async function reviewsPage(box) {
@@ -7505,7 +8021,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     box.append(guide('تظهر التقييمات في ملف المحامي فور إرسالها. أما بلاغات المحامين عن التقييمات فتظهر في صفحة بلاغات التقييمات.'));
     box.append(controlsBar([stateFilter([['', 'كل الحالات'], ['shown', 'ظاهر'], ['hidden', 'مخفي']]), ...dateFilters()]));
     box.append(table(['المحامي', 'التقييم', 'التعليق', 'رقم الطلب', 'الحالة', 'التاريخ'], shown.map((item) => ({
-      item, cells: [item.lawyer_name, item.rating + ' / 5', item.comment, item.order_number, item.is_hidden ? badge('مخفي', 'gray') : badge('ظاهر', 'green'), date(item.created_at)],
+      item, cells: [item.lawyer_name, item.rating + ' / 5', item.comment, copyOr(item.order_number), item.is_hidden ? badge('مخفي', 'gray') : badge('ظاهر', 'green'), date(item.created_at)],
     })), (item) => open('order', item.order_id)));
   }
 
@@ -7525,26 +8041,34 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const taxInput = input(tax.data.percent, '', 'small');
     taxInput.type = 'number';
 
-    box.append(table(['الخدمة', 'من', 'إلى', 'نسبة المنصة %', 'الإجراءات'], prices.data.map((item) => {
-      const min = input(Number(item.min_price), '', 'small');
-      const max = input(Number(item.max_price), '', 'small');
-      const commission = input(Number(item.commission_percent), '', 'small');
-      [min, max, commission].forEach((node) => { node.type = 'number'; });
-      const save = button('حفظ', 'btn-primary btn-xs', () => api('PUT', '/admin/prices', {
-        problemType: item.problem_type,
-        minPrice: Number(min.value),
-        maxPrice: Number(max.value),
-        commissionPercent: Number(commission.value),
-      }));
-      return { item, cells: [el('strong', item.problem_type, 'prod-name-ar'), min, max, commission, save] };
-    })));
+    box.append(table(['الخدمة', 'من', 'إلى', 'نسبة المنصة %'], list.map((item) => ({
+      item, cells: [el('strong', item.problem_type, 'prod-name-ar'), Number(item.min_price) + ' ج.م', Number(item.max_price) + ' ج.م', Number(item.commission_percent) + '%'],
+    }))));
+
+    const min = input('', 'أقل سعر', 'small');
+    const max = input('', 'أعلى سعر', 'small');
+    const commission = input('', 'نسبة المنصة %', 'small');
+    [min, max, commission].forEach((node) => { node.type = 'number'; });
+    const fill = (name) => {
+      const item = list.find((row) => row.problem_type === name);
+      if (!item) return;
+      min.value = Number(item.min_price);
+      max.value = Number(item.max_price);
+      commission.value = Number(item.commission_percent);
+    };
+    const service = filterSelect(list.map((item) => [item.problem_type, item.problem_type]), list[0]?.problem_type || '', fill, 'orders');
+    fill(list[0]?.problem_type);
 
     box.append(guide('تُخصم الضريبة من السعر أولًا، ثم تُحسب نسبة المنصة من الصافي. وتُطبَّق التغييرات على الطلبات الجديدة فقط.'));
     box.append(actionsSection([
-      actionTile('نسبة المنصة لكل الخدمات', percent,
-        button('تطبيق على الكل', 'btn-primary', confirmed('هل تريد تطبيق هذه النسبة على كل الخدمات؟', () => api('POST', '/admin/commission', { percent: Number(percent.value) })))),
-      actionTile('نسبة الضريبة', taxInput,
-        button('حفظ الضريبة', 'btn-primary', confirmed('هل تريد تغيير نسبة الضريبة؟', () => api('POST', '/admin/tax', { percent: Number(taxInput.value) })))),
+      actionTile('تعديل سعر خدمة', 'يغير أقل سعر وأعلى سعر ونسبة المنصة للخدمة التي تختارها.', service, min, max, commission,
+        button('حفظ', 'btn-primary', () => api('PUT', '/admin/prices', {
+          problemType: service.querySelector('select').value, minPrice: Number(min.value), maxPrice: Number(max.value), commissionPercent: Number(commission.value),
+        }))),
+      actionTile('نسبة المنصة لكل الخدمات', 'يطبق النسبة التي تكتبها على كل الخدمات مرة واحدة.', percent,
+        button('تطبيق', 'btn-primary', confirmed('هل تريد تطبيق هذه النسبة على كل الخدمات؟', () => api('POST', '/admin/commission', { percent: Number(percent.value) })))),
+      actionTile('نسبة الضريبة', 'يغير نسبة الضريبة التي تُخصم من سعر كل طلب جديد.', taxInput,
+        button('حفظ', 'btn-primary', confirmed('هل تريد تغيير نسبة الضريبة؟', () => api('POST', '/admin/tax', { percent: Number(taxInput.value) })))),
     ]));
   }
 
@@ -7557,6 +8081,24 @@ body .custom-switch-toggle.active.sm .switch-knob {
     return hours < 24 ? hours + ' ساعة' : Math.floor(hours / 24) + ' يوم';
   }
 
+  const PAYMENT_METHODS = { WALLET: ['من الرصيد', 'blue'], DIRECT: ['دون بوابة دفع', 'amber'] };
+
+  function paymentState(item) {
+    return item.order_status === 'REFUNDED' || item.payout_status === 'REFUNDED' ? badge('مردودة', 'purple') : badge('مدفوعة', 'green');
+  }
+
+  /// One line per client payment, with the numbers ready to copy
+  function paymentsTable(list, withClient) {
+    const headers = ['رقم الدفعة', 'رقم الطلب', ...(withClient ? ['الموكل'] : []), 'المبلغ', 'الطريقة', 'الحالة', 'التاريخ'];
+    return table(headers, list.map((item) => ({
+      item,
+      cells: [
+        copyable(item.reference), copyable(item.order_number), ...(withClient ? [personCell(item.client_name, item.client_phone)] : []),
+        el('strong', Number(item.amount) + ' ج.م'), badge(...(PAYMENT_METHODS[item.method] || [item.method, 'gray'])), paymentState(item), date(item.paid_at),
+      ],
+    })), (item) => open('order', item.order_id));
+  }
+
   /// Every pound in one place: what is frozen, what moved, and the freeze history
   async function moneyPage(box) {
     const params = new URLSearchParams();
@@ -7566,11 +8108,11 @@ body .custom-switch-toggle.active.sm .switch-knob {
     const pounds = (value) => Number(value) + ' ج.م';
 
     box.append(summaryBar([
-      ['مجمدة', pounds(data.totals.frozen), 'power', 'red'], ['محجوزة 24 ساعة', pounds(data.totals.held), 'calendar', 'amber'],
+      ['مدفوعات الموكلين', pounds(data.totals.paid), 'orders', 'brand'], ['مجمدة', pounds(data.totals.frozen), 'power', 'red'], ['محجوزة 24 ساعة', pounds(data.totals.held), 'calendar', 'amber'],
       ['مضافة', pounds(data.totals.added), 'money', 'green'], ['مخصومة', pounds(data.totals.deducted), 'money', 'red'],
     ]));
 
-    const list = [['frozen', 'المجمدة', data.frozen.length], ['movements', 'الحركات', data.movements.length], ['events', 'سجل التجميد', data.events.length]];
+    const list = [['frozen', 'المجمدة', data.frozen.length], ['payments', 'المدفوعات', data.payments.length], ['movements', 'الحركات', data.movements.length], ['events', 'سجل التجميد', data.events.length]];
     const active = list.some(([key]) => key === current.tab) ? current.tab : 'frozen';
     box.append(tabs(list, active, (key) => { current.tab = key; render(); }));
 
@@ -7579,21 +8121,38 @@ body .custom-switch-toggle.active.sm .switch-knob {
       box.append(table(['رقم الطلب', 'المبلغ', 'المحامي', 'الموكل', 'سبب التجميد', 'مجمدة منذ', 'الإجراءات'], data.frozen.map((item) => ({
         item,
         cells: [
-          el('strong', item.order_number, 'prod-name-ar'), el('strong', pounds(item.payout_amount), 'text-danger'), item.lawyer_name, item.client_name,
+          copyable(item.order_number), el('strong', pounds(item.payout_amount), 'text-danger'), item.lawyer_name, item.client_name,
           item.reason || 'غير مسجل', waitingTime(item.frozen_at),
-          item.ticket_id ? openButton('فتح التذكرة', 'ticket', item.ticket_id) : openButton('فتح الطلب', 'order', item.order_id),
+          item.ticket_id ? openButton('فتح', 'ticket', item.ticket_id) : openButton('فتح', 'order', item.order_id),
         ],
       })), (item) => (item.ticket_id ? open('ticket', item.ticket_id) : open('order', item.order_id))));
       return;
     }
 
+    box.append(guide(active === 'payments'
+      ? 'كل دفعة دفعها موكل برقمها وطريقتها. اضغط على الرقم لنسخه، أو على السطر لفتح الطلب.'
+      : active === 'movements'
+      ? 'كل مبلغ أُضيف إلى رصيد أي حساب أو خُصم منه، مع سببه ومن نفذه. اضغط على سطر لفتح الحساب.'
+      : 'كل مرة جُمدت فيها أتعاب طلب أو فُك تجميدها أو سُويت، ومن قام بذلك. اضغط على سطر لفتح الطلب.'));
     box.append(controlsBar([
+      ...(active === 'payments' ? [
+        searchBox(current.search, 'ابحث برقم الدفعة أو الطلب أو الموكل', (value) => { current.search = value; render(); }),
+        filterButtons([['', 'كل الطرق'], ['WALLET', 'من الرصيد'], ['DIRECT', 'دون بوابة دفع']], current.method || '', (value) => { current.method = value; render(); }),
+      ] : []),
       ...(active === 'movements' ? [
         searchBox(current.search, 'ابحث بالاسم أو رقم الطلب أو السبب', (value) => { current.search = value; render(); }),
         stateFilter([['', 'كل الحركات'], ['add', 'إضافة'], ['deduct', 'خصم']]),
       ] : []),
       ...dateFilters(),
     ]));
+
+    if (active === 'payments') {
+      const q = (current.search || '').toLowerCase();
+      const shown = data.payments.filter((item) => (!current.method || item.method === current.method) &&
+        (!q || [item.reference, item.order_number, item.client_name, item.client_phone].some((text) => (text || '').toLowerCase().includes(q))));
+      box.append(paymentsTable(shown, true));
+      return;
+    }
 
     if (active === 'movements') {
       const q = (current.search || '').toLowerCase();
@@ -7604,7 +8163,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
         item,
         cells: [
           date(item.created_at), Number(item.amount) > 0 ? badge('إضافة', 'green') : badge('خصم', 'red'), money(item.amount),
-          personCell(item.account_name, item.account_role === 'lawyer' ? 'محامٍ' : 'موكل'), item.reason, item.order_number || '-', item.created_by || 'النظام',
+          personCell(item.account_name, item.account_role === 'lawyer' ? 'محامٍ' : 'موكل'), item.reason, copyOr(item.order_number), item.created_by || 'النظام',
         ],
       })), (item) => open('user', item.user_id)));
       return;
@@ -7614,7 +8173,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
       item,
       cells: [
         date(item.created_at), badge(...(PAYOUT_ACTIONS[item.action] || [item.action, 'gray'])), pounds(item.amount),
-        item.order_number, item.reason, item.created_by || 'تلقائي من النظام',
+        copyable(item.order_number), item.reason, item.created_by || 'تلقائي من النظام',
       ],
     })), (item) => open('order', item.order_id)));
   }
@@ -7672,6 +8231,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
   function navItem(title, name, onClick, isActive, count) {
     const item = el('button', undefined, 'nav-item' + (isActive ? ' active' : ''));
     item.type = 'button';
+    item.title = title;
     item.append(icon(name, 'nav-icon'), el('span', title, 'nav-label'));
     if (count > 0) item.append(el('span', count, 'nav-count'));
     item.addEventListener('click', onClick);
@@ -7735,7 +8295,82 @@ body .custom-switch-toggle.active.sm .switch-knob {
     saveSession({ accessToken: json.data.accessToken, refreshToken: json.data.refreshToken });
     $('password').value = '';
     render();
+    showAccount();
     toast('مرحبًا بك');
+  }
+
+  /// The search in the top header: accounts, orders and tickets in one list
+  function setupGlobalSearch() {
+    const box = $('global-search');
+    const field = el('input', undefined, 'global-search-input');
+    field.type = 'search';
+    field.placeholder = 'ابحث عن حساب أو طلب أو تذكرة';
+    field.setAttribute('aria-label', 'بحث شامل');
+    const results = el('div', undefined, 'global-search-results');
+    results.hidden = true;
+    box.append(icon('search', 'global-search-icon'), field, results);
+
+    let timer = null;
+    let latest = 0;
+    const close = () => { results.hidden = true; };
+    const row = (title, detail, onPick) => {
+      const node = el('button', undefined, 'global-search-row');
+      node.type = 'button';
+      node.append(el('strong', title), el('span', detail));
+      node.addEventListener('click', () => {
+        close();
+        field.value = '';
+        setMenu(false);
+        onPick();
+      });
+      return node;
+    };
+    const show = ({ users, orders, tickets }) => {
+      const groups = [
+        ['الحسابات', users.map((item) => row(item.name, (item.role === 'lawyer' ? 'محامٍ' : 'موكل') + ' • ' + item.phone, () => open('user', item.id)))],
+        ['الطلبات', orders.map((item) => row(item.order_number, item.client_name + ' • ' + (item.lawyer_name || '-'), () => open('order', item.id)))],
+        ['التذاكر', tickets.map((item) => row(item.reference, item.title, () => open('ticket', item.id)))],
+      ].filter(([, rows]) => rows.length);
+      results.replaceChildren(...(groups.length
+        ? groups.flatMap(([title, rows]) => [el('div', title, 'global-search-group'), ...rows])
+        : [el('p', 'لا توجد نتائج', 'global-search-empty')]));
+      results.hidden = false;
+    };
+    field.addEventListener('input', () => {
+      clearTimeout(timer);
+      const q = field.value.trim();
+      const ticket = ++latest;
+      if (q.length < 2) { close(); return; }
+      timer = setTimeout(async () => {
+        try {
+          const { data } = await api('GET', '/admin/search?q=' + encodeURIComponent(q));
+          if (ticket === latest) show(data);
+        } catch (err) {
+          toast(err.message, true);
+        }
+      }, 300);
+    });
+    field.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
+    document.addEventListener('click', (event) => { if (!box.contains(event.target)) close(); });
+  }
+  setupGlobalSearch();
+
+  const MENU_KEY = 'my-lawyer-admin-menu';
+  function setCollapsed(isCollapsed) {
+    $('sidebar').classList.toggle('collapsed', isCollapsed);
+    try { localStorage.setItem(MENU_KEY, isCollapsed ? '1' : '0'); } catch { /* remembered for this visit only */ }
+  }
+  try { setCollapsed(localStorage.getItem(MENU_KEY) === '1'); } catch { /* opens expanded */ }
+  $('sidebar-toggle').addEventListener('click', () => setCollapsed(!$('sidebar').classList.contains('collapsed')));
+
+  /// The signed-in account at the left edge of the top header
+  async function showAccount() {
+    try {
+      const { data } = await api('GET', '/users/me');
+      const box = $('header-account');
+      box.title = data.email || '';
+      box.replaceChildren(icon('lawyer'), el('span', data.fullName || data.email || data.phone || 'حساب الإدارة'));
+    } catch { /* the page works without the name */ }
   }
 
   $('menu-button').addEventListener('click', () => setMenu(true));
@@ -7745,7 +8380,7 @@ body .custom-switch-toggle.active.sm .switch-knob {
     event.preventDefault();
     signIn();
   });
-  if (session) render();
+  if (session) { render(); showAccount(); }
 </script>
 </body>
 </html>

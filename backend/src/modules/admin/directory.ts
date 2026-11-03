@@ -5,6 +5,7 @@ import { sanitizeText } from '../../utils/security.js';
 import { addWarning, adjustBalance, applySettlement, evaluateSettlement, logPayoutEvent, revokeWarning, SettlementOutcome } from '../lifecycle/settlement.js';
 
 const PAGE_LIMIT = 100;
+const SEARCH_LIMIT = 6;
 
 /// Orders and tickets of one account, shown next to it wherever the control page lists it
 export function userStats(id: string, prefix: string) {
@@ -34,6 +35,35 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
         (SELECT COALESCE(SUM(price), 0) FROM service_orders WHERE status = 'COMPLETED') AS completed_value
     `);
     return reply.send({ success: true, data: res.rows[0] });
+  });
+
+  // GET /api/v1/admin/search?q= - One search over accounts, orders and tickets for the top header
+  fastify.get('/search', async (request: FastifyRequest, reply: FastifyReply) => {
+    const q = ((request.query as { q?: string }).q ?? '').trim().slice(0, 100);
+    if (q.length < 2) return reply.send({ success: true, data: { users: [], orders: [], tickets: [] } });
+    const pattern = `%${q.replace(/[\\%_]/g, '\\$&')}%`;
+
+    const [users, orders, tickets] = await Promise.all([
+      query(
+        `SELECT u.id, u.role, u.phone, COALESCE(lp.full_name, u.full_name, u.phone) AS name
+         FROM users u LEFT JOIN lawyer_profiles lp ON lp.user_id = u.id
+         WHERE u.role IN ('client', 'lawyer')
+           AND (COALESCE(lp.full_name, u.full_name, '') ILIKE $1 OR u.phone ILIKE $1 OR u.email ILIKE $1)
+         ORDER BY u.created_at DESC LIMIT $2`, [pattern, SEARCH_LIMIT]),
+      query(
+        `SELECT o.id, o.order_number, o.status, COALESCE(c.full_name, c.phone) AS client_name, lp.full_name AS lawyer_name
+         FROM service_orders o
+         JOIN users c ON c.id = o.client_id
+         LEFT JOIN lawyer_profiles lp ON lp.user_id = o.lawyer_id
+         WHERE o.order_number ILIKE $1 OR COALESCE(c.full_name, '') ILIKE $1 OR c.phone ILIKE $1 OR COALESCE(lp.full_name, '') ILIKE $1
+         ORDER BY o.created_at DESC LIMIT $2`, [pattern, SEARCH_LIMIT]),
+      query(
+        `SELECT t.id, t.reference, t.title, t.status
+         FROM support_tickets t
+         WHERE t.reference ILIKE $1 OR t.title ILIKE $1
+         ORDER BY t.created_at DESC LIMIT $2`, [pattern, SEARCH_LIMIT]),
+    ]);
+    return reply.send({ success: true, data: { users: users.rows, orders: orders.rows, tickets: tickets.rows } });
   });
 
   // GET /api/v1/admin/users?role=lawyer&q=
@@ -74,7 +104,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     );
     if (userRes.rows.length === 0) return reply.status(404).send({ success: false, error: 'الحساب غير موجود' });
 
-    const [orders, reviews, tickets, strikes, credits, warnings, adjustments, wallet] = await Promise.all([
+    const [orders, reviews, tickets, strikes, credits, warnings, adjustments, wallet, payments] = await Promise.all([
       query(
         `SELECT id, order_number, status, price, problem_type, created_at FROM service_orders
          WHERE client_id = $1 OR lawyer_id = $1 ORDER BY created_at DESC LIMIT $2`,
@@ -112,6 +142,10 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
            (SELECT COALESCE(SUM(payout_amount), 0) FROM service_orders WHERE lawyer_id = $1 AND payout_status = 'FROZEN') AS frozen,
            (SELECT COALESCE(SUM(payout_amount), 0) FROM service_orders WHERE lawyer_id = $1 AND payout_status = 'AVAILABLE')
              + (SELECT COALESCE(SUM(amount), 0) FROM lawyer_adjustments WHERE lawyer_id = $1) AS available`, [id]),
+      query(
+        `SELECT p.reference, p.amount, p.method, p.paid_at, p.order_id, o.order_number, o.status AS order_status, o.payout_status
+         FROM payments p JOIN service_orders o ON o.id = p.order_id
+         WHERE p.client_id = $1 ORDER BY p.paid_at DESC LIMIT $2`, [id, PAGE_LIMIT]),
     ]);
 
     return reply.send({
@@ -122,6 +156,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
         reviews: reviews.rows,
         tickets: tickets.rows,
         strikes: strikes.rows,
+        payments: payments.rows,
         credits: credits.rows,
         warnings: warnings.rows,
         adjustments: adjustments.rows,
@@ -194,7 +229,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     );
     if (orderRes.rows.length === 0) return reply.status(404).send({ success: false, error: 'الطلب غير موجود' });
 
-    const [logs, tickets, reviews, movements, events] = await Promise.all([
+    const [logs, tickets, reviews, movements, events, payments] = await Promise.all([
       query('SELECT old_status, new_status, note, created_at FROM order_status_logs WHERE order_id = $1 ORDER BY created_at ASC', [id]),
       query(`SELECT t.id, t.reference, t.title, t.category, t.status, t.created_at, u.role AS user_role
              FROM support_tickets t JOIN users u ON u.id = t.user_id WHERE t.order_id = $1 ORDER BY t.created_at DESC`, [id]),
@@ -214,12 +249,13 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
         `SELECT e.action, e.amount, e.reason, e.created_at, a.email AS created_by
          FROM payout_events e LEFT JOIN users a ON a.id = e.created_by
          WHERE e.order_id = $1 ORDER BY e.created_at DESC`, [id]),
+      query('SELECT reference, amount, method, paid_at FROM payments WHERE order_id = $1', [id]),
     ]);
 
     const { completion_code: _hidden, ...order } = orderRes.rows[0];
     return reply.send({
       success: true,
-      data: { order, logs: logs.rows, tickets: tickets.rows, reviews: reviews.rows, movements: movements.rows, events: events.rows },
+      data: { order, logs: logs.rows, tickets: tickets.rows, reviews: reviews.rows, movements: movements.rows, events: events.rows, payment: payments.rows[0] ?? null },
     });
   });
 

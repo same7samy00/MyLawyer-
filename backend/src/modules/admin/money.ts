@@ -25,11 +25,12 @@ export async function registerAdminMoney(fastify: FastifyInstance) {
       SELECT j.id, 'lawyer', j.lawyer_id, j.amount, j.reason, j.created_at, j.order_id, j.created_by
       FROM lawyer_adjustments j WHERE ${range('j.created_at')}`;
 
-    const [totals, frozen, movements, events] = await Promise.all([
+    const [totals, frozen, movements, events, payments] = await Promise.all([
       query(
         `SELECT
            (SELECT COALESCE(SUM(payout_amount), 0) FROM service_orders WHERE payout_status = 'FROZEN') AS frozen,
            (SELECT COALESCE(SUM(payout_amount), 0) FROM service_orders WHERE payout_status = 'HELD') AS held,
+           (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE ${range('p.paid_at')}) AS paid,
            COALESCE(SUM(m.amount) FILTER (WHERE m.amount > 0), 0) AS added,
            COALESCE(-SUM(m.amount) FILTER (WHERE m.amount < 0), 0) AS deducted
          FROM (${movementsSql}) m`, days),
@@ -67,11 +68,19 @@ export async function registerAdminMoney(fastify: FastifyInstance) {
          LEFT JOIN users a ON a.id = e.created_by
          WHERE ${range('e.created_at')}
          ORDER BY e.created_at DESC LIMIT ${LIST_LIMIT}`, days),
+      query(
+        `SELECT p.id, p.reference, p.amount, p.method, p.paid_at, p.client_id, p.order_id, o.order_number, o.status AS order_status, o.payout_status,
+                COALESCE(c.full_name, c.phone) AS client_name, c.phone AS client_phone
+         FROM payments p
+         JOIN service_orders o ON o.id = p.order_id
+         JOIN users c ON c.id = p.client_id
+         WHERE ${range('p.paid_at')}
+         ORDER BY p.paid_at DESC LIMIT ${LIST_LIMIT}`, days),
     ]);
 
     return reply.send({
       success: true,
-      data: { totals: totals.rows[0], frozen: frozen.rows, movements: movements.rows, events: events.rows },
+      data: { totals: totals.rows[0], frozen: frozen.rows, movements: movements.rows, events: events.rows, payments: payments.rows },
     });
   });
 }

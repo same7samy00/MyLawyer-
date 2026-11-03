@@ -600,6 +600,11 @@ export async function orderRoutes(fastify: FastifyInstance) {
       );
 
       await client.query(
+        'INSERT INTO payments (order_id, client_id, amount, method) VALUES ($1, $2, $3, $4) ON CONFLICT (order_id) DO NOTHING',
+        [order.id, userId, order.price, body.method === 'wallet' ? 'WALLET' : 'DIRECT']
+      );
+
+      await client.query(
         `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)
          VALUES ($1, $2, $3, 'ACTIVE', 'تم سداد الرسوم وبدء سريان المهمة')`,
         [order.id, userId, order.status]

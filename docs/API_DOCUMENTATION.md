@@ -125,7 +125,8 @@
 | `/admin/support/:id/note` | `POST` | ملاحظة داخلية للإدارة بس |
 | `/admin/orders/:id` | `GET` | تفاصيل الطلب ومراحله وتذاكره وتقييمه، وحركات الرصيد `movements` وسجل التجميد `events` |
 | `/admin/users/:id/warnings` | `POST` | توجيه إنذار بسبب `reason`، ورقم طلب اختياري `orderNumber` |
-| `/admin/money` | `GET` | الأموال المجمدة والمحجوزة، والحركات، وسجل التجميد. يقبل `from` و`to` بصيغة `YYYY-MM-DD` |
+| `/admin/search` | `GET` | بحث شامل بـ `q` (حرفين على الأقل) في الحسابات والطلبات والتذاكر، ولحد 6 نتائج لكل نوع |
+| `/admin/money` | `GET` | الأموال المجمدة والمحجوزة، والمدفوعات، والحركات، وسجل التجميد. يقبل `from` و`to` بصيغة `YYYY-MM-DD` |
 | `/admin/support/:id/transfer` | `POST` | تحويل مبلغ بين طرفي طلب التذكرة في خطوة واحدة: `from` (`lawyer` أو `client`) و`amount` و`reason` |
 | `/admin/support/:id/close` | `POST` | قفل التذكرة برسالة اختيارية `body`. لا يغير الفلوس، والقرار المالي من `/admin/orders/:id/settle` |
 | `/admin/urgent-applications` | `GET` | طلبات الانضمام بالصورة الشخصية وبيانات الكارنيه |
