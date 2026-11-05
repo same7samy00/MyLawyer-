@@ -11,7 +11,6 @@ import '../../data/repositories/lawyer_repository.dart';
 import 'lawyer_account_tab.dart';
 import 'lawyer_home_tab.dart';
 import 'lawyer_orders_tab.dart';
-import 'lawyer_requests_tab.dart';
 import 'lawyer_wallet_tab.dart';
 
 /// الحاوية الرئيسية المستقلة لتبويبات المحامي
@@ -33,8 +32,7 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
 
   static const List<String> _tabTitles = [
     'الرئيسية',
-    'استقبال الطلبات',
-    'سجل الطلبات',
+    'طلباتي',
     'المحفظة',
     'الحساب',
   ];
@@ -108,7 +106,7 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
     _dataRefresh.value++;
   }
 
-  /// لمس إشعار يفتح صفحته، والإشعار اللي مش مربوط بصفحة يفتح استقبال الطلبات.
+  /// لمس إشعار يفتح صفحته، والإشعار اللي مش مربوط بصفحة يفتح الطلبات.
   /// بيستنى لحد ما الصفحة تترسم، عشان الإشعار ممكن يوصل والتطبيق لسه بيفتح
   void _onOpenRequest() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -136,10 +134,8 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
       case 0:
         return const LawyerHomeTab();
       case 1:
-        return LawyerRequestsTab(refreshSignal: _dataRefresh);
-      case 2:
         return LawyerOrdersTab(refreshSignal: _dataRefresh);
-      case 3:
+      case 2:
         return LawyerWalletTab(refreshSignal: _dataRefresh);
       default:
         return const LawyerAccountTab();
@@ -168,7 +164,6 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
           activeIndex: _currentIndex,
           onTabSelected: _onTabSelected,
           ordersBadge: NotificationCenter.pendingOrders,
-          isLawyer: true,
         ),
       ),
     );

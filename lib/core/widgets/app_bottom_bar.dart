@@ -8,15 +8,11 @@ class AppBottomBar extends StatelessWidget {
   final ValueChanged<int> onTabSelected;
   final ValueListenable<int>? ordersBadge;
 
-  /// المحامي عنده تبويب لاستقبال الطلبات وتبويب لسجلها
-  final bool isLawyer;
-
   const AppBottomBar({
     super.key,
     required this.activeIndex,
     required this.onTabSelected,
     this.ordersBadge,
-    this.isLawyer = false,
   });
 
   @override
@@ -50,44 +46,34 @@ class AppBottomBar extends StatelessWidget {
               ),
             ),
 
-            // 2. الطلبات، وللمحامي الاستقبال والسجل
+            // 2. الطلبات
             Expanded(
               child: _buildBottomTab(
                 index: 1,
-                label: isLawyer ? 'الاستقبال' : 'الطلبات',
-                icon: isLawyer ? Icons.notifications_active_rounded : Icons.receipt_long_rounded,
+                label: 'الطلبات',
+                icon: Icons.receipt_long_rounded,
                 isActive: activeIndex == 1,
                 badge: ordersBadge,
               ),
             ),
 
-            if (isLawyer)
-              Expanded(
-                child: _buildBottomTab(
-                  index: 2,
-                  label: 'السجل',
-                  icon: Icons.receipt_long_rounded,
-                  isActive: activeIndex == 2,
-                ),
-              ),
-
-            // المحفظة
+            // 3. المحفظة
             Expanded(
               child: _buildBottomTab(
-                index: isLawyer ? 3 : 2,
+                index: 2,
                 label: 'المحفظة',
                 icon: Icons.account_balance_wallet_rounded,
-                isActive: activeIndex == (isLawyer ? 3 : 2),
+                isActive: activeIndex == 2,
               ),
             ),
 
-            // الحساب
+            // 4. الحساب
             Expanded(
               child: _buildBottomTab(
-                index: isLawyer ? 4 : 3,
+                index: 3,
                 label: 'الحساب',
                 icon: Icons.person_rounded,
-                isActive: activeIndex == (isLawyer ? 4 : 3),
+                isActive: activeIndex == 3,
               ),
             ),
           ],

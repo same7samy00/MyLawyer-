@@ -5,7 +5,7 @@ import '../../core/services/api_service.dart';
 import '../../data/models/order_model.dart';
 import '../../data/repositories/order_repository.dart';
 import '../support/ticket_details_screen.dart';
-import '../urgent_service/order_details_screen.dart';
+import '../urgent_service/order_details_sheet.dart';
 
 /// يفتح الصفحة اللي الإشعار بيتكلم عنها: التذكرة، أو تفاصيل الطلب
 class NotificationRouter {
@@ -31,7 +31,8 @@ class NotificationRouter {
     final order = (orders.data ?? const <OrderModel>[]).where((item) => item.id == orderId).firstOrNull;
     if (order == null) return false;
 
-    await navigator.push(MaterialPageRoute(builder: (_) => OrderDetailsScreen(order: order, isLawyer: isLawyer)));
+    if (!context.mounted) return false;
+    await OrderDetailsSheet.open(context, order, isLawyer: isLawyer);
     return true;
   }
 }

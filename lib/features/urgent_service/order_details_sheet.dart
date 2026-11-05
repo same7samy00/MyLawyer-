@@ -9,7 +9,6 @@ import '../../core/services/external_navigation.dart';
 import '../../core/services/location_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
-import '../../core/widgets/app_header.dart';
 import '../../core/widgets/order_action_sheets.dart';
 import '../../core/widgets/order_status_tracker.dart';
 import '../../core/widgets/response_countdown.dart';
@@ -19,18 +18,32 @@ import '../support/new_ticket_screen.dart';
 import '../support/ticket_details_screen.dart';
 import 'payment_screen.dart';
 
-/// كل تفاصيل الطلب وإجراءاته للموكل والمحامي في صفحة واحدة
-class OrderDetailsScreen extends StatefulWidget {
+/// كل تفاصيل الطلب وإجراءاته للموكل والمحامي في بوتن شيت، وبتتحدث لوحدها
+class OrderDetailsSheet extends StatefulWidget {
   final OrderModel order;
   final bool isLawyer;
 
-  const OrderDetailsScreen({super.key, required this.order, this.isLawyer = false});
+  const OrderDetailsSheet({super.key, required this.order, this.isLawyer = false});
+
+  static Future<void> open(BuildContext context, OrderModel order, {bool isLawyer = false}) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20.0))),
+      clipBehavior: Clip.antiAlias,
+      builder: (_) => SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.85,
+        child: OrderDetailsSheet(order: order, isLawyer: isLawyer),
+      ),
+    );
+  }
 
   @override
-  State<OrderDetailsScreen> createState() => _OrderDetailsScreenState();
+  State<OrderDetailsSheet> createState() => _OrderDetailsSheetState();
 }
 
-class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
+class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   late OrderModel _order = widget.order;
   Timer? _refreshTimer;
   bool _isFetching = false;
@@ -257,7 +270,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppHeader(title: 'تفاصيل الطلب', isInnerPage: true),
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.primary,
@@ -266,6 +278,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(18),
             children: [
+              const Text(
+                'تفاصيل الطلب',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.dark),
+              ),
+              const SizedBox(height: 12),
               if (order.isPending) ...[
                 ResponseCountdown(secondsLeft: order.responseSecondsLeft, onFinished: _load),
                 const SizedBox(height: 12),

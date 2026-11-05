@@ -1,5 +1,9 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [One Orders Page] - 2026-11-05
+- **Lawyer:** requests and order history are one page again, with new and running cards on top and a status list on each request. The bottom bar is back to 4 tabs.
+- **Details:** order details are now a bottom sheet for both sides. In the lawyer's request sheet, «ابعت عرضك» switches to the price form, and sending closes the sheet.
+
 ## [Sound and Status] - 2026-11-05
 - **Open app:** a change that used to notify now plays a sound and vibrates, with no device notification. With the app in the background, the device notification stays.
 - **Lawyer offer page:** a status list follows the sent price.

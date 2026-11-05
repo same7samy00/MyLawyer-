@@ -5,8 +5,9 @@ import 'package:my_lawyer/core/services/api_service.dart';
 import 'package:my_lawyer/core/services/auth_service.dart';
 import 'package:my_lawyer/data/models/order_model.dart';
 import 'package:my_lawyer/data/models/service_request.dart';
-import 'package:my_lawyer/features/lawyer/request_offer_screen.dart';
+import 'package:my_lawyer/features/lawyer/request_offer_sheet.dart';
 import 'package:my_lawyer/features/client/orders_tab.dart';
+import 'package:my_lawyer/features/lawyer/lawyer_orders_tab.dart';
 import 'package:my_lawyer/features/support/support_screen.dart';
 import 'package:my_lawyer/features/auth/account_suspended_screen.dart';
 import 'package:my_lawyer/features/auth/session_router.dart';
@@ -144,7 +145,8 @@ void main() {
         {...sampleOrder(status: 'ACTIVE'), 'arrivedAt': DateTime.now().toIso8601String()},
       ];
       await openOrderDetails(tester);
-      expect(find.byType(BottomSheet), findsNothing);
+      // شيت التفاصيل مفتوح لوحده
+      expect(find.byType(BottomSheet), findsOneWidget);
 
       backend.orders = [
         {...sampleOrder(status: 'COMPLETED'), 'completedAt': DateTime.now().toIso8601String()},
@@ -152,8 +154,8 @@ void main() {
       await tester.pump(const Duration(seconds: 31));
       await settleAsync(tester);
 
-      expect(find.byType(BottomSheet), findsOneWidget);
-      expect(find.descendant(of: find.byType(BottomSheet), matching: find.text('قيّم المحامي')), findsOneWidget);
+      expect(find.byType(BottomSheet), findsNWidgets(2));
+      expect(find.descendant(of: find.byType(BottomSheet).last, matching: find.text('قيّم المحامي')), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
     });
@@ -357,25 +359,44 @@ void main() {
         expect((jsonDecode(request.body) as Map<String, dynamic>)['price'], 1000);
         return FakeBackend.json(201, {'success': true});
       };
-      await tester.pumpWidget(testApp(const RequestOfferScreen(
+      await tester.pumpWidget(testApp(const Scaffold(body: RequestOfferSheet(
         request: IncomingRequest(id: 'req-1', problemType: 'محضر', problemDescription: 'وصف', area: 'محافظة القاهرة', distanceKm: 4, minPrice: 500, maxPrice: 1500, netRate: 0.7, secondsLeft: 100),
-      )));
+      ))));
       await tester.pump();
 
+      await tester.tap(find.text('ابعت عرضك'));
+      await tester.pump();
       await tester.enterText(find.byType(TextField), '200');
       await tester.pump();
       expect(find.text('السعر لازم يكون من 500 لـ 1500 ج.م'), findsOneWidget);
-      await tester.tap(find.text('ابعت العرض'));
+      await tester.tap(find.text('إرسال'));
       await tester.pump();
       expect(backend.countOf('POST /requests/req-1/offer'), 0);
 
       await tester.tap(find.text('المتوسط'));
       await tester.pump();
       expect(find.text('صافي ليك: 700 ج.م'), findsOneWidget);
-      await tester.tap(find.text('ابعت العرض'));
+      await tester.tap(find.text('إرسال'));
       await tester.pump(const Duration(milliseconds: 300));
       expect(backend.countOf('POST /requests/req-1/offer'), 1);
-      expect(find.text('عرضك: 1000 ج.م'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('طلب جديد يظهر أول صفحة طلبات المحامي بزر التفاصيل', (tester) async {
+      backend.overrides['GET /requests/incoming'] = (_) => FakeBackend.json(200, {
+            'success': true,
+            'data': [
+              {'id': 'req-1', 'problemType': 'محضر', 'problemDescription': 'وصف', 'distanceKm': 4, 'minPrice': 500, 'maxPrice': 1500, 'netRate': 0.7, 'secondsLeft': 100},
+            ],
+          });
+      await tester.pumpWidget(testApp(const Scaffold(body: LawyerOrdersTab())));
+      await settleAsync(tester);
+
+      expect(find.text('الطلب وصل'), findsOneWidget);
+      await tester.tap(find.text('تفاصيل الطلب'));
+      await settleAsync(tester);
+      expect(find.text('ابعت عرضك'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
     });

@@ -9,7 +9,7 @@ import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/order_summary_card.dart';
 import '../../data/models/order_model.dart';
 import '../../data/repositories/order_repository.dart';
-import '../urgent_service/order_details_screen.dart';
+import '../urgent_service/order_details_sheet.dart';
 
 class OrdersTab extends StatefulWidget {
   /// إشارة من الحاوية لتحديث القائمة عند العودة لهذا التبويب
@@ -76,9 +76,7 @@ class _OrdersTabState extends State<OrdersTab> {
   }
 
   Future<void> _openDetails(OrderModel order) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => OrderDetailsScreen(order: order)),
-    );
+    await OrderDetailsSheet.open(context, order);
     if (mounted) await _loadOrders();
   }
 
@@ -132,7 +130,7 @@ class _OrdersTabState extends State<OrdersTab> {
               padding: const EdgeInsets.only(bottom: 12),
               child: OrderSummaryCard(
                 order: order,
-                onOpen: () => _openDetails(order),
+                onOpen: () { _openDetails(order); },
               ),
             );
           },
