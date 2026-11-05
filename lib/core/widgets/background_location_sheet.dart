@@ -1,43 +1,148 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import '../constants/app_colors.dart';
+import '../services/push_service.dart';
 import 'app_button.dart';
 
-/// شرح إذن الموقع طول الوقت للمحامي المتاح، ويظهر مرة في كل فتحة للتطبيق لحد ما الإذن يتفعل
-class BackgroundLocationSheet extends StatelessWidget {
+/// خطوات تجهيز الموبايل قبل ما المحامي يبقى متاح، عشان تجيله طلبات وهو برّه التطبيق
+class BackgroundLocationSheet extends StatefulWidget {
   const BackgroundLocationSheet({super.key});
 
-  static bool _askedThisRun = false;
-
-  /// لو قفل «متاح» وفتحها تاني، يتفكر بالإذن من جديد
-  static void resetForNextTime() => _askedThisRun = false;
-
-  static Future<void> showIfNeeded(BuildContext context) async {
-    final permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.always || _askedThisRun) return;
-    _askedThisRun = true;
-    if (!context.mounted) return;
-
-    await showModalBottomSheet<void>(
+  /// يرجع true لو الموقع والإشعارات جاهزين، وإلا الزر ما يتفعلش
+  static Future<bool> ensureReady(BuildContext context) async {
+    final ready = await showModalBottomSheet<bool>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
       builder: (context) => const BackgroundLocationSheet(),
     );
+    return ready == true;
   }
 
-  /// بعض الأجهزة ما بتعرضش نافذة «طول الوقت»، فلو الإذن ما اتفعلش بنفتح إعدادات التطبيق
-  static Future<void> _requestAlways() async {
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.whileInUse) permission = await Geolocator.requestPermission();
-    if (permission != LocationPermission.always) await Geolocator.openAppSettings();
+  @override
+  State<BackgroundLocationSheet> createState() => _BackgroundLocationSheetState();
+}
+
+class _BackgroundLocationSheetState extends State<BackgroundLocationSheet> with WidgetsBindingObserver {
+  static const _device = MethodChannel('mylawyer/device');
+
+  bool _locationReady = false;
+  bool _notificationsReady = false;
+  bool _batteryReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _check();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// الرجوع من إعدادات الموبايل يحدث العلامات
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _check();
+  }
+
+  Future<bool> _deviceCheck(String method) async {
+    try {
+      return await _device.invokeMethod<bool>(method) ?? true;
+    } on MissingPluginException {
+      return true;
+    } on PlatformException {
+      return true;
+    }
+  }
+
+  Future<void> _check() async {
+    bool location = false;
+    try {
+      location = await Geolocator.isLocationServiceEnabled() &&
+          await Geolocator.checkPermission() == LocationPermission.always;
+    } catch (_) {}
+    final notifications = await _deviceCheck('notificationsEnabled');
+    final battery = await _deviceCheck('batteryExempt');
+    if (!mounted) return;
+    setState(() {
+      _locationReady = location;
+      _notificationsReady = notifications;
+      _batteryReady = battery;
+    });
+  }
+
+  /// بعض الأجهزة ما بتعرضش نافذة «طول الوقت»، فبنفتح إعدادات التطبيق
+  Future<void> _enableLocation() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        await Geolocator.openLocationSettings();
+        return;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.whileInUse) permission = await Geolocator.requestPermission();
+      if (permission != LocationPermission.always) await Geolocator.openAppSettings();
+    } catch (_) {}
+    await _check();
+  }
+
+  Future<void> _enableNotifications() async {
+    await PushService.requestPermission();
+    await _check();
+    if (!_notificationsReady) await Geolocator.openAppSettings();
+  }
+
+  Future<void> _enableBattery() async {
+    try {
+      await _device.invokeMethod<void>('openBatterySettings');
+    } catch (_) {
+      await Geolocator.openAppSettings();
+    }
+  }
+
+  Widget _step(String text, bool isDone, VoidCallback onEnable, {String? note}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(
+            isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            color: isDone ? AppColors.success : AppColors.textMuted,
+            size: 22,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(text, style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.dark)),
+                if (note != null && !isDone)
+                  Text(note, style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 11, color: AppColors.textMuted)),
+              ],
+            ),
+          ),
+          if (!isDone)
+            SizedBox(
+              width: 84,
+              child: AppButton.outlined(text: 'فعّل', height: 36, fontSize: 12, onPressed: onEnable),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final canStart = _locationReady && _notificationsReady;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -57,49 +162,31 @@ class BackgroundLocationSheet extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              'خليك ظاهر من غير ما تفتح التطبيق',
+              'عشان تجيلك طلبات وإنت برّه التطبيق',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-                color: AppColors.dark,
-              ),
+              style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.dark),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             const Text(
-              'طول ما أنت «متاح»، التطبيق بياخد موقعك كل فترة حتى وهو مقفول، عشان تفضل ظاهر للموكلين. ولما تقفل «متاح» الموقع بيقف.\n\nلو فتحت الإعدادات: اختار الأذونات، ثم الموقع، ثم «السماح طول الوقت».',
+              'طول ما أنت متاح، بنحدث مكانك ونبعتلك الطلبات القريبة. لو قفلت التطبيق من قائمة البرامج ممكن تخرج من الخدمة.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 13,
-                height: 1.5,
-                color: AppColors.textMuted,
-              ),
+              style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12, height: 1.5, color: AppColors.textMuted),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
+            _step('اسمح بالموقع طول الوقت', _locationReady, _enableLocation),
+            _step('اسمح بالإشعارات', _notificationsReady, _enableNotifications),
+            _step('استثني التطبيق من توفير البطارية', _batteryReady, _enableBattery, note: 'من غيرها الطلبات ممكن تقف'),
+            const SizedBox(height: 8),
             AppButton.primary(
-              text: 'متابعة',
+              text: 'ابدأ استقبال الطلبات',
               height: 48,
-              onPressed: () async {
-                final navigator = Navigator.of(context);
-                await _requestAlways();
-                navigator.pop();
-              },
+              onPressed: canStart ? () => Navigator.of(context).pop(true) : null,
             ),
-            const SizedBox(height: 4),
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(context).pop(false),
               child: const Text(
                 'مش دلوقتي',
-                style: TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 13,
-                  color: AppColors.textMuted,
-                ),
+                style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 13, color: AppColors.textMuted),
               ),
             ),
           ],

@@ -24,10 +24,10 @@ describe('أجهزة الإشعارات', () => {
 });
 
 describe('ظهور المحامي على الخريطة', () => {
-  it('المحامي المتاح يفضل ظاهر حتى لو التطبيق مقفول', async () => {
+  it('المحامي المتاح يفضل ظاهر لو مكانه حديث، و«غير متاح» يخفيه', async () => {
     const visible = async () => (await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25', null)).body.data.some((l: any) => l.id === lawyerId);
 
-    await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '30 minutes' WHERE user_id = $1`, [lawyerId]);
+    await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '5 minutes' WHERE user_id = $1`, [lawyerId]);
     await sweepLifecycle();
     assert.equal(await visible(), true);
 
@@ -35,22 +35,22 @@ describe('ظهور المحامي على الخريطة', () => {
     assert.equal(await visible(), false);
   });
 
-  it('توقف تحديث الموقع ساعة يخفي المحامي ويبلغه، والتحديث ما يرجعوش', async () => {
+  it('توقف تحديث الموقع 10 دقايق يخفي المحامي ويبلغه، والتحديث ما يرجعوش', async () => {
     const available = async () =>
       (await sql('SELECT is_available FROM lawyer_profiles WHERE user_id = $1', [lawyerId]))[0].is_available;
 
-    await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '30 minutes' WHERE user_id = $1`, [lawyerId]);
+    await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '5 minutes' WHERE user_id = $1`, [lawyerId]);
     await sweepLifecycle();
     assert.equal(await available(), true);
 
-    await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '70 minutes' WHERE user_id = $1`, [lawyerId]);
+    await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '11 minutes' WHERE user_id = $1`, [lawyerId]);
     await sweepLifecycle();
     assert.equal(await available(), false);
 
     const update = await call('POST', '/lawyers/me/location', lawyerToken, { latitude: 30.05, longitude: 31.25 });
     assert.equal(update.body.data.isAvailable, false);
     assert.equal(await available(), false);
-    const notes = await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'اتحولت لغير متاح'`, [lawyerId]);
+    const notes = await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'خرجت من الخدمة'`, [lawyerId]);
     assert.equal(notes.length, 1);
   });
 

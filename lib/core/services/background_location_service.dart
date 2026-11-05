@@ -1,97 +1,91 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 import 'api_service.dart';
 
-const String _taskName = 'lawyer_location_update';
-const String _prefLastLat = 'bg_location_lat';
-const String _prefLastLon = 'bg_location_lon';
-const String _prefLastSentAt = 'bg_location_sent_at';
+const String _oldTaskName = 'lawyer_location_update';
+const Duration _sendEvery = Duration(minutes: 1);
+const int _moveMeters = 100;
 
-const Duration _checkEvery = Duration(minutes: 15);
-const Duration _sendEvery = Duration(minutes: 30);
-const double _sendAfterMeters = 3000;
-
+/// النسخ القديمة سجلت مهمة دورية، والدالة دي موجودة عشان تتقفل من على الموبايلات
 @pragma('vm:entry-point')
 void backgroundLocationDispatcher() {
-  Workmanager().executeTask((task, inputData) async {
-    try {
-      await _sendLocationIfDue();
-    } catch (e) {
-      debugPrint('Background location error: $e');
-    }
-    return true;
-  });
+  Workmanager().executeTask((task, inputData) async => true);
 }
 
-/// الموبايل يفحص كل 15 دقيقة، ويبعت لو عدت 30 دقيقة أو المحامي اتحرك 3 كم
-Future<void> _sendLocationIfDue() async {
-  if (await Geolocator.checkPermission() != LocationPermission.always) return;
-
-  final position = await Geolocator.getCurrentPosition(
-    locationSettings: const LocationSettings(
-      accuracy: LocationAccuracy.medium,
-      timeLimit: Duration(seconds: 25),
-    ),
-  );
-
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.reload();
-  final lastLat = prefs.getDouble(_prefLastLat);
-  final lastLon = prefs.getDouble(_prefLastLon);
-  final lastSentAt = prefs.getInt(_prefLastSentAt) ?? 0;
-  final age = DateTime.now().millisecondsSinceEpoch - lastSentAt;
-
-  final hasMoved = lastLat == null ||
-      lastLon == null ||
-      Geolocator.distanceBetween(lastLat, lastLon, position.latitude, position.longitude) >= _sendAfterMeters;
-  if (!hasMoved && age < _sendEvery.inMilliseconds - 60000) return;
-
-  final res = await ApiService.post('/lawyers/me/location', {
-    'latitude': position.latitude,
-    'longitude': position.longitude,
-  });
-  if (!res.isOk) return;
-
-  await prefs.setDouble(_prefLastLat, position.latitude);
-  await prefs.setDouble(_prefLastLon, position.longitude);
-  await prefs.setInt(_prefLastSentAt, DateTime.now().millisecondsSinceEpoch);
-}
-
-/// تحديث مكان المحامي والتطبيق مقفول، طول ما هو متاح
+/// طول ما المحامي «متاح»، مكانه بيتبعت كل دقيقة تقريبًا والتطبيق مفتوح أو في الخلفية.
+/// لو التطبيق اتقفل التحديث يقف، والخادم يحوله لغير متاح بعد 10 دقايق.
 class BackgroundLocationService {
   BackgroundLocationService._();
 
-  static bool _isInitialized = false;
+  static StreamSubscription<Position>? _subscription;
+  static Timer? _timer;
+  static Position? _latest;
+  static bool _oldTaskCancelled = false;
+
+  static LocationSettings _settings() {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: _moveMeters,
+        intervalDuration: _sendEvery,
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationTitle: 'أنت متاح لاستقبال الطلبات',
+          notificationText: 'بنحدث مكانك عشان توصلك طلبات قريبة منك',
+          enableWakeLock: true,
+          setOngoing: true,
+        ),
+      );
+    }
+    return const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: _moveMeters);
+  }
+
+  static Future<void> _send() async {
+    final position = _latest;
+    if (position == null) return;
+    await ApiService.post('/lawyers/me/location', {
+      'latitude': position.latitude,
+      'longitude': position.longitude,
+    });
+  }
 
   static Future<void> start() async {
+    await _cancelOldTask();
+    if (_subscription != null) return;
     try {
-      if (!_isInitialized) {
-        await Workmanager().initialize(backgroundLocationDispatcher);
-        _isInitialized = true;
-      }
-      await Workmanager().registerPeriodicTask(
-        _taskName,
-        _taskName,
-        frequency: _checkEvery,
-        constraints: Constraints(networkType: NetworkType.connected),
-        existingWorkPolicy: ExistingWorkPolicy.keep,
+      _subscription = Geolocator.getPositionStream(locationSettings: _settings()).listen(
+        (position) {
+          final isFirst = _latest == null;
+          _latest = position;
+          if (isFirst) unawaited(_send());
+        },
+        onError: (Object e) => debugPrint('Live location error: $e'),
       );
+      // المحامي الواقف مكانه ما بيتغيرش، فالإرسال كل دقيقة بيأكد إنه لسه موجود
+      _timer = Timer.periodic(_sendEvery, (_) => _send());
     } catch (e) {
-      debugPrint('Background location start error: $e');
+      debugPrint('Live location start error: $e');
     }
   }
 
   static Future<void> stop() async {
+    _timer?.cancel();
+    _timer = null;
+    await _subscription?.cancel();
+    _subscription = null;
+    _latest = null;
+    await _cancelOldTask();
+  }
+
+  static Future<void> _cancelOldTask() async {
+    if (_oldTaskCancelled) return;
+    _oldTaskCancelled = true;
     try {
-      if (!_isInitialized) {
-        await Workmanager().initialize(backgroundLocationDispatcher);
-        _isInitialized = true;
-      }
-      await Workmanager().cancelByUniqueName(_taskName);
+      await Workmanager().initialize(backgroundLocationDispatcher);
+      await Workmanager().cancelByUniqueName(_oldTaskName);
     } catch (e) {
-      debugPrint('Background location stop error: $e');
+      debugPrint('Old location task error: $e');
     }
   }
 }

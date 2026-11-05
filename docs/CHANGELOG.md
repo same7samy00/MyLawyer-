@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Live Lawyer Location] - 2026-11-05
+- **Android:** while a lawyer is available, the app sends the location about every minute or 100 meters, in the foreground or background, with a fixed notification. This replaces the 15-minute background check.
+- **Getting ready:** pressing «متاح» shows steps for location, notifications and battery. Location and notifications are required, and battery exemption is a warning.
+- **Server:** 10 silent minutes turn an available lawyer unavailable, except while a task is open.
+- **Requests:** a request needs the client's real location, and the Cairo fallback no longer applies to it.
+
 ## [Price Offers] - 2026-11-05
 - **Requests (approved by the owner):** a client request now goes to the nearest 5 available lawyers. Each lawyer can send one price inside the limits set in the control page, and can withdraw it. The client picks an offer, which creates an order at that price, and the commission comes from that price. Payment and everything after it stay the same.
 - **Rounds:** with no offers after 2 minutes, the request moves to the next 5, up to 3 rounds. With offers, the client has 10 more minutes to choose. Migration `024` adds the requests and offers.

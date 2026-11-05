@@ -4,7 +4,7 @@ import { applySettlement, liftUserSuspensions } from './settlement.js';
 import { advanceRequests } from '../requests/service.js';
 
 const MAX_MISSED_ORDERS = 2;
-const LOCATION_SILENCE_MINUTES = 65;
+const LOCATION_SILENCE_MINUTES = 10;
 
 async function closeUnansweredOrders() {
   const res = await dbPool.query(
@@ -66,7 +66,8 @@ async function liftSuspensions() {
   }
 }
 
-/// Two missed half-hour updates mean the phone is off the network
+/// An available lawyer updates every minute, so ten silent minutes mean the app is closed.
+/// A lawyer with an open task is free to close it.
 async function hideSilentLawyers() {
   const res = await dbPool.query(
     `UPDATE lawyer_profiles lp SET is_available = FALSE, availability_off_reason = 'NO_LOCATION'
@@ -81,7 +82,7 @@ async function hideSilentLawyers() {
   );
 
   for (const lawyer of res.rows) {
-    await notify(dbPool, lawyer.user_id, 'اتحولت لغير متاح', 'موقعك ما اتحدثش من ساعة. افتح التطبيق وفعّل حالتك');
+    await notify(dbPool, lawyer.user_id, 'خرجت من الخدمة', 'افتح التطبيق عشان ترجع متاح');
   }
 }
 

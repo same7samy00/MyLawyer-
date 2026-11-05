@@ -7,7 +7,6 @@ import '../notifications/notification_router.dart';
 import '../../core/services/push_service.dart';
 import '../../core/widgets/app_bottom_bar.dart';
 import '../../core/widgets/app_header.dart';
-import '../../core/widgets/background_location_sheet.dart';
 import '../../data/repositories/lawyer_repository.dart';
 import 'lawyer_account_tab.dart';
 import 'lawyer_home_tab.dart';
@@ -96,12 +95,10 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
     if (isAvailable == null) return;
 
     if (!isAvailable) {
-      BackgroundLocationSheet.resetForNextTime();
       await BackgroundLocationService.stop();
       return;
     }
 
-    if (mounted) await BackgroundLocationSheet.showIfNeeded(context);
     await BackgroundLocationService.start();
   }
 

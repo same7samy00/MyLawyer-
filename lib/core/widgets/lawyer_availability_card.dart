@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../data/repositories/lawyer_repository.dart';
+import '../services/location_service.dart';
 import '../constants/app_colors.dart';
 import '../services/notification_center.dart';
 import 'app_card.dart';
+import 'background_location_sheet.dart';
 
 /// زر حالة المحامي: الموكلون يشاهدون المحامي المتاح فقط
 class LawyerAvailabilityCard extends StatefulWidget {
@@ -27,7 +29,24 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
   }
 
   Future<void> _toggle(bool value) async {
+    if (value && !await BackgroundLocationSheet.ensureReady(context)) return;
+    if (!mounted) return;
+
     setState(() => _isSaving = true);
+    // المكان بيتحدث الأول، عشان ما يتحولش لغير متاح بسبب مكان قديم
+    if (value) {
+      final position = (await LocationService.instance.checkAndRequestPermission(fresh: true)).position;
+      if (!mounted) return;
+      if (position == null) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر تحديد موقعك، حاول تاني')),
+        );
+        return;
+      }
+      await LawyerRepository.updateLawyerLocation(lat: position.latitude, lon: position.longitude);
+      if (!mounted) return;
+    }
     final res = await LawyerRepository.setAvailability(value);
     if (!mounted) return;
 
