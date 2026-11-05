@@ -174,7 +174,7 @@ export async function requestRoutes(fastify: FastifyInstance) {
         [id, userId]
       );
       if (res.rowCount === 0) throw new HttpError(404, 'مفيش عرض لسحبه');
-      await publishChange(client, locked.rows[0].client_id);
+      await publishChange(client, locked.rows[0].client_id, false, 'requests');
     });
 
     return reply.send({ success: true, message: 'تم سحب عرضك' });
@@ -234,7 +234,7 @@ export async function requestRoutes(fastify: FastifyInstance) {
       const cancelled = await client.query(`UPDATE service_requests SET status = 'CANCELLED' WHERE id = $1 AND client_id = $2 AND status = 'OPEN'`, [id, userId]);
       if (cancelled.rowCount === 0) return;
       const recipients = await client.query('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [id]);
-      for (const row of recipients.rows) await publishChange(client, row.lawyer_id);
+      for (const row of recipients.rows) await publishChange(client, row.lawyer_id, false, 'requests');
     });
     return reply.send({ success: true, message: 'تم إلغاء الطلب' });
   });

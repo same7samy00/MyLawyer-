@@ -34,8 +34,9 @@ class _OrdersTabState extends State<OrdersTab> {
   void initState() {
     super.initState();
     widget.refreshSignal?.addListener(_loadOrders);
-    LiveUpdates.changes.addListener(_loadOrders);
+    LiveUpdates.orders.addListener(_loadOrders);
     ApiService.isServerReachable.addListener(_onReachabilityChanged);
+    _showSaved();
     _loadOrders();
     // تحديث حالة الطلب الجاري من غير سحب الصفحة
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -47,7 +48,7 @@ class _OrdersTabState extends State<OrdersTab> {
   void dispose() {
     _refreshTimer?.cancel();
     widget.refreshSignal?.removeListener(_loadOrders);
-    LiveUpdates.changes.removeListener(_loadOrders);
+    LiveUpdates.orders.removeListener(_loadOrders);
     ApiService.isServerReachable.removeListener(_onReachabilityChanged);
     super.dispose();
   }
@@ -56,6 +57,16 @@ class _OrdersTabState extends State<OrdersTab> {
     if (ApiService.isServerReachable.value && _errorMessage != null) {
       _loadOrders();
     }
+  }
+
+  /// آخر طلبات محفوظة بتظهر فورًا، والتحديث من السيرفر بيحل محلها
+  Future<void> _showSaved() async {
+    final saved = await OrderRepository.savedOrders();
+    if (!mounted || saved.isEmpty || !_isLoading) return;
+    setState(() {
+      _orders = saved;
+      _isLoading = false;
+    });
   }
 
   Future<void> _loadOrders() async {

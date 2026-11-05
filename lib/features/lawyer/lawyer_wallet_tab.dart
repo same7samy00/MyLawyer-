@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_pressable.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/live_updates.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/order_action_sheets.dart';
@@ -35,13 +36,27 @@ class _LawyerWalletTabState extends State<LawyerWalletTab> {
   void initState() {
     super.initState();
     widget.refreshSignal?.addListener(_loadFees);
+    LiveUpdates.orders.addListener(_loadFees);
     ApiService.isServerReachable.addListener(_onReachabilityChanged);
+    _showSaved();
     _loadFees();
+  }
+
+  Future<void> _showSaved() async {
+    final results = await Future.wait([OrderRepository.savedWallet(), OrderRepository.savedOrders()]);
+    final wallet = results[0] as Map<String, dynamic>?;
+    if (!mounted || wallet == null || !_isLoading) return;
+    setState(() {
+      _wallet = LawyerWallet.fromJson(wallet);
+      _completedOrders = (results[1] as List<OrderModel>).where((order) => order.isCompleted).toList();
+      _isLoading = false;
+    });
   }
 
   @override
   void dispose() {
     widget.refreshSignal?.removeListener(_loadFees);
+    LiveUpdates.orders.removeListener(_loadFees);
     ApiService.isServerReachable.removeListener(_onReachabilityChanged);
     super.dispose();
   }

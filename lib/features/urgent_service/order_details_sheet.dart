@@ -45,7 +45,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   @override
   void initState() {
     super.initState();
-    LiveUpdates.changes.addListener(_load);
+    LiveUpdates.orders.addListener(_load);
     // احتياطي لو الخط المفتوح قطع
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (isAppVisible && _order.isOngoing) _load();
@@ -56,7 +56,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   void dispose() {
     _refreshTimer?.cancel();
     _noticeTimer?.cancel();
-    LiveUpdates.changes.removeListener(_load);
+    LiveUpdates.orders.removeListener(_load);
     super.dispose();
   }
 

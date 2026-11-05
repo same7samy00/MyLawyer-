@@ -2,6 +2,7 @@ import '../../core/widgets/line_illustration.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/notification_center.dart';
+import '../../core/services/live_updates.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../data/models/lifecycle_models.dart';
@@ -23,17 +24,33 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
+    _showSaved();
     _load();
+    LiveUpdates.changes.addListener(_load);
+  }
+
+  @override
+  void dispose() {
+    LiveUpdates.changes.removeListener(_load);
+    super.dispose();
+  }
+
+  Future<void> _showSaved() async {
+    final saved = await NotificationCenter.saved();
+    if (!mounted || saved.isEmpty || !_isLoading) return;
+    setState(() {
+      _items = saved;
+      _isLoading = false;
+    });
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
     final res = await NotificationCenter.load();
     if (!mounted) return;
 
     setState(() {
       _isLoading = false;
-      _items = res.data ?? const [];
+      if (res.isOk || _items.isEmpty) _items = res.data ?? _items;
       _error = res.isOk ? null : res.error;
     });
   }

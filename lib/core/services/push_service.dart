@@ -66,6 +66,7 @@ class PushService {
     FirebaseMessaging.onMessage.listen((message) {
       NotificationCenter.refresh();
       LiveUpdates.changes.value++;
+      LiveUpdates.orders.value++;
       LiveUpdates.alertUser();
     });
     // التطبيق كان في الخلفية واتفتح بلمس الإشعار

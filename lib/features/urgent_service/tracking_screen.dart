@@ -2,6 +2,7 @@ import '../../core/widgets/line_illustration.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import '../../core/widgets/app_pressable.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';

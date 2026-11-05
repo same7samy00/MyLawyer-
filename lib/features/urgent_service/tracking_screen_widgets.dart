@@ -25,55 +25,32 @@ class _LawyerAvatarPhoto extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: imageUrl.isNotEmpty
-          ? Image.network(
-              imageUrl,
+          ? CachedNetworkImage(
+              imageUrl: imageUrl,
               width: size,
               height: size,
-              cacheWidth: (size * 2).toInt(),
-              cacheHeight: (size * 2).toInt(),
+              memCacheWidth: (size * 2).toInt(),
+              memCacheHeight: (size * 2).toInt(),
               fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Center(
-                  child: Text(
-                    initials,
-                    style: TextStyle(
-                      fontFamily: 'AppFont',
-                      fontFamilyFallback: appFontFallback,
-                      fontSize: size * 0.38,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return Center(
-                  child: Text(
-                    initials,
-                    style: TextStyle(
-                      fontFamily: 'AppFont',
-                      fontFamilyFallback: appFontFallback,
-                      fontSize: size * 0.38,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                );
-              },
+              placeholder: (_, __) => _initials(),
+              errorWidget: (_, __, ___) => _initials(),
             )
-          : Center(
-              child: Text(
-                initials,
-                style: TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: size * 0.38,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+          : _initials(),
+    );
+  }
+
+  Widget _initials() {
+    return Center(
+      child: Text(
+        initials,
+        style: TextStyle(
+          fontFamily: 'AppFont',
+          fontFamilyFallback: appFontFallback,
+          fontSize: size * 0.38,
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
+        ),
+      ),
     );
   }
 }

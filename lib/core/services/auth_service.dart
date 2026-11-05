@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import 'background_location_service.dart';
+import 'saved_data.dart';
 import 'device_permission_service.dart';
 import 'push_service.dart';
 
@@ -555,6 +556,7 @@ class AuthService {
   /// مسح كل بيانات الحساب من الجهاز عدا رقم الدخول حتى لا يطلع عليها حساب لاحق
   static Future<void> clearLocalSession() async {
     await ApiService.clearTokens();
+    await SavedData.clear();
     // الخروج ما يستناش نظام الموبايل
     unawaited(BackgroundLocationService.stop());
     final prefs = await SharedPreferences.getInstance();

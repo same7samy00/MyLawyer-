@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../services/api_service.dart';
@@ -24,10 +25,12 @@ class ProfilePhoto extends StatelessWidget {
       ),
       child: photo.isEmpty
           ? fallback
-          : Image.network(
-              '${ApiService.baseUrl.replaceAll('/api/v1', '')}$photo',
+          : CachedNetworkImage(
+              imageUrl: '${ApiService.baseUrl.replaceAll('/api/v1', '')}$photo',
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => fallback,
+              memCacheWidth: (size * 3).toInt(),
+              placeholder: (_, __) => fallback,
+              errorWidget: (_, __, ___) => fallback,
             ),
     );
   }

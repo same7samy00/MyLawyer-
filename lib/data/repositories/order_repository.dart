@@ -1,6 +1,8 @@
+import 'dart:async';
 import '../models/lifecycle_models.dart';
 import '../models/order_model.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/saved_data.dart';
 
 /// المستودع المسؤول عن إنشاء ومتابعة وتحديث طلبات الخدمة
 class OrderRepository {
@@ -27,6 +29,21 @@ class OrderRepository {
     );
   }
 
+  // الأرقام والإيميل والمكان الدقيق ما بيتحفظوش على الموبايل
+  static const _privateFields = ['clientPhone', 'lawyerPhone', 'clientEmail', 'clientAddress', 'clientLatitude', 'clientLongitude', 'lawyerLatitude', 'lawyerLongitude'];
+
+  static Object? _withoutPrivate(Object? item) {
+    if (item is! Map<String, dynamic>) return item;
+    return {...item}..removeWhere((key, _) => _privateFields.contains(key));
+  }
+
+  /// آخر طلبات اتعرضت، لحد ما الطلب الجديد من السيرفر يوصل
+  static Future<List<OrderModel>> savedOrders() async {
+    final saved = await SavedData.read('orders');
+    if (saved is! List) return const [];
+    return saved.whereType<Map<String, dynamic>>().map(OrderModel.fromJson).toList();
+  }
+
   /// جلب قائمة طلبات المستخدم الحالي (عميل أو محامٍ)
   static Future<ApiResponse<List<OrderModel>>> getOrders({String? status}) async {
     final queryParams = status != null ? {'status': status} : null;
@@ -34,6 +51,7 @@ class OrderRepository {
 
     if (res.isOk && res.data is List) {
       final list = res.data as List;
+      if (status == null) unawaited(SavedData.write('orders', list.map(_withoutPrivate).toList()));
       return ApiResponse<List<OrderModel>>(
         success: true,
         statusCode: res.statusCode,
@@ -172,9 +190,15 @@ class OrderRepository {
     });
   }
 
+  static Future<Map<String, dynamic>?> savedWallet() async {
+    final saved = await SavedData.read('wallet');
+    return saved is Map<String, dynamic> ? saved : null;
+  }
+
   static Future<ApiResponse<LawyerWallet>> getLawyerWallet() async {
     final res = await ApiService.get('/orders/wallet/me');
     if (res.isOk && res.data is Map<String, dynamic>) {
+      unawaited(SavedData.write('wallet', res.data));
       return ApiResponse<LawyerWallet>(
         success: true,
         statusCode: res.statusCode,
@@ -192,6 +216,7 @@ class OrderRepository {
     final res = await ApiService.get('/orders/wallet/me');
     if (res.isOk && res.data is Map<String, dynamic>) {
       final balance = (res.data as Map<String, dynamic>)['balance'] as num? ?? 0;
+      unawaited(SavedData.write('wallet', res.data));
       return ApiResponse<double>(success: true, statusCode: res.statusCode, data: balance.toDouble());
     }
     return ApiResponse<double>(

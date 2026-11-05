@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Saved Data] - 2026-11-06
+- **Faster screens:** orders, wallet and notifications show the last saved copy at once, then the server's copy replaces it. Phone numbers, emails and exact places are not saved, and everything saved is cleared at sign out.
+- **Server says what changed:** the live line now names the change (orders, requests, support or notifications), so only the screens that need it reload.
+- **Images:** lawyer and account photos are saved on the phone with `cached_network_image`, approved by the owner.
+- **Connection notice:** after 20 seconds without the live line, a small bar says the data may be old.
+
 ## [Orders Count] - 2026-11-06
 - **Orders page:** «الطلبات الحالية» shows how many are running or waiting, and the details buttons on cards are now filled blue.
 

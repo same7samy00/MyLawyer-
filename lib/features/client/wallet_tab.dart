@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/live_updates.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/order_action_sheets.dart';
@@ -27,13 +28,26 @@ class _WalletTabState extends State<WalletTab> {
   void initState() {
     super.initState();
     widget.refreshSignal?.addListener(_load);
+    LiveUpdates.orders.addListener(_load);
     ApiService.isServerReachable.addListener(_onReachabilityChanged);
+    _showSaved();
     _load();
+  }
+
+  Future<void> _showSaved() async {
+    final saved = await OrderRepository.savedWallet();
+    final balance = saved?['balance'];
+    if (!mounted || balance is! num || !_isLoading) return;
+    setState(() {
+      _balance = balance.toDouble();
+      _isLoading = false;
+    });
   }
 
   @override
   void dispose() {
     widget.refreshSignal?.removeListener(_load);
+    LiveUpdates.orders.removeListener(_load);
     ApiService.isServerReachable.removeListener(_onReachabilityChanged);
     super.dispose();
   }

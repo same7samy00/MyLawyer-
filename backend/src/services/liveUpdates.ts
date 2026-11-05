@@ -15,12 +15,14 @@ let stopped = false;
 /// Tells this person's open apps that something changed.
 /// PostgreSQL delivers it only after the transaction commits, so the app never reads old data.
 /// [alert] makes the open app play its sound and vibrate.
-export async function publishChange(db: Db, userId: string, alert = false) {
-  await db.query('SELECT pg_notify($1, $2)', [CHANNEL, `${userId}|${alert ? 'alert' : 'change'}`]);
+/// [kind] tells the app which screens to reload: orders, requests, support, notifications or all.
+export async function publishChange(db: Db, userId: string, alert = false, kind = 'all') {
+  await db.query('SELECT pg_notify($1, $2)', [CHANNEL, `${userId}|${alert ? 'alert' : 'change'}|${kind}`]);
 }
 
-export function deliverChange(userId: string, alert = false) {
-  for (const line of lines.get(userId) ?? []) line.write(alert ? 'data: change-alert\n\n' : 'data: change\n\n');
+export function deliverChange(userId: string, alert = false, kind = 'all') {
+  const text = `data: ${alert ? 'change-alert' : 'change'} ${kind}\n\n`;
+  for (const line of lines.get(userId) ?? []) line.write(text);
 }
 
 /// One open line per phone. A person's oldest line closes when they pass the limit.
@@ -71,8 +73,8 @@ async function connectListener() {
   client.on('error', retryOnce);
   client.on('end', retryOnce);
   client.on('notification', (message) => {
-    const [userId, kind] = (message.payload ?? '').split('|');
-    if (userId) deliverChange(userId, kind === 'alert');
+    const [userId, level, kind] = (message.payload ?? '').split('|');
+    if (userId) deliverChange(userId, level === 'alert', kind || 'all');
   });
   try {
     await client.connect();

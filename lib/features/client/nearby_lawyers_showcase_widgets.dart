@@ -191,20 +191,15 @@ class _ShowcaseAvatarPhoto extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: imageUrl.isNotEmpty
-          ? Image.network(
-              imageUrl,
+          ? CachedNetworkImage(
+              imageUrl: imageUrl,
               width: size,
               height: size,
-              cacheWidth: (size * 2).toInt(),
-              cacheHeight: (size * 2).toInt(),
+              memCacheWidth: (size * 2).toInt(),
+              memCacheHeight: (size * 2).toInt(),
               fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return _buildFallback();
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return _buildFallback();
-              },
+              placeholder: (_, __) => _buildFallback(),
+              errorWidget: (_, __, ___) => _buildFallback(),
             )
           : _buildFallback(),
     );

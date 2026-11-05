@@ -4,6 +4,7 @@ import '../../data/models/lifecycle_models.dart';
 import 'api_service.dart';
 import 'app_visibility.dart';
 import 'live_updates.dart';
+import 'saved_data.dart';
 
 /// الصفحة اللي الإشعار بيفتحها
 class NotificationTarget {
@@ -74,9 +75,16 @@ class NotificationCenter {
     if (data['isAvailable'] is bool) isAvailable.value = data['isAvailable'] as bool;
   }
 
+  static Future<List<AppNotification>> saved() async {
+    final saved = await SavedData.read('notifications');
+    if (saved is! List) return const [];
+    return saved.whereType<Map<String, dynamic>>().map(AppNotification.fromJson).toList();
+  }
+
   static Future<ApiResponse<List<AppNotification>>> load() async {
     final res = await ApiService.get('/notifications');
     if (res.isOk && res.data is List) {
+      unawaited(SavedData.write('notifications', res.data));
       return ApiResponse<List<AppNotification>>(
         success: true,
         statusCode: res.statusCode,
