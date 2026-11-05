@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Live Control Page and Dialogs] - 2026-11-06
+- **Control page:** it keeps the same live line as the app, and every change reloads the open page and the counts quietly, with no button or notice. A change waits while a window is open or a field is being typed in. The one-minute count refresh is gone.
+- **App:** the «data may be old» bar is removed, and the app reconnects and reloads quietly.
+- **Dialogs:** one style for every floating window, a small line drawing in the middle, the title and text on the right, and two filled buttons side by side.
+- **Accounts list:** shows the real suspension state, and a lawyer's countdown card refreshes as soon as the admin changes something.
+
 ## [Suspension Countdown] - 2026-11-06
 - **Strikes:** a lawyer is told from the first strike how many count toward a suspension. The admin can cancel a strike: it stays recorded as cancelled, stops counting, and ends a strike suspension once fewer than three remain. Activating an account now ends a strike suspension too. Migration `027`.
 - **Account status in the panel:** shows whether the account is suspended by the admin, by warnings or by strikes and until when, with active warnings and strikes out of 3.

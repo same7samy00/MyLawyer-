@@ -221,6 +221,7 @@ async function signIn() {
   $('password').value = '';
   render();
   showAccount();
+  startLive();
   toast('مرحبًا بك');
 }
 
@@ -320,9 +321,51 @@ $('login-form').addEventListener('submit', (event) => {
 current = stateFromLink();
 if (session) { render(); showAccount(); }
 
-// New work reaches the admin without moving between pages
-setInterval(() => {
-  if (!session || $('app').hidden || document.hidden) return;
+// A live line to the server: any change reloads the open page and the counts quietly.
+// A change that arrives while a window is open or a field is being typed waits until it is closed
+let liveTurn = 0;
+let liveDirty = false;
+
+function onLiveChange() {
+  apiCache.clear();
   navCountsAt = 0;
+  liveDirty = true;
+}
+
+setInterval(() => {
+  if (!liveDirty || !session || $('app').hidden) return;
   refreshNavCounts();
-}, 60000);
+  if (!$('dialog').hidden || document.activeElement?.matches('input, textarea, select')) return;
+  liveDirty = false;
+  render({ quiet: true });
+}, 400);
+
+async function startLive() {
+  const turn = ++liveTurn;
+  let wait = 2000;
+  while (session && turn === liveTurn) {
+    try {
+      const res = await fetch(API + '/events', { headers: { Authorization: 'Bearer ' + session.accessToken, Accept: 'text/event-stream' } });
+      if (res.status === 401) {
+        if (!(await refreshSession())) return;
+        continue;
+      }
+      if (!res.ok || !res.body) throw new Error('line');
+      wait = 2000;
+      onLiveChange();
+      const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done || turn !== liveTurn) break;
+        if (value.includes('data: change')) onLiveChange();
+      }
+      reader.cancel().catch(() => {});
+    } catch {
+      // The line comes back by itself
+    }
+    if (turn !== liveTurn) return;
+    await new Promise((resolve) => setTimeout(resolve, wait));
+    wait = Math.min(wait * 2, 30000);
+  }
+}
+if (session) startLive();

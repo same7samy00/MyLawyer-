@@ -5,7 +5,6 @@ import '../../core/services/location_service.dart';
 import '../../core/services/notification_center.dart';
 import '../notifications/notification_router.dart';
 import '../../core/services/push_service.dart';
-import '../../core/widgets/live_status_banner.dart';
 import '../../core/widgets/app_bottom_bar.dart';
 import '../../core/widgets/app_header.dart';
 import '../../data/repositories/lawyer_repository.dart';
@@ -157,16 +156,9 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
           title: _tabTitles[_currentIndex],
           isInnerPage: false,
         ),
-        body: Column(
-          children: [
-            const LiveStatusBanner(),
-            Expanded(
-              child: IndexedStack(
-                index: _currentIndex,
-                children: List.generate(_tabTitles.length, _buildTab),
-              ),
-            ),
-          ],
+        body: IndexedStack(
+          index: _currentIndex,
+          children: List.generate(_tabTitles.length, _buildTab),
         ),
         bottomNavigationBar: AppBottomBar(
           activeIndex: _currentIndex,

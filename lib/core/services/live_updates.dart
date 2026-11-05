@@ -16,10 +16,6 @@ class LiveUpdates {
   /// الطلبات والعروض والفلوس اتغيرت
   static final ValueNotifier<int> orders = ValueNotifier<int>(0);
 
-  /// الخط شغال. لو فضل مقطوع فترة، الصفحات بتوضح إن البيانات ممكن تكون قديمة
-  static final ValueNotifier<bool> isConnected = ValueNotifier<bool>(true);
-  static const Duration _staleAfter = Duration(seconds: 20);
-  static Timer? _staleTimer;
   static final Set<String> _pendingKinds = {};
 
   static const Duration _firstRetry = Duration(seconds: 2);
@@ -49,8 +45,6 @@ class LiveUpdates {
     _turn++;
     _retryTimer?.cancel();
     _gatherTimer?.cancel();
-    _staleTimer?.cancel();
-    isConnected.value = true;
     unawaited(_line?.cancel());
     _line = null;
     _lifecycle?.dispose();
@@ -87,15 +81,6 @@ class LiveUpdates {
     });
   }
 
-  static void _markConnected(bool connected) {
-    _staleTimer?.cancel();
-    if (connected) {
-      isConnected.value = true;
-    } else {
-      _staleTimer = Timer(_staleAfter, () => isConnected.value = false);
-    }
-  }
-
   static Future<void> _connect() async {
     final turn = ++_turn;
     try {
@@ -114,7 +99,6 @@ class LiveUpdates {
       }
 
       _nextRetry = _firstRetry;
-      _markConnected(true);
       _announce();
       _line = response.stream.transform(utf8.decoder).transform(const LineSplitter()).listen(
         (text) {
@@ -136,7 +120,6 @@ class LiveUpdates {
 
   static void _retryLater() {
     if (!_isRunning) return;
-    if (_staleTimer?.isActive != true && isConnected.value) _markConnected(false);
     _retryTimer?.cancel();
     _retryTimer = Timer(_nextRetry, () => unawaited(_connect()));
     final doubled = _nextRetry * 2;

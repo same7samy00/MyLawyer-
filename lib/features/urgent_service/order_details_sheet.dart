@@ -10,6 +10,7 @@ import '../../core/services/external_navigation.dart';
 import '../../core/services/location_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_dialog.dart';
 import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/order_action_sheets.dart';
 import '../../core/widgets/order_status_tracker.dart';
@@ -104,28 +105,8 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
     await _load();
   }
 
-  Future<bool> _confirm(String title, String message, String action) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.0)),
-        title: Text(
-          title,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontWeight: FontWeight.w800),
-        ),
-        content: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('تراجع')),
-          TextButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(action)),
-        ],
-      ),
-    );
-    return confirmed == true;
+  Future<bool> _confirm(String title, String message, String action, {IconData icon = Icons.help_outline_rounded, bool isDanger = false}) {
+    return AppDialog.confirm(context, icon: icon, title: title, message: message, confirmText: action, isDanger: isDanger);
   }
 
   Future<void> _copyOrderNumber() async {
@@ -164,7 +145,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
 
   Future<void> _cancelOrder() async {
     final message = _order.isActive ? 'المبلغ هيرجع لرصيدك' : 'الطلب هيتلغي ومفيش أي مبلغ هيتخصم';
-    if (!await _confirm('إلغاء الطلب', message, 'إلغاء الطلب')) return;
+    if (!await _confirm('إلغاء الطلب', message, 'إلغاء الطلب', icon: Icons.cancel_outlined, isDanger: true)) return;
     await _run(() => OrderRepository.cancelOrder(_order.id), 'تم إلغاء الطلب');
   }
 
@@ -210,7 +191,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   }
 
   Future<void> _rejectOrder() async {
-    if (!await _confirm('الاعتذار عن الطلب', 'هتعتذر عن قبول الطلب ده؟', 'اعتذار')) return;
+    if (!await _confirm('الاعتذار عن الطلب', 'هتعتذر عن قبول الطلب ده؟', 'اعتذار', icon: Icons.cancel_outlined, isDanger: true)) return;
     await _run(() => OrderRepository.rejectOrder(_order.id), 'تم الاعتذار عن الطلب');
   }
 
@@ -231,7 +212,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   }
 
   Future<void> _openCompletion() async {
-    if (!await _confirm('إنهاء المهمة', 'خلصت المهمة مع الموكل؟', 'إنهاء')) return;
+    if (!await _confirm('إنهاء المهمة', 'خلصت المهمة مع الموكل؟', 'إنهاء', icon: Icons.verified_rounded)) return;
     await _run(() => OrderRepository.completeOrder(_order.id), 'تم إنهاء المهمة، والصافي هيتاح بعد 24 ساعة');
   }
 
@@ -252,7 +233,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   }
 
   Future<void> _withdraw() async {
-    if (!await _confirm('الاعتذار عن المهمة', 'المبلغ هيرجع للموكل وهتتسجل عليك مخالفة. 3 مخالفات خلال 30 يوم بتوقف حسابك أسبوع', 'اعتذار')) return;
+    if (!await _confirm('الاعتذار عن المهمة', 'المبلغ هيرجع للموكل وهتتسجل عليك مخالفة. 3 مخالفات خلال 30 يوم بتوقف حسابك أسبوع', 'اعتذار', icon: Icons.policy_rounded, isDanger: true)) return;
     await _run(() => OrderRepository.withdrawFromOrder(_order.id), 'تم تسجيل الاعتذار');
   }
 
@@ -518,29 +499,22 @@ class _PostponeReasonDialogState extends State<_PostponeReasonDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.0)),
-      title: const Text(
-        'سبب التأجيل',
-        textAlign: TextAlign.center,
-        style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontWeight: FontWeight.w800),
-      ),
-      content: TextField(
+    return AppDialog(
+      icon: Icons.event_rounded,
+      title: 'سبب التأجيل',
+      message: 'السبب هيوصل للموكل مع الميعاد الجديد',
+      confirmText: 'تأجيل',
+      onCancel: () => Navigator.pop(context),
+      onConfirm: () {
+        final reason = _controller.text.trim();
+        if (reason.isNotEmpty) Navigator.pop(context, reason);
+      },
+      child: TextField(
         controller: _controller,
         maxLength: 200,
         maxLines: 2,
         decoration: const InputDecoration(hintText: 'مثلًا: الجلسة يوم الخميس'),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('تراجع')),
-        TextButton(
-          onPressed: () {
-            final reason = _controller.text.trim();
-            if (reason.isNotEmpty) Navigator.pop(context, reason);
-          },
-          child: const Text('تأجيل'),
-        ),
-      ],
     );
   }
 }

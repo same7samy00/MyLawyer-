@@ -9,6 +9,8 @@ const RECONNECT_MS = 3_000;
 const MAX_LINES_PER_USER = 3;
 
 const lines = new Map<string, Set<ServerResponse>>();
+/// The control page's lines: every change reaches them
+const adminLines = new Set<ServerResponse>();
 let listener: pg.Client | null = null;
 let stopped = false;
 
@@ -23,10 +25,13 @@ export async function publishChange(db: Db, userId: string, alert = false, kind 
 export function deliverChange(userId: string, alert = false, kind = 'all') {
   const text = `data: ${alert ? 'change-alert' : 'change'} ${kind}\n\n`;
   for (const line of lines.get(userId) ?? []) line.write(text);
+  // The control page hears about every change, without sound
+  for (const line of adminLines) line.write(`data: change ${kind}\n\n`);
 }
 
 /// One open line per phone. A person's oldest line closes when they pass the limit.
-export function openLine(userId: string, line: ServerResponse) {
+export function openLine(userId: string, line: ServerResponse, isAdmin = false) {
+  if (isAdmin) adminLines.add(line);
   const own = lines.get(userId) ?? new Set<ServerResponse>();
   lines.set(userId, own);
   if (own.size >= MAX_LINES_PER_USER) own.values().next().value?.end();
@@ -44,6 +49,7 @@ export function openLine(userId: string, line: ServerResponse) {
   const heartbeat = setInterval(() => line.write(': ping\n\n'), HEARTBEAT_MS);
   line.on('close', () => {
     clearInterval(heartbeat);
+    adminLines.delete(line);
     own.delete(line);
     if (own.size === 0 && lines.get(userId) === own) lines.delete(userId);
   });

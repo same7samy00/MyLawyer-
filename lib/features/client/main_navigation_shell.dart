@@ -5,7 +5,6 @@ import '../../core/services/push_service.dart';
 import '../../core/widgets/order_action_sheets.dart';
 import '../../data/models/order_model.dart';
 import '../../data/repositories/order_repository.dart';
-import '../../core/widgets/live_status_banner.dart';
 import '../../core/widgets/app_bottom_bar.dart';
 import '../../core/widgets/app_header.dart';
 import 'home_tab.dart';
@@ -133,16 +132,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           title: _tabTitles[_currentIndex],
           isInnerPage: false,
         ),
-        body: Column(
-          children: [
-            const LiveStatusBanner(),
-            Expanded(
-              child: IndexedStack(
-                index: _currentIndex,
-                children: List.generate(_tabTitles.length, _buildTab),
-              ),
-            ),
-          ],
+        body: IndexedStack(
+          index: _currentIndex,
+          children: List.generate(_tabTitles.length, _buildTab),
         ),
         bottomNavigationBar: AppBottomBar(
           activeIndex: _currentIndex,

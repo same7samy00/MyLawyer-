@@ -149,9 +149,9 @@ export function buildApp() {
     api.get('/health', healthHandler);
     // The open line that tells the app something changed
     api.get('/events', { onRequest: requireAuth() }, async (request, reply) => {
-      const { userId } = request.user as { userId: string };
+      const { userId, role } = request.user as { userId: string; role?: string };
       reply.hijack();
-      openLine(userId, reply.raw);
+      openLine(userId, reply.raw, role === 'admin');
     });
     registerAdminPanel(api);
     api.register(authRoutes, { prefix: '/auth' });

@@ -195,6 +195,7 @@ async function apiRequest(method, path, body, isRetry) {
 
 function showLogin(message) {
   saveSession(null);
+  if (typeof liveTurn !== 'undefined') liveTurn += 1;
   apiCache.clear();
   $('login').hidden = false;
   $('app').hidden = true;
