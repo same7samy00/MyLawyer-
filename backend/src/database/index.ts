@@ -7,7 +7,8 @@ export type Db = pg.Pool | pg.PoolClient;
 
 export const dbPool = new Pool({
   connectionString: config.databaseUrl,
-  max: 20,
+  // Each worker has its own pool, and all of them must stay under PostgreSQL's limit
+  max: Number(process.env.DB_POOL_MAX) || 15,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
 });

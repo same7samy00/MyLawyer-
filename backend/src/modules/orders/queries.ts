@@ -4,6 +4,9 @@ import { REVIEW_WINDOW_DAYS } from '../lifecycle/service.js';
 import { OPEN_ORDER_TICKET } from '../support/service.js';
 import { PAID_STATUSES, responseSecondsLeft, visibleLocation, AuthenticatedUser } from './shared.js';
 
+// Building a date format is slow, and this list is read on every refresh
+const ORDER_DATE = new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
 /// Reading orders and the lawyer wallet summary
 export async function registerOrderQueries(fastify: FastifyInstance) {
   // 2. GET /api/v1/orders - List orders for current user (client or lawyer)
@@ -66,14 +69,7 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
       else if (o.status === 'PAYMENT_EXPIRED') statusLabel = 'انتهت مهلة الدفع';
       else if (o.status === 'REFUNDED') statusLabel = 'تم رد المبلغ';
 
-      const createdAtDate = new Date(o.created_at);
-      const formattedDate = createdAtDate.toLocaleDateString('ar-EG', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const formattedDate = ORDER_DATE.format(new Date(o.created_at));
 
       return {
         id: o.order_number,
