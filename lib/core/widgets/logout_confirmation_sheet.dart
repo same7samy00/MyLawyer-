@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import 'app_button.dart';
 import 'app_pressable.dart';
+import 'app_sheet.dart';
 
 /// نافذة تأكيد تسجيل الخروج الموحدة لحساب الموكل والمحامي
 /// [onConfirm] هو إجراء الخروج الفعلي ويبقى التحميل داخل الزر حتى انتهائه
@@ -11,54 +12,23 @@ class LogoutConfirmationSheet extends StatelessWidget {
   const LogoutConfirmationSheet({super.key, required this.onConfirm});
 
   static Future<void> show(BuildContext context, {required Future<void> Function() onConfirm}) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-      ),
-      builder: (context) => LogoutConfirmationSheet(onConfirm: onConfirm),
-    );
+    return AppSheet.show<void>(context, builder: (context) => LogoutConfirmationSheet(onConfirm: onConfirm));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 44,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.cardBorder,
-                borderRadius: BorderRadius.circular(4.0),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Transform.flip(
-              flipX: true,
-              child: const Icon(
-                Icons.logout_rounded,
-                color: AppColors.danger,
-                size: 76,
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'تسجيل الخروج',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 21,
-                fontWeight: FontWeight.w900,
-                color: AppColors.dark,
+    return AppSheet(
+      title: 'تسجيل الخروج',
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
+      children: [
+            Center(
+              child: Transform.flip(
+                flipX: true,
+                child: const Icon(
+                  Icons.logout_rounded,
+                  color: AppColors.danger,
+                  size: 64,
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -106,9 +76,7 @@ class LogoutConfirmationSheet extends StatelessWidget {
                 ),
               ),
             ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 }

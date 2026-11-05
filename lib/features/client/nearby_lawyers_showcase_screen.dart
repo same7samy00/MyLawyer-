@@ -8,6 +8,7 @@ import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/map_lawyer_loader.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/app_map_layer.dart';
 import '../../core/widgets/lawyer_profile_summary.dart';
@@ -27,6 +28,7 @@ part 'nearby_lawyers_showcase_sheet.dart';
 /// البوتن شيت ثابت ويعرض أعلى المحامين تقييماً في نطاق 50 كم، وملف المحامي يفتح جواه بنفس الحجم.
 /// الخريطة للعرض بس، ومفيش منها أي طلب خدمة.
 const double _showcaseRadiusKm = 50;
+/// أول تقدير لطول الشيت قبل ما يتقاس محتواه
 const double _showcaseSheetHeight = 360;
 
 class NearbyLawyersShowcaseScreen extends StatefulWidget {
@@ -39,6 +41,7 @@ class NearbyLawyersShowcaseScreen extends StatefulWidget {
 class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScreen>
     with TickerProviderStateMixin {
   double _mapZoom = 14.5;
+  double _sheetHeight = _showcaseSheetHeight;
   MapCamera? _lastCamera;
   final MapController _mapController = MapController();
   AnimationController? _cameraAnimController;
@@ -335,7 +338,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
           // 3. أزرار التحكم بالخريطة (تكبير / تصغير / إعادة التمركز)
           Positioned(
             right: 16,
-            bottom: _showcaseSheetHeight + MediaQuery.paddingOf(context).bottom + 12,
+            bottom: _sheetHeight + 12,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

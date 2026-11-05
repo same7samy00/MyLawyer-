@@ -22,7 +22,7 @@ import '../../core/widgets/lawyer_profile_summary.dart';
 import '../../core/widgets/lawyer_reviews_panel.dart';
 import '../../core/widgets/map_cards.dart';
 import '../../core/widgets/response_countdown.dart';
-import '../../core/widgets/sheet_lines.dart';
+import '../../core/widgets/app_sheet.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/repositories/lawyer_repository.dart';
 import '../../data/models/service_request.dart';
@@ -309,13 +309,12 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
           ),
 
           // 5. بوتن شيت واحد فقط مثبت تلقائياً أسفل الخريطة بارتفاع ثابت وسحب مباشر للأعلى والأسفل بحواف 28px
-          ValueListenableBuilder<double>(
-            valueListenable: _sheetHeightNotifier,
-            child: _buildSheetHeader(),
-            builder: (context, sheetHeight, sheetHeader) => Align(
-              alignment: Alignment.bottomCenter,
+          // 5. البوتن شيت طوله على قد محتواه، وأزرار الخريطة بتتحرك معاه
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: MeasuredSize(
+              onChange: (size) => _sheetHeight = size.height,
               child: Container(
-                height: sheetHeight,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -329,79 +328,47 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                   ],
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    const SheetLines(top: 62),
-                    SafeArea(
-                      top: false,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          sheetHeader!,
-                          Expanded(
-                            child: _showReviews && (_reviewsLawyerId ?? _selectedLawyer?.id) != null
-                                ? Padding(
-                                    padding: const EdgeInsets.fromLTRB(18, 4, 18, 8),
-                                    child: LawyerReviewsPanel(
-                                      lawyerId: (_reviewsLawyerId ?? _selectedLawyer?.id)!,
-                                      onClose: () => _setReviewsVisible(false),
-                                    ),
-                                  )
-                                : SingleChildScrollView(
-                                    padding: const EdgeInsets.fromLTRB(18, 4, 18, 16),
-                                    child: _orderFlowStage != _OrderFlowStage.idle
-                                        ? _buildOrderFlowContent()
-                                        : _buildLawyerProfileCard(),
-                                  ),
-                          ),
-                        ],
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      AppSheetHeader(
+                        title: _showReviews
+                            ? 'التقييمات'
+                            : _orderFlowStage == _OrderFlowStage.idle
+                                ? 'أقرب المحامين إليك'
+                                : 'متابعة الطلب',
                       ),
-                    ),
-                  ],
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.65),
+                        child: _showReviews && (_reviewsLawyerId ?? _selectedLawyer?.id) != null
+                            ? SizedBox(
+                                height: MediaQuery.sizeOf(context).height * 0.55,
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
+                                  child: LawyerReviewsPanel(
+                                    lawyerId: (_reviewsLawyerId ?? _selectedLawyer?.id)!,
+                                    onClose: () => _setReviewsVisible(false),
+                                  ),
+                                ),
+                              )
+                            : SingleChildScrollView(
+                                padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+                                child: _orderFlowStage != _OrderFlowStage.idle
+                                    ? _buildOrderFlowContent()
+                                    : _buildLawyerProfileCard(),
+                              ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ],
       ),
-      ),
-    );
-  }
-
-  /// شريط العنوان، والشيت ثابت ما بيتسحبش
-  Widget _buildSheetHeader() {
-    return Padding(
-      padding: EdgeInsets.zero,
-      child: Container(
-        padding: const EdgeInsets.only(top: 10, bottom: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // عنوان البوتن شيت في المنتصف تماماً كنص فقط بدون أيقونة وبدون زر تصغير
-            Center(
-              child: Text(
-                _showReviews
-                    ? 'التقييمات'
-                    : _orderFlowStage == _OrderFlowStage.idle
-                        ? 'أقرب المحامين إليك'
-                        : 'متابعة الطلب',
-                style: const TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.dark,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.0),
-              child: _DashedLineSeparator(),
-            ),
-          ],
-        ),
       ),
     );
   }

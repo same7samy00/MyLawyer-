@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_pressable.dart';
+import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/auth_hero_header.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/widgets/app_button.dart';
@@ -145,39 +146,12 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
 
   void _showImageSourceModal({bool forPhoto = false}) {
     _isPickingPhoto = forPhoto;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28.0)),
-      ),
+    AppSheet.show<void>(
+      context,
       builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+        return AppSheet(
+              title: _isPickingPhoto ? 'إرفاق صورتك الشخصية' : 'إرفاق صورة كارنيه نقابة المحامين',
               children: [
-                Container(
-                  width: 44,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.cardBorder,
-                    borderRadius: BorderRadius.circular(2.0),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  _isPickingPhoto ? 'إرفاق صورتك الشخصية' : 'إرفاق صورة كارنيه نقابة المحامين',
-                  style: const TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.dark,
-                  ),
-                ),
-                const SizedBox(height: 8),
                 Text(
                   _isPickingPhoto
                       ? 'صورة واضحة لوشك، وهتظهر للموكلين في ملفك'
@@ -247,8 +221,6 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                   ],
                 ),
               ],
-            ),
-          ),
         );
       },
     );

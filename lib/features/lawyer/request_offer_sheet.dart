@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/live_updates.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_sheet.dart';
 import '../../data/models/service_request.dart';
 import '../../data/repositories/request_repository.dart';
 
@@ -14,15 +15,7 @@ class RequestOfferSheet extends StatefulWidget {
   const RequestOfferSheet({super.key, required this.request});
 
   static Future<void> open(BuildContext context, IncomingRequest request) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: false,
-      enableDrag: false,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20.0))),
-      builder: (_) => RequestOfferSheet(request: request),
-    );
+    return AppSheet.show<void>(context, isDismissible: false, builder: (_) => RequestOfferSheet(request: request));
   }
 
   @override
@@ -120,8 +113,6 @@ class _RequestOfferSheetState extends State<RequestOfferSheet> {
   List<Widget> _details() {
     final sent = _sentPrice;
     return [
-      const Text('تفاصيل الطلب', textAlign: TextAlign.center, style: _titleStyle),
-      const SizedBox(height: 12),
       _row('الخدمة', _request.service),
       _row('المشكلة', _request.problemType),
       if (_request.problemDescription.isNotEmpty) _row('التفاصيل', _request.problemDescription),
@@ -170,8 +161,6 @@ class _RequestOfferSheetState extends State<RequestOfferSheet> {
     final max = _request.maxPrice;
     final price = _price;
     return [
-      const Text('اكتب سعرك', textAlign: TextAlign.center, style: _titleStyle),
-      const SizedBox(height: 4),
       Text('من $min لـ $max ج.م', textAlign: TextAlign.center, style: _mutedStyle),
       const SizedBox(height: 12),
       TextField(
@@ -207,28 +196,19 @@ class _RequestOfferSheetState extends State<RequestOfferSheet> {
       ),
       const SizedBox(height: 6),
       Text(_timeText, textAlign: TextAlign.center, style: _mutedStyle),
-      TextButton(onPressed: () => setState(() => _isWritingPrice = false), child: const Text('رجوع')),
     ];
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ...(_isWritingPrice ? _priceForm() : _details()),
-              if (_error != null)
-                Text(_error!, textAlign: TextAlign.center, style: _mutedStyle.copyWith(color: AppColors.danger)),
-            ],
-          ),
-        ),
-      ),
+    return AppSheet(
+      title: _isWritingPrice ? 'اكتب سعرك' : 'تفاصيل الطلب',
+      onBack: _isWritingPrice ? () => setState(() => _isWritingPrice = false) : null,
+      children: [
+        ...(_isWritingPrice ? _priceForm() : _details()),
+        if (_error != null)
+          Text(_error!, textAlign: TextAlign.center, style: _mutedStyle.copyWith(color: AppColors.danger)),
+      ],
     );
   }
 

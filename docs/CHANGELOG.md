@@ -1,5 +1,8 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [One Sheet Style] - 2026-11-06
+- **Bottom sheets:** every sheet now uses `AppSheet` in `core/widgets/app_sheet.dart`, with a handle, the title and a dashed line. Its height follows its content on any phone, and only content taller than the screen moves inside. The map sheets follow the same style, and the map buttons move with their height.
+
 ## [Production Hardening] - 2026-11-05
 - **Server:** three request workers, SSH by key only, tuned PostgreSQL and Nginx, seven indexes, and a daily local backup. Results are in `docs/PRODUCTION_REPORT.md`.
 

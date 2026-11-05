@@ -4,9 +4,12 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
   Widget _buildFixedSheet() {
     return Align(
       alignment: Alignment.bottomCenter,
-      child: Container(
+      child: MeasuredSize(
+        onChange: (size) {
+          if ((size.height - _sheetHeight).abs() > 1) _update(() => _sheetHeight = size.height);
+        },
+        child: Container(
         width: double.infinity,
-        height: _showcaseSheetHeight + MediaQuery.paddingOf(context).bottom,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
@@ -17,47 +20,21 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
         child: SafeArea(
           top: false,
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildSheetTitle(),
-              const _ShowcaseDashedLineSeparator(),
-              Expanded(
+              AppSheetHeader(
+                title: _selectedLawyer != null ? 'ملف المحامي' : 'الأعلى تقييماً حولك',
+                onBack: _selectedLawyer != null ? _closeLawyerProfile : null,
+              ),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.5),
                 child: _selectedLawyer == null ? _buildTopLawyersList() : _buildLawyerProfile(_selectedLawyer!),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSheetTitle() {
-    final hasLawyer = _selectedLawyer != null;
-    return SizedBox(
-      height: 52,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Text(
-            hasLawyer ? 'ملف المحامي' : 'الأعلى تقييماً حولك',
-            style: const TextStyle(
-              fontFamily: 'AppFont',
-              fontFamilyFallback: appFontFallback,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: AppColors.dark,
-            ),
-          ),
-          if (hasLawyer)
-            PositionedDirectional(
-              start: 6,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: AppColors.dark),
-                tooltip: 'رجوع',
-                onPressed: _closeLawyerProfile,
-              ),
-            ),
-        ],
       ),
     );
   }
@@ -69,7 +46,8 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
       );
     }
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      shrinkWrap: true,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       physics: const BouncingScrollPhysics(),
       itemCount: _nearbyLawyers.length,
       separatorBuilder: (context, index) => const SizedBox(height: 8),
@@ -155,7 +133,8 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
 
   Widget _buildLawyerProfile(MapLawyer lawyer) {
     if (_showReviews) {
-      return Padding(
+      return Container(
+        height: MediaQuery.sizeOf(context).height * 0.45,
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
         child: LawyerReviewsPanel(lawyerId: lawyer.id, onClose: () => _update(() => _showReviews = false)),
       );

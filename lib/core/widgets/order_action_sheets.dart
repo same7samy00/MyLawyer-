@@ -4,15 +4,7 @@ import '../constants/app_colors.dart';
 import '../services/api_service.dart';
 import 'app_button.dart';
 import 'app_pressable.dart';
-import 'sheet_lines.dart';
-
-const TextStyle _titleStyle = TextStyle(
-  fontFamily: 'AppFont',
-  fontFamilyFallback: appFontFallback,
-  fontSize: 17,
-  fontWeight: FontWeight.w900,
-  color: AppColors.dark,
-);
+import 'app_sheet.dart';
 
 const TextStyle _subtitleStyle = TextStyle(
   fontFamily: 'AppFont',
@@ -28,15 +20,7 @@ class OrderActionSheets {
   OrderActionSheets._();
 
   static Future<bool> _show(BuildContext context, Widget child) async {
-    final result = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-      ),
-      builder: (context) => child,
-    );
+    final result = await AppSheet.show<bool>(context, builder: (context) => child);
     return result ?? false;
   }
 
@@ -61,50 +45,6 @@ class OrderActionSheets {
     required Future<ApiResponse<dynamic>> Function(String phone, double amount) onSubmit,
   }) {
     return _show(context, _TransferSheet(findRecipient: findRecipient, onSubmit: onSubmit));
-  }
-}
-
-class _SheetFrame extends StatelessWidget {
-  final List<Widget> children;
-
-  const _SheetFrame({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: Stack(
-        children: [
-          const SheetLines(top: 16),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 44,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.cardBorder,
-                        borderRadius: BorderRadius.circular(4.0),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 62),
-                  ...children,
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -173,10 +113,9 @@ class _ReviewSheetState extends State<_ReviewSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return _SheetFrame(
+    return AppSheet(
+      title: 'قيّم المحامي',
       children: [
-        const Text('قيّم المحامي', textAlign: TextAlign.center, style: _titleStyle),
-        const SizedBox(height: 4),
         Text(widget.lawyerName, textAlign: TextAlign.center, style: _subtitleStyle),
         const SizedBox(height: 10),
         Row(
@@ -253,10 +192,9 @@ class _ReportReviewSheetState extends State<_ReportReviewSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return _SheetFrame(
+    return AppSheet(
+      title: 'الإبلاغ عن التعليق',
       children: [
-        const Text('الإبلاغ عن التعليق', textAlign: TextAlign.center, style: _titleStyle),
-        const SizedBox(height: 4),
         const Text('الإدارة هتراجع التعليق وتقرر', textAlign: TextAlign.center, style: _subtitleStyle),
         const SizedBox(height: 12),
         TextField(
@@ -349,10 +287,9 @@ class _TransferSheetState extends State<_TransferSheet> {
   @override
   Widget build(BuildContext context) {
     final confirming = _recipientName != null;
-    return _SheetFrame(
+    return AppSheet(
+      title: 'تحويل من رصيدك',
       children: [
-        const Text('تحويل من رصيدك', textAlign: TextAlign.center, style: _titleStyle),
-        const SizedBox(height: 4),
         Text(
           confirming ? 'راجع البيانات قبل التحويل' : 'من $_minimum لحد $_dailyLimit ج.م في اليوم، ومن غير رسوم',
           textAlign: TextAlign.center,

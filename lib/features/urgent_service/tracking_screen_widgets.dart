@@ -250,39 +250,6 @@ class _LawyerBubblePainter extends CustomPainter {
 }
 
 /// شريط خط فاصل شرط
-class _DashedLineSeparator extends StatelessWidget {
-  const _DashedLineSeparator();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: const Size(double.infinity, 1.0),
-      painter: _DashedLinePainter(),
-    );
-  }
-}
-
-class _DashedLinePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.dashedBorder
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke;
-
-    const double dashLength = 5.0;
-    const double dashGap = 3.5;
-    double startX = 0;
-    while (startX < size.width) {
-      canvas.drawLine(Offset(startX, 0), Offset(startX + dashLength, 0), paint);
-      startX += dashLength + dashGap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
 /// عرض محامي: اسمه وتقييمه ومسافته وسعره
 class _OfferCard extends StatelessWidget {
   final RequestOffer offer;

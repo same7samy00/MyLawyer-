@@ -9,6 +9,7 @@ import '../../core/services/external_navigation.dart';
 import '../../core/services/location_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/order_action_sheets.dart';
 import '../../core/widgets/order_status_tracker.dart';
 import '../../core/widgets/response_countdown.dart';
@@ -26,17 +27,7 @@ class OrderDetailsSheet extends StatefulWidget {
   const OrderDetailsSheet({super.key, required this.order, this.isLawyer = false});
 
   static Future<void> open(BuildContext context, OrderModel order, {bool isLawyer = false}) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20.0))),
-      clipBehavior: Clip.antiAlias,
-      builder: (_) => SizedBox(
-        height: MediaQuery.sizeOf(context).height * 0.85,
-        child: OrderDetailsSheet(order: order, isLawyer: isLawyer),
-      ),
-    );
+    return AppSheet.show<void>(context, builder: (_) => OrderDetailsSheet(order: order, isLawyer: isLawyer));
   }
 
   @override
@@ -48,6 +39,8 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   Timer? _refreshTimer;
   bool _isFetching = false;
   bool _isBusy = false;
+  String? _notice;
+  Timer? _noticeTimer;
 
   @override
   void initState() {
@@ -62,6 +55,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _noticeTimer?.cancel();
     LiveUpdates.changes.removeListener(_load);
     super.dispose();
   }
@@ -85,18 +79,13 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
     }
   }
 
+  /// الرسالة بتظهر جوه الشيت، لأن الصفحة اللي تحته متغطية
   void _showNotice(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback),
-        ),
-        backgroundColor: AppColors.dark,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.0)),
-      ),
-    );
+    _noticeTimer?.cancel();
+    setState(() => _notice = message);
+    _noticeTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _notice = null);
+    });
   }
 
   /// تنفيذ إجراء واحد في المرة، ونتيجته تظهر كإشعار واضح
@@ -268,43 +257,39 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   Widget build(BuildContext context) {
     final order = _order;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: RefreshIndicator(
-          color: AppColors.primary,
-          onRefresh: _load,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(18),
-            children: [
-              const Text(
-                'تفاصيل الطلب',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.dark),
-              ),
-              const SizedBox(height: 12),
-              if (order.isPending) ...[
-                ResponseCountdown(secondsLeft: order.responseSecondsLeft, onFinished: _load),
-                const SizedBox(height: 12),
-              ],
-              _buildNumberCard(order),
-              const SizedBox(height: 12),
-              AppCard(
-                padding: const EdgeInsets.all(14),
-                child: OrderStatusTracker(
-                  order: order,
-                  statusText: widget.isLawyer ? order.lawyerStatusLabel : null,
-                ),
-              ),
-              const SizedBox(height: 12),
-              _buildDetailsCard(order),
-              const SizedBox(height: 16),
-              if (widget.isLawyer) ..._buildLawyerActions(order) else ..._buildClientActions(order),
-            ],
+    return AppSheet(
+      title: 'تفاصيل الطلب',
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+      children: [
+        if (_notice != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AppColors.dark, borderRadius: BorderRadius.circular(7.0)),
+            child: Text(
+              _notice!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 13, color: Colors.white),
+            ),
+          ),
+        if (order.isPending) ...[
+          ResponseCountdown(secondsLeft: order.responseSecondsLeft, onFinished: _load),
+          const SizedBox(height: 12),
+        ],
+        _buildNumberCard(order),
+        const SizedBox(height: 12),
+        AppCard(
+          padding: const EdgeInsets.all(14),
+          child: OrderStatusTracker(
+            order: order,
+            statusText: widget.isLawyer ? order.lawyerStatusLabel : null,
           ),
         ),
-      ),
+        const SizedBox(height: 12),
+        _buildDetailsCard(order),
+        const SizedBox(height: 16),
+        if (widget.isLawyer) ..._buildLawyerActions(order) else ..._buildClientActions(order),
+      ],
     );
   }
 

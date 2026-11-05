@@ -1,4 +1,5 @@
 import 'app_pressable.dart';
+import 'app_sheet.dart';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../services/notification_center.dart';
@@ -170,48 +171,12 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   }
 
   void _showQuickSearchDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-      ),
+    AppSheet.show<void>(
+      context,
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+        return AppSheet(
+              title: 'البحث السريع في My Lawyer',
               children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.cardBorder,
-                      borderRadius: BorderRadius.circular(4.0),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'البحث السريع في My Lawyer',
-                  style: TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.dark,
-                  ),
-                ),
-                const SizedBox(height: 12),
                 TextField(
                   autofocus: true,
                   style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 14),
@@ -236,8 +201,6 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ),
               ],
-            ),
-          ),
         );
       },
     );

@@ -226,31 +226,3 @@ class _ShowcaseAvatarPhoto extends StatelessWidget {
   }
 }
 
-/// شريط خط فاصل منقط أنيق
-class _ShowcaseDashedLineSeparator extends StatelessWidget {
-  const _ShowcaseDashedLineSeparator();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          const dashWidth = 4.0;
-          const dashGap = 4.0;
-          final count = (constraints.maxWidth / (dashWidth + dashGap)).floor();
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(count, (_) {
-              return Container(
-                width: dashWidth,
-                height: 1.2,
-                color: AppColors.cardBorder,
-              );
-            }),
-          );
-        },
-      ),
-    );
-  }
-}

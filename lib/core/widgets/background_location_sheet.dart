@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import '../constants/app_colors.dart';
 import '../services/push_service.dart';
 import 'app_button.dart';
+import 'app_sheet.dart';
 
 /// خطوات تجهيز الموبايل قبل ما المحامي يبقى متاح، عشان تجيله طلبات وهو برّه التطبيق
 class BackgroundLocationSheet extends StatefulWidget {
@@ -11,15 +12,7 @@ class BackgroundLocationSheet extends StatefulWidget {
 
   /// يرجع true لو الموقع والإشعارات جاهزين، وإلا الزر ما يتفعلش
   static Future<bool> ensureReady(BuildContext context) async {
-    final ready = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-      ),
-      builder: (context) => const BackgroundLocationSheet(),
-    );
+    final ready = await AppSheet.show<bool>(context, builder: (context) => const BackgroundLocationSheet());
     return ready == true;
   }
 
@@ -143,30 +136,9 @@ class _BackgroundLocationSheetState extends State<BackgroundLocationSheet> with 
   Widget build(BuildContext context) {
     final canStart = _locationReady && _notificationsReady;
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.cardBorder,
-                  borderRadius: BorderRadius.circular(4.0),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'عشان تجيلك طلبات وإنت برّه التطبيق',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.dark),
-            ),
-            const SizedBox(height: 6),
+    return AppSheet(
+      title: 'عشان تجيلك طلبات وإنت برّه التطبيق',
+      children: [
             const Text(
               'طول ما أنت متاح، بنحدث مكانك ونبعتلك الطلبات القريبة. لو قفلت التطبيق من قائمة البرامج ممكن تخرج من الخدمة.',
               textAlign: TextAlign.center,
@@ -189,9 +161,7 @@ class _BackgroundLocationSheetState extends State<BackgroundLocationSheet> with 
                 style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 13, color: AppColors.textMuted),
               ),
             ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 }
