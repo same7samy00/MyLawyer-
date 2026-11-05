@@ -154,7 +154,9 @@ export async function requestRoutes(fastify: FastifyInstance) {
         [id, userId, price, lawyerShare(price, Number(target.commission_percent), Number(target.tax_percent))]
       );
       if (saved.rows.length === 0) throw new HttpError(409, 'بعت عرضك على الطلب ده قبل كده');
-      await notify(client, target.client_id, 'وصلك عرض', `عرض جديد بـ ${price} ج.م`, { requestId: id });
+      const live = await client.query(`SELECT COUNT(*)::int AS total ${LIVE_OFFERS} AND ro.request_id = $1`, [id]);
+      const count = live.rows[0].total;
+      await notify(client, target.client_id, count > 1 ? `وصلك ${count} عروض` : 'وصلك عرض', 'اختار العرض المناسب ليك', { requestId: id });
     });
 
     return reply.status(201).send({ success: true, message: 'عرضك اتبعت للموكل' });
@@ -295,9 +297,7 @@ export async function requestRoutes(fastify: FastifyInstance) {
         'SELECT lawyer_id FROM request_offers WHERE request_id = $1 AND lawyer_id <> $2 AND withdrawn_at IS NULL',
         [id, lawyerId]
       );
-      for (const other of others.rows) {
-        await notify(client, other.lawyer_id, 'الطلب اتقفل', 'الموكل اختار عرض تاني', { requestId: id });
-      }
+      for (const other of others.rows) await publishChange(client, other.lawyer_id, false, 'requests');
       return newOrder;
     });
 

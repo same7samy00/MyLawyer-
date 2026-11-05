@@ -61,12 +61,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _items = _items
             .map((other) => other.id != item.id
                 ? other
-                : AppNotification(id: other.id, title: other.title, body: other.body, isRead: true, orderId: other.orderId, ticketId: other.ticketId))
+                : AppNotification(id: other.id, title: other.title, body: other.body, isRead: true, orderId: other.orderId, ticketId: other.ticketId, requestId: other.requestId))
             .toList();
       });
       NotificationCenter.markRead(item.id);
     }
-    await NotificationRouter.open(context, NotificationTarget(orderId: item.orderId, ticketId: item.ticketId));
+    if (!item.opensPage) return;
+    await NotificationRouter.open(context, NotificationTarget(orderId: item.orderId, ticketId: item.ticketId, requestId: item.requestId));
     // ممكن الطلب يكون اتقدم من الصفحة اللي اتفتحت
     if (mounted) _load();
   }
@@ -76,7 +77,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (!mounted) return;
     setState(() {
       _items = _items
-          .map((item) => AppNotification(id: item.id, title: item.title, body: item.body, isRead: true, orderId: item.orderId, ticketId: item.ticketId))
+          .map((item) => AppNotification(id: item.id, title: item.title, body: item.body, isRead: true, orderId: item.orderId, ticketId: item.ticketId, requestId: item.requestId))
           .toList();
     });
   }
@@ -310,7 +311,7 @@ class _NotificationCard extends StatelessWidget {
                   ),
                 ],
                 // The arrow shows the notification opens a page
-                if (item.orderId != null || item.ticketId != null) ...[
+                if (item.opensPage) ...[
                   const SizedBox(width: 6),
                   const Icon(Icons.keyboard_arrow_left_rounded, color: AppColors.textMuted, size: 20),
                 ],

@@ -183,7 +183,8 @@ describe('الطلب وعروض الأسعار', () => {
     await sweepLifecycle();
     assert.equal((await follow(id)).status, 'EXPIRED');
     assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'الطلب اتلغى'`, [clientId])).length, 1);
-    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'الطلب اتقفل'`, [lawyerId])).length, 1);
+    // The lawyer's card just disappears, with no extra notification
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'الطلب اتقفل'`, [lawyerId])).length, 0);
   });
 
   it('الإلغاء يقفل الطلب، وغير صاحبه ما يشوفوش', async () => {

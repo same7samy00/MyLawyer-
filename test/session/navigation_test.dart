@@ -236,7 +236,7 @@ void main() {
       expect(navigator.canPop(), isFalse);
     });
 
-    testWidgets('الانتقال موحد وقصير وباتجاه RTL دون قفز', (tester) async {
+    testWidgets('الانتقال انزلاق من الجنب باتجاه RTL، سريع ومن غير تلاشي', (tester) async {
       await tester.pumpWidget(testApp(Scaffold(
         body: Builder(
           builder: (context) => TextButton(
@@ -255,14 +255,9 @@ void main() {
       final slides = find.ancestor(of: find.text('صفحة'), matching: find.byType(SlideTransition));
       final dx = tester.widget<SlideTransition>(slides.first).position.value.dx;
       expect(dx, lessThan(0.0));
-      expect(dx, greaterThan(-0.06));
+      expect(dx, greaterThan(-1.0));
 
-      final fades = find.ancestor(of: find.text('صفحة'), matching: find.byType(FadeTransition));
-      final opacity = tester.widget<FadeTransition>(fades.first).opacity.value;
-      expect(opacity, greaterThan(0.0));
-      expect(opacity, lessThan(1.0));
-
-      await tester.pump(const Duration(milliseconds: 260));
+      await tester.pump(const Duration(milliseconds: 320));
       expect(tester.hasRunningAnimations, isFalse);
     });
 

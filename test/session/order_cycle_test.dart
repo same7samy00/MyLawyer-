@@ -171,6 +171,7 @@ void main() {
           ...sampleOrder(status: 'COMPLETED'),
           'completedAt': DateTime.now().toIso8601String(),
           'paidAt': DateTime.now().toIso8601String(),
+          'arrivedAt': DateTime.now().toIso8601String(),
         },
       ];
 

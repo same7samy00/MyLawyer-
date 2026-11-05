@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/app_visibility.dart';
 import '../../core/services/live_updates.dart';
+import '../../core/services/notification_center.dart';
 import '../../core/services/external_navigation.dart';
 import '../../core/services/location_service.dart';
 import '../../core/widgets/app_button.dart';
@@ -46,6 +47,8 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   void initState() {
     super.initState();
     LiveUpdates.orders.addListener(_load);
+    _load();
+    NotificationCenter.markTargetRead(NotificationTarget(orderId: widget.order.id));
     // احتياطي لو الخط المفتوح قطع
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (isAppVisible && _order.isOngoing) _load();

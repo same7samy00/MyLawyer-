@@ -6,8 +6,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // مساحة الملف التعريفي / حالة التحميل الثابتة
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
+        AppSwitcher(
           child: !_isLoading && _nearbyLawyers.isEmpty
               ? KeyedSubtree(key: const ValueKey('no_lawyers'), child: AppStateMessage(
                   icon: _lawyersError != null ? Icons.wifi_off_rounded : Icons.person_search_rounded,
@@ -160,10 +159,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
   }
 
   Widget _buildOrderFlowContent() {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 320),
-      child: _buildStageWidget(),
-    );
+    return AppSwitcher(child: _buildStageWidget());
   }
 
   Widget _buildStageWidget() {

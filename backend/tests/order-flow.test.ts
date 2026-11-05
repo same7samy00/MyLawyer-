@@ -81,14 +81,12 @@ describe('الدفع والإنهاء بعد الالتقاء', () => {
 });
 
 describe('مهلة المهمة', () => {
-  it('التذكيرات تتبعت مرة واحدة', async () => {
-    const order = await createPaidOrder();
-    await sql(`UPDATE service_orders SET expires_at = NOW() + INTERVAL '10 hours' WHERE id = $1`, [order.id]);
-    await sweepLifecycle();
-    await sweepLifecycle();
-
-    const rows = await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'تذكير بالوصول'`, [lawyerId]);
+  it('كل طلب ليه سطر إشعار واحد، والجديد يحل محل القديم', async () => {
+    const order = await createArrivedOrder();
+    await call('POST', `/orders/${order.id}/complete`, lawyerToken, {});
+    const rows = await sql(`SELECT title FROM notifications WHERE user_id = $1 AND order_id = $2`, [clientId, order.id]);
     assert.equal(rows.length, 1);
+    assert.equal(rows[0].title, 'انتهت المهمة');
   });
 
   it('المهلة خلصت والمحامي ما وصلش: الفلوس ترجع للموكل لوحدها', async () => {

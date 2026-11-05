@@ -17,16 +17,21 @@ class SmoothRtlPageTransitionsBuilder extends PageTransitionsBuilder {
     Widget child,
   ) {
     final isRtl = Directionality.of(context) == TextDirection.rtl;
-    final slideTween = Tween<Offset>(
-      begin: Offset(isRtl ? -0.06 : 0.06, 0.0),
-      end: Offset.zero,
-    );
+    final direction = isRtl ? -1.0 : 1.0;
+    final incoming = Tween<Offset>(begin: Offset(direction, 0), end: Offset.zero);
+    final outgoing = Tween<Offset>(begin: Offset.zero, end: Offset(-direction * 0.25, 0));
 
+    // الصفحة الجديدة تدخل من الجنب، واللي تحتها تتزق شوية، من غير تلاشي
     return SlideTransition(
-      position: animation.drive(slideTween.chain(_curve)),
-      child: FadeTransition(
-        opacity: animation.drive(_curve),
-        child: child,
+      position: secondaryAnimation.drive(outgoing.chain(_curve)),
+      child: SlideTransition(
+        position: animation.drive(incoming.chain(_curve)),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            boxShadow: [BoxShadow(color: Color(0x14000000), blurRadius: 16)],
+          ),
+          child: child,
+        ),
       ),
     );
   }

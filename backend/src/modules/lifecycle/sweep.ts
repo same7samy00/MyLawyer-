@@ -2,6 +2,7 @@ import { dbPool, withTransaction } from '../../database/index.js';
 import { ARRIVAL_REMINDER_MINUTES, CLIENT_REPLY_HOURS, notify, REVIEW_WINDOW_DAYS } from './service.js';
 import { applySettlement, liftUserSuspensions } from './settlement.js';
 import { advanceRequests } from '../requests/service.js';
+import { publishChange } from '../../services/liveUpdates.js';
 
 const MAX_MISSED_ORDERS = 2;
 const LOCATION_SILENCE_MINUTES = 10;
@@ -51,7 +52,7 @@ async function closeUnpaidOrders() {
       [order.id]
     );
     await notify(dbPool, order.client_id, 'انتهت مهلة الدفع', 'الطلب اتلغى، وتقدر تبدأ طلب جديد', order.id);
-    await notify(dbPool, order.lawyer_id, 'الموكل ما دفعش', 'الطلب اتلغى، وتقدر تستقبل طلبات جديدة', order.id);
+    await publishChange(dbPool, order.lawyer_id, false, 'orders');
   }
 }
 
@@ -86,25 +87,12 @@ async function hideSilentLawyers() {
   }
 }
 
-async function sendDeadlineReminders() {
-  const reminders = [
-    { column: 'reminder_first_sent', hoursLeft: 12, body: 'باقي 12 ساعة. لو وصلت، دوس «وصلت»' },
-    { column: 'reminder_second_sent', hoursLeft: 4, body: 'باقي 4 ساعات. لو ما وصلتش المبلغ هيرجع للموكل' },
-  ];
-
-  for (const reminder of reminders) {
-    const res = await dbPool.query(
-      `UPDATE service_orders SET ${reminder.column} = TRUE
-       WHERE status = 'ACTIVE' AND arrived_at IS NULL AND ${reminder.column} = FALSE
-         AND expires_at <= NOW() + make_interval(hours => $1)
-       RETURNING id, lawyer_id`,
-      [reminder.hoursLeft]
-    );
-
-    for (const order of res.rows) {
-      await notify(dbPool, order.lawyer_id, 'تذكير بالوصول', reminder.body, order.id);
-    }
-  }
+/// Notifications are a short history, older lines go after 30 days. Checked once an hour
+let lastCleanup = 0;
+async function removeOldNotifications() {
+  if (Date.now() - lastCleanup < 3_600_000) return;
+  lastCleanup = Date.now();
+  await dbPool.query(`DELETE FROM notifications WHERE created_at < NOW() - INTERVAL '30 days'`);
 }
 
 async function sendArrivalReminders() {
@@ -198,7 +186,7 @@ export async function sweepLifecycle() {
   await liftSuspensions();
   await liftUserSuspensions(dbPool);
   await hideSilentLawyers();
-  await sendDeadlineReminders();
+  await removeOldNotifications();
   await sendArrivalReminders();
   await askClientAboutDelay();
   await refundUnreachedOrders();

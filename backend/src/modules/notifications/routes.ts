@@ -37,7 +37,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = request.user as AuthenticatedUser;
     const res = await query(
-      `SELECT id, title, body, order_id, ticket_id, read_at, created_at
+      `SELECT id, title, body, order_id, ticket_id, request_id, read_at, created_at
        FROM notifications WHERE user_id = $1
        ORDER BY created_at DESC LIMIT 50`,
       [userId]
@@ -51,6 +51,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         body: row.body,
         orderId: row.order_id,
         ticketId: row.ticket_id,
+        requestId: row.request_id,
         isRead: row.read_at !== null,
         createdAt: row.created_at,
       })),
@@ -98,13 +99,13 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   // POST /api/v1/notifications/read - Marks one notification, or those of the order or ticket a push opened
   fastify.post('/read', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = request.user as AuthenticatedUser;
-    const body = (request.body || {}) as { id?: string; orderId?: string; ticketId?: string };
-    if (!body.id && !body.orderId && !body.ticketId) return reply.status(400).send({ success: false, error: 'الإشعار غير محدد' });
+    const body = (request.body || {}) as { id?: string; orderId?: string; ticketId?: string; requestId?: string };
+    if (!body.id && !body.orderId && !body.ticketId && !body.requestId) return reply.status(400).send({ success: false, error: 'الإشعار غير محدد' });
     await query(
       `UPDATE notifications SET read_at = NOW()
        WHERE user_id = $1 AND read_at IS NULL
-         AND (id::text = $2 OR order_id::text = $3 OR ticket_id::text = $4)`,
-      [userId, body.id ?? null, body.orderId ?? null, body.ticketId ?? null]
+         AND (id::text = $2 OR order_id::text = $3 OR ticket_id::text = $4 OR request_id::text = $5)`,
+      [userId, body.id ?? null, body.orderId ?? null, body.ticketId ?? null, body.requestId ?? null]
     );
     return reply.send({ success: true });
   });

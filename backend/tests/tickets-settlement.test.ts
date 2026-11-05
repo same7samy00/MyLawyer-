@@ -66,8 +66,10 @@ describe('تذاكر الفلوس والتسوية بالالتقاء', () => {
     const order = await createCompletedOrder();
     assert.equal((await openTicket(clientToken, order.id, 'ORDER')).status, 201);
     assert.equal((await wallet()).frozenBalance, 350);
-    const notes = await sql(`SELECT order_id FROM notifications WHERE user_id = $1 AND title = 'مراجعة على طلب'`, [lawyerId]);
-    assert.equal(notes[0].order_id, order.id);
+    // One line per order: the latest step about this order replaces the earlier ones
+    const notes = await sql(`SELECT title FROM notifications WHERE user_id = $1 AND order_id = $2`, [lawyerId, order.id]);
+    assert.equal(notes.length, 1);
+    assert.ok(['مراجعة على طلب', 'أتعابك اتجمدت'].includes(notes[0].title));
   });
 
   it('التذكرة محتاجة نوع، والغريب ما يفتحش على طلب', async () => {

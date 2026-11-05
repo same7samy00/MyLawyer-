@@ -11,6 +11,7 @@ import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/lawyer_availability_card.dart';
 import '../../core/widgets/order_summary_card.dart';
 import '../../core/widgets/orders_filter.dart';
+import '../../core/widgets/request_parts.dart';
 import '../../data/models/order_model.dart';
 import '../../data/models/service_request.dart';
 import '../../data/repositories/order_repository.dart';
@@ -112,7 +113,6 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
 
   Widget _requestCard(IncomingRequest request) {
     final sent = request.myPrice;
-    final seconds = request.secondsLeft;
     return Padding(
       key: ValueKey('request-${request.id}'),
       padding: const EdgeInsets.only(bottom: 12),
@@ -121,40 +121,42 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(request.problemType, style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.dark)),
-            const SizedBox(height: 4),
-            Text(
-              sent == null ? 'من ${request.minPrice} لـ ${request.maxPrice} ج.م • ${request.distanceKm} كم' : 'عرضك: $sent ج.م • ${request.distanceKm} كم',
-              style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    request.problemType,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.dark),
+                  ),
+                ),
+                if (sent == null) RequestTimeBadge(secondsLeft: request.secondsLeft),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.location_on_rounded, size: 15, color: AppColors.textMuted),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    '${request.area ?? 'مكان الموكل'} • ${request.distanceKm} كم',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 10),
-            _step('الطلب وصل', true),
-            _step(sent == null ? 'ابعت سعرك • باقي ${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}' : 'عرضك اتبعت', sent != null),
-            _step('الموكل يختار', false),
-            _step('الدفع', false),
-            const SizedBox(height: 8),
-            AppButton.primary(text: 'تفاصيل الطلب', height: 40, fontSize: 13, onPressed: () { _openRequest(request); }),
+            RequestPriceBox(minPrice: request.minPrice, maxPrice: request.maxPrice, sentPrice: sent),
+            const SizedBox(height: 12),
+            RequestSteps(priceSent: sent != null),
+            const SizedBox(height: 12),
+            AppButton.primary(text: 'تفاصيل الطلب', height: 42, fontSize: 13, onPressed: () { _openRequest(request); }),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _step(String text, bool isDone) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          Icon(
-            isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-            size: 16,
-            color: isDone ? AppColors.success : AppColors.textMuted,
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(text, style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12, fontWeight: FontWeight.w700, color: isDone ? AppColors.dark : AppColors.textMuted)),
-          ),
-        ],
       ),
     );
   }

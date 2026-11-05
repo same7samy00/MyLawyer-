@@ -36,6 +36,7 @@ class AppNotification {
   final bool isRead;
   final String? orderId;
   final String? ticketId;
+  final String? requestId;
 
   const AppNotification({
     required this.id,
@@ -44,7 +45,10 @@ class AppNotification {
     required this.isRead,
     this.orderId,
     this.ticketId,
+    this.requestId,
   });
+
+  bool get opensPage => orderId != null || ticketId != null || requestId != null;
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
@@ -54,6 +58,7 @@ class AppNotification {
       isRead: json['isRead'] == true,
       orderId: json['orderId']?.toString(),
       ticketId: json['ticketId']?.toString(),
+      requestId: json['requestId']?.toString(),
     );
   }
 }

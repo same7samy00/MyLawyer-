@@ -24,6 +24,7 @@ import '../../core/widgets/lawyer_reviews_panel.dart';
 import '../../core/widgets/map_cards.dart';
 import '../../core/widgets/response_countdown.dart';
 import '../../core/widgets/app_sheet.dart';
+import '../../core/widgets/app_switcher.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/repositories/lawyer_repository.dart';
 import '../../data/models/service_request.dart';

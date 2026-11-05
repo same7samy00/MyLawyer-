@@ -1,5 +1,13 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Calmer Notifications] - 2026-11-06
+- **Fewer alerts:** only steps that need action ring the phone. Settlements, payouts ready, new reviews, transfers sent and similar steps stay inside the app. The lawyer no longer gets «الطلب اتقفل» or «الموكل ما دفعش», and the 12 and 4 hour reminders are gone.
+- **One line per order:** each order or request keeps a single notification that every new step replaces, offers show as «وصلك 3 عروض», and notifications older than 30 days are removed. Migration `026`.
+- **Opening notifications:** an order opens at once from the saved copy, a new request opens its offer sheet for the lawyer, and notifications with no page show no arrow. Opening an order marks its notification read.
+- **Problem button:** «عندك مشكلة؟» shows from arrival until 24 hours after finishing.
+- **New request card and sheet:** time left, area, the price box, a short step bar, and grouped details with icons.
+- **Motion:** pages slide in from the side and the page below moves a little, sheet content slides up and resizes smoothly, with no fading.
+
 ## [Saved Data] - 2026-11-06
 - **Faster screens:** orders, wallet and notifications show the last saved copy at once, then the server's copy replaces it. Phone numbers, emails and exact places are not saved, and everything saved is cleared at sign out.
 - **Server says what changed:** the live line now names the change (orders, requests, support or notifications), so only the screens that need it reload.

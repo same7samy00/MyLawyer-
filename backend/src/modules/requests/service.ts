@@ -1,6 +1,7 @@
 import pg from 'pg';
 import { Db, dbPool, withTransaction } from '../../database/index.js';
 import { notify } from '../lifecycle/service.js';
+import { publishChange } from '../../services/liveUpdates.js';
 
 export const ROUND_SECONDS = 120;
 /// After the offers round, the client has this long to choose before the request is cancelled
@@ -99,9 +100,7 @@ export async function advanceRequests() {
         if (!left.rows[0].waiting) {
           await closeRequest(client, request, 'EXPIRED', 'الطلب اتلغى', 'ما اخترتش عرض في الوقت المحدد. تقدر تطلب تاني');
           const offered = await client.query('SELECT lawyer_id FROM request_offers WHERE request_id = $1 AND withdrawn_at IS NULL', [id]);
-          for (const row of offered.rows) {
-            await notify(client, row.lawyer_id, 'الطلب اتقفل', 'الموكل ما اختارش عرض', { requestId: id });
-          }
+          for (const row of offered.rows) await publishChange(client, row.lawyer_id, false, 'requests');
         }
         return;
       }
