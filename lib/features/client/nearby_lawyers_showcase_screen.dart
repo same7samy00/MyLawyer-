@@ -6,6 +6,7 @@ import 'package:lottie/lottie.dart' hide Marker;
 import '../../core/constants/app_colors.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
+import '../../core/services/map_lawyer_loader.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/app_map_layer.dart';
@@ -38,6 +39,7 @@ class NearbyLawyersShowcaseScreen extends StatefulWidget {
 class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScreen>
     with TickerProviderStateMixin {
   double _mapZoom = 14.5;
+  MapCamera? _lastCamera;
   final MapController _mapController = MapController();
   AnimationController? _cameraAnimController;
 
@@ -48,6 +50,9 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
   List<MapLawyer> _nearbyLawyers = [];
   MapLawyer? _selectedLawyer;
   bool _showReviews = false;
+  late final MapLawyerLoader _mapLawyers = MapLawyerLoader(onChanged: () {
+    if (mounted) setState(() {});
+  });
 
   @override
   void initState() {
@@ -59,6 +64,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
   void dispose() {
     _cameraAnimController?.stop();
     _cameraAnimController?.dispose();
+    _mapLawyers.dispose();
     super.dispose();
   }
 
@@ -90,7 +96,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
         ? await GeoNamingService.instance.getCityAndGovernorate(position.latitude, position.longitude)
         : 'محافظة القاهرة';
 
-    final res = await LawyerRepository.getNearbyLawyers(lat: center.latitude, lon: center.longitude, radiusKm: _showcaseRadiusKm);
+    final res = await LawyerRepository.getNearbyLawyers(lat: center.latitude, lon: center.longitude, radiusKm: _showcaseRadiusKm, byRating: true);
     if (!mounted) return;
 
     setState(() {
@@ -103,6 +109,8 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
         });
       _isInitialLoading = false;
     });
+    final camera = _lastCamera;
+    if (camera != null) _mapLawyers.load(camera);
   }
 
   void _animatedMapMove(
@@ -221,10 +229,13 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
               minZoom: appMapMinZoom,
               maxZoom: appMapMaxZoom,
               cameraConstraint: appMapBounds,
+              onMapReady: () => _lastCamera = _mapController.camera,
               onPositionChanged: (camera, _) {
+                _lastCamera = camera;
                 if (camera.zoom.floor() != _mapZoom.floor()) {
                   setState(() => _mapZoom = camera.zoom);
                 }
+                if (!_isInitialLoading) _mapLawyers.cameraMoved(camera);
               },
               backgroundColor: appMapBackground,
               onTap: (_, __) {
@@ -248,26 +259,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
                     child: const ScaledMapCard(width: 140, height: 52, child: MyLocationMapCard()),
                   ),
 
-                  // علامات المحامين القريبين (بأبعاد متناسقة 140x52 لمنع الـ Overflow نهائياً)
-                  for (final lawyer in _nearbyLawyers)
-                    Marker(
-                      point: lawyer.position,
-                      width: 140 * mapCardScaleFor(_mapZoom),
-                      height: 52 * mapCardScaleFor(_mapZoom),
-                      alignment: Alignment.topCenter,
-                      child: GestureDetector(
-                        onTap: () => _onLawyerMarkerTapped(lawyer),
-                        child: ScaledMapCard(
-                          width: 140,
-                          height: 52,
-                          child: _ShowcaseLawyerPin(
-                            lawyer: lawyer,
-                            isSelected: _selectedLawyer?.id == lawyer.id,
-                            isNearest: false,
-                          ),
-                        ),
-                      ),
-                    ),
+                  ..._buildLawyerMarkers(),
                 ],
               ),
             ],
@@ -418,6 +410,37 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
       ),
     ),
     );
+  }
+
+  /// قائمة أعلى المحامين تقييماً ومحامو المنطقة الظاهرة، وكل محامٍ بكارته
+  List<Marker> _buildLawyerMarkers() {
+    final scale = mapCardScaleFor(_mapZoom);
+    final shown = {for (final lawyer in _nearbyLawyers) lawyer.id: lawyer};
+    for (final lawyer in _mapLawyers.lawyers) {
+      shown.putIfAbsent(lawyer.id, () => lawyer);
+    }
+
+    return [
+      for (final lawyer in shown.values)
+        Marker(
+          point: lawyer.position,
+          width: 140 * scale,
+          height: 52 * scale,
+          alignment: Alignment.topCenter,
+          child: GestureDetector(
+            onTap: () => _onLawyerMarkerTapped(lawyer),
+            child: ScaledMapCard(
+              width: 140,
+              height: 52,
+              child: _ShowcaseLawyerPin(
+                lawyer: lawyer,
+                isSelected: _selectedLawyer?.id == lawyer.id,
+                isNearest: false,
+              ),
+            ),
+          ),
+        ),
+    ];
   }
 
   void _update(VoidCallback change) => setState(change);

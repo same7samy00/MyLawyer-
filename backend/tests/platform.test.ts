@@ -67,6 +67,16 @@ describe('ظهور المحامي على الخريطة', () => {
     assert.equal(res.body.data.some((l: any) => l.id === lawyerId), false);
   });
 
+  it('الخريطة بتجيب محامي المنطقة الظاهرة بس، وبحد للعدد', async () => {
+    const inArea = await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25&north=30.2&south=29.9&east=31.4&west=31.1&limit=5', null);
+    assert.equal(inArea.body.data.some((l: any) => l.id === lawyerId), true);
+    assert.ok(inArea.body.data.length <= 5);
+    const away = await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25&north=25&south=24&east=33&west=32', null);
+    assert.equal(away.body.data.some((l: any) => l.id === lawyerId), false);
+    const bad = await call('GET', "/lawyers/nearby?lat=30.05&lon=31.25&limit=1;DROP&sort=x", null);
+    assert.equal(bad.status, 200);
+  });
+
   it('المحامي البعيد يظهر على الخريطة بنطاق مصر كلها', async () => {
     const res = await call('GET', '/lawyers/nearby?lat=23.9&lon=32.9&radius_km=1500', null);
     assert.equal(res.body.data.some((l: any) => l.id === lawyerId), true);

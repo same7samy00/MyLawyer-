@@ -292,17 +292,21 @@ extension _TrackingMapControls on _TrackingScreenState {
   }
 
   void _onMapMoved(MapCamera camera, bool hasGesture) {
+    _lastCamera = camera;
     if (camera.zoom.floor() != _mapZoom.floor()) {
       _update(() {
         _mapZoom = camera.zoom;
       });
     }
+    if (_orderFlowStage == _OrderFlowStage.idle) _mapLawyers.cameraMoved(camera);
   }
 
-  /// كل المحامين المتاحين في مصر، فكل دبوس يفضل مكانه مهما اتحركت الخريطة
+  /// قائمة أقرب المحامين ومحامو المنطقة الظاهرة يتحدثوا وهو فاتح الخريطة
   Future<void> _loadAllLawyers() async {
     if (!mounted || _orderFlowStage != _OrderFlowStage.idle) return;
 
+    final camera = _lastCamera;
+    if (camera != null) _mapLawyers.load(camera);
     final res = await LawyerRepository.getNearbyLawyers(
       lat: _searchCenter.latitude,
       lon: _searchCenter.longitude,
@@ -343,13 +347,19 @@ extension _TrackingMapControls on _TrackingScreenState {
         (lawyer) => const Distance().as(LengthUnit.Meter, _searchCenter, lawyer.position) < 40,
       );
 
-  /// كل محامٍ يظهر بكارته، والكروت تصغر مع تصغير الخريطة
+  /// كل محامٍ يظهر بكارته والكروت تصغر مع تصغير الخريطة، وأثناء الطلب يظهر المحامي المعني بس
   List<Marker> _buildLawyerMarkers(double zoom) {
     final nearestId = _nearestLawyerId;
     final scale = mapCardScaleFor(zoom);
+    final shown = {for (final lawyer in _nearbyLawyers) lawyer.id: lawyer};
+    if (_orderFlowStage == _OrderFlowStage.idle) {
+      for (final lawyer in _mapLawyers.lawyers) {
+        shown.putIfAbsent(lawyer.id, () => lawyer);
+      }
+    }
 
     return [
-      for (final lawyer in _nearbyLawyers)
+      for (final lawyer in shown.values)
         Marker(
           point: lawyer.position,
           width: _TrackingScreenState._cardWidth * scale,

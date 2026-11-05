@@ -12,6 +12,7 @@ import '../../core/services/api_service.dart';
 import '../../core/services/app_visibility.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
+import '../../core/services/map_lawyer_loader.dart';
 import '../../core/services/routing_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_header.dart';
@@ -117,6 +118,10 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   bool _isSearchingAgain = false;
   Timer? _lawyersRefreshTimer;
   double _mapZoom = appMapMaxZoom;
+  MapCamera? _lastCamera;
+  late final MapLawyerLoader _mapLawyers = MapLawyerLoader(onChanged: () {
+    if (mounted) setState(() {});
+  });
 
   /// المحامون اللي الطلب اتبعتلهم ولا ردوا، عشان البحث التلقائي ما يرجعلهمش
   final Set<String> _triedLawyerIds = {};
@@ -148,6 +153,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   void dispose() {
     _orderPollTimer?.cancel();
     _lawyersRefreshTimer?.cancel();
+    _mapLawyers.dispose();
     _stageTimer?.cancel();
     _cameraAnimController?.dispose();
     _sheetCurve.dispose();
@@ -188,6 +194,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
               maxZoom: appMapMaxZoom,
               cameraConstraint: appMapBounds,
               backgroundColor: appMapBackground,
+              onMapReady: () => _lastCamera = _mapController.camera,
               onPositionChanged: _onMapMoved,
               onPointerDown: (_, __) => _stopCamera(),
             ),

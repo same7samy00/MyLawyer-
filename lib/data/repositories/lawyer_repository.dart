@@ -1,3 +1,4 @@
+import 'package:latlong2/latlong.dart';
 import '../models/lawyer_model.dart';
 import '../models/lifecycle_models.dart';
 import '../../core/services/api_service.dart';
@@ -9,13 +10,38 @@ class LawyerRepository {
     required double lat,
     required double lon,
     double radiusKm = 1500.0,
-  }) async {
-    final queryParams = <String, String>{
+    int limit = 50,
+    bool byRating = false,
+  }) {
+    return _fetchLawyers({
       'lat': lat.toString(),
       'lon': lon.toString(),
       'radius_km': radiusKm.toString(),
-    };
+      'limit': limit.toString(),
+      if (byRating) 'sort': 'rating',
+    });
+  }
 
+  /// محامو الجزء الظاهر من الخريطة
+  static Future<ApiResponse<List<LawyerModel>>> getLawyersInArea({
+    required LatLng center,
+    required double north,
+    required double south,
+    required double east,
+    required double west,
+  }) {
+    return _fetchLawyers({
+      'lat': center.latitude.toString(),
+      'lon': center.longitude.toString(),
+      'north': north.toString(),
+      'south': south.toString(),
+      'east': east.toString(),
+      'west': west.toString(),
+      'limit': '300',
+    });
+  }
+
+  static Future<ApiResponse<List<LawyerModel>>> _fetchLawyers(Map<String, String> queryParams) async {
     final response = await ApiService.get('/lawyers/nearby', queryParams: queryParams);
 
     if (response.isOk && response.data is List) {

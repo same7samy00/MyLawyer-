@@ -11,6 +11,7 @@ import { approximateCoordinate } from '../lifecycle/service.js';
 
 // Clients can browse the map further than the area they can order from
 const MAX_MAP_RADIUS_KM = 1500;
+const MAX_NEARBY_RESULTS = 1000;
 
 export async function lawyerRoutes(fastify: FastifyInstance) {
   // Helper authentication hook for protected lawyer routes
@@ -23,11 +24,23 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
       lat?: string;
       lon?: string;
       radius_km?: string;
+      north?: string;
+      south?: string;
+      east?: string;
+      west?: string;
+      limit?: string;
+      sort?: string;
     };
 
     const userLat = parseFloat(queryParams.lat || '');
     const userLon = parseFloat(queryParams.lon || '');
     const radiusKm = Math.min(Math.max(parseFloat(queryParams.radius_km || String(MAX_MAP_RADIUS_KM)) || MAX_MAP_RADIUS_KM, 1), MAX_MAP_RADIUS_KM);
+
+    // New apps ask for the visible map area and a small list, older apps get the previous answer
+    const area = ['north', 'south', 'east', 'west'].map((key) => parseFloat(queryParams[key as 'north'] || ''));
+    const hasArea = area.every((value) => Number.isFinite(value));
+    const limit = Math.min(Math.max(parseInt(queryParams.limit || '', 10) || MAX_NEARBY_RESULTS, 1), MAX_NEARBY_RESULTS);
+    const order = queryParams.sort === 'rating' ? 'lp.rating DESC, distance_km ASC' : 'distance_km ASC, lp.rating DESC';
 
     // If client coordinates are missing or invalid
     if (isNaN(userLat) || isNaN(userLon)) {
@@ -83,18 +96,19 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
         AND lp.longitude BETWEEN 24.5 AND 37.0
         AND lp.suspended_until IS NULL
         AND lp.urgent_status = 'APPROVED'
+        ${hasArea ? 'AND lp.latitude BETWEEN $5::float8 AND $4::float8 AND lp.longitude BETWEEN $7::float8 AND $6::float8' : ''}
         AND NOT EXISTS (
           SELECT 1 FROM service_orders o
-          WHERE o.lawyer_id = u.id AND o.status IN ('PENDING', 'ACCEPTED', 'ACTIVE')
+          WHERE o.lawyer_id = u.id AND o.status IN ('PENDING', 'ACCEPTED', 'ACTIVE') AND o.postponed_at IS NULL
         )
       ) lp
       WHERE distance_km <= $3::float8
-      ORDER BY distance_km ASC, lp.rating DESC
-      LIMIT 1000;
+      ORDER BY ${order}
+      LIMIT ${limit};
     `;
 
     try {
-      const res = await query(sql, [userLat, userLon, radiusKm]);
+      const res = await query(sql, hasArea ? [userLat, userLon, radiusKm, ...area] : [userLat, userLon, radiusKm]);
 
       const nearbyLawyers = res.rows
         .map((lawyer) => ({
