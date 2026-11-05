@@ -41,8 +41,8 @@ function usersPage(role) {
 
       const name = el('strong', item.full_name || 'دون اسم', 'prod-name-ar');
       const cells = isLawyer
-        ? [name, item.phone, item.experience_years ?? 0, Number(item.rating ?? 0).toFixed(1) + ' / 5', hasService(item) ? badge('مفعلة', 'green') : badge('غير مفعلة', 'gray'), accountTag(item.status), tools]
-        : [name, item.phone, date(item.created_at), accountTag(item.status), tools];
+        ? [name, item.phone, item.experience_years ?? 0, Number(item.rating ?? 0).toFixed(1) + ' / 5', hasService(item) ? badge('مفعلة', 'green') : badge('غير مفعلة', 'gray'), accountState(item), tools]
+        : [name, item.phone, date(item.created_at), accountState(item), tools];
       return { item, cells };
     });
     box.append(table(headers, rows, (item) => open('user', item.id)));

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/repositories/lawyer_repository.dart';
+import '../services/live_updates.dart';
 import '../services/location_service.dart';
 import '../constants/app_colors.dart';
 import '../services/notification_center.dart';
@@ -19,10 +20,22 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
   bool _isSaving = false;
   DateTime? _suspendedUntil;
 
+  AppLifecycleListener? _lifecycle;
+
   @override
   void initState() {
     super.initState();
     _load();
+    // إلغاء المخالفة أو رفع الإيقاف من الإدارة يظهر على طول
+    LiveUpdates.changes.addListener(_load);
+    _lifecycle = AppLifecycleListener(onResume: _load);
+  }
+
+  @override
+  void dispose() {
+    LiveUpdates.changes.removeListener(_load);
+    _lifecycle?.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {

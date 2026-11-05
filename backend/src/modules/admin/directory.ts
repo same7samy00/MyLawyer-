@@ -84,6 +84,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
               COALESCE(lp.full_name, u.full_name) AS full_name,
               COALESCE(lp.profile_photo_path, u.profile_photo_path) AS photo,
               lp.experience_years, lp.syndicate_number, lp.rating, lp.reviews_count, lp.is_available, lp.urgent_status,
+              u.suspended_until AS account_suspended_until, lp.suspended_until,
               (SELECT COUNT(*)::int FROM service_orders o WHERE o.client_id = u.id OR o.lawyer_id = u.id) AS orders_count,
               ${userStats('u.id', 'user')}
        FROM users u LEFT JOIN lawyer_profiles lp ON lp.user_id = u.id
