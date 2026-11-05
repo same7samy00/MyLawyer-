@@ -117,7 +117,7 @@ class _OrdersTabState extends State<OrdersTab> {
           itemCount: 1 + (orders.isEmpty ? 1 : orders.length),
           itemBuilder: (context, position) {
             if (position == 0) {
-              return OrdersFilter(showCurrent: _showCurrent, onChanged: (value) => setState(() => _showCurrent = value));
+              return OrdersFilter(currentCount: _orders.where((order) => order.isOngoing).length, showCurrent: _showCurrent, onChanged: (value) => setState(() => _showCurrent = value));
             }
             final index = position - 1;
             if (orders.isEmpty) {

@@ -45,7 +45,7 @@ class OrderSummaryCard extends StatelessWidget {
           const SizedBox(height: 14),
           OrderStatusTracker(order: order, statusText: isLawyer ? order.lawyerStatusLabel : null),
           const SizedBox(height: 12),
-          AppButton.outlined(text: 'عرض التفاصيل', height: 40, fontSize: 13, onPressed: onOpen),
+          AppButton.primary(text: 'عرض التفاصيل', height: 40, fontSize: 13, onPressed: onOpen),
         ],
       ),
     );

@@ -4,9 +4,12 @@ import 'app_button.dart';
 /// زرين أعلى صفحة الطلبات: الحالي واللحظي، أو السجل
 class OrdersFilter extends StatelessWidget {
   final bool showCurrent;
+
+  /// الطلبات الشغالة والجديدة والعروض المستنية، والرقم بيظهر لو فيه حاجة
+  final int currentCount;
   final ValueChanged<bool> onChanged;
 
-  const OrdersFilter({super.key, required this.showCurrent, required this.onChanged});
+  const OrdersFilter({super.key, required this.showCurrent, required this.onChanged, this.currentCount = 0});
 
   Widget _button(String text, bool isActive, bool value) {
     return Expanded(
@@ -22,7 +25,7 @@ class OrdersFilter extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         children: [
-          _button('الطلبات الحالية', showCurrent, true),
+          _button(currentCount > 0 ? 'الطلبات الحالية ($currentCount)' : 'الطلبات الحالية', showCurrent, true),
           const SizedBox(width: 8),
           _button('سجل الطلبات', !showCurrent, false),
         ],

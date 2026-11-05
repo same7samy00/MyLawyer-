@@ -122,7 +122,7 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
             _step('الموكل يختار', false),
             _step('الدفع', false),
             const SizedBox(height: 8),
-            AppButton.outlined(text: 'تفاصيل الطلب', height: 40, fontSize: 13, onPressed: () { _openRequest(request); }),
+            AppButton.primary(text: 'تفاصيل الطلب', height: 40, fontSize: 13, onPressed: () { _openRequest(request); }),
           ],
         ),
       ),
@@ -185,7 +185,7 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
           itemBuilder: (context, position) {
             if (position == 0) return const LawyerAvailabilityCard();
             if (position == 1) {
-              return OrdersFilter(showCurrent: _showCurrent, onChanged: (value) => setState(() => _showCurrent = value));
+              return OrdersFilter(currentCount: _requests.length + _orders.where((order) => order.isOngoing).length, showCurrent: _showCurrent, onChanged: (value) => setState(() => _showCurrent = value));
             }
             if (position - 2 < requests.length) return _requestCard(requests[position - 2]);
             final index = position - requests.length - 2;
