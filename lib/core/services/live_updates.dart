@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
 import 'api_service.dart';
+import 'app_visibility.dart';
 
 /// خط مفتوح مع السيرفر: أول ما حاجة تخص المستخدم تتغير، الصفحات المفتوحة تتحدث.
 /// لو الخط قطع بيتوصل تاني لوحده، والصفحات بتتحدث أول ما يرجع عشان ما يفوتهاش حاجة.
@@ -14,6 +16,9 @@ class LiveUpdates {
   static const Duration _firstRetry = Duration(seconds: 2);
   static const Duration _maxRetry = Duration(seconds: 30);
   static const Duration _gatherChanges = Duration(milliseconds: 150);
+  static const Duration _alertGap = Duration(seconds: 2);
+  static const MethodChannel _device = MethodChannel('mylawyer/device');
+  static DateTime? _lastAlert;
 
   static StreamSubscription<String>? _line;
   static Timer? _retryTimer;
@@ -51,6 +56,15 @@ class LiveUpdates {
     unawaited(_connect());
   }
 
+  /// صوت واهتزاز والتطبيق مفتوح، والخط والإشعار لو وصلوا مع بعض بيرنوا مرة واحدة
+  static void alertUser() {
+    final now = DateTime.now();
+    final last = _lastAlert;
+    if (!isAppVisible || (last != null && now.difference(last) < _alertGap)) return;
+    _lastAlert = now;
+    unawaited(_device.invokeMethod<void>('alert').catchError((Object _) {}));
+  }
+
   static void _announce() {
     _gatherTimer?.cancel();
     _gatherTimer = Timer(_gatherChanges, () => changes.value++);
@@ -78,6 +92,7 @@ class LiveUpdates {
       _line = response.stream.transform(utf8.decoder).transform(const LineSplitter()).listen(
         (text) {
           if (text.startsWith('data: change')) _announce();
+          if (text.startsWith('data: change-alert')) alertUser();
         },
         onError: (Object _) {
           if (turn == _turn) _retryLater();

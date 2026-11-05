@@ -14,12 +14,13 @@ let stopped = false;
 
 /// Tells this person's open apps that something changed.
 /// PostgreSQL delivers it only after the transaction commits, so the app never reads old data.
-export async function publishChange(db: Db, userId: string) {
-  await db.query('SELECT pg_notify($1, $2)', [CHANNEL, userId]);
+/// [alert] makes the open app play its sound and vibrate.
+export async function publishChange(db: Db, userId: string, alert = false) {
+  await db.query('SELECT pg_notify($1, $2)', [CHANNEL, `${userId}|${alert ? 'alert' : 'change'}`]);
 }
 
-export function deliverChange(userId: string) {
-  for (const line of lines.get(userId) ?? []) line.write('data: change\n\n');
+export function deliverChange(userId: string, alert = false) {
+  for (const line of lines.get(userId) ?? []) line.write(alert ? 'data: change-alert\n\n' : 'data: change\n\n');
 }
 
 /// One open line per phone. A person's oldest line closes when they pass the limit.
@@ -70,7 +71,8 @@ async function connectListener() {
   client.on('error', retryOnce);
   client.on('end', retryOnce);
   client.on('notification', (message) => {
-    if (message.payload) deliverChange(message.payload);
+    const [userId, kind] = (message.payload ?? '').split('|');
+    if (userId) deliverChange(userId, kind === 'alert');
   });
   try {
     await client.connect();

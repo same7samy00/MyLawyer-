@@ -56,7 +56,7 @@ export async function notify(db: Db, userId: string, title: string, body: string
     );
   }
 
-  await publishChange(db, userId);
+  await publishChange(db, userId, true);
 
   // The order never waits for the phone
   void sendPush(userId, title, body, { orderId, ticketId, requestId });

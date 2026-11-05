@@ -78,6 +78,23 @@ class _RequestOfferScreenState extends State<RequestOfferScreen> {
     }
   }
 
+  Widget _statusStep(String text, bool isDone) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Icon(
+            isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            size: 18,
+            color: isDone ? AppColors.success : AppColors.textMuted,
+          ),
+          const SizedBox(width: 8),
+          Text(text, style: _bodyStyle),
+        ],
+      ),
+    );
+  }
+
   void _setPrice(int price) {
     _priceController.text = '$price';
     setState(() {});
@@ -155,11 +172,14 @@ class _RequestOfferScreenState extends State<RequestOfferScreen> {
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        _statusStep('الطلب وصل', true),
+                        _statusStep('عرضك اتبعت', true),
+                        _statusStep('مستنيين الموكل يختار', false),
+                        _statusStep('الدفع', false),
+                        const SizedBox(height: 10),
                         Text('عرضك: $sent ج.م', textAlign: TextAlign.center, style: _titleStyle),
                         const SizedBox(height: 4),
                         Text('صافي ليك: ${_request.netOf(sent)} ج.م', textAlign: TextAlign.center, style: _mutedStyle),
-                        const SizedBox(height: 4),
-                        const Text('مستنيين الموكل يختار', textAlign: TextAlign.center, style: _mutedStyle),
                         const SizedBox(height: 12),
                         AppButton.outlined(text: 'اسحب العرض', height: 44, onPressed: _isBusy ? null : _withdraw),
                       ],

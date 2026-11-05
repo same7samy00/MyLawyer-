@@ -1,5 +1,9 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Sound and Status] - 2026-11-05
+- **Open app:** a change that used to notify now plays a sound and vibrates, with no device notification. With the app in the background, the device notification stays.
+- **Lawyer offer page:** a status list follows the sent price.
+
 ## [Live Updates] - 2026-11-05
 - **Open line:** the app keeps one line open to `GET /events`. When something changes for that person, PostgreSQL announces it after the save, and the open pages reload at once. Pages also check every 20 to 30 seconds in case the line drops, and the line reconnects by itself.
 - **Lawyer offer page:** it moves to the order when the client chooses the offer, and goes back when the request closes.

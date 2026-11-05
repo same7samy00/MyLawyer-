@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api_service.dart';
+import 'live_updates.dart';
 import 'notification_center.dart';
 
 /// الإشعارات الخلفية يعرضها النظام مباشرة، والدالة دي مطلوبة لتشغيلها والتطبيق مقفول
@@ -13,15 +14,6 @@ Future<void> _onBackgroundMessage(RemoteMessage message) async {}
 /// تسجيل جهاز المستخدم لاستقبال إشعارات الطلبات والتطبيق مقفول
 class PushService {
   PushService._();
-
-  static const AndroidNotificationDetails _alertDetails = AndroidNotificationDetails(
-    'alerts',
-    'الإشعارات',
-    importance: Importance.max,
-    priority: Priority.high,
-    playSound: true,
-    enableVibration: true,
-  );
 
   static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   static bool _isListening = false;
@@ -70,10 +62,11 @@ class PushService {
       _token = token;
       _register(token);
     });
-    // الطلب يظهر فوراً في التطبيق لو كان مفتوحاً
+    // والتطبيق مفتوح مفيش إشعار على الجهاز، صوت واهتزاز والصفحة تتحدث
     FirebaseMessaging.onMessage.listen((message) {
       NotificationCenter.refresh();
-      _showWhileOpen(message);
+      LiveUpdates.changes.value++;
+      LiveUpdates.alertUser();
     });
     // التطبيق كان في الخلفية واتفتح بلمس الإشعار
     FirebaseMessaging.onMessageOpenedApp.listen((message) => _open(message.data));
@@ -99,19 +92,6 @@ class PushService {
       if (payload != null && payload.isNotEmpty) data = jsonDecode(payload) as Map<String, dynamic>;
     } catch (_) {}
     _open(data);
-  }
-
-  /// النظام ما يعرضش الإشعار والتطبيق مفتوح على أندرويد، فيتعرض بنفس الصوت والاهتزاز
-  static Future<void> _showWhileOpen(RemoteMessage message) async {
-    final notification = message.notification;
-    if (notification == null || defaultTargetPlatform != TargetPlatform.android) return;
-    await _localNotifications.show(
-      notification.hashCode,
-      notification.title,
-      notification.body,
-      const NotificationDetails(android: _alertDetails),
-      payload: jsonEncode(message.data),
-    );
   }
 
   static Future<void> _register(String? token) async {
