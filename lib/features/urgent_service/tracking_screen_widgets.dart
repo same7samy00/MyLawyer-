@@ -290,7 +290,7 @@ class _OfferCard extends StatelessWidget {
   final VoidCallback onChoose;
   final VoidCallback onReviews;
 
-  const _OfferCard({required this.offer, required this.isBusy, required this.onChoose, required this.onReviews});
+  const _OfferCard({super.key, required this.offer, required this.isBusy, required this.onChoose, required this.onReviews});
 
   @override
   Widget build(BuildContext context) {

@@ -6,9 +6,6 @@ extension _TrackingOrderFlow on _TrackingScreenState {
       _showReviews = visible;
       if (!visible) _reviewsLawyerId = null;
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _snapSheetTo(_expandedHeight);
-    });
   }
 
   void _showOfferReviews(RequestOffer offer) {
@@ -105,7 +102,9 @@ extension _TrackingOrderFlow on _TrackingScreenState {
           _activeRequest = null;
           _orderFlowStage = _OrderFlowStage.idle;
         });
-        _showMessage('مفيش محامي متاح دلوقتي، جرب تاني كمان شوية');
+        _showMessage(request.status == 'EXPIRED'
+            ? 'الطلب اتلغى عشان ما اخترتش عرض في الوقت المحدد. تقدر تطلب تاني'
+            : 'مفيش محامي متاح دلوقتي، جرب تاني كمان شوية');
         return;
       }
 

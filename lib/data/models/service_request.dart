@@ -106,21 +106,25 @@ class ClientRequest {
   final String status;
   final int round;
   final int secondsLeft;
+  final int chooseSecondsLeft;
   final List<RequestOffer> offers;
 
-  const ClientRequest({required this.id, required this.status, required this.round, required this.secondsLeft, required this.offers});
+  const ClientRequest({required this.id, required this.status, required this.round, required this.secondsLeft, this.chooseSecondsLeft = 0, required this.offers});
 
   factory ClientRequest.fromJson(Map<String, dynamic> json) => ClientRequest(
         id: json['id'].toString(),
         status: json['status']?.toString() ?? 'OPEN',
         round: _number(json['round']).toInt(),
         secondsLeft: _number(json['secondsLeft']).toInt(),
+        chooseSecondsLeft: _number(json['chooseSecondsLeft']).toInt(),
         offers: ((json['offers'] as List?) ?? const [])
             .map((item) => RequestOffer.fromJson(item as Map<String, dynamic>))
             .toList(),
       );
 
   bool get isOpen => status == 'OPEN';
+
+  int get chooseMinutesLeft => (chooseSecondsLeft / 60).ceil();
 }
 
 /// الطلب اللي اتعمل بعد اختيار العرض

@@ -1,17 +1,6 @@
 part of 'tracking_screen.dart';
 
 extension _TrackingMapControls on _TrackingScreenState {
-  void _snapSheetTo(double targetHeight, {bool moveCamera = true}) {
-    final hasChanged = (targetHeight - _sheetHeight).abs() > 1;
-    _sheetTween = Tween<double>(begin: _sheetHeight, end: targetHeight);
-    _sheetAnimController.forward(from: 0.0);
-
-    final selected = _selectedLawyer;
-    if (moveCamera && hasChanged && selected != null) {
-      _zoomFitRouteAndLawyer(_searchCenter, selected.position, sheetHeight: targetHeight);
-    }
-  }
-
   /// كل حركات الكاميرا تمر من هنا: حركة واحدة تلغي اللي قبلها ومدتها حسب المسافة
   void _animatedMapMove(LatLng destLocation, double destZoom) {
     _stopCamera();
@@ -153,11 +142,7 @@ extension _TrackingMapControls on _TrackingScreenState {
 
     _calculateRouteToLawyer(lawyer);
 
-    // حركة كاميرا واحدة تضبط المحامي والموكل فوق ارتفاع الشيت النهائي
-    if (_sheetHeight < _expandedHeight) {
-      _snapSheetTo(_expandedHeight, moveCamera: false);
-    }
-    _zoomFitRouteAndLawyer(_searchCenter, lawyer.position, sheetHeight: _expandedHeight);
+    _zoomFitRouteAndLawyer(_searchCenter, lawyer.position);
   }
 
   LatLng get _searchCenter => _currentPosition != null

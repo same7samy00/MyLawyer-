@@ -20,7 +20,6 @@ import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/lawyer_profile_summary.dart';
 import '../../core/widgets/lawyer_reviews_panel.dart';
 import '../../core/widgets/map_cards.dart';
-import '../../core/widgets/measured_size.dart';
 import '../../core/widgets/response_countdown.dart';
 import '../../core/widgets/sheet_lines.dart';
 import '../../data/models/map_lawyer.dart';
@@ -72,31 +71,17 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   static const double _allEgyptRadiusKm = 1500.0;
   String? _lawyersError;
 
-  /// الشيت المقفول يظهر منه العنوان فقط
-  double get _collapsedHeight => 56.0 + MediaQuery.viewPaddingOf(context).bottom;
-
-  /// طول الشيت هو طول محتواه على أي موبايل
-  double? _sheetContentHeight;
+  /// الشيت طوله ثابت طول الوقت، ومحتواه بيتمرر جواه
   double get _expandedHeight {
-    final maxHeight = MediaQuery.sizeOf(context).height * 0.85;
-    return (_sheetContentHeight ?? 390.0).clamp(_collapsedHeight, maxHeight);
+    final screen = MediaQuery.sizeOf(context).height;
+    return (screen * 0.48).clamp(360.0, screen * 0.6);
   }
 
-  void _onSheetContentSized(Size size) {
-    if (!mounted || (size.height - (_sheetContentHeight ?? 0)).abs() < 1) return;
-    final isOpen = _sheetHeight > _collapsedHeight + 1;
-    _sheetContentHeight = size.height;
-    if (isOpen) _snapSheetTo(_expandedHeight, moveCamera: false);
-  }
   // ارتفاع البوتن شيت منفصل عن حالة الشاشة: سحبه لا يعيد بناء الخريطة مع كل إطار
   final ValueNotifier<double> _sheetHeightNotifier = ValueNotifier<double>(390.0);
   double get _sheetHeight => _sheetHeightNotifier.value;
   set _sheetHeight(double value) => _sheetHeightNotifier.value = value;
 
-  bool _initializedSheetHeight = false;
-  late AnimationController _sheetAnimController;
-  late CurvedAnimation _sheetCurve;
-  Tween<double> _sheetTween = Tween<double>(begin: 390.0, end: 390.0);
   AnimationController? _cameraAnimController;
   _OrderFlowStage _orderFlowStage = _OrderFlowStage.idle;
 
@@ -129,24 +114,13 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   @override
   void initState() {
     super.initState();
-    _sheetAnimController = AnimationController(
-      duration: const Duration(milliseconds: 320),
-      vsync: this,
-    );
-    _sheetCurve = CurvedAnimation(parent: _sheetAnimController, curve: Curves.easeOutCubic);
-    _sheetAnimController.addListener(() {
-      _sheetHeight = _sheetTween.evaluate(_sheetCurve);
-    });
     _fetchCurrentLocation();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_initializedSheetHeight) {
-      _sheetHeight = _expandedHeight;
-      _initializedSheetHeight = true;
-    }
+    _sheetHeight = _expandedHeight;
   }
 
   @override
@@ -156,8 +130,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
     _mapLawyers.dispose();
     _stageTimer?.cancel();
     _cameraAnimController?.dispose();
-    _sheetCurve.dispose();
-    _sheetAnimController.dispose();
     _sheetHeightNotifier.dispose();
     super.dispose();
   }
@@ -356,36 +328,29 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                   fit: StackFit.expand,
                   children: [
                     const SheetLines(top: 62),
-                    OverflowBox(
-                      alignment: Alignment.topCenter,
-                      minHeight: 0,
-                      maxHeight: double.infinity,
-                      child: MeasuredSize(
-                        onChange: _onSheetContentSized,
-                        child: SafeArea(
-                          top: false,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              sheetHeader!,
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(18, 4, 18, 16),
-                                child: _showReviews && (_reviewsLawyerId ?? _selectedLawyer?.id) != null
-                                    ? SizedBox(
-                                        height: MediaQuery.sizeOf(context).height * 0.6,
-                                        child: LawyerReviewsPanel(
-                                          lawyerId: (_reviewsLawyerId ?? _selectedLawyer?.id)!,
-                                          onClose: () => _setReviewsVisible(false),
-                                        ),
-                                      )
-                                    : _orderFlowStage != _OrderFlowStage.idle
+                    SafeArea(
+                      top: false,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          sheetHeader!,
+                          Expanded(
+                            child: _showReviews && (_reviewsLawyerId ?? _selectedLawyer?.id) != null
+                                ? Padding(
+                                    padding: const EdgeInsets.fromLTRB(18, 4, 18, 8),
+                                    child: LawyerReviewsPanel(
+                                      lawyerId: (_reviewsLawyerId ?? _selectedLawyer?.id)!,
+                                      onClose: () => _setReviewsVisible(false),
+                                    ),
+                                  )
+                                : SingleChildScrollView(
+                                    padding: const EdgeInsets.fromLTRB(18, 4, 18, 16),
+                                    child: _orderFlowStage != _OrderFlowStage.idle
                                         ? _buildOrderFlowContent()
                                         : _buildLawyerProfileCard(),
-                              ),
-                            ],
+                                  ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ],
@@ -399,43 +364,15 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
     );
   }
 
-  /// شريط العنوان ومؤشر السحب: قابل للسحب المباشر والنقر للتوسيع أو الإغلاق
+  /// شريط العنوان، والشيت ثابت ما بيتسحبش
   Widget _buildSheetHeader() {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onVerticalDragUpdate: (details) {
-        _sheetHeight = (_sheetHeight - details.delta.dy).clamp(_collapsedHeight, _expandedHeight);
-      },
-      onVerticalDragEnd: (details) {
-        final velocity = details.primaryVelocity ?? 0;
-        if (velocity < -250) {
-          _snapSheetTo(_expandedHeight);
-        } else if (velocity > 250) {
-          _snapSheetTo(_collapsedHeight);
-        } else {
-          final mid = (_collapsedHeight + _expandedHeight) / 2;
-          _snapSheetTo(_sheetHeight >= mid ? _expandedHeight : _collapsedHeight);
-        }
-      },
-      onTap: () {
-        final mid = (_collapsedHeight + _expandedHeight) / 2;
-        _snapSheetTo(_sheetHeight < mid ? _expandedHeight : _collapsedHeight);
-      },
+    return Padding(
+      padding: EdgeInsets.zero,
       child: Container(
         padding: const EdgeInsets.only(top: 10, bottom: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // مؤشر السحب العلوي
-            Container(
-              width: 44,
-              height: 4.5,
-              decoration: BoxDecoration(
-                color: AppColors.cardBorder,
-                borderRadius: BorderRadius.circular(4.0),
-              ),
-            ),
-            const SizedBox(height: 10),
             // عنوان البوتن شيت في المنتصف تماماً كنص فقط بدون أيقونة وبدون زر تصغير
             Center(
               child: Text(

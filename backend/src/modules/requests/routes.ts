@@ -4,7 +4,7 @@ import { sanitizeText } from '../../utils/security.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { lawyerHasOpenOrder, lawyerShare, LAWYER_RESPONSE_SECONDS, notify, PAYMENT_MINUTES } from '../lifecycle/service.js';
 import { governorateOf } from '../orders/shared.js';
-import { LAWYER_CAN_WORK, LIVE_OFFERS, priceRangeFor, ROUND_SECONDS, sendRound } from './service.js';
+import { CHOOSE_MINUTES, LAWYER_CAN_WORK, LIVE_OFFERS, priceRangeFor, ROUND_SECONDS, sendRound } from './service.js';
 
 const ROAD_FACTOR = 1.4;
 const CITY_SPEED_KMH = 30;
@@ -203,6 +203,7 @@ export async function requestRoutes(fastify: FastifyInstance) {
         status: target.status,
         round: target.round,
         secondsLeft: secondsUntil(target.round_deadline),
+        chooseSecondsLeft: secondsUntil(new Date(new Date(target.round_deadline).getTime() + CHOOSE_MINUTES * 60000)),
         minPrice: Number(target.min_price),
         maxPrice: Number(target.max_price),
         orderId: target.order_id,

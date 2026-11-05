@@ -289,19 +289,29 @@ extension _TrackingScreenViews on _TrackingScreenState {
                 key: ValueKey('round-${_activeRequest?.round ?? 1}'),
                 secondsLeft: _activeRequest?.secondsLeft ?? 120,
               ),
-            ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.45),
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: offers.length,
-                itemBuilder: (context, index) => _OfferCard(
-                  offer: offers[index],
-                  isBusy: _isChoosingOffer,
-                  onChoose: () => _chooseOffer(offers[index]),
-                  onReviews: () => _showOfferReviews(offers[index]),
+            if (offers.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'لو ما اخترتش خلال ${_activeRequest?.chooseMinutesLeft ?? 0} دقيقة، الطلب هيتلغي',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'AppFont',
+                    fontFamilyFallback: appFontFallback,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.danger,
+                  ),
                 ),
               ),
-            ),
+            for (final offer in offers)
+              _OfferCard(
+                key: ValueKey(offer.id),
+                offer: offer,
+                isBusy: _isChoosingOffer,
+                onChoose: () => _chooseOffer(offer),
+                onReviews: () => _showOfferReviews(offer),
+              ),
             const SizedBox(height: 10),
             AppButton.outlined(text: 'إلغاء الطلب', height: 46, onPressed: _returnToLawyerProfile),
           ],

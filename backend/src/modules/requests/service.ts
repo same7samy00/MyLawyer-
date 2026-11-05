@@ -3,7 +3,8 @@ import { Db, dbPool, withTransaction } from '../../database/index.js';
 import { notify } from '../lifecycle/service.js';
 
 export const ROUND_SECONDS = 120;
-export const CHOOSE_MINUTES = 10;
+/// After the offers round, the client has this long to choose before the request is cancelled
+export const CHOOSE_MINUTES = 5;
 const LAWYERS_PER_ROUND = 5;
 const MAX_ROUNDS = 3;
 
@@ -77,9 +78,9 @@ export async function sendRound(db: Db, request: any, round: number): Promise<nu
   return res.rows.length;
 }
 
-async function closeRequest(db: pg.PoolClient, request: any, status: string, body: string) {
+async function closeRequest(db: pg.PoolClient, request: any, status: string, title: string, body: string) {
   await db.query('UPDATE service_requests SET status = $1 WHERE id = $2', [status, request.id]);
-  await notify(db, request.client_id, 'مفيش محامي متاح', body);
+  await notify(db, request.client_id, title, body, { requestId: request.id });
 }
 
 /// A round with no offers moves to the next lawyers, and a request nobody chose closes by itself
@@ -95,14 +96,20 @@ export async function advanceRequests() {
       const live = await client.query(`SELECT 1 ${LIVE_OFFERS} AND ro.request_id = $1 LIMIT 1`, [id]);
       if (live.rows.length > 0) {
         const left = await client.query(`SELECT $1::timestamptz + make_interval(mins => $2) > NOW() AS waiting`, [request.round_deadline, CHOOSE_MINUTES]);
-        if (!left.rows[0].waiting) await closeRequest(client, request, 'EXPIRED', 'الطلب اتقفل عشان ما اخترتش عرض. تقدر تطلب تاني');
+        if (!left.rows[0].waiting) {
+          await closeRequest(client, request, 'EXPIRED', 'الطلب اتلغى', 'ما اخترتش عرض في الوقت المحدد. تقدر تطلب تاني');
+          const offered = await client.query('SELECT lawyer_id FROM request_offers WHERE request_id = $1 AND withdrawn_at IS NULL', [id]);
+          for (const row of offered.rows) {
+            await notify(client, row.lawyer_id, 'الطلب اتقفل', 'الموكل ما اختارش عرض', { requestId: id });
+          }
+        }
         return;
       }
 
       const nextRound = request.round + 1;
       const sent = nextRound <= MAX_ROUNDS ? await sendRound(client, request, nextRound) : 0;
       if (sent === 0) {
-        await closeRequest(client, request, 'NO_OFFERS', 'جرب تاني كمان شوية');
+        await closeRequest(client, request, 'NO_OFFERS', 'مفيش محامي متاح', 'جرب تاني كمان شوية');
         return;
       }
       await client.query(

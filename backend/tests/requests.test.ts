@@ -160,7 +160,7 @@ describe('الطلب وعروض الأسعار', () => {
     for (const lawyer of others) await removeLawyer(lawyer.id);
   });
 
-  it('لو فيه عرض الجولة ما تتغيرش، وبعد 10 دقايق من غير اختيار الطلب يتقفل', async () => {
+  it('لو فيه عرض الجولة ما تتغيرش، وبعد 5 دقايق من غير اختيار الطلب يتلغي ويتبلغ الطرفين', async () => {
     const id = await createRequest();
     await offer(id, 1000);
     await endRound(id);
@@ -168,10 +168,13 @@ describe('الطلب وعروض الأسعار', () => {
     const open = await follow(id);
     assert.equal(open.status, 'OPEN');
     assert.equal(open.offers.length, 1);
+    assert.ok(open.chooseSecondsLeft > 200 && open.chooseSecondsLeft <= 300);
 
-    await sql(`UPDATE service_requests SET round_deadline = NOW() - INTERVAL '11 minutes' WHERE id = $1`, [id]);
+    await sql(`UPDATE service_requests SET round_deadline = NOW() - INTERVAL '6 minutes' WHERE id = $1`, [id]);
     await sweepLifecycle();
     assert.equal((await follow(id)).status, 'EXPIRED');
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'الطلب اتلغى'`, [clientId])).length, 1);
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'الطلب اتقفل'`, [lawyerId])).length, 1);
   });
 
   it('الإلغاء يقفل الطلب، وغير صاحبه ما يشوفوش', async () => {
