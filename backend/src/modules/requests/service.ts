@@ -72,7 +72,7 @@ export async function sendRound(db: Db, request: any, round: number): Promise<nu
       'INSERT INTO request_recipients (request_id, lawyer_id, round, distance_km) VALUES ($1, $2, $3, $4)',
       [request.id, lawyer.id, round, lawyer.distance_km]
     );
-    await notify(db, lawyer.id, 'طلب جديد', `${request.problem_type || request.service_title}. ابعت سعرك خلال دقيقتين`);
+    await notify(db, lawyer.id, 'طلب جديد', `${request.problem_type || request.service_title}. ابعت سعرك خلال دقيقتين`, { requestId: request.id });
   }
   return res.rows.length;
 }

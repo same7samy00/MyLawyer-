@@ -913,7 +913,7 @@ void main() {
       expect(find.text('تسجيل الخروج'), findsOneWidget);
     });
 
-    testWidgets('LawyerNavigationShell switches between all 4 independent lawyer tabs', (WidgetTester tester) async {
+    testWidgets('LawyerNavigationShell switches between all 5 independent lawyer tabs', (WidgetTester tester) async {
       SharedPreferences.setMockInitialValues({
         'user_name': 'عمر عبد العزيز',
         'syndicate_number': '112233',
@@ -940,7 +940,7 @@ void main() {
       expect(find.byType(ProfileHomeCard), findsOneWidget);
 
       // Switch to Tab 1: Orders
-      await tester.tap(find.text('الطلبات'));
+      await tester.tap(find.text('السجل'));
       await tester.pump();
       expect(find.byType(LawyerOrdersTab), findsOneWidget);
 

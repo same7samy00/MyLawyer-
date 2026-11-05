@@ -31,10 +31,12 @@ export function approximateCoordinate(value: number): number {
 export interface NotifyLink {
   orderId?: string;
   ticketId?: string;
+  /// Replaces the earlier device notification of the same request, and is not stored
+  requestId?: string;
 }
 
 export async function notify(db: Db, userId: string, title: string, body: string, link?: string | NotifyLink) {
-  const { orderId, ticketId } = typeof link === 'string' ? { orderId: link, ticketId: undefined } : (link ?? {});
+  const { orderId, ticketId, requestId } = typeof link === 'string' ? { orderId: link, ticketId: undefined, requestId: undefined } : (link ?? {});
   await db.query(
     'INSERT INTO notifications (user_id, title, body, order_id, ticket_id) VALUES ($1, $2, $3, $4, $5)',
     [userId, title, body, orderId ?? null, ticketId ?? null]
@@ -54,7 +56,7 @@ export async function notify(db: Db, userId: string, title: string, body: string
   }
 
   // The order never waits for the phone
-  void sendPush(userId, title, body, { orderId, ticketId });
+  void sendPush(userId, title, body, { orderId, ticketId, requestId });
 }
 
 export async function addClientCredit(db: Db, clientId: string, orderId: string, amount: number, reason: string) {

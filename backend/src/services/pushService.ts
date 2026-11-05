@@ -62,7 +62,8 @@ async function getAccessToken(service: ServiceAccount): Promise<string> {
   return accessToken.value;
 }
 
-async function sendToDevice(service: ServiceAccount, bearer: string, token: string, title: string, body: string, link: { orderId?: string; ticketId?: string }) {
+async function sendToDevice(service: ServiceAccount, bearer: string, token: string, title: string, body: string, link: { orderId?: string; ticketId?: string; requestId?: string }) {
+  const tag = link.orderId || link.ticketId || link.requestId;
   const res = await fetch(`https://fcm.googleapis.com/v1/projects/${service.project_id}/messages:send`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' },
@@ -77,6 +78,8 @@ async function sendToDevice(service: ServiceAccount, bearer: string, token: stri
           ttl: '300s',
           notification: {
             channel_id: ALERTS_CHANNEL,
+            // One order keeps one notification on the device, the newest replaces the older
+            ...(tag ? { tag } : {}),
             sound: 'default',
             default_sound: true,
             default_vibrate_timings: true,
@@ -96,7 +99,7 @@ async function sendToDevice(service: ServiceAccount, bearer: string, token: stri
 }
 
 /// Failure here never affects the order, the notification stays inside the app
-export async function sendPush(userId: string, title: string, body: string, link: { orderId?: string; ticketId?: string } = {}) {
+export async function sendPush(userId: string, title: string, body: string, link: { orderId?: string; ticketId?: string; requestId?: string } = {}) {
   const service = loadAccount();
   if (!service) return;
 

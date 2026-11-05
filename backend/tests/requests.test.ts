@@ -32,6 +32,27 @@ async function otherLawyer(lat = 30.06) {
 const removeLawyer = (id: string) => sql('DELETE FROM users WHERE id = $1', [id]);
 
 describe('الطلب وعروض الأسعار', () => {
+  it('بطاقة المحامي بتتحدث: اختار عرضك، أو اتقفل عند اللي ما اتختارش', async () => {
+    const other = await otherLawyer();
+    const id = await createRequest();
+    await offer(id, 1000);
+    await offer(id, 900, other.token);
+    const card = async (token: string) => (await call('GET', '/requests/incoming', token)).body.data[0];
+    assert.equal((await card(lawyerToken)).state, 'OPEN');
+
+    const offers = (await follow(id)).offers;
+    const mine = offers.find((item: any) => item.lawyerId === lawyerId);
+    const selected = await call('POST', `/requests/${id}/offers/${mine.id}/select`, clientToken, {});
+
+    const chosen = await card(lawyerToken);
+    assert.equal(chosen.state, 'CHOSEN');
+    assert.equal(chosen.orderId, selected.body.data.orderId);
+    const notChosen = await card(other.token);
+    assert.equal(notChosen.state, 'NOT_CHOSEN');
+    assert.equal(notChosen.orderId, null);
+    await removeLawyer(other.id);
+  });
+
   it('الموكل يشوف الحدود، والطلب يوصل المحامي بصافيه من غير تفاصيل المكان', async () => {
     await setRange();
     const range = await call('GET', `/requests/range?problemType=${encodeURIComponent(PROBLEM)}`, clientToken);

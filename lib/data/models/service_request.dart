@@ -14,6 +14,8 @@ class IncomingRequest {
   final double netRate;
   final int secondsLeft;
   final int? myPrice;
+  final String state;
+  final String? orderId;
 
   const IncomingRequest({
     required this.id,
@@ -26,6 +28,8 @@ class IncomingRequest {
     required this.netRate,
     required this.secondsLeft,
     this.myPrice,
+    this.state = 'OPEN',
+    this.orderId,
   });
 
   factory IncomingRequest.fromJson(Map<String, dynamic> json) => IncomingRequest(
@@ -39,9 +43,15 @@ class IncomingRequest {
         netRate: _number(json['netRate']),
         secondsLeft: _number(json['secondsLeft']).toInt(),
         myPrice: json['myPrice'] == null ? null : _number(json['myPrice']).round(),
+        state: json['state']?.toString() ?? 'OPEN',
+        orderId: json['orderId']?.toString(),
       );
 
   int netOf(int price) => (price * netRate).round();
+
+  bool get isOpen => state == 'OPEN';
+  bool get isChosen => state == 'CHOSEN';
+  bool get isNotChosen => state == 'NOT_CHOSEN';
 }
 
 /// عرض محامي على طلب الموكل

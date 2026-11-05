@@ -284,7 +284,10 @@ class OrderModel {
   /// نص الحالة من ناحية المحامي لما يختلف عن نص الموكل
   String? get lawyerStatusLabel {
     if (isPending) return 'طلب جديد';
-    if (isAccepted) return 'تم قبول الطلب • بانتظار دفع الموكل';
+    if (isAccepted) return 'الموكل اختار عرضك • مستنيين الدفع';
+    if (isPostponed) return 'مؤجل • الفلوس محجوزة';
+    if (isActive && arrivedAt == null) return 'الموكل دفع • روح لمكانه ودوس «وصلت»';
+    if (isActive) return 'وصلت • كمل الشغل ودوس «إنهاء» أو «مؤجل»';
     if (isNoResponse) return 'انتهى وقت الرد';
     return null;
   }

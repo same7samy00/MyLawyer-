@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Lawyer Requests Tab] - 2026-11-05
+- **Tabs:** lawyers now have five tabs. «الاستقبال» holds new requests and offer results, and «السجل» holds orders.
+- **Live cards:** a card shows when the price is awaited, sent, chosen or not chosen, and it refreshes every 5 seconds. Order cards show the current step for the lawyer.
+- **Device notifications:** one order, ticket or request keeps one notification on Android, and the newest replaces the older.
+
 ## [Live Lawyer Location] - 2026-11-05
 - **Android:** while a lawyer is available, the app sends the location about every minute or 100 meters, in the foreground or background, with a fixed notification. This replaces the 15-minute background check.
 - **Getting ready:** pressing «متاح» shows steps for location, notifications and battery. Location and notifications are required, and battery exemption is a warning.
