@@ -9,6 +9,13 @@ export const LAWYER_RESPONSE_SECONDS = 120;
 export const PAYMENT_MINUTES = 10;
 /// The lawyer and the client must really meet, so arrival is accepted within 50 meters only
 export const ARRIVAL_RADIUS_KM = 0.05;
+export const ARRIVAL_REMINDER_MINUTES = 10;
+export const CLIENT_REPLY_HOURS = 2;
+const ARRIVAL_MARGIN_MINUTES = 30;
+const FALLBACK_TRAVEL_MINUTES = 60;
+const ROAD_FACTOR = 1.4;
+const FALLBACK_SPEED_KMH = 30;
+const OSRM_URL = process.env.OSRM_URL || 'http://127.0.0.1:5000';
 const APPROXIMATE_GRID_DEGREES = 0.01;
 const STRIKE_LIMIT = 3;
 const STRIKE_WINDOW_DAYS = 30;
@@ -120,11 +127,30 @@ export async function resolveClientQuote(db: Db, clientId: string, problemType: 
   return quote(price);
 }
 
-/// True while the lawyer has an order waiting, unpaid, or in progress.
+/// Road time plus the margin. A routing failure must never stop a payment, so it falls back to an estimate.
+export async function arrivalMinutes(from: { lat: number; lon: number } | null, to: { lat: number; lon: number }): Promise<number> {
+  if (!from) return FALLBACK_TRAVEL_MINUTES + ARRIVAL_MARGIN_MINUTES;
+  try {
+    const res = await fetch(
+      `${OSRM_URL}/route/v1/driving/${from.lon},${from.lat};${to.lon},${to.lat}?overview=false`,
+      { signal: AbortSignal.timeout(3000) }
+    );
+    const seconds = ((await res.json()) as { routes?: { duration?: number }[] }).routes?.[0]?.duration;
+    if (typeof seconds === 'number') return Math.ceil(seconds / 60) + ARRIVAL_MARGIN_MINUTES;
+  } catch {
+    // The estimate below takes over
+  }
+  const latKm = (to.lat - from.lat) * 111;
+  const lonKm = (to.lon - from.lon) * 111 * Math.cos((from.lat * Math.PI) / 180);
+  const roadKm = Math.hypot(latKm, lonKm) * ROAD_FACTOR;
+  return Math.ceil((roadKm / FALLBACK_SPEED_KMH) * 60) + ARRIVAL_MARGIN_MINUTES;
+}
+
+/// True while the lawyer has an order waiting, unpaid, or in progress. A postponed task leaves the lawyer free.
 export async function lawyerHasOpenOrder(db: Db, lawyerId: string, exceptOrderId?: string): Promise<boolean> {
   const res = await db.query(
     `SELECT 1 FROM service_orders
-     WHERE lawyer_id = $1 AND status IN ('PENDING', 'ACCEPTED', 'ACTIVE')
+     WHERE lawyer_id = $1 AND status IN ('PENDING', 'ACCEPTED', 'ACTIVE') AND postponed_at IS NULL
        AND ($2::uuid IS NULL OR id <> $2::uuid)
      LIMIT 1`,
     [lawyerId, exceptOrderId ?? null]

@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Late Lawyers and Postponed Tasks] - 2026-11-05
+- **Money (approved by the owner):** payment now sets an arrival deadline: road time from OSRM, or an estimate if it fails, plus 30 minutes. The lawyer gets a reminder 10 minutes before it ends, then the client is asked whether to wait or cancel. Cancelling refunds at once, no answer refunds after 2 hours, and waiting refunds 24 hours after payment if the lawyer never arrives. An open ticket stops these refunds.
+- **After arrival:** money no longer moves by itself. It stays held until the lawyer finishes or the admin decides, so the old automatic payout at 24 hours is gone.
+- **Postponing:** after arrival the lawyer can press «مؤجل» with a reason and a new date. A postponed order doesn't block new orders for the lawyer or the client.
+- **Wording:** the far-away message now says «لازم تكون قريب من الموكل». Migration `023` adds the new fields, and the control page shows the new dates.
+
 ## [Engineering Review] - 2026-11-03
 - **Accounts:** a suspended or rejected account can no longer lift its status through the sign-up code. Reset codes allow 5 wrong tries, and only the latest one counts. A new reset code waits 60 seconds. 10 failed sign-ins on one account stop it for 10 minutes. Changing the password ends all sessions. One refresh token renews once.
 - **Privacy:** order details no longer send the other side's phone or email before payment, and the client no longer receives the lawyer's net amount.
@@ -11,6 +17,10 @@
 - **Speed:** migration `022` adds 4 indexes. On 200,000 notifications in the in-memory database, clearing stale ones went from 16.7 ms to 0.9 ms and a sweep round from 13.2 ms to 7.2 ms. The app's periodic refresh now stops in the background, and order and notification lists build only the visible rows.
 - **Control page:** the page now carries a Content-Security-Policy. All 12 menu pages opened with no violations.
 - **Money (approved by the owner):** paying, cancelling, withdrawing, finishing and arriving now lock the order and check its state inside one transaction, so two presses at once can't charge or refund twice. Wallet payment also takes the same account lock as transfers. The money rules themselves did not change.
+
+## [Map: Lawyers in the Visible Area] - 2026-11-04
+- The map now loads the lawyers inside its visible area as the user moves it, and every lawyer stays a card with no grouping. The list shows the nearest 50, and the promo list the top rated 50 within 50 km.
+- `GET /lawyers/nearby` accepts `north`, `south`, `east`, `west`, `limit` and `sort=rating`, and older apps keep the previous answer. Migration `022` adds the map index.
 
 ## [Control Page: Style Fix] - 2026-11-03
 - Restored notice and chat message colours that the style cleanup removed by mistake, because the code builds those class names.

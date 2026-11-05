@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { sanitizeText } from '../../utils/security.js';
 import { HttpError } from '../../utils/http.js';
-import { addClientCredit, lawyerHasOpenOrder, notify, ORDER_DEADLINE_HOURS, PAYMENT_MINUTES } from '../lifecycle/service.js';
+import { addClientCredit, arrivalMinutes, lawyerHasOpenOrder, notify, ORDER_DEADLINE_HOURS, PAYMENT_MINUTES } from '../lifecycle/service.js';
 import { AuthenticatedUser, lockOrder } from './shared.js';
 
 /// The lawyer answer and the client payment
@@ -146,6 +146,22 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
 
     const body = (request.body || {}) as { method?: string };
 
+    // The road time is asked before the transaction, so no lock waits for the network
+    const places = await query(
+      `SELECT lawyer_latitude, lawyer_longitude, client_latitude, client_longitude FROM service_orders
+       WHERE (id::text = $1 OR order_number = $1) AND client_id = $2`,
+      [id, userId]
+    );
+    const place = places.rows[0];
+    const minutesToArrive = place
+      ? await arrivalMinutes(
+          place.lawyer_latitude != null && place.lawyer_longitude != null
+            ? { lat: Number(place.lawyer_latitude), lon: Number(place.lawyer_longitude) }
+            : null,
+          { lat: Number(place.client_latitude), lon: Number(place.client_longitude) }
+        )
+      : 0;
+
     const order = await withTransaction(async (client) => {
       // The balance is shared with wallet transfers, which take the same account lock
       await client.query('SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);
@@ -166,9 +182,10 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
 
       await client.query(
         `UPDATE service_orders
-         SET status = 'ACTIVE', paid_at = NOW(), expires_at = NOW() + make_interval(hours => $2), updated_at = NOW()
+         SET status = 'ACTIVE', paid_at = NOW(), expires_at = NOW() + make_interval(hours => $2),
+             arrival_deadline = NOW() + make_interval(mins => $3), updated_at = NOW()
          WHERE id = $1`,
-        [locked.id, ORDER_DEADLINE_HOURS]
+        [locked.id, ORDER_DEADLINE_HOURS, minutesToArrive]
       );
 
       await client.query(

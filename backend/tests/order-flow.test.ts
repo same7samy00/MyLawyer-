@@ -87,7 +87,7 @@ describe('مهلة المهمة', () => {
     await sweepLifecycle();
     await sweepLifecycle();
 
-    const rows = await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'تذكير بإنهاء المهمة'`, [lawyerId]);
+    const rows = await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'تذكير بالوصول'`, [lawyerId]);
     assert.equal(rows.length, 1);
   });
 
@@ -102,13 +102,127 @@ describe('مهلة المهمة', () => {
     assert.equal((await wallet()).availableBalance, 0);
   });
 
-  it('المهلة خلصت والمحامي وصل: الأتعاب للمحامي لوحدها', async () => {
+  it('المحامي وصل وما أنهاش: الفلوس تفضل محجوزة ومش بتتحرك لوحدها', async () => {
     const order = await createArrivedOrder();
-    await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
+    await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '40 days' WHERE id = $1`, [order.id]);
     await sweepLifecycle();
 
+    assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'ACTIVE');
     assert.equal(await clientBalance(), 0);
-    assert.equal((await wallet()).availableBalance, 350);
+    assert.equal((await wallet()).availableBalance, 0);
+  });
+});
+
+describe('تأخر المحامي عن الوصول', () => {
+  const passDeadline = (id: string) =>
+    sql(`UPDATE service_orders SET arrival_deadline = NOW() - INTERVAL '1 minute', paid_at = NOW() - INTERVAL '1 hour' WHERE id = $1`, [id]);
+
+  it('مهلة الوصول بتتحسب عند الدفع', async () => {
+    const order = await createPaidOrder();
+    const rows = await sql(`SELECT arrival_deadline > NOW() + INTERVAL '29 minutes' AS ok FROM service_orders WHERE id = $1`, [order.id]);
+    assert.equal(rows[0].ok, true);
+  });
+
+  it('المحامي يوصله تذكير قبل نهاية المهلة بـ 10 دقايق مرة واحدة', async () => {
+    const order = await createPaidOrder();
+    await sql(`UPDATE service_orders SET arrival_deadline = NOW() + INTERVAL '5 minutes' WHERE id = $1`, [order.id]);
+    await sweepLifecycle();
+    await sweepLifecycle();
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'مهلة الوصول قربت تخلص'`, [lawyerId])).length, 1);
+  });
+
+  it('بعد المهلة الموكل يتسأل مرة واحدة، ويقدر يلغي وفلوسه ترجع فورًا', async () => {
+    const order = await createPaidOrder();
+    assert.equal((await call('POST', `/orders/${order.id}/keep-waiting`, clientToken, {})).status, 400);
+    await passDeadline(order.id);
+    await sweepLifecycle();
+    await sweepLifecycle();
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'المحامي اتأخر'`, [clientId])).length, 1);
+
+    assert.equal((await call('POST', `/orders/${order.id}/cancel`, clientToken, {})).status, 200);
+    assert.equal(await clientBalance(), 350);
+  });
+
+  it('الموكل ما ردش: الفلوس ترجع بعد ساعتين', async () => {
+    const order = await createPaidOrder();
+    await passDeadline(order.id);
+    await sweepLifecycle();
+    assert.equal(await clientBalance(), 0);
+
+    await sql(`UPDATE service_orders SET delay_notified_at = NOW() - INTERVAL '121 minutes' WHERE id = $1`, [order.id]);
+    await sweepLifecycle();
+    await sweepLifecycle();
+    assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'REFUNDED');
+    assert.equal(await clientBalance(), 350);
+  });
+
+  it('الموكل اختار يستنى: مفيش رد بعد ساعتين، والرد عند 24 ساعة من الدفع', async () => {
+    const order = await createPaidOrder();
+    await passDeadline(order.id);
+    await sweepLifecycle();
+    assert.equal((await call('POST', `/orders/${order.id}/keep-waiting`, clientToken, {})).status, 200);
+
+    await sql(`UPDATE service_orders SET delay_notified_at = NOW() - INTERVAL '3 hours' WHERE id = $1`, [order.id]);
+    await sweepLifecycle();
+    assert.equal(await clientBalance(), 0);
+
+    await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
+    await sweepLifecycle();
+    assert.equal(await clientBalance(), 350);
+  });
+
+  it('الوصول بعد المهلة مقبول طول ما الطلب مفتوح، وبعده الإلغاء ممنوع', async () => {
+    const order = await createPaidOrder();
+    await passDeadline(order.id);
+    await sweepLifecycle();
+    assert.equal((await call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.0502, longitude: 31.25 })).status, 200);
+    assert.equal((await call('POST', `/orders/${order.id}/cancel`, clientToken, {})).status, 400);
+  });
+
+  it('التذكرة المفتوحة توقف الرد التلقائي والإلغاء المتأخر', async () => {
+    const order = await createPaidOrder();
+    await openTicket(clientToken, order.id);
+    await passDeadline(order.id);
+    await sweepLifecycle();
+    await sql(`UPDATE service_orders SET delay_notified_at = NOW() - INTERVAL '3 hours' WHERE id = $1`, [order.id]);
+    await sweepLifecycle();
+    assert.equal(await clientBalance(), 0);
+    assert.equal((await call('POST', `/orders/${order.id}/cancel`, clientToken, {})).status, 409);
+  });
+});
+
+describe('تأجيل المهمة', () => {
+  const later = () => new Date(Date.now() + 3 * 86400000).toISOString();
+
+  it('التأجيل بعد «وصلت» بس، وبسبب وميعاد صحيحين', async () => {
+    const paid = await createPaidOrder();
+    assert.equal((await call('POST', `/orders/${paid.id}/postpone`, lawyerToken, { reason: 'الجلسة', until: later() })).status, 400);
+    await closeOrders();
+
+    const order = await createArrivedOrder();
+    assert.equal((await call('POST', `/orders/${order.id}/postpone`, lawyerToken, { until: later() })).status, 400);
+    assert.equal((await call('POST', `/orders/${order.id}/postpone`, lawyerToken, { reason: 'الجلسة', until: '2020-01-01' })).status, 400);
+    assert.equal((await call('POST', `/orders/${order.id}/postpone`, clientToken, { reason: 'الجلسة', until: later() })).status, 404);
+  });
+
+  it('المؤجل يفضل محجوز، ويكمل بـ «إنهاء»، والمحامي يقدر يستقبل طلبات', async () => {
+    const order = await createArrivedOrder();
+    assert.equal((await call('POST', `/orders/${order.id}/postpone`, lawyerToken, { reason: 'الجلسة يوم الخميس', until: later() })).status, 200);
+
+    const listed = (await call('GET', '/orders', clientToken)).body.data[0];
+    assert.equal(listed.postponedReason, 'الجلسة يوم الخميس');
+    assert.ok(listed.postponedUntil);
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'المحامي أجّل المهمة'`, [clientId])).length, 1);
+
+    await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '40 days' WHERE id = $1`, [order.id]);
+    await sweepLifecycle();
+    assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'ACTIVE');
+
+    const nearby = await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25', null);
+    assert.equal(nearby.body.data.some((l: any) => l.id === lawyerId), true);
+
+    assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, {})).status, 200);
+    assert.equal((await wallet()).heldBalance, 350);
   });
 });
 

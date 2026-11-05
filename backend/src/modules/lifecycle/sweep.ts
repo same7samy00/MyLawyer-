@@ -1,6 +1,6 @@
 import { dbPool, withTransaction } from '../../database/index.js';
-import { notify, REVIEW_WINDOW_DAYS } from './service.js';
-import { applySettlement, evaluateSettlement, liftUserSuspensions } from './settlement.js';
+import { ARRIVAL_REMINDER_MINUTES, CLIENT_REPLY_HOURS, notify, REVIEW_WINDOW_DAYS } from './service.js';
+import { applySettlement, liftUserSuspensions } from './settlement.js';
 
 const MAX_MISSED_ORDERS = 2;
 const LOCATION_SILENCE_MINUTES = 65;
@@ -86,43 +86,71 @@ async function hideSilentLawyers() {
 
 async function sendDeadlineReminders() {
   const reminders = [
-    { column: 'reminder_first_sent', hoursLeft: 12, body: 'باقي 12 ساعة. سجّل وصولك وأنهِ المهمة' },
+    { column: 'reminder_first_sent', hoursLeft: 12, body: 'باقي 12 ساعة. لو وصلت، دوس «وصلت»' },
     { column: 'reminder_second_sent', hoursLeft: 4, body: 'باقي 4 ساعات. لو ما وصلتش المبلغ هيرجع للموكل' },
   ];
 
   for (const reminder of reminders) {
     const res = await dbPool.query(
       `UPDATE service_orders SET ${reminder.column} = TRUE
-       WHERE status = 'ACTIVE' AND ${reminder.column} = FALSE
+       WHERE status = 'ACTIVE' AND arrived_at IS NULL AND ${reminder.column} = FALSE
          AND expires_at <= NOW() + make_interval(hours => $1)
        RETURNING id, lawyer_id`,
       [reminder.hoursLeft]
     );
 
     for (const order of res.rows) {
-      await notify(dbPool, order.lawyer_id, 'تذكير بإنهاء المهمة', reminder.body, order.id);
+      await notify(dbPool, order.lawyer_id, 'تذكير بالوصول', reminder.body, order.id);
     }
   }
 }
 
-/// When the deadline passes the settlement table decides by itself, unless a money complaint is waiting
-async function expireUnfinishedOrders() {
-  const expired = await dbPool.query(
-    `SELECT o.* FROM service_orders o
-     WHERE o.status = 'ACTIVE' AND o.expires_at <= NOW()
-       AND NOT EXISTS (SELECT 1 FROM support_tickets st WHERE st.order_id = o.id AND st.status <> 'CLOSED')`
+async function sendArrivalReminders() {
+  const res = await dbPool.query(
+    `UPDATE service_orders SET arrival_reminder_sent = TRUE
+     WHERE status = 'ACTIVE' AND arrived_at IS NULL AND arrival_reminder_sent = FALSE
+       AND arrival_deadline <= NOW() + make_interval(mins => $1)
+     RETURNING id, lawyer_id`,
+    [ARRIVAL_REMINDER_MINUTES]
   );
 
-  for (const order of expired.rows) {
+  for (const order of res.rows) {
+    await notify(dbPool, order.lawyer_id, 'مهلة الوصول قربت تخلص', 'لو وصلت، دوس «وصلت»', order.id);
+  }
+}
+
+async function askClientAboutDelay() {
+  const res = await dbPool.query(
+    `UPDATE service_orders SET delay_notified_at = NOW()
+     WHERE status = 'ACTIVE' AND arrived_at IS NULL AND delay_notified_at IS NULL AND arrival_deadline <= NOW()
+     RETURNING id, client_id`
+  );
+
+  for (const order of res.rows) {
+    await notify(dbPool, order.client_id, 'المحامي اتأخر', 'تحب تستنى ولا تلغي وترجع فلوسك؟', order.id);
+  }
+}
+
+/// Without an arrival the money goes back: two hours after an unanswered question, or at the 24-hour deadline.
+/// After an arrival nothing moves by itself, the money stays held until the task ends or the admin decides.
+async function refundUnreachedOrders() {
+  const unreached = await dbPool.query(
+    `SELECT o.id FROM service_orders o
+     WHERE o.status = 'ACTIVE' AND o.arrived_at IS NULL
+       AND (o.expires_at <= NOW()
+            OR (o.client_keeps_waiting = FALSE AND o.delay_notified_at <= NOW() - make_interval(hours => $1)))
+       AND NOT EXISTS (SELECT 1 FROM support_tickets st WHERE st.order_id = o.id AND st.status <> 'CLOSED')`,
+    [CLIENT_REPLY_HOURS]
+  );
+
+  for (const order of unreached.rows) {
     await withTransaction(async (client) => {
-      const fresh = await client.query(`SELECT * FROM service_orders WHERE id = $1 AND status = 'ACTIVE' FOR UPDATE`, [order.id]);
+      const fresh = await client.query(
+        `SELECT * FROM service_orders WHERE id = $1 AND status = 'ACTIVE' AND arrived_at IS NULL FOR UPDATE`,
+        [order.id]
+      );
       if (fresh.rows.length === 0) return;
-      const settlement = await evaluateSettlement(client, fresh.rows[0]);
-      await applySettlement(client, fresh.rows[0], settlement.outcome, null, 'انتهت مهلة المهمة');
-      // They met, so the client can rate the lawyer like any finished task
-      if (fresh.rows[0].arrived_at && settlement.outcome !== 'REFUND') {
-        await notify(client, order.client_id, 'انتهت المهمة', 'قيّم المحامي. ولو فيه مشكلة افتح «عندك مشكلة؟»', order.id);
-      }
+      await applySettlement(client, fresh.rows[0], 'REFUND', null, 'المحامي ما سجلش وصوله في المهلة');
     });
   }
 }
@@ -168,7 +196,9 @@ export async function sweepLifecycle() {
   await liftUserSuspensions(dbPool);
   await hideSilentLawyers();
   await sendDeadlineReminders();
-  await expireUnfinishedOrders();
+  await sendArrivalReminders();
+  await askClientAboutDelay();
+  await refundUnreachedOrders();
   await releaseHeldPayouts();
   await sendReviewReminders();
 }

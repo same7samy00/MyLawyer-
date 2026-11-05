@@ -79,7 +79,7 @@ export async function registerOrderCreation(fastify: FastifyInstance) {
         [[userId, targetLawyer.user_id]]
       );
       const openRes = await client.query(
-        `SELECT 1 FROM service_orders WHERE client_id = $1 AND status IN ('PENDING', 'ACCEPTED', 'ACTIVE') LIMIT 1`,
+        `SELECT 1 FROM service_orders WHERE client_id = $1 AND status IN ('PENDING', 'ACCEPTED', 'ACTIVE') AND postponed_at IS NULL LIMIT 1`,
         [userId]
       );
       if (openRes.rows.length > 0) throw new HttpError(409, 'عندك طلب مفتوح بالفعل، كمله من صفحة الطلبات');

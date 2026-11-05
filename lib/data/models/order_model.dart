@@ -38,6 +38,12 @@ class OrderModel {
   final DateTime? paidAt;
   final int responseSecondsLeft;
   final int clientCompletedOrders;
+  final DateTime? arrivalDeadline;
+  final DateTime? delayNotifiedAt;
+  final bool clientKeepsWaiting;
+  final DateTime? postponedAt;
+  final DateTime? postponedUntil;
+  final String? postponedReason;
 
   const OrderModel({
     required this.id,
@@ -76,6 +82,12 @@ class OrderModel {
     this.paidAt,
     this.responseSecondsLeft = 0,
     this.clientCompletedOrders = 0,
+    this.arrivalDeadline,
+    this.delayNotifiedAt,
+    this.clientKeepsWaiting = false,
+    this.postponedAt,
+    this.postponedUntil,
+    this.postponedReason,
   });
 
   /// الخادم يعيد الأرقام أحياناً كنصوص (نوع numeric في PostgreSQL)
@@ -129,6 +141,12 @@ class OrderModel {
       paidAt: _toDate(json['paidAt'] ?? json['paid_at']),
       responseSecondsLeft: _toDouble(json['responseSecondsLeft'])?.toInt() ?? 0,
       clientCompletedOrders: _toDouble(json['clientCompletedOrders'])?.toInt() ?? 0,
+      arrivalDeadline: _toDate(json['arrivalDeadline'] ?? json['arrival_deadline']),
+      delayNotifiedAt: _toDate(json['delayNotifiedAt'] ?? json['delay_notified_at']),
+      clientKeepsWaiting: json['clientKeepsWaiting'] == true || json['client_keeps_waiting'] == true,
+      postponedAt: _toDate(json['postponedAt'] ?? json['postponed_at']),
+      postponedUntil: _toDate(json['postponedUntil'] ?? json['postponed_until']),
+      postponedReason: json['postponedReason']?.toString() ?? json['postponed_reason']?.toString(),
     );
   }
 
@@ -173,12 +191,23 @@ class OrderModel {
   bool get isRefunded => status == 'REFUNDED';
   bool get isNoResponse => status == 'NO_RESPONSE';
 
-  /// الإلغاء بعد الدفع مسموح في أول 5 دقايق بس وقبل وصول المحامي
+  /// المحامي عدى مهلة الوصول وما داسش «وصلت»
+  bool get isLawyerLate {
+    final deadline = arrivalDeadline;
+    return isActive && arrivedAt == null && deadline != null && DateTime.now().isAfter(deadline);
+  }
+
+  bool get isPostponed => isActive && postponedAt != null;
+
+  /// الإلغاء بعد الدفع مسموح قبل وصول المحامي، في أول 5 دقايق أو بعد ما يتأخر
   bool get canCancelAfterPayment {
     final paid = paidAt;
     if (!isActive || arrivedAt != null || paid == null) return false;
-    return DateTime.now().difference(paid).inMinutes < 5;
+    return DateTime.now().difference(paid).inMinutes < 5 || (isLawyerLate && !hasOpenComplaint);
   }
+
+  /// سؤال «تستنى ولا تلغي؟» بيظهر لحد ما الموكل يختار يستنى
+  bool get canChooseToWait => isLawyerLate && delayNotifiedAt != null && !clientKeepsWaiting && !hasOpenComplaint;
 
   /// الموكل يلغي قبل الدفع، وبعده قبل وصول المحامي فقط
   bool get canCancel => isPending || isAccepted || canCancelAfterPayment;
@@ -231,7 +260,8 @@ class OrderModel {
       case 'ACCEPTED':
         return 'تم قبول الطلب • بانتظار السداد';
       case 'ACTIVE':
-        return 'قيد التنفيذ • المحامي في الطريق';
+        if (postponedAt != null) return 'مؤجل • الفلوس محجوزة';
+        return arrivedAt == null ? 'قيد التنفيذ • المحامي في الطريق' : 'قيد التنفيذ • المحامي وصل';
       case 'COMPLETED':
         return 'مكتمل ومغلق';
       case 'CANCELLED':

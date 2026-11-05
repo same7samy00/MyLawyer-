@@ -192,6 +192,16 @@ class OrderRepository {
     return ApiService.post('/orders/$orderId/arrive', {'latitude': lat, 'longitude': lon});
   }
 
+  /// الموكل يختار يستنى المحامي المتأخر
+  static Future<ApiResponse<dynamic>> keepWaiting(String orderId) {
+    return ApiService.post('/orders/$orderId/keep-waiting', {});
+  }
+
+  /// المحامي يأجل المهمة بعد وصوله، والفلوس تفضل محجوزة
+  static Future<ApiResponse<dynamic>> postponeOrder(String orderId, String reason, DateTime until) {
+    return ApiService.post('/orders/$orderId/postpone', {'reason': reason, 'until': until.toUtc().toIso8601String()});
+  }
+
   /// اعتذار المحامي بعد الدفع
   static Future<ApiResponse<dynamic>> withdrawFromOrder(String orderId) {
     return ApiService.post('/orders/$orderId/withdraw', {});

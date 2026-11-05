@@ -93,11 +93,4 @@ describe('تذكير التقييم', () => {
     assert.equal((await sql(`SELECT 1 FROM notifications WHERE title = 'قيّم المحامي'`)).length, 0);
   });
 
-  it('لو المهلة خلصت والمحامي وصل، الطلب يتقفل والموكل يقدر يقيّم', async () => {
-    const order = await createArrivedOrder();
-    await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = $1`, [order.id]);
-    await sweepLifecycle();
-    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'انتهت المهمة'`, [clientId])).length, 1);
-    assert.equal((await call('POST', `/orders/${order.id}/review`, clientToken, { rating: 4 })).status, 201);
-  });
 });

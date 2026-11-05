@@ -28,7 +28,7 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
 
       // The arrival is the proof that the two really met
       const distance = distanceKm(lat, lon, Number(order.client_latitude), Number(order.client_longitude));
-      if (distance > ARRIVAL_RADIUS_KM) throw new HttpError(400, 'لازم تكون على بعد 50 متر من الموكل عشان تسجل وصولك');
+      if (distance > ARRIVAL_RADIUS_KM) throw new HttpError(400, 'لازم تكون قريب من الموكل');
 
       await client.query(
         `UPDATE service_orders SET arrived_at = NOW(), arrived_latitude = $1, arrived_longitude = $2 WHERE id = $3`,
@@ -43,6 +43,63 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
     });
 
     return reply.send({ success: true, message: 'تم تسجيل وصولك' });
+  });
+
+  // The client chose to keep waiting for a late lawyer, so the two-hour refund stops
+  fastify.post('/:id/keep-waiting', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
+    const { id } = request.params as { id: string };
+
+    await withTransaction(async (client) => {
+      const order = await lockOrder(client, id);
+      if (!order || order.client_id !== userId) throw new HttpError(404, 'الطلب غير موجود');
+      if (order.status !== 'ACTIVE' || order.arrived_at || !order.delay_notified_at) {
+        throw new HttpError(400, 'الطلب مش في مرحلة الانتظار');
+      }
+      await client.query(`UPDATE service_orders SET client_keeps_waiting = TRUE, updated_at = NOW() WHERE id = $1`, [order.id]);
+      await client.query(
+        `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)
+         VALUES ($1, $2, 'ACTIVE', 'ACTIVE', 'اختار الموكل انتظار المحامي بعد انتهاء مهلة الوصول')`,
+        [order.id, userId]
+      );
+      await notify(client, order.lawyer_id, 'الموكل مستنيك', 'لما توصل دوس «وصلت»', order.id);
+    });
+
+    return reply.send({ success: true, message: 'تمام، هنكمل انتظار المحامي' });
+  });
+
+  // The lawyer arrived but the task needs more time. The money stays held until «إنهاء».
+  fastify.post('/:id/postpone', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
+    const { id } = request.params as { id: string };
+    const body = (request.body || {}) as { reason?: string; until?: string };
+
+    const reason = sanitizeText(body.reason || '', 500).trim();
+    const until = new Date(body.until || '');
+    if (!reason) throw new HttpError(400, 'اكتب سبب التأجيل');
+    if (Number.isNaN(until.getTime()) || until.getTime() <= Date.now()) throw new HttpError(400, 'اختار ميعاد جديد صحيح');
+
+    await withTransaction(async (client) => {
+      const order = await lockOrder(client, id);
+      if (!order || order.lawyer_id !== userId) throw new HttpError(404, 'الطلب غير موجود أو غير مسند إليك');
+      if (order.status !== 'ACTIVE' || !order.arrived_at) throw new HttpError(400, 'التأجيل بيبقى بعد «وصلت» بس');
+
+      const openComplaint = await client.query(`SELECT ${OPEN_ORDER_TICKET('$1')} AS open`, [order.id]);
+      if (openComplaint.rows[0].open) throw new HttpError(409, 'الطلب قيد مراجعة تذكرة من الإدارة');
+
+      await client.query(
+        `UPDATE service_orders SET postponed_at = NOW(), postponed_until = $1, postponed_reason = $2, updated_at = NOW() WHERE id = $3`,
+        [until, reason, order.id]
+      );
+      await client.query(
+        `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)
+         VALUES ($1, $2, 'ACTIVE', 'ACTIVE', $3)`,
+        [order.id, userId, `أجّل المحامي المهمة: ${reason}`]
+      );
+      await notify(client, order.client_id, 'المحامي أجّل المهمة', `${reason}. وفلوسك لسه محجوزة`, order.id);
+    });
+
+    return reply.send({ success: true, message: 'تم تأجيل المهمة' });
   });
 
   // 7. POST /api/v1/orders/:id/complete - Lawyer completes active order
@@ -109,9 +166,14 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
 
       if (order.status === 'CANCELLED') throw new HttpError(400, 'الطلب ملغى بالفعل مسبقاً');
 
-      // After payment the client may cancel only in the first minutes and before the lawyer arrives
-      const refundOnCancel = order.status === 'ACTIVE' && order.client_id === userId && !order.arrived_at
-        && Date.now() - new Date(order.paid_at).getTime() <= CANCEL_MINUTES * 60000;
+      // After payment the client may cancel before the lawyer arrives, in the first minutes or once the lawyer is late
+      const withinFirstMinutes = order.status === 'ACTIVE' && Date.now() - new Date(order.paid_at).getTime() <= CANCEL_MINUTES * 60000;
+      const lawyerIsLate = order.status === 'ACTIVE' && order.arrival_deadline && new Date(order.arrival_deadline).getTime() <= Date.now();
+      const refundOnCancel = order.client_id === userId && !order.arrived_at && Boolean(withinFirstMinutes || lawyerIsLate);
+      if (refundOnCancel && !withinFirstMinutes) {
+        const openComplaint = await client.query(`SELECT ${OPEN_ORDER_TICKET('$1')} AS open`, [order.id]);
+        if (openComplaint.rows[0].open) throw new HttpError(409, 'الطلب قيد مراجعة تذكرة من الإدارة');
+      }
       if (order.status !== 'PENDING' && order.status !== 'ACCEPTED' && !refundOnCancel) {
         throw new HttpError(400, 'لا يمكن إلغاء الطلب في حالته الحالية');
       }

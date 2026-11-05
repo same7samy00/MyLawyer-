@@ -78,7 +78,7 @@ async function orderPage(box) {
 
   if (active === 'stages') {
     pane.append(section('المواعيد', details([
-      ['القبول', date(order.accepted_at)], ['الدفع', date(order.paid_at)], ['الوصول', date(order.arrived_at)], ['الإنهاء', date(order.completed_at)],
+      ['القبول', date(order.accepted_at)], ['الدفع', date(order.paid_at)], ['مهلة الوصول', date(order.arrival_deadline)], ['الوصول', date(order.arrived_at)], ['التأجيل', date(order.postponed_at)], ['الميعاد الجديد', date(order.postponed_until)], ['الإنهاء', date(order.completed_at)],
     ])));
     const timeline = el('ul', undefined, 'timeline');
     data.logs.forEach((log) => {

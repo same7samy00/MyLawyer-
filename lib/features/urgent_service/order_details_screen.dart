@@ -212,7 +212,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     final position = location.position;
     if (!mounted) return;
     if (position == null) {
-      _showNotice('شغّل الموقع عشان نتأكد إنك على بعد 50 متر من الموكل');
+      _showNotice('شغّل الموقع عشان نتأكد إنك قريب من الموكل');
       return;
     }
 
@@ -225,6 +225,22 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   Future<void> _openCompletion() async {
     if (!await _confirm('إنهاء المهمة', 'خلصت المهمة مع الموكل؟', 'إنهاء')) return;
     await _run(() => OrderRepository.completeOrder(_order.id), 'تم إنهاء المهمة، والصافي هيتاح بعد 24 ساعة');
+  }
+
+  Future<void> _openPostpone() async {
+    final now = DateTime.now();
+    final until = await showDatePicker(
+      context: context,
+      initialDate: now.add(const Duration(days: 1)),
+      firstDate: now.add(const Duration(days: 1)),
+      lastDate: now.add(const Duration(days: 365)),
+      helpText: 'الميعاد الجديد',
+    );
+    if (until == null || !mounted) return;
+
+    final reason = await showDialog<String>(context: context, builder: (_) => const _PostponeReasonDialog());
+    if (reason == null || !mounted) return;
+    await _run(() => OrderRepository.postponeOrder(_order.id, reason, until), 'تم تأجيل المهمة');
   }
 
   Future<void> _withdraw() async {
@@ -402,6 +418,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         _statusNote('طلب غير مكتمل • باقي ${order.paymentMinutesLeft} دقيقة للدفع'),
         _primaryAction('ادفع ${order.priceText} ج.م', _openPayment),
       ],
+      if (order.canChooseToWait) ...[
+        _statusNote('المحامي اتأخر. تحب تستنى ولا تلغي وترجع فلوسك؟'),
+        _primaryAction('هستنى', () => _run(() => OrderRepository.keepWaiting(order.id), 'تمام، هنكمل الانتظار')),
+      ],
+      if (order.isPostponed) _statusNote(_postponedText(order)),
       if (order.isActive && order.lawyerPhone != null)
         _primaryAction('اتصل بالمحامي', () => _call(order.lawyerPhone), icon: Icons.call_rounded),
       if (order.canReview) _primaryAction('قيّم المحامي', () => _openReview(isEdit: false)),
@@ -410,6 +431,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       ..._problemAction(order),
       if (order.canCancel) _action('إلغاء الطلب', _cancelOrder, isDanger: true),
     ];
+  }
+
+  String _postponedText(OrderModel order) {
+    final until = order.postponedUntil;
+    final date = until == null ? '' : ' • الميعاد الجديد ${until.day}/${until.month}/${until.year}';
+    return 'المهمة مؤجلة: ${order.postponedReason ?? ''}$date';
   }
 
   /// «عندك مشكلة؟» يفتح تذكرة جديدة، ولو فيه تذكرة مفتوحة يبقى «تابع مشكلتك»
@@ -432,10 +459,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         _action('افتح مكان الموكل في Google Maps', _openDirections, icon: Icons.navigation_rounded),
         if (!order.hasOpenComplaint) ...[
           // Finishing stays hidden until the lawyer arrives within 50 meters of the client
+          if (order.isPostponed) _statusNote(_postponedText(order)),
           if (order.arrivedAt == null)
             _primaryAction('وصلت', _markArrived)
-          else
+          else ...[
             _primaryAction('إنهاء المهمة', _openCompletion),
+            _action(order.isPostponed ? 'تغيير ميعاد التأجيل' : 'مؤجل', _openPostpone),
+          ],
           _action('اعتذار', _withdraw, isDanger: true),
         ],
       ],
@@ -458,4 +488,50 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     fontWeight: FontWeight.w900,
     color: AppColors.primary,
   );
+}
+
+/// سبب التأجيل اللي بيوصل للموكل
+class _PostponeReasonDialog extends StatefulWidget {
+  const _PostponeReasonDialog();
+
+  @override
+  State<_PostponeReasonDialog> createState() => _PostponeReasonDialogState();
+}
+
+class _PostponeReasonDialogState extends State<_PostponeReasonDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.0)),
+      title: const Text(
+        'سبب التأجيل',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontWeight: FontWeight.w800),
+      ),
+      content: TextField(
+        controller: _controller,
+        maxLength: 200,
+        maxLines: 2,
+        decoration: const InputDecoration(hintText: 'مثلًا: الجلسة يوم الخميس'),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('تراجع')),
+        TextButton(
+          onPressed: () {
+            final reason = _controller.text.trim();
+            if (reason.isNotEmpty) Navigator.pop(context, reason);
+          },
+          child: const Text('تأجيل'),
+        ),
+      ],
+    );
+  }
 }
