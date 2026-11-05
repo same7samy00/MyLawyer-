@@ -5,6 +5,7 @@ double _number(dynamic value) => value is num ? value.toDouble() : double.tryPar
 /// طلب مستني سعر المحامي
 class IncomingRequest {
   final String id;
+  final String service;
   final String problemType;
   final String problemDescription;
   final String? area;
@@ -19,6 +20,7 @@ class IncomingRequest {
 
   const IncomingRequest({
     required this.id,
+    this.service = 'محاميك حالاً',
     required this.problemType,
     required this.problemDescription,
     this.area,
@@ -34,6 +36,7 @@ class IncomingRequest {
 
   factory IncomingRequest.fromJson(Map<String, dynamic> json) => IncomingRequest(
         id: json['id'].toString(),
+        service: json['service']?.toString() ?? 'محاميك حالاً',
         problemType: json['problemType']?.toString() ?? 'محاميك حالاً',
         problemDescription: json['problemDescription']?.toString() ?? '',
         area: json['area']?.toString(),

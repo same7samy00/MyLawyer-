@@ -120,15 +120,14 @@ class _RequestOfferSheetState extends State<RequestOfferSheet> {
   List<Widget> _details() {
     final sent = _sentPrice;
     return [
-      Text(_request.problemType, textAlign: TextAlign.center, style: _titleStyle),
-      const SizedBox(height: 10),
-      if (_request.problemDescription.isNotEmpty) ...[
-        Text(_request.problemDescription, style: _bodyStyle),
-        const SizedBox(height: 10),
-      ],
-      Text('${_request.area ?? 'مكان الموكل'} • على بعد ${_request.distanceKm} كم تقريبًا', style: _mutedStyle),
-      const SizedBox(height: 4),
-      Text('السعر المسموح: من ${_request.minPrice} لـ ${_request.maxPrice} ج.م', style: _mutedStyle),
+      const Text('تفاصيل الطلب', textAlign: TextAlign.center, style: _titleStyle),
+      const SizedBox(height: 12),
+      _row('الخدمة', _request.service),
+      _row('المشكلة', _request.problemType),
+      if (_request.problemDescription.isNotEmpty) _row('التفاصيل', _request.problemDescription),
+      _row('العنوان', _request.area ?? 'غير محدد'),
+      _row('المسافة', '${_request.distanceKm} كم تقريبًا'),
+      _row('السعر المسموح', 'من ${_request.minPrice} لـ ${_request.maxPrice} ج.م'),
       const SizedBox(height: 16),
       if (sent != null) ...[
         Text('عرضك: $sent ج.م • صافي ليك: ${_request.netOf(sent)} ج.م', textAlign: TextAlign.center, style: _titleStyle),
@@ -146,6 +145,19 @@ class _RequestOfferSheetState extends State<RequestOfferSheet> {
       const SizedBox(height: 6),
       TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('إغلاق')),
     ];
+  }
+
+  Widget _row(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 100, child: Text(label, style: _mutedStyle)),
+          Expanded(child: Text(value, style: _bodyStyle)),
+        ],
+      ),
+    );
   }
 
   String get _timeText {

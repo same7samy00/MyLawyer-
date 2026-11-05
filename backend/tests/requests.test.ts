@@ -70,7 +70,9 @@ describe('الطلب وعروض الأسعار', () => {
     assert.equal(incoming[0].id, id);
     assert.equal(incoming[0].minPrice, 500);
     assert.equal(incoming[0].netRate, 0.7);
-    assert.equal(incoming[0].area, 'محافظة القاهرة');
+    assert.equal(incoming[0].area, 'المعادي، محافظة القاهرة');
+    assert.equal(incoming[0].service, 'محاميك حالاً');
+    assert.equal(incoming[0].client_latitude, undefined);
     assert.ok(incoming[0].secondsLeft > 110);
     assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'طلب جديد'`, [lawyerId])).length, 1);
   });

@@ -1,5 +1,9 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Orders Filter] - 2026-11-05
+- **Orders page:** two buttons on top, «الطلبات الحالية» and «سجل الطلبات», for the client and the lawyer.
+- **Request sheet:** before pricing, the lawyer sees the service, problem, details and address (area and governorate). The exact point stays hidden until payment.
+
 ## [One Orders Page] - 2026-11-05
 - **Lawyer:** requests and order history are one page again, with new and running cards on top and a status list on each request. The bottom bar is back to 4 tabs.
 - **Details:** order details are now a bottom sheet for both sides. In the lawyer's request sheet, «ابعت عرضك» switches to the price form, and sending closes the sheet.

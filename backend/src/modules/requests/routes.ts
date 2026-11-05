@@ -4,7 +4,6 @@ import { sanitizeText } from '../../utils/security.js';
 import { publishChange } from '../../services/liveUpdates.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { lawyerHasOpenOrder, lawyerShare, LAWYER_RESPONSE_SECONDS, notify, PAYMENT_MINUTES } from '../lifecycle/service.js';
-import { governorateOf } from '../orders/shared.js';
 import { CHOOSE_MINUTES, LAWYER_CAN_WORK, LIVE_OFFERS, priceRangeFor, ROUND_SECONDS, sendRound } from './service.js';
 
 const ROAD_FACTOR = 1.4;
@@ -103,7 +102,9 @@ export async function requestRoutes(fastify: FastifyInstance) {
         id: row.id,
         problemType: row.problem_type || row.service_title,
         problemDescription: row.problem_description,
-        area: governorateOf(row.client_address),
+        service: 'محاميك حالاً',
+        // The lawyer needs the area to price the visit. The exact point stays hidden until payment
+        area: row.client_address,
         distanceKm: roundedKm(row.distance_km),
         minPrice: Number(row.min_price),
         maxPrice: Number(row.max_price),

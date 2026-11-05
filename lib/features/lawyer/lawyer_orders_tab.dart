@@ -10,6 +10,7 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/lawyer_availability_card.dart';
 import '../../core/widgets/order_summary_card.dart';
+import '../../core/widgets/orders_filter.dart';
 import '../../data/models/order_model.dart';
 import '../../data/models/service_request.dart';
 import '../../data/repositories/order_repository.dart';
@@ -17,7 +18,7 @@ import '../../data/repositories/request_repository.dart';
 import '../urgent_service/order_details_sheet.dart';
 import 'request_offer_sheet.dart';
 
-/// صفحة طلبات المحامي الموحدة: الجديد والشغال فوق والمنتهي تحت، والتفاصيل والإجراءات في بوتن شيت
+/// صفحة طلبات المحامي الموحدة: زر للحالي واللحظي وزر للسجل، والتفاصيل والإجراءات في بوتن شيت
 class LawyerOrdersTab extends StatefulWidget {
   /// إشارة من الحاوية لتحديث القائمة عند العودة لهذا التبويب
   final ValueListenable<int>? refreshSignal;
@@ -35,6 +36,7 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
   List<OrderModel> _orders = const [];
   List<IncomingRequest> _requests = const [];
   Timer? _refreshTimer;
+  bool _showCurrent = true;
 
   @override
   void initState() {
@@ -169,10 +171,8 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
       );
     }
 
-    final orders = [
-      ..._orders.where((order) => order.isOngoing),
-      ..._orders.where((order) => !order.isOngoing),
-    ];
+    final orders = _orders.where((order) => order.isOngoing == _showCurrent).toList();
+    final requests = _showCurrent ? _requests : const <IncomingRequest>[];
 
     return SafeArea(
       child: RefreshIndicator(
@@ -181,11 +181,14 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
         child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 16.0),
-          itemCount: 1 + _requests.length + (orders.isEmpty && _requests.isEmpty ? 1 : orders.length),
+          itemCount: 2 + requests.length + (orders.isEmpty && requests.isEmpty ? 1 : orders.length),
           itemBuilder: (context, position) {
             if (position == 0) return const LawyerAvailabilityCard();
-            if (position <= _requests.length) return _requestCard(_requests[position - 1]);
-            final index = position - _requests.length - 1;
+            if (position == 1) {
+              return OrdersFilter(showCurrent: _showCurrent, onChanged: (value) => setState(() => _showCurrent = value));
+            }
+            if (position - 2 < requests.length) return _requestCard(requests[position - 2]);
+            final index = position - requests.length - 2;
             if (orders.isEmpty) {
               return const AppStateMessage(
                 icon: Icons.receipt_long_rounded,

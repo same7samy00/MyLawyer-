@@ -7,6 +7,7 @@ import '../../core/services/app_visibility.dart';
 import '../../core/services/live_updates.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/order_summary_card.dart';
+import '../../core/widgets/orders_filter.dart';
 import '../../data/models/order_model.dart';
 import '../../data/repositories/order_repository.dart';
 import '../urgent_service/order_details_sheet.dart';
@@ -27,6 +28,7 @@ class _OrdersTabState extends State<OrdersTab> {
   String? _errorMessage;
   List<OrderModel> _orders = const [];
   Timer? _refreshTimer;
+  bool _showCurrent = true;
 
   @override
   void initState() {
@@ -103,10 +105,7 @@ class _OrdersTabState extends State<OrdersTab> {
       );
     }
 
-    final orders = [
-      ..._orders.where((order) => order.isOngoing),
-      ..._orders.where((order) => !order.isOngoing),
-    ];
+    final orders = _orders.where((order) => order.isOngoing == _showCurrent).toList();
 
     return SafeArea(
       child: RefreshIndicator(
@@ -115,8 +114,12 @@ class _OrdersTabState extends State<OrdersTab> {
         child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 16.0),
-          itemCount: orders.isEmpty ? 1 : orders.length,
-          itemBuilder: (context, index) {
+          itemCount: 1 + (orders.isEmpty ? 1 : orders.length),
+          itemBuilder: (context, position) {
+            if (position == 0) {
+              return OrdersFilter(showCurrent: _showCurrent, onChanged: (value) => setState(() => _showCurrent = value));
+            }
+            final index = position - 1;
             if (orders.isEmpty) {
               return const AppStateMessage(
                 icon: Icons.receipt_long_rounded,

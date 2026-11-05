@@ -99,7 +99,10 @@ void main() {
 
       await tester.pumpWidget(testApp(const Scaffold(body: OrdersTab())));
       await tester.pumpAndSettle();
+      expect(find.textContaining('ML-ORD-100001'), findsNothing);
 
+      await tester.tap(find.text('سجل الطلبات'));
+      await tester.pumpAndSettle();
       expect(find.textContaining('ML-ORD-100001'), findsOneWidget);
       expect(find.text('إلغاء الطلب'), findsNothing);
     });
@@ -397,6 +400,8 @@ void main() {
       await tester.tap(find.text('تفاصيل الطلب'));
       await settleAsync(tester);
       expect(find.text('ابعت عرضك'), findsOneWidget);
+      expect(find.text('العنوان'), findsOneWidget);
+      expect(find.text('الخدمة'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
     });
