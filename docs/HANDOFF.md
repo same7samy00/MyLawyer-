@@ -48,7 +48,7 @@
 ## 3. الخادم
 - **الموقع:** `https://my-lawyer.online` بشهادة تتجدد تلقائياً، والدومين من Hostinger.
 - **الخادم:** Contabo `13.140.141.32`، بذاكرة 7.8 جيجا و4 معالجات.
-- **الدخول:** مفتاح `~/.ssh/mylawyer_deploy` مع `~/.ssh/known_hosts_mylawyer`. لا تستخدم كلمة مرور root.
+- **الدخول:** مفتاح `~/.ssh/mylawyer_deploy` مع `~/.ssh/known_hosts_mylawyer`. الدخول بكلمة المرور مقفول، والطوارئ من لوحة Contabo.
 - **الرفع:** أي push على `main` يغيّر `backend` يرفع الخادم تلقائياً عبر GitHub Actions، والتفاصيل في `docs/DEVELOPMENT_GUIDE.md`، والنسخ الاحتياطية في `/root/mylawyer-backups`.
 - **الخدمات:** `mylawyer-backend` عبر systemd، و`mylawyer-osrm` و`mylawyer-tileserver` عبر Docker محلياً فقط.
 - **الموقع العام:** `https://my-lawyer.online` (وصف التطبيق والعنوان والسياسات المؤقتة لبوابة الدفع)، ملفاته في `backend/public/site` وبيترفع مع السيرفر.

@@ -1,5 +1,8 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Production Hardening] - 2026-11-05
+- **Server:** three request workers, SSH by key only, tuned PostgreSQL and Nginx, seven indexes, and a daily local backup. Results are in `docs/PRODUCTION_REPORT.md`.
+
 ## [Orders Filter] - 2026-11-05
 - **Orders page:** two buttons on top, «الطلبات الحالية» and «سجل الطلبات», for the client and the lawyer.
 - **Request sheet:** before pricing, the lawyer sees the service, problem, details and address (area and governorate). The exact point stays hidden until payment.
