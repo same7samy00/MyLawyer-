@@ -49,9 +49,7 @@ class IncomingRequest {
 
   int netOf(int price) => (price * netRate).round();
 
-  bool get isOpen => state == 'OPEN';
   bool get isChosen => state == 'CHOSEN';
-  bool get isNotChosen => state == 'NOT_CHOSEN';
 }
 
 /// عرض محامي على طلب الموكل

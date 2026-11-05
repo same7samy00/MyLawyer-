@@ -84,15 +84,14 @@ export async function requestRoutes(fastify: FastifyInstance) {
     if (role !== 'lawyer') throw new HttpError(403, 'الصفحة دي للمحامين');
 
     const res = await query(
-      `SELECT r.*, rr.distance_km, rr.round AS my_round, ro.price AS my_price, ro.withdrawn_at AS my_withdrawn_at,
-              (SELECT o.lawyer_id FROM service_orders o WHERE o.id = r.order_id) AS chosen_lawyer_id
+      `SELECT r.*, rr.distance_km, rr.round AS my_round, ro.price AS my_price, ro.withdrawn_at AS my_withdrawn_at
        FROM request_recipients rr
        JOIN service_requests r ON r.id = rr.request_id
        LEFT JOIN request_offers ro ON ro.request_id = r.id AND ro.lawyer_id = rr.lawyer_id
        WHERE rr.lawyer_id = $1
          AND ((r.status = 'OPEN' AND ((rr.round = r.round AND r.round_deadline > NOW()) OR (ro.id IS NOT NULL AND ro.withdrawn_at IS NULL)))
-              -- The result of a sent price stays on its card for a day
-              OR (r.status <> 'OPEN' AND ro.id IS NOT NULL AND ro.withdrawn_at IS NULL AND r.created_at > NOW() - INTERVAL '1 day'))
+              -- A chosen offer stays here until the client pays, then it lives in the orders history
+              OR EXISTS (SELECT 1 FROM service_orders o WHERE o.id = r.order_id AND o.lawyer_id = rr.lawyer_id AND o.status = 'ACCEPTED'))
        ORDER BY r.created_at DESC`,
       [userId]
     );
@@ -111,8 +110,8 @@ export async function requestRoutes(fastify: FastifyInstance) {
         netRate: lawyerShare(1000, Number(row.commission_percent), Number(row.tax_percent)) / 1000,
         secondsLeft: row.my_round === row.round ? secondsUntil(row.round_deadline) : 0,
         myPrice: row.my_price != null && !row.my_withdrawn_at ? Number(row.my_price) : null,
-        state: row.status === 'OPEN' ? 'OPEN' : row.chosen_lawyer_id === userId ? 'CHOSEN' : 'NOT_CHOSEN',
-        orderId: row.chosen_lawyer_id === userId ? row.order_id : null,
+        state: row.status === 'OPEN' ? 'OPEN' : 'CHOSEN',
+        orderId: row.order_id,
       })),
     });
   });

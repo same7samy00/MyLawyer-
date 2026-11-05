@@ -32,7 +32,7 @@ async function otherLawyer(lat = 30.06) {
 const removeLawyer = (id: string) => sql('DELETE FROM users WHERE id = $1', [id]);
 
 describe('الطلب وعروض الأسعار', () => {
-  it('بطاقة المحامي بتتحدث: اختار عرضك، أو اتقفل عند اللي ما اتختارش', async () => {
+  it('الاستقبال للحالي بس: المختار لحد الدفع، واللي ما اتختارش يختفي', async () => {
     const other = await otherLawyer();
     const id = await createRequest();
     await offer(id, 1000);
@@ -47,9 +47,10 @@ describe('الطلب وعروض الأسعار', () => {
     const chosen = await card(lawyerToken);
     assert.equal(chosen.state, 'CHOSEN');
     assert.equal(chosen.orderId, selected.body.data.orderId);
-    const notChosen = await card(other.token);
-    assert.equal(notChosen.state, 'NOT_CHOSEN');
-    assert.equal(notChosen.orderId, null);
+    assert.equal(await card(other.token), undefined);
+
+    await call('POST', `/orders/${selected.body.data.orderId}/confirm-payment`, clientToken, {});
+    assert.equal(await card(lawyerToken), undefined);
     await removeLawyer(other.id);
   });
 

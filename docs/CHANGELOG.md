@@ -6,7 +6,7 @@
 
 ## [Lawyer Requests Tab] - 2026-11-05
 - **Tabs:** lawyers now have five tabs. «الاستقبال» holds new requests and offer results, and «السجل» holds orders.
-- **Live cards:** a card shows when the price is awaited, sent, chosen or not chosen, and it refreshes every 5 seconds. Order cards show the current step for the lawyer.
+- **Live cards:** the receive tab holds current requests only. A card shows when the price is awaited, sent or chosen, stays until payment, and refreshes every 5 seconds. Order cards show the current step for the lawyer.
 - **Device notifications:** one order, ticket or request keeps one notification on Android, and the newest replaces the older.
 
 ## [Live Lawyer Location] - 2026-11-05

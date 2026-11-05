@@ -12,7 +12,7 @@ import '../../data/repositories/request_repository.dart';
 import '../urgent_service/order_details_screen.dart';
 import 'request_offer_screen.dart';
 
-/// الطلبات الجديدة ونتيجة كل عرض بعته المحامي، وبتتحدث لوحدها
+/// الطلبات الحالية بس: المنتظرة لسعر المحامي واللي الموكل اختار عرضه لحد الدفع، وبتتحدث لوحدها
 class LawyerRequestsTab extends StatefulWidget {
   final ValueListenable<int>? refreshSignal;
 
@@ -65,15 +65,14 @@ class _LawyerRequestsTabState extends State<LawyerRequestsTab> {
       final order = res.data;
       if (!mounted || order == null) return;
       await navigator.push(MaterialPageRoute(builder: (_) => OrderDetailsScreen(order: order, isLawyer: true)));
-    } else if (request.isOpen) {
+    } else {
       await navigator.push(MaterialPageRoute(builder: (_) => RequestOfferScreen(request: request)));
     }
     if (mounted) await _load();
   }
 
   (String, Color) _statusOf(IncomingRequest request) {
-    if (request.isChosen) return ('الموكل اختار عرضك', AppColors.success);
-    if (request.isNotChosen) return ('الطلب اتقفل، الموكل ما اختارش عرضك', AppColors.textMuted);
+    if (request.isChosen) return ('الموكل اختار عرضك • مستنيين الدفع', AppColors.success);
     if (request.myPrice != null) return ('عرضك اتبعت، مستنيين الموكل يختار', AppColors.primary);
     return ('ابعت سعرك • باقي ${request.secondsLeft ~/ 60}:${(request.secondsLeft % 60).toString().padLeft(2, '0')}', AppColors.danger);
   }
@@ -86,7 +85,7 @@ class _LawyerRequestsTabState extends State<LawyerRequestsTab> {
       padding: const EdgeInsets.only(bottom: 12),
       child: AppCard(
         padding: const EdgeInsets.all(14),
-        onTap: request.isNotChosen ? null : () => _open(request),
+        onTap: () => _open(request),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
