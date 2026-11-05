@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { Db } from '../../database/index.js';
 import { sendPush } from '../../services/pushService.js';
+import { publishChange } from '../../services/liveUpdates.js';
 
 export const HOLD_HOURS = 24;
 export const ORDER_DEADLINE_HOURS = 24;
@@ -54,6 +55,8 @@ export async function notify(db: Db, userId: string, title: string, body: string
       [orderId]
     );
   }
+
+  await publishChange(db, userId);
 
   // The order never waits for the phone
   void sendPush(userId, title, body, { orderId, ticketId, requestId });

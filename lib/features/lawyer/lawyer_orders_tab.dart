@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/app_visibility.dart';
+import '../../core/services/live_updates.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/order_summary_card.dart';
 import '../../data/models/order_model.dart';
@@ -33,10 +34,11 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
   void initState() {
     super.initState();
     widget.refreshSignal?.addListener(_loadOrders);
+    LiveUpdates.changes.addListener(_loadOrders);
     ApiService.isServerReachable.addListener(_onReachabilityChanged);
     _loadOrders();
     // الطلب الجديد وانتهاء مهلته يظهران من غير سحب الصفحة
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (isAppVisible) _loadOrders();
     });
   }
@@ -45,6 +47,7 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
   void dispose() {
     _refreshTimer?.cancel();
     widget.refreshSignal?.removeListener(_loadOrders);
+    LiveUpdates.changes.removeListener(_loadOrders);
     ApiService.isServerReachable.removeListener(_onReachabilityChanged);
     super.dispose();
   }

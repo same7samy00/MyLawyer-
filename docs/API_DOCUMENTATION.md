@@ -80,6 +80,7 @@
 | `/orders/:id/accept` و`/orders/:id/reject` | `POST` | محامٍ | الرد على الطلب خلال دقيقتين |
 | `/orders/:id/confirm-payment` | `POST` | موكل | الدفع خلال 10 دقايق، و`method: wallet` من الرصيد لو كفاية |
 | `/orders/:id/cancel` | `POST` | أطراف الطلب | قبل الدفع، وللموكل بعد الدفع وقبل الوصول في أول 5 دقايق أو بعد انتهاء مهلة الوصول |
+| `/events` | `GET` | أي مستخدم | خط مفتوح (`text/event-stream`) بيبلغ التطبيق بأي تغيير |
 | `/requests/range` | `GET` | موكل | حدود سعر المشكلة |
 | `/requests` | `POST` | موكل | إرسال الطلب لأقرب 5 محامين |
 | `/requests/:id` | `GET` | موكل | حالة الطلب وعروضه |

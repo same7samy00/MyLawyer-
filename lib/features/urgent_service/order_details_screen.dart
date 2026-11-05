@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/app_visibility.dart';
+import '../../core/services/live_updates.dart';
 import '../../core/services/external_navigation.dart';
 import '../../core/services/location_service.dart';
 import '../../core/widgets/app_button.dart';
@@ -38,8 +39,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    // الحالة تتحدث من غير سحب الصفحة طول ما الطلب جاري
-    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+    LiveUpdates.changes.addListener(_load);
+    // احتياطي لو الخط المفتوح قطع
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (isAppVisible && _order.isOngoing) _load();
     });
   }
@@ -47,6 +49,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    LiveUpdates.changes.removeListener(_load);
     super.dispose();
   }
 

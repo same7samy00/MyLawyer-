@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../../data/models/lifecycle_models.dart';
 import 'api_service.dart';
 import 'app_visibility.dart';
+import 'live_updates.dart';
 
 /// الصفحة اللي الإشعار بيفتحها
 class NotificationTarget {
@@ -48,9 +49,14 @@ class NotificationCenter {
       if (isAppVisible) refresh();
     });
     _lifecycle ??= AppLifecycleListener(onResume: refresh);
+    LiveUpdates.changes.removeListener(refresh);
+    LiveUpdates.changes.addListener(refresh);
+    LiveUpdates.start();
   }
 
   static void stop() {
+    LiveUpdates.changes.removeListener(refresh);
+    LiveUpdates.stop();
     _timer?.cancel();
     _timer = null;
     unread.value = 0;

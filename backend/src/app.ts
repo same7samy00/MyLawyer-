@@ -13,6 +13,8 @@ import { supportRoutes } from './modules/support/routes.js';
 import { lawyerRoutes } from './modules/lawyers/routes.js';
 import { orderRoutes } from './modules/orders/routes.js';
 import { requestRoutes } from './modules/requests/routes.js';
+import { closeAllLines, openLine } from './services/liveUpdates.js';
+import { requireAuth } from './utils/http.js';
 import { adminRoutes } from './modules/admin/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { registerAdminPanel } from './modules/admin/panel.js';
@@ -145,6 +147,12 @@ export function buildApp() {
     });
 
     api.get('/health', healthHandler);
+    // The open line that tells the app something changed
+    api.get('/events', { onRequest: requireAuth() }, async (request, reply) => {
+      const { userId } = request.user as { userId: string };
+      reply.hijack();
+      openLine(userId, reply.raw);
+    });
     registerAdminPanel(api);
     api.register(authRoutes, { prefix: '/auth' });
     api.register(userRoutes, { prefix: '/users' });
@@ -156,6 +164,9 @@ export function buildApp() {
     api.register(adminRoutes, { prefix: '/admin' });
     api.register(notificationRoutes, { prefix: '/notifications' });
   }, { prefix: '/api/v1' });
+
+  // Open lines would otherwise hold a restart forever
+  fastify.addHook('preClose', async () => closeAllLines());
 
   return fastify;
 }

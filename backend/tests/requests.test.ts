@@ -31,6 +31,12 @@ async function otherLawyer(lat = 30.06) {
 }
 const removeLawyer = (id: string) => sql('DELETE FROM users WHERE id = $1', [id]);
 
+describe('الخط المفتوح', () => {
+  it('الخط محتاج تسجيل دخول', async () => {
+    assert.equal((await app.inject({ method: 'GET', url: '/api/v1/events' })).statusCode, 401);
+  });
+});
+
 describe('الطلب وعروض الأسعار', () => {
   it('الاستقبال للحالي بس: المختار لحد الدفع، واللي ما اتختارش يختفي', async () => {
     const other = await otherLawyer();

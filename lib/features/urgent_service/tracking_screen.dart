@@ -10,6 +10,7 @@ import 'package:lottie/lottie.dart' hide Marker;
 import '../../core/constants/app_colors.dart';
 import '../../core/services/app_visibility.dart';
 import '../../core/services/geo_naming_service.dart';
+import '../../core/services/live_updates.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/map_lawyer_loader.dart';
 import '../../core/services/routing_service.dart';
@@ -102,6 +103,8 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   ClientRequest? _activeRequest;
   String? _reviewsLawyerId;
   bool _isChoosingOffer = false;
+  String? _followedRequestId;
+  bool _isCheckingRequest = false;
   bool _showReviews = false;
   bool _isSearchingAgain = false;
   Timer? _lawyersRefreshTimer;
@@ -126,6 +129,8 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   @override
   void dispose() {
     _orderPollTimer?.cancel();
+    _followedRequestId = null;
+    LiveUpdates.changes.removeListener(_checkRequest);
     _lawyersRefreshTimer?.cancel();
     _mapLawyers.dispose();
     _stageTimer?.cancel();

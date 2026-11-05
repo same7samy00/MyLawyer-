@@ -149,7 +149,7 @@ void main() {
       backend.orders = [
         {...sampleOrder(status: 'COMPLETED'), 'completedAt': DateTime.now().toIso8601String()},
       ];
-      await tester.pump(const Duration(seconds: 11));
+      await tester.pump(const Duration(seconds: 31));
       await settleAsync(tester);
 
       expect(find.byType(BottomSheet), findsOneWidget);

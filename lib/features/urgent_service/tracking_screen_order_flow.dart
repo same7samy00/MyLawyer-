@@ -78,39 +78,47 @@ extension _TrackingOrderFlow on _TrackingScreenState {
   }
 
   void _followRequest(String requestId) {
+    _followedRequestId = requestId;
+    LiveUpdates.changes.removeListener(_checkRequest);
+    LiveUpdates.changes.addListener(_checkRequest);
     _orderPollTimer?.cancel();
-    bool isChecking = false;
+    // احتياطي لو الخط المفتوح قطع
+    _orderPollTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      if (isAppVisible) _checkRequest();
+    });
+    _checkRequest();
+  }
 
-    _orderPollTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
-      if (!mounted || _orderFlowStage != _OrderFlowStage.waitingOffers) {
-        timer.cancel();
-        return;
-      }
-      // بطء الشبكة لا يراكم طلبات متزامنة
-      if (isChecking || !isAppVisible) return;
-      isChecking = true;
+  void _stopFollowingRequest() {
+    _followedRequestId = null;
+    LiveUpdates.changes.removeListener(_checkRequest);
+    _orderPollTimer?.cancel();
+  }
 
-      final res = await RequestRepository.follow(requestId);
-      isChecking = false;
-      final request = res.data;
-      if (!mounted || !res.isOk || request == null || _orderFlowStage != _OrderFlowStage.waitingOffers) return;
+  Future<void> _checkRequest() async {
+    final requestId = _followedRequestId;
+    if (requestId == null || _isCheckingRequest || !mounted) return;
+    _isCheckingRequest = true;
+    final res = await RequestRepository.follow(requestId);
+    _isCheckingRequest = false;
+    final request = res.data;
+    if (!mounted || !res.isOk || request == null || _followedRequestId != requestId) return;
 
-      if (!request.isOpen) {
-        timer.cancel();
-        _activeRequestId = null;
-        _update(() {
-          _activeRequest = null;
-          _orderFlowStage = _OrderFlowStage.idle;
-        });
-        _showMessage(request.status == 'EXPIRED'
-            ? 'الطلب اتلغى عشان ما اخترتش عرض في الوقت المحدد. تقدر تطلب تاني'
-            : 'مفيش محامي متاح دلوقتي، جرب تاني كمان شوية');
-        return;
-      }
-
+    if (!request.isOpen) {
+      _stopFollowingRequest();
+      _activeRequestId = null;
       _update(() {
-        _activeRequest = request;
+        _activeRequest = null;
+        _orderFlowStage = _OrderFlowStage.idle;
       });
+      _showMessage(request.status == 'EXPIRED'
+          ? 'الطلب اتلغى عشان ما اخترتش عرض في الوقت المحدد. تقدر تطلب تاني'
+          : 'مفيش محامي متاح دلوقتي، جرب تاني كمان شوية');
+      return;
+    }
+
+    _update(() {
+      _activeRequest = request;
     });
   }
 
@@ -134,7 +142,7 @@ extension _TrackingOrderFlow on _TrackingScreenState {
       return;
     }
 
-    _orderPollTimer?.cancel();
+    _stopFollowingRequest();
     _activeRequestId = null;
     _activeOrderId = selected.orderId;
     _activeOrderNumber = selected.orderNumber;
@@ -151,7 +159,7 @@ extension _TrackingOrderFlow on _TrackingScreenState {
   void _returnToLawyerProfile() {
     final pendingRequestId = _activeRequestId;
     final pendingOrderId = _activeOrderId;
-    _orderPollTimer?.cancel();
+    _stopFollowingRequest();
     _stageTimer?.cancel();
     _activeRequestId = null;
     _activeOrderId = null;

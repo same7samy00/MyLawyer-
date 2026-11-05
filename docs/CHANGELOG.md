@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Live Updates] - 2026-11-05
+- **Open line:** the app keeps one line open to `GET /events`. When something changes for that person, PostgreSQL announces it after the save, and the open pages reload at once. Pages also check every 20 to 30 seconds in case the line drops, and the line reconnects by itself.
+- **Lawyer offer page:** it moves to the order when the client chooses the offer, and goes back when the request closes.
+- **Later:** with more than one server process, this already works across them, since each listens to PostgreSQL.
+
 ## [Fixed Service Sheet] - 2026-11-05
 - **Map sheet:** the «محاميك حالاً» sheet now has one fixed height, can't be dragged or closed, and scrolls its content inside.
 - **Choosing an offer:** the client now has 5 minutes after the offers round instead of 10. The sheet shows the time left, and the request is cancelled when it ends, with a notice to the client and the lawyers who offered.

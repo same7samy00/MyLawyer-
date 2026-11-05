@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { sanitizeText } from '../../utils/security.js';
+import { publishChange } from '../../services/liveUpdates.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { lawyerHasOpenOrder, lawyerShare, LAWYER_RESPONSE_SECONDS, notify, PAYMENT_MINUTES } from '../lifecycle/service.js';
 import { governorateOf } from '../orders/shared.js';
@@ -165,13 +166,14 @@ export async function requestRoutes(fastify: FastifyInstance) {
     requireId(id);
 
     await withTransaction(async (client) => {
-      const locked = await client.query(`SELECT status FROM service_requests WHERE id = $1 FOR UPDATE`, [id]);
+      const locked = await client.query(`SELECT status, client_id FROM service_requests WHERE id = $1 FOR UPDATE`, [id]);
       if (locked.rows[0]?.status !== 'OPEN') throw new HttpError(409, 'الطلب اتقفل');
       const res = await client.query(
         'UPDATE request_offers SET withdrawn_at = NOW() WHERE request_id = $1 AND lawyer_id = $2 AND withdrawn_at IS NULL',
         [id, userId]
       );
       if (res.rowCount === 0) throw new HttpError(404, 'مفيش عرض لسحبه');
+      await publishChange(client, locked.rows[0].client_id);
     });
 
     return reply.send({ success: true, message: 'تم سحب عرضك' });
@@ -227,7 +229,12 @@ export async function requestRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     requireId(id);
 
-    await query(`UPDATE service_requests SET status = 'CANCELLED' WHERE id = $1 AND client_id = $2 AND status = 'OPEN'`, [id, userId]);
+    await withTransaction(async (client) => {
+      const cancelled = await client.query(`UPDATE service_requests SET status = 'CANCELLED' WHERE id = $1 AND client_id = $2 AND status = 'OPEN'`, [id, userId]);
+      if (cancelled.rowCount === 0) return;
+      const recipients = await client.query('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [id]);
+      for (const row of recipients.rows) await publishChange(client, row.lawyer_id);
+    });
     return reply.send({ success: true, message: 'تم إلغاء الطلب' });
   });
 

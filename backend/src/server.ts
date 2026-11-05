@@ -3,6 +3,7 @@ import { config } from './config/index.js';
 import { runMigrations } from './database/migrate.js';
 import { dbPool } from './database/index.js';
 import { sweepLifecycle } from './modules/lifecycle/sweep.js';
+import { startLiveUpdates, stopLiveUpdates } from './services/liveUpdates.js';
 
 async function start() {
   try {
@@ -18,6 +19,8 @@ async function start() {
       host: config.host,
     });
     console.log(`[MyLawyer Backend] Server running at ${address}`);
+
+    startLiveUpdates();
 
     // 4. Time-based order steps: reminders, deadlines, payout release, review publishing.
     // A slow round finishes before the next one starts.
@@ -36,6 +39,7 @@ async function start() {
       console.log(`[MyLawyer Backend] ${signal} received, stopping`);
       clearInterval(sweepTimer);
       try {
+        await stopLiveUpdates();
         await app.close();
         await sweeping;
         await dbPool.end();

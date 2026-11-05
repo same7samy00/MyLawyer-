@@ -52,7 +52,7 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
     _visitedTabs.add(_currentIndex);
     NotificationCenter.openRequest.addListener(_onOpenRequest);
     _onOpenRequest();
-    NotificationCenter.start(interval: const Duration(seconds: 15));
+    NotificationCenter.start();
     NotificationCenter.pendingOrders.addListener(_onPendingOrdersChanged);
     NotificationCenter.isAvailable.addListener(_onAvailabilityChanged);
     WidgetsBinding.instance.addObserver(this);

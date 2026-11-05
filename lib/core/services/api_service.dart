@@ -75,6 +75,15 @@ class ApiService {
     isServerReachable.value = true;
   }
 
+  /// يفتح خط مستمر مع السيرفر، والتجديد عند انتهاء الجلسة بيعمله المتصل
+  static Future<http.StreamedResponse> openLine(String path) async {
+    final request = http.Request('GET', Uri.parse('$_baseUrl$path'));
+    request.headers['Accept'] = 'text/event-stream';
+    final token = await getAccessToken();
+    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    return _client.send(request);
+  }
+
   /// الحصول على توكن الوصول المخزن
   static Future<String?> getAccessToken() async {
     if (_accessToken != null) return _accessToken;

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/app_visibility.dart';
+import '../../core/services/live_updates.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/lawyer_availability_card.dart';
@@ -32,8 +33,9 @@ class _LawyerRequestsTabState extends State<LawyerRequestsTab> {
   void initState() {
     super.initState();
     widget.refreshSignal?.addListener(_load);
+    LiveUpdates.changes.addListener(_load);
     _load();
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (isAppVisible) _load();
     });
   }
@@ -42,6 +44,7 @@ class _LawyerRequestsTabState extends State<LawyerRequestsTab> {
   void dispose() {
     _timer?.cancel();
     widget.refreshSignal?.removeListener(_load);
+    LiveUpdates.changes.removeListener(_load);
     super.dispose();
   }
 

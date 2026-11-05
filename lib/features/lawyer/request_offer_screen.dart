@@ -2,11 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/live_updates.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
 import '../../data/models/service_request.dart';
+import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/request_repository.dart';
+import '../urgent_service/order_details_screen.dart';
 
 /// المحامي يقرأ الطلب ويبعت سعره جوه الحدود
 class RequestOfferScreen extends StatefulWidget {
@@ -24,6 +27,7 @@ class _RequestOfferScreenState extends State<RequestOfferScreen> {
   late int? _sentPrice = widget.request.myPrice;
   Timer? _timer;
   bool _isBusy = false;
+  bool _isChecking = false;
 
   IncomingRequest get _request => widget.request;
   int? get _price => int.tryParse(_priceController.text.trim());
@@ -35,6 +39,7 @@ class _RequestOfferScreenState extends State<RequestOfferScreen> {
   @override
   void initState() {
     super.initState();
+    LiveUpdates.changes.addListener(_checkStatus);
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_secondsLeft > 0) setState(() => _secondsLeft -= 1);
     });
@@ -43,8 +48,34 @@ class _RequestOfferScreenState extends State<RequestOfferScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    LiveUpdates.changes.removeListener(_checkStatus);
     _priceController.dispose();
     super.dispose();
+  }
+
+  /// لو الموكل اختار العرض الصفحة بتتحول للطلب، ولو الطلب اتقفل بترجع للاستقبال
+  Future<void> _checkStatus() async {
+    if (_isChecking) return;
+    _isChecking = true;
+    final res = await RequestRepository.incoming();
+    _isChecking = false;
+    if (!mounted || !res.isOk) return;
+
+    final current = (res.data ?? const <IncomingRequest>[]).where((item) => item.id == _request.id).firstOrNull;
+    final navigator = Navigator.of(context);
+    if (current == null) {
+      _showNotice('الطلب اتقفل');
+      navigator.pop();
+      return;
+    }
+    final orderId = current.orderId;
+    if (current.isChosen && orderId != null) {
+      LiveUpdates.changes.removeListener(_checkStatus);
+      final order = (await OrderRepository.getOrderById(orderId)).data;
+      if (!mounted || order == null) return;
+      _showNotice('الموكل اختار عرضك');
+      await navigator.pushReplacement(MaterialPageRoute(builder: (_) => OrderDetailsScreen(order: order, isLawyer: true)));
+    }
   }
 
   void _setPrice(int price) {
