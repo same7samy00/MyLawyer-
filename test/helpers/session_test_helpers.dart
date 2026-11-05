@@ -82,3 +82,35 @@ void setUpSessionTests() {
     ApiService.useHttpClient(backend.client);
   });
 }
+
+/// الموبايل عنده موقع حقيقي، للطلبات اللي بتحتاج مكان الموكل
+void mockPhoneLocation() {
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+    const MethodChannel('flutter.baseflow.com/geolocator'),
+    (call) async {
+      switch (call.method) {
+        case 'isLocationServiceEnabled':
+          return true;
+        case 'checkPermission':
+          return 3;
+        case 'getLastKnownPosition':
+          return null;
+        case 'getCurrentPosition':
+          return {
+            'latitude': 30.05,
+            'longitude': 31.25,
+            'timestamp': DateTime(2026).millisecondsSinceEpoch,
+            'accuracy': 5.0,
+            'altitude': 0.0,
+            'altitude_accuracy': 0.0,
+            'heading': 0.0,
+            'heading_accuracy': 0.0,
+            'speed': 0.0,
+            'speed_accuracy': 0.0,
+          };
+        default:
+          throw MissingPluginException();
+      }
+    },
+  );
+}

@@ -41,7 +41,8 @@ export async function requestRoutes(fastify: FastifyInstance) {
     const description = sanitizeText(body.problemDescription, 3000);
     const lat = Number(body.clientLat);
     const lon = Number(body.clientLon);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new HttpError(400, 'إحداثيات موقع العميل غير صالحة');
+    const inServiceArea = Number.isFinite(lat) && Number.isFinite(lon) && lat >= 22 && lat <= 31.8 && lon >= 24.5 && lon <= 37;
+    if (!body.clientLat || !body.clientLon || !inServiceArea) throw new HttpError(400, 'تعذر تحديد موقعك، حاول تاني');
 
     const problemType = body.problemType ? sanitizeText(body.problemType, 100) : null;
 

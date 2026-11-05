@@ -295,6 +295,7 @@ void main() {
     });
 
     testWidgets('الموكل يشوف حدود السعر، والعروض تظهر، واختيار عرض يفتح الدفع بسعره', (tester) async {
+      mockPhoneLocation();
       backend.lawyers = [
         {
           'id': 'lawyer-1',
@@ -399,7 +400,30 @@ void main() {
       expect(order.isPaid, isTrue);
     });
 
+    testWidgets('من غير موقع حقيقي الطلب ما يتبعتش', (tester) async {
+      backend.lawyers = [
+        {'id': 'lawyer-1', 'name': 'أ/ طارق حسن', 'degree': 'محامٍ', 'rating': 4.8, 'reviewsCount': 12, 'experienceYears': 7, 'coordinates': [30.05, 31.24], 'distanceKm': 1.2},
+      ];
+
+      await tester.pumpWidget(testApp(const TrackingScreen(problemTitle: 'محضر')));
+      await tester.pump(const Duration(seconds: 11));
+      await settleAsync(tester);
+
+      await tester.tap(find.text('اطلب محامي'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text('ابعت الطلب'));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(backend.countOf('POST /requests'), 0);
+      expect(find.text('ابعت الطلب'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(seconds: 2));
+    });
+
     testWidgets('فشل إرسال الطلب يرجع الموكل للخريطة برسالة واضحة', (tester) async {
+      mockPhoneLocation();
       backend.lawyers = [
         {
           'id': 'lawyer-1',

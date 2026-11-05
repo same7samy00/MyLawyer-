@@ -43,12 +43,22 @@ extension _TrackingOrderFlow on _TrackingScreenState {
 
   /// الطلب يروح لأقرب المحامين، والعروض تظهر أول بأول
   Future<void> _sendRequest() async {
+    // الطلب بيروح لأقرب المحامين، فلازم مكان الموكل الحقيقي دلوقتي
+    final location = await LocationService.instance.checkAndRequestPermission(fresh: true);
+    if (!mounted || _orderFlowStage != _OrderFlowStage.priceApproval) return;
+    final position = location.position;
+    if (position == null) {
+      _showMessage(location.errorMessage ?? 'تعذر تحديد موقعك، حاول تاني.');
+      return;
+    }
+    _currentPosition = position;
+
     final res = await RequestRepository.send(
       serviceTitle: widget.problemTitle ?? 'محاميك حالاً - استشارة وحضور عاجل',
       problemType: widget.problemTitle ?? 'استشارة وتمثيل فوري',
       problemDescription: widget.problemDescription ?? 'طلب حضور عاجل واستشارة فورية من خلال خدمة محاميك حالاً',
-      clientLat: _currentPosition?.latitude ?? 30.0444,
-      clientLon: _currentPosition?.longitude ?? 31.2357,
+      clientLat: position.latitude,
+      clientLon: position.longitude,
       clientAddress: _locationName,
     );
     if (!mounted) return;
