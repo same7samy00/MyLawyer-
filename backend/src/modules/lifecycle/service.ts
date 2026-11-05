@@ -38,7 +38,7 @@ export interface NotifyLink {
 /// Worth knowing, but nothing to do right now: it stays inside the app, with no sound and no device notification
 const QUIET_TITLES = new Set([
   'تسوية الطلب', 'المحامي أجّل المهمة', 'قيّم المحامي', 'تم التحويل', 'أتعابك جاهزة', 'تقييم جديد',
-  'الموكل مستنيك', 'أتعابك اتجمدت', 'مراجعة على طلب', 'نتيجة بلاغك', 'اتلغى إنذار', 'انتهى الإيقاف',
+  'الموكل مستنيك', 'أتعابك اتجمدت', 'مراجعة على طلب', 'نتيجة بلاغك', 'اتلغى إنذار',
 ]);
 
 export async function notify(db: Db, userId: string, title: string, body: string, link?: string | NotifyLink) {
@@ -177,25 +177,63 @@ export async function lawyerHasOpenOrder(db: Db, lawyerId: string, exceptOrderId
   return res.rows.length > 0;
 }
 
-/// Records a strike, and repeated strikes of one kind suspend the lawyer for a week.
+const STRIKE_LABELS: Record<string, string> = { WITHDRAWAL: 'اعتذار بعد الدفع', COMPLAINT: 'شكوى' };
+
+/// Records a strike and tells the lawyer from the first one. Repeated strikes of one kind suspend the lawyer for a week.
 export async function addLawyerStrike(db: Db, lawyerId: string, orderId: string, kind: 'WITHDRAWAL' | 'COMPLAINT') {
   await db.query('INSERT INTO lawyer_strikes (lawyer_id, order_id, kind) VALUES ($1, $2, $3)', [lawyerId, orderId, kind]);
 
   const countRes = await db.query(
     `SELECT COUNT(*)::int AS total FROM lawyer_strikes
-     WHERE lawyer_id = $1 AND kind = $2 AND created_at > NOW() - make_interval(days => $3)`,
+     WHERE lawyer_id = $1 AND kind = $2 AND revoked_at IS NULL AND created_at > NOW() - make_interval(days => $3)`,
     [lawyerId, kind, STRIKE_WINDOW_DAYS]
   );
+  const total = countRes.rows[0].total;
 
-  if (countRes.rows[0].total >= STRIKE_LIMIT) {
+  if (total >= STRIKE_LIMIT) {
     await db.query(
       `UPDATE lawyer_profiles
        SET suspended_until = NOW() + make_interval(days => $1), is_available = FALSE, availability_off_reason = 'SUSPENDED'
        WHERE user_id = $2`,
       [SUSPENSION_DAYS, lawyerId]
     );
-    await notify(db, lawyerId, 'حسابك اتوقف أسبوع', 'بسبب تكرار المخالفات');
+    await notify(db, lawyerId, 'حسابك اتوقف أسبوع', `بسبب ${STRIKE_LIMIT} مخالفات خلال ${STRIKE_WINDOW_DAYS} يوم`);
+    return;
   }
+  await notify(
+    db,
+    lawyerId,
+    'اتسجلت عليك مخالفة',
+    `${STRIKE_LABELS[kind]}. دي رقم ${total} من ${STRIKE_LIMIT} خلال ${STRIKE_WINDOW_DAYS} يوم، والتالتة بتوقف حسابك أسبوع`
+  );
+}
+
+/// The admin cancels a strike. If the lawyer no longer reaches the limit, a strike suspension ends too
+export async function revokeLawyerStrike(db: Db, strikeId: string, actorId: string): Promise<boolean> {
+  const res = await db.query(
+    `UPDATE lawyer_strikes SET revoked_at = NOW(), revoked_by = $1 WHERE id = $2 AND revoked_at IS NULL RETURNING lawyer_id, kind`,
+    [actorId, strikeId]
+  );
+  if (res.rows.length === 0) return false;
+  const { lawyer_id: lawyerId, kind } = res.rows[0];
+
+  const countRes = await db.query(
+    `SELECT COUNT(*)::int AS total FROM lawyer_strikes
+     WHERE lawyer_id = $1 AND kind = $2 AND revoked_at IS NULL AND created_at > NOW() - make_interval(days => $3)`,
+    [lawyerId, kind, STRIKE_WINDOW_DAYS]
+  );
+  let lifted = false;
+  if (countRes.rows[0].total < STRIKE_LIMIT) {
+    const liftRes = await db.query(
+      `UPDATE lawyer_profiles SET suspended_until = NULL,
+         availability_off_reason = CASE WHEN availability_off_reason = 'SUSPENDED' THEN NULL ELSE availability_off_reason END
+       WHERE user_id = $1 AND suspended_until IS NOT NULL RETURNING user_id`,
+      [lawyerId]
+    );
+    lifted = liftRes.rows.length > 0;
+  }
+  await notify(db, lawyerId, 'اتلغت مخالفة', lifted ? 'الإيقاف اتشال، فعّل «متاح» لما تكون جاهز' : 'الإدارة لغت مخالفة من على حسابك');
+  return true;
 }
 
 /// Rebuilds a lawyer's public rating from published, visible reviews.

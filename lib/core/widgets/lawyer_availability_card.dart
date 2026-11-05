@@ -4,6 +4,7 @@ import '../services/location_service.dart';
 import '../constants/app_colors.dart';
 import '../services/notification_center.dart';
 import 'app_card.dart';
+import 'countdown_text.dart';
 import 'background_location_sheet.dart';
 
 /// زر حالة المحامي: الموكلون يشاهدون المحامي المتاح فقط
@@ -16,6 +17,7 @@ class LawyerAvailabilityCard extends StatefulWidget {
 
 class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
   bool _isSaving = false;
+  DateTime? _suspendedUntil;
 
   @override
   void initState() {
@@ -24,8 +26,11 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
   }
 
   Future<void> _load() async {
-    final available = await LawyerRepository.getAvailability();
-    if (mounted && available != null) NotificationCenter.isAvailable.value = available;
+    final profile = await LawyerRepository.getProfile();
+    if (!mounted || profile == null) return;
+    final until = DateTime.tryParse(profile['suspended_until']?.toString() ?? '')?.toLocal();
+    setState(() => _suspendedUntil = until != null && until.isAfter(DateTime.now()) ? until : null);
+    NotificationCenter.isAvailable.value = profile['is_available'] == true;
   }
 
   Future<void> _toggle(bool value) async {
@@ -72,6 +77,32 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
   }
 
   Widget _buildCard(bool isAvailable) {
+    final until = _suspendedUntil;
+    if (until != null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: AppCard(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            children: [
+              const Text(
+                'موقوف عن استقبال الطلبات بسبب المخالفات',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.dark),
+              ),
+              const SizedBox(height: 6),
+              CountdownText(until: until, fontSize: 18, onDone: _load),
+              const SizedBox(height: 4),
+              const Text(
+                'بعدها تقدر تفعّل «متاح» تاني',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12, color: AppColors.textMuted),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: AppCard(

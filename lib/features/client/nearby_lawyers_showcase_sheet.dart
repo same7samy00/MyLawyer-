@@ -40,6 +40,7 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
   }
 
   Widget _buildTopLawyersList() {
+    if (_isInitialLoading) return const SheetLoading(text: 'جاري البحث عن المحامين حواليك');
     if (_nearbyLawyers.isEmpty) {
       return const SingleChildScrollView(
         child: AppStateMessage(icon: Icons.location_on_rounded, title: 'لا يوجد محامون في نطاق 50 كم حالياً'),

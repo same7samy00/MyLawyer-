@@ -252,7 +252,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   }
 
   Future<void> _withdraw() async {
-    if (!await _confirm('الاعتذار عن المهمة', 'المبلغ هيرجع للموكل وهتتسجل عليك نقطة', 'اعتذار')) return;
+    if (!await _confirm('الاعتذار عن المهمة', 'المبلغ هيرجع للموكل وهتتسجل عليك مخالفة. 3 مخالفات خلال 30 يوم بتوقف حسابك أسبوع', 'اعتذار')) return;
     await _run(() => OrderRepository.withdrawFromOrder(_order.id), 'تم تسجيل الاعتذار');
   }
 

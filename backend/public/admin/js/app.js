@@ -143,8 +143,8 @@ async function render({ quiet = false } = {}) {
   $('login').hidden = true;
   $('app').hidden = false;
   if (!INNER[current.page] && !PAGES[current.page]) current = { page: 'overview' };
-  // Every list opens on today
-  if (PAGES[current.page] && current.from === undefined && current.to === undefined) current.from = current.to = dayText(0);
+  // Every list opens on all dates
+  if (PAGES[current.page] && current.from === undefined && current.to === undefined) current.from = current.to = '';
   history.replaceState(null, '', linkFor(current));
   renderNav();
   refreshNavCounts();

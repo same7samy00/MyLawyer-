@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
-import 'package:lottie/lottie.dart' hide Marker;
 import '../../core/constants/app_colors.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
@@ -379,37 +378,6 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
           // 4. البوتن شيت الثابت
           _buildFixedSheet(),
 
-          // 6. طبقة التغبيش والتحميل لحين اكتمال تجهيز الخريطة ومواقع المحامين (مطابقة لخريطة محاميك حالاً)
-          if (_isInitialLoading)
-            Positioned.fill(
-              child: Container(
-                    color: Colors.white.withOpacity(0.78),
-                    alignment: Alignment.center,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Lottie.asset(
-                          'assets/images/splash_gif.json',
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'جاري تجهيز الخريطة وعرض أقرب المحامين',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: 'AppFont',
-                            fontFamilyFallback: appFontFallback,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.dark,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-            ),
         ],
       ),
     ),

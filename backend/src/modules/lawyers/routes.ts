@@ -200,7 +200,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
               lp.syndicate_number, lp.degree, lp.rating, lp.reviews_count,
               lp.experience_years, lp.is_available, lp.latitude, lp.longitude,
               lp.last_location_updated_at, lp.last_active_at, lp.availability_off_reason, lp.urgent_status, lp.urgent_rejection_reason, lp.submitted_at, lp.approved_at,
-              lp.rejected_at, lp.rejection_reason,
+              lp.rejected_at, lp.rejection_reason, lp.suspended_until,
               u.id as user_id, u.email, u.phone, u.status
        FROM lawyer_profiles lp
        JOIN users u ON lp.user_id = u.id

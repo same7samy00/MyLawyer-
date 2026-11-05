@@ -140,9 +140,9 @@ export function buildApp() {
       const user = request.user as { userId?: string } | undefined;
       if (!user?.userId || request.url.endsWith('/notifications/device-token/remove')) return;
 
-      const res = await dbPool.query('SELECT status FROM users WHERE id = $1', [user.userId]);
+      const res = await dbPool.query('SELECT status, suspended_until FROM users WHERE id = $1', [user.userId]);
       if (res.rows[0]?.status === 'suspended') {
-        return reply.status(403).send({ success: false, error: 'تم إيقاف هذا الحساب', data: { status: 'suspended' } });
+        return reply.status(403).send({ success: false, error: 'تم إيقاف هذا الحساب', data: { status: 'suspended', suspendedUntil: res.rows[0].suspended_until } });
       }
     });
 

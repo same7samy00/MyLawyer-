@@ -341,14 +341,14 @@ void main() {
       expect(find.byTooltip('إغلاق'), findsOneWidget);
 
       // 6. Verify loading overlay is present during initial fetch
-      expect(find.text('جاري تجهيز الخريطة وعرض أقرب المحامين'), findsOneWidget);
+      expect(find.text('جاري البحث عن المحامين حواليك'), findsOneWidget);
 
       // Advance past location fetch timeout (4s timeout + resolution)
       await tester.pump(const Duration(seconds: 5));
       await tester.pump(const Duration(milliseconds: 200));
 
       // 7. Verify loading overlay is dismissed once data is ready or fallback resolves
-      expect(find.text('جاري تجهيز الخريطة وعرض أقرب المحامين'), findsNothing);
+      expect(find.text('جاري البحث عن المحامين حواليك'), findsNothing);
 
       // 8. Tap a lawyer marker to display the unified profile bottom sheet
       if (find.text('أ. أحمد الشافعي').evaluate().isNotEmpty) {

@@ -86,7 +86,6 @@ extension _TrackingMapControls on _TrackingScreenState {
     // الخط يظهر فوراً، والوقت يكمل لما الخادم يرد
     _update(() {
       _routePoints = _connectionLine(start, destination);
-      _isInitialLoading = false;
     });
 
     final estimate = await _routingService.calculateDrivingRoute(
@@ -202,7 +201,6 @@ extension _TrackingMapControls on _TrackingScreenState {
   Future<void> _fetchCurrentLocation() async {
     _update(() {
       _isLoading = true;
-      _isInitialLoading = true;
       _lawyersError = null;
     });
 
@@ -257,7 +255,6 @@ extension _TrackingMapControls on _TrackingScreenState {
     _update(() {
       _nearbyLawyers = lawyers;
       _isLoading = false;
-      _isInitialLoading = lawyers.isNotEmpty;
       _lawyersError = res.isOk ? null : (res.error ?? 'تعذر البحث عن المحامين المتاحين');
     });
 

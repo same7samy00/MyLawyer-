@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
-import { notify } from '../lifecycle/service.js';
+import { notify, revokeLawyerStrike } from '../lifecycle/service.js';
 import { sanitizeText } from '../../utils/security.js';
 import { UUID_PATTERN } from '../../utils/http.js';
 import { logAdminAction } from './actions.js';
@@ -101,7 +101,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
 
     const userRes = await query(
-      `SELECT u.id, u.role, u.status, u.phone, u.email, u.created_at, u.warnings_count,
+      `SELECT u.id, u.role, u.status, u.phone, u.email, u.created_at, u.warnings_count, u.suspended_until AS account_suspended_until,
               COALESCE(lp.full_name, u.full_name) AS full_name,
               COALESCE(lp.profile_photo_path, u.profile_photo_path) AS photo,
               lp.experience_years, lp.syndicate_number, lp.rating, lp.reviews_count, lp.is_available,
@@ -137,7 +137,10 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
          WHERE t.user_id = $1 ORDER BY t.created_at DESC LIMIT $2`,
         [id, PAGE_LIMIT]
       ),
-      query('SELECT kind, created_at FROM lawyer_strikes WHERE lawyer_id = $1 ORDER BY created_at DESC LIMIT $2', [id, PAGE_LIMIT]),
+      query(
+        `SELECT s.id, s.kind, s.created_at, s.revoked_at, o.order_number
+         FROM lawyer_strikes s LEFT JOIN service_orders o ON o.id = s.order_id
+         WHERE s.lawyer_id = $1 ORDER BY s.created_at DESC LIMIT $2`, [id, PAGE_LIMIT]),
       query(
         `SELECT c.amount, c.reason, c.created_at, o.order_number, a.email AS created_by
          FROM client_credits c LEFT JOIN service_orders o ON o.id = c.order_id LEFT JOIN users a ON a.id = c.created_by
@@ -197,6 +200,13 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
 
     if (suspend) {
       await query(`UPDATE lawyer_profiles SET is_available = FALSE, availability_off_reason = 'SUSPENDED' WHERE user_id = $1`, [id]);
+    } else {
+      await query(
+        `UPDATE lawyer_profiles SET suspended_until = NULL,
+           availability_off_reason = CASE WHEN availability_off_reason = 'SUSPENDED' THEN NULL ELSE availability_off_reason END
+         WHERE user_id = $1`,
+        [id]
+      );
     }
     await notify(
       dbPool,
@@ -381,6 +391,16 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     const done = await revokeWarning(dbPool, id, adminId);
     if (!done) return reply.status(404).send({ success: false, error: 'الإنذار غير موجود أو أُلغي من قبل' });
     return reply.send({ success: true, message: 'تم إلغاء الإنذار' });
+  });
+
+  // POST /api/v1/admin/strikes/:id/revoke - Cancels a lawyer's strike, and its suspension if it no longer applies
+  fastify.post('/strikes/:id/revoke', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
+    const { id } = request.params as { id: string };
+    if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
+    const done = await revokeLawyerStrike(dbPool, id, adminId);
+    if (!done) return reply.status(404).send({ success: false, error: 'المخالفة غير موجودة أو أُلغيت من قبل' });
+    return reply.send({ success: true, message: 'تم إلغاء المخالفة' });
   });
 
   // POST /api/v1/admin/orders/:id/freeze - Stops or releases one order's fees

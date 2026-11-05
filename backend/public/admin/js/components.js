@@ -139,7 +139,7 @@ function accountTag(status) {
   return badge(label, color);
 }
 
-const TABLE_STEP = 50;
+const TABLE_PAGE = 30;
 const COLUMN_SIZES = { 'الاسم': 'wide-column', 'سنوات الخبرة': 'narrow-column', 'التقييم': 'narrow-column' };
 
 function table(headers, rows, onClick) {
@@ -162,18 +162,28 @@ function table(headers, rows, onClick) {
     if (wrap.classList.contains('main-table')) line.prepend(el('td', String(index + 1), 'serial-cell'));
     tbody.append(line);
   };
-  // Long lists draw in steps, so a big table never slows the page
-  let drawn = 0;
-  const more = el('button', undefined, 'table-more');
-  more.type = 'button';
-  const drawMore = () => {
-    const end = Math.min(drawn + TABLE_STEP, rows.length);
-    for (; drawn < end; drawn += 1) addRow(rows[drawn], drawn);
-    more.textContent = 'عرض المزيد (' + (rows.length - drawn) + ')';
-    more.hidden = drawn >= rows.length;
+  // 30 rows a page, with previous and next, so a big table never slows the page
+  const pages = Math.max(1, Math.ceil(rows.length / TABLE_PAGE));
+  let page = 0;
+  const pager = el('div', undefined, 'table-pager');
+  const previous = el('button', 'السابق', 'btn-outline btn-xs');
+  const next = el('button', 'التالي', 'btn-outline btn-xs');
+  const where = el('span', undefined, 'muted');
+  previous.type = 'button';
+  next.type = 'button';
+  pager.append(previous, where, next);
+  const showPage = () => {
+    tbody.replaceChildren();
+    const start = page * TABLE_PAGE;
+    rows.slice(start, start + TABLE_PAGE).forEach((row, offset) => addRow(row, start + offset));
+    where.textContent = 'صفحة ' + (page + 1) + ' من ' + pages + ' • ' + rows.length + ' صف';
+    previous.disabled = page === 0;
+    next.disabled = page >= pages - 1;
+    pager.hidden = pages <= 1;
   };
-  more.addEventListener('click', drawMore);
-  drawMore();
+  previous.addEventListener('click', () => { page -= 1; showPage(); wrap.scrollIntoView({ block: 'nearest' }); });
+  next.addEventListener('click', () => { page += 1; showPage(); wrap.scrollIntoView({ block: 'nearest' }); });
+  showPage();
   if (rows.length === 0) {
     const empty = el('td', 'لا توجد بيانات', 'empty-table-row');
     empty.colSpan = headers.length;
@@ -182,7 +192,7 @@ function table(headers, rows, onClick) {
     tbody.append(line);
   }
   node.append(thead, tbody);
-  wrap.append(node, more);
+  wrap.append(node, pager);
   return wrap;
 }
 
@@ -317,7 +327,7 @@ function controlsBar(right, left) {
 
 let keepSearchFocus = false;
 
-/// Searches while typing. It looks through all dates if the page was on today, and clearing it brings today back
+/// Searches while typing. It looks through all dates if the page was on today, and clearing it brings today back. Lists open on all dates
 function searchBox(value, placeholder, onSearch) {
   const box = el('div', undefined, 'search-input-box icon-pos-start');
   box.append(icon('search', 'search-icon'));

@@ -75,13 +75,6 @@ class LawyerRepository {
     return response.isOk;
   }
 
-  static Future<bool?> getAvailability() async {
-    final res = await ApiService.get('/lawyers/me');
-    if (!res.isOk || res.data is! Map<String, dynamic>) return null;
-    final profile = (res.data as Map<String, dynamic>)['profile'];
-    return profile is Map<String, dynamic> ? profile['is_available'] == true : null;
-  }
-
   static Future<Map<String, dynamic>?> getProfile() async {
     final res = await ApiService.get('/lawyers/me');
     final data = res.data;

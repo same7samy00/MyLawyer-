@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
-import 'package:lottie/lottie.dart' hide Marker;
 import '../../core/constants/app_colors.dart';
 import '../../core/services/app_visibility.dart';
 import '../../core/services/geo_naming_service.dart';
@@ -67,7 +66,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   Position? _currentPosition;
   String _locationName = 'جاري تحديد موقعك';
   bool _isLoading = true;
-  bool _isInitialLoading = true;
 
   static const double _cardWidth = 195.0;
   static const double _cardHeight = 53.0;
@@ -226,54 +224,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
               ),
             ],
           ),
-
-          // 2. طبقة التغبيش والتحميل لحين تجميع الخريطة ورسم المسار الأول (تظهر فوق البوتن شيت بوضوح دون أن يحجبها)
-          if (_isInitialLoading)
-            ValueListenableBuilder<double>(
-              valueListenable: _sheetHeightNotifier,
-              builder: (context, sheetHeight, child) => Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: sheetHeight,
-                child: child!,
-              ),
-              child: Container(
-                    color: Colors.white.withOpacity(0.78),
-                    alignment: Alignment.center,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Lottie.asset(
-                              'assets/images/splash_gif.json',
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.contain,
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'جاري تجهيز الخريطة ومسار أقرب محامٍ',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: 'AppFont',
-                                fontFamilyFallback: appFontFallback,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.dark,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-            ),
-
-
 
           // 4. أزرار التحكم بالخريطة (موجودة فوق البوتن شيت وتتحرك معه بنعومة)
           ValueListenableBuilder<double>(

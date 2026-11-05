@@ -3,6 +3,7 @@ import '../constants/app_colors.dart';
 import 'app_button.dart';
 import 'app_pressable.dart';
 import 'app_sheet.dart';
+import 'line_illustration.dart';
 
 /// نافذة تأكيد تسجيل الخروج الموحدة لحساب الموكل والمحامي
 /// [onConfirm] هو إجراء الخروج الفعلي ويبقى التحميل داخل الزر حتى انتهائه
@@ -21,16 +22,7 @@ class LogoutConfirmationSheet extends StatelessWidget {
       title: 'تسجيل الخروج',
       padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
       children: [
-            Center(
-              child: Transform.flip(
-                flipX: true,
-                child: const Icon(
-                  Icons.logout_rounded,
-                  color: AppColors.danger,
-                  size: 64,
-                ),
-              ),
-            ),
+            const LineIllustration(icon: Icons.logout_rounded, height: 96),
             const SizedBox(height: 8),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.0),

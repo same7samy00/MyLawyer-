@@ -55,7 +55,11 @@ async function userPage(box, isApplication = false) {
   const { user } = data;
   const isLawyer = user.role === 'lawyer';
 
-  const badges = [statusRow(isLawyer ? 'lawyer' : 'client', 'نوع الحساب', badge(isLawyer ? 'محامٍ' : 'موكل', 'blue')), statusRow('power', 'حالة الحساب', accountTag(user.status))];
+  const badges = [statusRow(isLawyer ? 'lawyer' : 'client', 'نوع الحساب', badge(isLawyer ? 'محامٍ' : 'موكل', 'blue')), statusRow('power', 'حالة الحساب', accountState(user))];
+  const activeStrikes = (data.strikes || []).filter((item) => !item.revoked_at).length;
+  const activeWarningsCount = data.warnings.filter((item) => !item.revoked_at).length;
+  badges.push(statusRow('complaint', 'الإنذارات السارية', badge(activeWarningsCount + ' من 3', activeWarningsCount ? 'amber' : 'gray')));
+  if (isLawyer) badges.push(statusRow('complaint', 'المخالفات السارية', badge(activeStrikes + ' من 3', activeStrikes ? 'amber' : 'gray')));
   if (isLawyer) {
     const [serviceText, serviceColor] = { APPROVED: ['مفعلة', 'green'], PENDING: ['قيد المراجعة', 'amber'], REJECTED: ['مرفوضة', 'red'] }[user.urgent_status] || ['غير مفعلة', 'gray'];
     badges.push(statusRow('apply', SERVICE_NAME, badge(serviceText, serviceColor)));
@@ -105,7 +109,9 @@ async function userPage(box, isApplication = false) {
       item, cells: [copyable(item.order_number), item.rating + ' / 5', item.comment, date(item.created_at)],
     })), (item) => open('order', item.order_id))));
     if (isLawyer) {
-      pane.append(section('المخالفات', table(['النوع', 'التاريخ'], data.strikes.map((item) => ({ item, cells: [{ WITHDRAWAL: 'اعتذار بعد الدفع', COMPLAINT: 'شكوى' }[item.kind] || item.kind, date(item.created_at)] })))));
+      pane.append(section('المخالفات', table(['النوع', 'رقم الطلب', 'التاريخ', 'الحالة'], data.strikes.map((item) => ({
+        item, cells: [STRIKE_KINDS[item.kind] || item.kind, copyOr(item.order_number), date(item.created_at), item.revoked_at ? badge('ملغاة', 'gray') : badge('سارية', 'red')],
+      })))));
     }
   } else {
     walletPane(pane, data, user, isLawyer);
@@ -193,6 +199,21 @@ function actionsSection(tiles) {
 }
 
 /// Everything the admin can do to an account, each with its steps
+const STRIKE_KINDS = { WITHDRAWAL: 'اعتذار بعد الدفع', COMPLAINT: 'شكوى' };
+
+function isSuspendedByStrikes(user) {
+  return Boolean(user.suspended_until) && new Date(user.suspended_until) > new Date();
+}
+
+/// The account's real state: suspended by the admin, by warnings until a date, or by strikes until a date
+function accountState(user) {
+  if (user.status === 'suspended') {
+    return badge(user.account_suspended_until ? 'موقوف بسبب الإنذارات حتى ' + date(user.account_suspended_until) : 'موقوف بقرار الإدارة', 'red');
+  }
+  if (isSuspendedByStrikes(user)) return badge('موقوف بسبب المخالفات حتى ' + date(user.suspended_until), 'red');
+  return accountTag(user.status);
+}
+
 function userActions(user, data) {
   const moneyAction = (title, description, sign, success) => ({
     title, description, success, danger: sign < 0,
@@ -200,11 +221,12 @@ function userActions(user, data) {
     summary: (values) => [['المبلغ', values.amount + ' ج.م'], ['السبب', values.reason], ...(values.orderNumber ? [['رقم الطلب', values.orderNumber]] : [])],
     run: (values) => api('POST', '/admin/users/' + user.id + '/balance', { amount: sign * Number(values.amount), reason: values.reason, orderNumber: values.orderNumber || undefined }),
   });
-  const suspended = user.status === 'suspended';
+  const suspended = user.status === 'suspended' || isSuspendedByStrikes(user);
   const activeWarnings = data.warnings.filter((item) => !item.revoked_at);
+  const activeStrikes = (data.strikes || []).filter((item) => !item.revoked_at);
   return [
     {
-      title: suspended ? 'تفعيل الحساب' : 'إيقاف الحساب', description: suspended ? 'يعيد لصاحب الحساب استخدام التطبيق.' : 'يمنع صاحب الحساب من استخدام التطبيق حتى تفعّله مرة أخرى.',
+      title: suspended ? 'تفعيل الحساب' : 'إيقاف الحساب', description: suspended ? 'يرفع أي إيقاف، سواء من الإدارة أو بسبب الإنذارات أو المخالفات، ويعيد لصاحب الحساب استخدام التطبيق.' : 'يمنع صاحب الحساب من استخدام التطبيق حتى تفعّله مرة أخرى.',
       steps: [], danger: !suspended, success: suspended ? 'تم تفعيل الحساب' : 'تم إيقاف الحساب',
       summary: () => [['الحساب', user.full_name || user.phone]],
       run: () => api('POST', '/admin/users/' + user.id + '/status', { suspend: !suspended }),
@@ -221,6 +243,12 @@ function userActions(user, data) {
       steps: [{ key: 'warning', type: 'choice', label: 'أي إنذار تريد إلغاءه؟', options: activeWarnings.map((item) => [item.id, item.reason]) }],
       summary: (values) => [['الإنذار', activeWarnings.find((item) => item.id === values.warning).reason]],
       run: (values) => api('POST', '/admin/warnings/' + values.warning + '/revoke', {}),
+    }] : []),
+    ...(activeStrikes.length ? [{
+      title: 'إلغاء مخالفة', description: 'يلغي المخالفة التي تختارها. وإذا قلت المخالفات السارية عن ثلاث، يُرفع إيقاف المخالفات تلقائيًا.', success: 'تم إلغاء المخالفة',
+      steps: [{ key: 'strike', type: 'choice', label: 'أي مخالفة تريد إلغاءها؟', options: activeStrikes.map((item) => [item.id, (STRIKE_KINDS[item.kind] || item.kind) + ' • ' + date(item.created_at)]) }],
+      summary: (values) => [['المخالفة', STRIKE_KINDS[activeStrikes.find((item) => item.id === values.strike).kind] || '']],
+      run: (values) => api('POST', '/admin/strikes/' + values.strike + '/revoke', {}),
     }] : []),
   ];
 }

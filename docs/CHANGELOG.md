@@ -1,5 +1,13 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Suspension Countdown] - 2026-11-06
+- **Strikes:** a lawyer is told from the first strike how many count toward a suspension. The admin can cancel a strike: it stays recorded as cancelled, stops counting, and ends a strike suspension once fewer than three remain. Activating an account now ends a strike suspension too. Migration `027`.
+- **Account status in the panel:** shows whether the account is suspended by the admin, by warnings or by strikes and until when, with active warnings and strikes out of 3.
+- **Panel lists:** open on all dates, and tables show 30 rows a page with previous and next.
+- **Suspension countdown:** a timed suspension shows a countdown on the suspended screen, and a lawyer stopped by strikes sees one on the availability card. Account suspended, activated and suspension ended now reach the phone.
+- **Drawings:** the suspended screen and the sign out sheet use the app's line drawing.
+- **Maps:** the full screen loading layer and its animation are gone, and loading shows inside the sheet.
+
 ## [Calmer Notifications] - 2026-11-06
 - **Fewer alerts:** only steps that need action ring the phone. Settlements, payouts ready, new reviews, transfers sent and similar steps stay inside the app. The lawyer no longer gets «الطلب اتقفل» or «الموكل ما دفعش», and the 12 and 4 hour reminders are gone.
 - **One line per order:** each order or request keeps a single notification that every new step replaces, offers show as «وصلك 3 عروض», and notifications older than 30 days are removed. Migration `026`.

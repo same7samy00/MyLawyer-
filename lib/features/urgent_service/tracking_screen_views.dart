@@ -15,32 +15,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
                   onRetry: _fetchCurrentLocation,
                 ))
               : _selectedLawyer == null
-              ? Container(
-                  key: const ValueKey('loading_lawyer'),
-                  alignment: Alignment.center,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Lottie.asset(
-                        'assets/images/splash_gif.json',
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.contain,
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'جاري البحث عن أقرب محامٍ متاح',
-                        style: TextStyle(
-                          fontFamily: 'AppFont',
-                          fontFamilyFallback: appFontFallback,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.dark,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
+              ? const SheetLoading(key: ValueKey('loading_lawyer'), text: 'جاري البحث عن أقرب محامٍ متاح')
               : KeyedSubtree(key: ValueKey(_selectedLawyer!.id), child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [

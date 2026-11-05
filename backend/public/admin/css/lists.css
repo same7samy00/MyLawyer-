@@ -51,6 +51,6 @@
 .search-clear svg { width: 15px; height: 15px; }
 
 /* Shows the next rows of a long table */
-.table-more { display: block; width: 100%; padding: 0.4rem; background: transparent; border: 0; border-top: 1px dashed #94a3b8; color: var(--brand-primary); font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
-.table-more[hidden] { display: none; }
-.table-more:hover { background: var(--brand-light); }
+.table-pager { display: flex; align-items: center; justify-content: center; gap: 0.75rem; padding: 0.5rem; border-top: 1px dashed #94a3b8; font-size: 0.85rem; }
+.table-pager[hidden] { display: none; }
+.table-pager button:disabled { opacity: 0.45; cursor: default; }

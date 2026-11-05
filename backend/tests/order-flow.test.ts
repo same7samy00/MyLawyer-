@@ -383,3 +383,25 @@ describe('ترقيم ML الموحد', () => {
     assert.match(transfer.body.data.reference, /^ML-TRF-\d{6}$/);
   });
 });
+
+describe('مخالفات المحامي', () => {
+  it('المحامي يعرف من أول مخالفة، والإدارة تلغيها فتفضل متسجلة وتترفع الإيقاف', async () => {
+    for (let i = 0; i < 3; i++) {
+      const order = await createPaidOrder();
+      await call('POST', `/orders/${order.id}/withdraw`, lawyerToken, {});
+      if (i === 0) assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'اتسجلت عليك مخالفة'`, [lawyerId])).length, 1);
+    }
+    assert.ok((await sql('SELECT suspended_until FROM lawyer_profiles WHERE user_id = $1', [lawyerId]))[0].suspended_until);
+
+    const profile = (await call('GET', `/admin/users/${lawyerId}`, adminToken)).body.data;
+    assert.equal(profile.strikes.length, 3);
+    assert.equal((await call('POST', `/admin/strikes/${profile.strikes[0].id}/revoke`, adminToken, {})).status, 200);
+    assert.equal((await call('POST', `/admin/strikes/${profile.strikes[0].id}/revoke`, adminToken, {})).status, 404);
+
+    assert.equal((await sql('SELECT suspended_until FROM lawyer_profiles WHERE user_id = $1', [lawyerId]))[0].suspended_until, null);
+    const after = (await call('GET', `/admin/users/${lawyerId}`, adminToken)).body.data.strikes;
+    assert.equal(after.length, 3);
+    assert.equal(after.filter((item: any) => item.revoked_at).length, 1);
+    await sql('DELETE FROM lawyer_strikes');
+  });
+});

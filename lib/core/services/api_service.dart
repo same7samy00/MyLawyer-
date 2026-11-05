@@ -302,8 +302,13 @@ class ApiService {
   /// الخادم بيقول إن الحساب موقوف، مش مجرد رفض لعملية واحدة
   static bool isSuspended(ApiResponse<dynamic> res) {
     final data = res.data;
-    return res.statusCode == 403 && data is Map && data['status'] == 'suspended';
+    final suspended = res.statusCode == 403 && data is Map && data['status'] == 'suspended';
+    if (suspended) suspendedUntil = DateTime.tryParse(data['suspendedUntil']?.toString() ?? '')?.toLocal();
+    return suspended;
   }
+
+  /// نهاية الإيقاف المؤقت، وفاضية لو الإيقاف بقرار من الإدارة لحد ما تفعله
+  static DateTime? suspendedUntil;
 
   static Future<ApiResponse<dynamic>> _accountSuspended(ApiResponse<dynamic> res) async {
     if (!muteSessionExpiry) await onAccountSuspended?.call();

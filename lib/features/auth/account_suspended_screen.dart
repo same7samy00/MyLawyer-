@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/services/api_service.dart';
+import '../../core/widgets/countdown_text.dart';
+import '../../core/widgets/line_illustration.dart';
 import 'session_router.dart';
 
 /// شاشة الحساب الموقوف: تقفل التطبيق كله لحد ما الإدارة تفعل الحساب
@@ -67,6 +70,7 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final until = ApiService.suspendedUntil;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -76,7 +80,7 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.gpp_bad_rounded, size: 72, color: AppColors.danger),
+              const LineIllustration(icon: Icons.security_rounded, height: 110),
               const SizedBox(height: 20),
               const Text(
                 'حسابك موقوف',
@@ -90,10 +94,12 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'إدارة التطبيق أوقفت حسابك، ومش هتقدر تستخدم التطبيق لحد ما الحساب يتفعل تاني.',
+              Text(
+                until == null
+                    ? 'إدارة التطبيق أوقفت حسابك، ومش هتقدر تستخدم التطبيق لحد ما الحساب يتفعل تاني.'
+                    : 'حسابك اتوقف مؤقتًا بسبب تكرار الإنذارات، وهيرجع يشتغل لوحده بعد:',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontFamily: 'AppFont',
                   fontFamilyFallback: appFontFallback,
                   fontSize: 13,
@@ -102,6 +108,10 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
+              if (until != null) ...[
+                const SizedBox(height: 12),
+                CountdownText(until: until, onDone: widget.hasSession ? () => _check() : null),
+              ],
               if (_notice != null) ...[
                 const SizedBox(height: 12),
                 Text(

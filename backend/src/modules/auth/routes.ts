@@ -296,7 +296,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     // Search by email or phone
     const userRes = await query(
-      `SELECT u.id, u.phone, u.email, u.role, u.status, u.email_verified_at, uc.password_hash,
+      `SELECT u.id, u.phone, u.email, u.role, u.status, u.suspended_until, u.email_verified_at, uc.password_hash,
               COALESCE(lp.full_name, u.full_name) as full_name, lp.profile_photo_path, lp.approval_status, lp.rejection_reason
        FROM users u
        JOIN user_credentials uc ON u.id = uc.user_id
@@ -324,7 +324,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({
         success: false,
         error: 'تم إيقاف هذا الحساب من قِبل إدارة التطبيق. يرجى التواصل مع الدعم الفني.',
-        data: { status: 'suspended' }
+        data: { status: 'suspended', suspendedUntil: user.suspended_until }
       });
     }
 
@@ -400,7 +400,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     const refreshHash = hashSha256(refreshToken);
     const sessionRes = await query(
-      `SELECT s.id, s.user_id, s.expires_at, s.revoked_at, u.role, u.status
+      `SELECT s.id, s.user_id, s.expires_at, s.revoked_at, u.role, u.status, u.suspended_until
        FROM user_sessions s
        JOIN users u ON s.user_id = u.id
        WHERE s.refresh_token_hash = $1`,
@@ -418,7 +418,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     if (session.status === 'suspended') {
-      return reply.status(403).send({ success: false, error: 'الحساب موقوف', data: { status: 'suspended' } });
+      return reply.status(403).send({ success: false, error: 'الحساب موقوف', data: { status: 'suspended', suspendedUntil: session.suspended_until } });
     }
 
     // Refresh Token Rotation: Revoke old session, create new session
