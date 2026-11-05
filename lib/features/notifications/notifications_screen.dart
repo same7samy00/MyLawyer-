@@ -61,7 +61,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _items = _items
             .map((other) => other.id != item.id
                 ? other
-                : AppNotification(id: other.id, title: other.title, body: other.body, isRead: true, orderId: other.orderId, ticketId: other.ticketId, requestId: other.requestId))
+                : AppNotification(
+                    id: other.id,
+                    title: other.title,
+                    body: other.body,
+                    isRead: true,
+                    orderId: other.orderId,
+                    ticketId: other.ticketId,
+                    requestId: other.requestId))
             .toList();
       });
       NotificationCenter.markRead(item.id);
@@ -77,7 +84,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (!mounted) return;
     setState(() {
       _items = _items
-          .map((item) => AppNotification(id: item.id, title: item.title, body: item.body, isRead: true, orderId: item.orderId, ticketId: item.ticketId, requestId: item.requestId))
+          .map((item) => AppNotification(
+              id: item.id,
+              title: item.title,
+              body: item.body,
+              isRead: true,
+              orderId: item.orderId,
+              ticketId: item.ticketId,
+              requestId: item.requestId))
           .toList();
     });
   }
@@ -253,103 +267,62 @@ class _NotificationCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          PositionedDirectional(
-            start: 0,
-            top: 0,
-            bottom: 0,
-            width: 12,
-            child: CustomPaint(painter: _ScallopedEdgePainter(color.withOpacity(0.28))),
-          ),
-          Padding(
-            padding: const EdgeInsetsDirectional.fromSTEB(24, 14, 14, 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(color: color.withOpacity(0.16), shape: BoxShape.circle),
-                  child: Icon(icon, color: color, size: 23),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.title,
-                        style: TextStyle(
-                          fontFamily: 'AppFont',
-                          fontFamilyFallback: appFontFallback,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          color: color,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        item.body,
-                        style: const TextStyle(
-                          fontFamily: 'AppFont',
-                          fontFamilyFallback: appFontFallback,
-                          fontSize: 12,
-                          height: 1.4,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (!item.isRead) ...[
-                  const SizedBox(width: 10),
-                  Container(
-                    key: const ValueKey('unread-dot'),
-                    width: 9,
-                    height: 9,
-                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                  ),
-                ],
-                // The arrow shows the notification opens a page
-                if (item.opensPage) ...[
-                  const SizedBox(width: 6),
-                  const Icon(Icons.keyboard_arrow_left_rounded, color: AppColors.textMuted, size: 20),
-                ],
-              ],
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(14, 14, 14, 14),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(color: color.withOpacity(0.16), shape: BoxShape.circle),
+              child: Icon(icon, color: color, size: 23),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    style: TextStyle(
+                      fontFamily: 'AppFont',
+                      fontFamilyFallback: appFontFallback,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    item.body,
+                    style: const TextStyle(
+                      fontFamily: 'AppFont',
+                      fontFamilyFallback: appFontFallback,
+                      fontSize: 12,
+                      height: 1.4,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!item.isRead) ...[
+              const SizedBox(width: 10),
+              Container(
+                key: const ValueKey('unread-dot'),
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+            ],
+            // The arrow shows the notification opens a page
+            if (item.opensPage) ...[
+              const SizedBox(width: 6),
+              const Icon(Icons.keyboard_arrow_left_rounded, color: AppColors.textMuted, size: 20),
+            ],
+          ],
+        ),
       ),
     );
   }
-}
-
-/// الحافة المتموجة لبداية الكارت، على اليمين في الاتجاه العربي
-class _ScallopedEdgePainter extends CustomPainter {
-  final Color color;
-
-  const _ScallopedEdgePainter(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const waveHeight = 12.0;
-    final inner = size.width - 7;
-    final path = Path()
-      ..moveTo(size.width, 0)
-      ..lineTo(inner, 0);
-
-    final count = (size.height / waveHeight).ceil();
-    for (var i = 0; i < count; i++) {
-      final top = i * waveHeight;
-      path.quadraticBezierTo(0, top + waveHeight / 2, inner, top + waveHeight);
-    }
-
-    path
-      ..lineTo(size.width, size.height)
-      ..close();
-    canvas.drawPath(path, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(_ScallopedEdgePainter oldDelegate) => oldDelegate.color != color;
 }
