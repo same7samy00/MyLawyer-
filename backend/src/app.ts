@@ -12,6 +12,7 @@ import { walletRoutes } from './modules/wallet/routes.js';
 import { supportRoutes } from './modules/support/routes.js';
 import { lawyerRoutes } from './modules/lawyers/routes.js';
 import { orderRoutes } from './modules/orders/routes.js';
+import { requestRoutes } from './modules/requests/routes.js';
 import { adminRoutes } from './modules/admin/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { registerAdminPanel } from './modules/admin/panel.js';
@@ -151,6 +152,7 @@ export function buildApp() {
     api.register(supportRoutes, { prefix: '/support' });
     api.register(lawyerRoutes, { prefix: '/lawyers' });
     api.register(orderRoutes, { prefix: '/orders' });
+    api.register(requestRoutes, { prefix: '/requests' });
     api.register(adminRoutes, { prefix: '/admin' });
     api.register(notificationRoutes, { prefix: '/notifications' });
   }, { prefix: '/api/v1' });

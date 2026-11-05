@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/core/services/api_service.dart';
 import 'package:my_lawyer/core/services/auth_service.dart';
 import 'package:my_lawyer/data/models/order_model.dart';
+import 'package:my_lawyer/data/models/service_request.dart';
+import 'package:my_lawyer/features/lawyer/request_offer_screen.dart';
 import 'package:my_lawyer/features/client/orders_tab.dart';
 import 'package:my_lawyer/features/support/support_screen.dart';
 import 'package:my_lawyer/features/auth/account_suspended_screen.dart';
@@ -292,23 +294,11 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
 
-    testWidgets('اعتذار المحامي يظهر في الشيت ثم يتبعت الطلب للمحامي التالي', (tester) async {
+    testWidgets('الموكل يشوف حدود السعر، والعروض تظهر، واختيار عرض يفتح الدفع بسعره', (tester) async {
       backend.lawyers = [
         {
           'id': 'lawyer-1',
           'name': 'أ/ طارق حسن',
-          'specialty': 'قضايا جنائية',
-          'degree': 'محامٍ بالاستئناف',
-          'rating': 4.8,
-          'reviewsCount': 12,
-          'experienceYears': 7,
-          'coordinates': [30.05, 31.24],
-          'distanceKm': 1.2,
-        },
-        {
-          'id': 'lawyer-2',
-          'name': 'أ/ منى عادل',
-          'specialty': 'قضايا جنائية',
           'degree': 'محامٍ بالاستئناف',
           'rating': 4.8,
           'reviewsCount': 12,
@@ -317,43 +307,76 @@ void main() {
           'distanceKm': 1.2,
         },
       ];
-      backend.overrides['POST /orders'] = (request) => FakeBackend.json(201, {
+      backend.overrides['POST /requests'] = (request) => FakeBackend.json(201, {'success': true, 'data': {'id': 'req-1'}});
+      backend.overrides['GET /requests/req-1'] = (request) => FakeBackend.json(200, {
             'success': true,
-            'data': {'id': 'order-1', 'orderNumber': 'ML-ORD-100002', 'price': 425, 'status': 'PENDING'},
+            'data': {
+              'id': 'req-1',
+              'status': 'OPEN',
+              'round': 1,
+              'secondsLeft': 100,
+              'offers': [
+                {'id': 'of-1', 'lawyerId': 'lawyer-1', 'name': 'أ/ سارة علي', 'rating': 4.6, 'reviewsCount': 3, 'price': 900, 'distanceKm': 2.5, 'minutesAway': 7},
+              ],
+            },
           });
-      backend.overrides['GET /orders/order-1'] = (request) => FakeBackend.json(200, {
+      backend.overrides['POST /requests/req-1/offers/of-1/select'] = (request) => FakeBackend.json(200, {
             'success': true,
-            'data': {'status': 'REJECTED'},
+            'data': {'orderId': 'order-1', 'orderNumber': 'ML-ORD-100002', 'price': 900, 'lawyerId': 'lawyer-1'},
           });
 
       await tester.pumpWidget(testApp(const TrackingScreen(problemTitle: 'محضر')));
       await tester.pump(const Duration(seconds: 11));
       await settleAsync(tester);
 
-      await tester.tap(find.text('طلب الآن'));
-      await tester.pump(const Duration(seconds: 2));
+      await tester.tap(find.text('اطلب محامي'));
       await tester.pump(const Duration(milliseconds: 500));
-      await tester.tap(find.text('موافق'));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('من 500 لـ 1500 ج.م'), findsOneWidget);
+
+      await tester.tap(find.text('ابعت الطلب'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('900 ج.م'), findsOneWidget);
+      expect(find.text('أ/ سارة علي'), findsOneWidget);
+
+      await tester.tap(find.text('اختار العرض'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(backend.countOf('POST /requests/req-1/offers/of-1/select'), 1);
+      expect(find.text('دفع 900 ج.م وتأكيد الطلب'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(seconds: 2));
+    });
+
+    testWidgets('المحامي يبعت سعر جوه الحدود بس ويشوف صافيه', (tester) async {
+      backend.overrides['POST /requests/req-1/offer'] = (request) {
+        expect((jsonDecode(request.body) as Map<String, dynamic>)['price'], 1000);
+        return FakeBackend.json(201, {'success': true});
+      };
+      await tester.pumpWidget(testApp(const RequestOfferScreen(
+        request: IncomingRequest(id: 'req-1', problemType: 'محضر', problemDescription: 'وصف', area: 'محافظة القاهرة', distanceKm: 4, minPrice: 500, maxPrice: 1500, netRate: 0.7, secondsLeft: 100),
+      )));
       await tester.pump();
-      await tester.pump(const Duration(seconds: 4));
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('اعتذر المحامي'), findsOneWidget);
 
-      // الطلب يتبعت تلقائياً للمحامي التالي مرة واحدة لكل محامٍ
-      final nextLawyer = find.textContaining('أ/ منى عادل');
-      for (int i = 0; i < 40 && backend.countOf('POST /orders') < 2; i++) {
-        await tester.pump(const Duration(milliseconds: 300));
-      }
-      expect(nextLawyer, findsWidgets);
-      expect(backend.countOf('POST /orders'), 2);
+      await tester.enterText(find.byType(TextField), '200');
+      await tester.pump();
+      expect(find.text('السعر لازم يكون من 500 لـ 1500 ج.م'), findsOneWidget);
+      await tester.tap(find.text('ابعت العرض'));
+      await tester.pump();
+      expect(backend.countOf('POST /requests/req-1/offer'), 0);
 
-      final noMoreLawyers = find.text('مفيش محامي تاني متاح دلوقتي، جرب بعد شوية');
-      for (int i = 0; i < 40 && noMoreLawyers.evaluate().isEmpty; i++) {
-        await tester.pump(const Duration(milliseconds: 300));
-      }
-      expect(noMoreLawyers, findsOneWidget);
-      expect(backend.countOf('POST /orders'), 2);
-      expect(find.text('طلب الآن'), findsOneWidget);
+      await tester.tap(find.text('المتوسط'));
+      await tester.pump();
+      expect(find.text('صافي ليك: 700 ج.م'), findsOneWidget);
+      await tester.tap(find.text('ابعت العرض'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(backend.countOf('POST /requests/req-1/offer'), 1);
+      expect(find.text('عرضك: 1000 ج.م'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
     });
   });
 
@@ -376,12 +399,11 @@ void main() {
       expect(order.isPaid, isTrue);
     });
 
-    testWidgets('فشل إرسال الطلب يعيد المستخدم لملف المحامي برسالة واضحة', (tester) async {
+    testWidgets('فشل إرسال الطلب يرجع الموكل للخريطة برسالة واضحة', (tester) async {
       backend.lawyers = [
         {
           'id': 'lawyer-1',
           'name': 'أ/ طارق حسن',
-          'specialty': 'قضايا جنائية',
           'degree': 'محامٍ بالاستئناف',
           'rating': 4.8,
           'reviewsCount': 12,
@@ -390,26 +412,22 @@ void main() {
           'distanceKm': 1.2,
         },
       ];
-      backend.overrides['POST /orders'] = (_) => FakeBackend.json(400, {
-            'success': false,
-            'error': 'المحامي غير متاح حالياً',
-          });
+      backend.overrides['POST /requests'] = (_) => FakeBackend.json(409, {'success': false, 'error': 'مفيش محامي متاح دلوقتي، جرب تاني كمان شوية'});
 
       await tester.pumpWidget(testApp(const TrackingScreen(problemTitle: 'محضر')));
       await tester.pump(const Duration(seconds: 11));
       await settleAsync(tester);
 
-      await tester.tap(find.text('طلب الآن'));
-      await tester.pump(const Duration(seconds: 2));
+      await tester.tap(find.text('اطلب محامي'));
       await tester.pump(const Duration(milliseconds: 500));
-      await tester.tap(find.text('موافق'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text('ابعت الطلب'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(backend.countOf('POST /orders'), 1);
-      expect(find.text('المحامي غير متاح حالياً'), findsOneWidget);
-      expect(find.text('طلب الآن'), findsOneWidget);
-      expect(find.text('في انتظار قبول المحامي'), findsNothing);
+      expect(backend.countOf('POST /requests'), 1);
+      expect(find.text('مفيش محامي متاح دلوقتي، جرب تاني كمان شوية'), findsOneWidget);
+      expect(find.text('اطلب محامي'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(seconds: 2));

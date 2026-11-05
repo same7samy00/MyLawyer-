@@ -145,14 +145,13 @@ extension _TrackingMapControls on _TrackingScreenState {
 
   /// التفاعل عند الضغط على محامٍ من الخريطة: تحديث بيانات البوتن شيت المثبت وفتحه إذا كان مغلقاً
   void _onLawyerTapped(MapLawyer lawyer) {
+    // الخريطة للعرض، وأثناء الطلب اللمس ما يغيرش حاجة
+    if (_orderFlowStage != _OrderFlowStage.idle) return;
+
     _currentLawyerIndex = _nearbyLawyers.indexWhere((l) => l.id == lawyer.id);
     if (_currentLawyerIndex < 0) _currentLawyerIndex = 0;
 
     _calculateRouteToLawyer(lawyer);
-
-    if (_orderFlowStage != _OrderFlowStage.idle) {
-      _returnToLawyerProfile();
-    }
 
     // حركة كاميرا واحدة تضبط المحامي والموكل فوق ارتفاع الشيت النهائي
     if (_sheetHeight < _expandedHeight) {

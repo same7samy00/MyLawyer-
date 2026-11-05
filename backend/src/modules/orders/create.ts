@@ -82,7 +82,8 @@ export async function registerOrderCreation(fastify: FastifyInstance) {
         `SELECT 1 FROM service_orders WHERE client_id = $1 AND status IN ('PENDING', 'ACCEPTED', 'ACTIVE') AND postponed_at IS NULL LIMIT 1`,
         [userId]
       );
-      if (openRes.rows.length > 0) throw new HttpError(409, 'عندك طلب مفتوح بالفعل، كمله من صفحة الطلبات');
+      const openRequest = await client.query(`SELECT 1 FROM service_requests WHERE client_id = $1 AND status = 'OPEN' LIMIT 1`, [userId]);
+      if (openRes.rows.length > 0 || openRequest.rows.length > 0) throw new HttpError(409, 'عندك طلب مفتوح بالفعل، كمله من صفحة الطلبات');
       if (await lawyerHasOpenOrder(client, targetLawyer.user_id)) throw new HttpError(409, 'المحامي مشغول دلوقتي، اختار محامي تاني');
 
       // The server owns the price, so a client request cannot change it

@@ -8,7 +8,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:lottie/lottie.dart' hide Marker;
 import '../../core/constants/app_colors.dart';
-import '../../core/services/api_service.dart';
 import '../../core/services/app_visibility.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
@@ -26,7 +25,9 @@ import '../../core/widgets/response_countdown.dart';
 import '../../core/widgets/sheet_lines.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/repositories/lawyer_repository.dart';
+import '../../data/models/service_request.dart';
 import '../../data/repositories/order_repository.dart';
+import '../../data/repositories/request_repository.dart';
 import 'payment_screen.dart';
 import 'lawyer_google_profile_screen.dart';
 
@@ -51,12 +52,10 @@ class TrackingScreen extends StatefulWidget {
 
 enum _OrderFlowStage {
   idle,
-  waitingAcceptance,
-  lawyerAccepted,
   evaluatingPrice,
   priceApproval,
+  waitingOffers,
   priceReady,
-  lawyerDeclined,
 }
 
 class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStateMixin {
@@ -112,8 +111,12 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   String? _activeOrderNumber;
 
   int _servicePrice = 0;
-  int _orderSecondsLeft = 120;
-  String _declineTitle = 'اعتذر المحامي';
+  int _minPrice = 0;
+  int _maxPrice = 0;
+  String? _activeRequestId;
+  ClientRequest? _activeRequest;
+  String? _reviewsLawyerId;
+  bool _isChoosingOffer = false;
   bool _showReviews = false;
   bool _isSearchingAgain = false;
   Timer? _lawyersRefreshTimer;
@@ -122,9 +125,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   late final MapLawyerLoader _mapLawyers = MapLawyerLoader(onChanged: () {
     if (mounted) setState(() {});
   });
-
-  /// المحامون اللي الطلب اتبعتلهم ولا ردوا، عشان البحث التلقائي ما يرجعلهمش
-  final Set<String> _triedLawyerIds = {};
 
   @override
   void initState() {
@@ -371,11 +371,11 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                               sheetHeader!,
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(18, 4, 18, 16),
-                                child: _showReviews && _selectedLawyer != null
+                                child: _showReviews && (_reviewsLawyerId ?? _selectedLawyer?.id) != null
                                     ? SizedBox(
                                         height: MediaQuery.sizeOf(context).height * 0.6,
                                         child: LawyerReviewsPanel(
-                                          lawyerId: _selectedLawyer!.id,
+                                          lawyerId: (_reviewsLawyerId ?? _selectedLawyer?.id)!,
                                           onClose: () => _setReviewsVisible(false),
                                         ),
                                       )

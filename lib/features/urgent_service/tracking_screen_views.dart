@@ -109,11 +109,11 @@ extension _TrackingScreenViews on _TrackingScreenState {
             Expanded(
               flex: 6,
               child: AppButton.primary(
-                text: 'طلب الآن',
+                text: 'اطلب محامي',
                 icon: Icons.check_circle_outline_rounded,
                 height: 48,
                 fontSize: 14,
-                onPressed: (_isLoading || _selectedLawyer == null) ? null : _startOrderFlow,
+                onPressed: _isLoading ? null : _startOrderFlow,
               ),
             ),
             const SizedBox(width: 10),
@@ -171,112 +171,6 @@ extension _TrackingScreenViews on _TrackingScreenState {
       case _OrderFlowStage.idle:
         return const SizedBox.shrink();
 
-      case _OrderFlowStage.lawyerDeclined:
-        return Column(
-          key: const ValueKey('stage_lawyer_declined'),
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const LineIllustration(icon: Icons.help_outline_rounded, height: 72),
-            const SizedBox(height: 14),
-            Text(
-              _declineTitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: AppColors.danger,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'بندورلك على محامي تاني',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 13,
-                color: AppColors.textMuted,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        );
-
-      case _OrderFlowStage.waitingAcceptance:
-        return Column(
-          key: const ValueKey('stage_waiting_acceptance'),
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const LineIllustration(icon: Icons.hourglass_top_rounded, height: 64),
-            const SizedBox(height: 10),
-            const Text(
-              'في انتظار قبول المحامي',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: AppColors.dark,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'وصل طلبك إلى ${_selectedLawyer?.name ?? 'المحامي'}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 13,
-                color: AppColors.textMuted,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ResponseCountdown(key: ValueKey(_activeOrderId), secondsLeft: _orderSecondsLeft),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: AppButton.outlined(text: 'إلغاء الطلب', height: 46, onPressed: _returnToLawyerProfile),
-            ),
-          ],
-        );
-
-      case _OrderFlowStage.lawyerAccepted:
-        return Column(
-          key: const ValueKey('stage_lawyer_accepted'),
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const LineIllustration(icon: Icons.verified_rounded, height: 72),
-            const SizedBox(height: 14),
-            Text(
-              'وافق ${_selectedLawyer?.name ?? 'المحامي'} على طلبك',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: AppColors.success,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'المحامي جاهز لمساعدتك',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 13,
-                color: AppColors.textMuted,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        );
-
       case _OrderFlowStage.evaluatingPrice:
         return Column(
           key: const ValueKey('stage_evaluating_price'),
@@ -287,7 +181,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
             ),
             const SizedBox(height: 14),
             const Text(
-              'جاري تقييم السعر',
+              'جاري تجهيز طلبك',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'AppFont',
@@ -322,7 +216,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
             const LineIllustration(icon: Icons.payments_rounded, height: 72),
             const SizedBox(height: 6),
             const Text(
-              'سعر الخدمة',
+              'السعر المتوقع',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'AppFont',
@@ -334,18 +228,18 @@ extension _TrackingScreenViews on _TrackingScreenState {
             ),
             const SizedBox(height: 2),
             Text(
-              '$_servicePrice ج.م',
+              'من $_minPrice لـ $_maxPrice ج.م',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: 'AppFont',
                 fontFamilyFallback: appFontFallback,
-                fontSize: 32,
+                fontSize: 26,
                 fontWeight: FontWeight.w900,
                 color: AppColors.dark,
               ),
             ),
             const Text(
-              'شامل أتعاب المحامي وانتقالاته والضريبة',
+              'أقرب المحامين هيبعتولك أسعارهم، وإنت تختار',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'AppFont',
@@ -360,7 +254,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
               children: [
                 Expanded(
                   flex: 6,
-                  child: AppButton.primary(text: 'موافق', height: 48, onPressed: _sendOrder),
+                  child: AppButton.primary(text: 'ابعت الطلب', height: 48, onPressed: _sendRequest),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -369,6 +263,47 @@ extension _TrackingScreenViews on _TrackingScreenState {
                 ),
               ],
             ),
+          ],
+        );
+
+      case _OrderFlowStage.waitingOffers:
+        final offers = _activeRequest?.offers ?? const <RequestOffer>[];
+        return Column(
+          key: const ValueKey('stage_waiting_offers'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              offers.isEmpty ? 'مستنيين عروض المحامين' : 'اختار العرض المناسب ليك',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'AppFont',
+                fontFamilyFallback: appFontFallback,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                color: AppColors.dark,
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (offers.isEmpty && (_activeRequest?.secondsLeft ?? 120) > 0)
+              ResponseCountdown(
+                key: ValueKey('round-${_activeRequest?.round ?? 1}'),
+                secondsLeft: _activeRequest?.secondsLeft ?? 120,
+              ),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.45),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: offers.length,
+                itemBuilder: (context, index) => _OfferCard(
+                  offer: offers[index],
+                  isBusy: _isChoosingOffer,
+                  onChoose: () => _chooseOffer(offers[index]),
+                  onReviews: () => _showOfferReviews(offers[index]),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            AppButton.outlined(text: 'إلغاء الطلب', height: 46, onPressed: _returnToLawyerProfile),
           ],
         );
 
@@ -428,7 +363,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
                 child: TextButton(
                 onPressed: _returnToLawyerProfile,
                 child: const Text(
-                  'رجوع لملف المحامي',
+                  'إلغاء الطلب',
                   style: TextStyle(
                     fontFamily: 'AppFont',
                     fontFamilyFallback: appFontFallback,

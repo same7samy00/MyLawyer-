@@ -74,8 +74,10 @@ class FakeBackend {
         return json(200, {'success': true, 'data': list});
       case 'GET /lawyers/nearby':
         return json(200, {'success': true, 'data': lawyers});
-      case 'POST /orders/quote':
-        return json(200, {'success': true, 'data': {'price': 425}});
+      case 'GET /requests/range':
+        return json(200, {'success': true, 'data': {'minPrice': 500, 'maxPrice': 1500}});
+      case 'GET /requests/incoming':
+        return json(200, {'success': true, 'data': []});
       case 'GET /orders/wallet/me':
         return json(200, {'success': true, 'data': wallet});
       case 'GET /notifications/summary':

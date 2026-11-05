@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Price Offers] - 2026-11-05
+- **Requests (approved by the owner):** a client request now goes to the nearest 5 available lawyers. Each lawyer can send one price inside the limits set in the control page, and can withdraw it. The client picks an offer, which creates an order at that price, and the commission comes from that price. Payment and everything after it stay the same.
+- **Rounds:** with no offers after 2 minutes, the request moves to the next 5, up to 3 rounds. With offers, the client has 10 more minutes to choose. Migration `024` adds the requests and offers.
+- **App:** the map is for viewing, «اطلب محامي» shows the price range, and offers appear on the same sheet. Lawyers get new requests at the top of the orders tab.
+- **Kept for old app versions:** `POST /orders` and the random price, until those versions are gone.
+
 ## [Late Lawyers and Postponed Tasks] - 2026-11-05
 - **Money (approved by the owner):** payment now sets an arrival deadline: road time from OSRM, or an estimate if it fails, plus 30 minutes. The lawyer gets a reminder 10 minutes before it ends, then the client is asked whether to wait or cancel. Cancelling refunds at once, no answer refunds after 2 hours, and waiting refunds 24 hours after payment if the lawyer never arrives. An open ticket stops these refunds.
 - **After arrival:** money no longer moves by itself. It stays held until the lawyer finishes or the admin decides, so the old automatic payout at 24 hours is gone.

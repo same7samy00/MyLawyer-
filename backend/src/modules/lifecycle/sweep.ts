@@ -1,6 +1,7 @@
 import { dbPool, withTransaction } from '../../database/index.js';
 import { ARRIVAL_REMINDER_MINUTES, CLIENT_REPLY_HOURS, notify, REVIEW_WINDOW_DAYS } from './service.js';
 import { applySettlement, liftUserSuspensions } from './settlement.js';
+import { advanceRequests } from '../requests/service.js';
 
 const MAX_MISSED_ORDERS = 2;
 const LOCATION_SILENCE_MINUTES = 65;
@@ -191,6 +192,7 @@ async function releaseHeldPayouts() {
 /// Time-based steps of the order lifecycle. Each step is safe to run repeatedly.
 export async function sweepLifecycle() {
   await closeUnansweredOrders();
+  await advanceRequests();
   await closeUnpaidOrders();
   await liftSuspensions();
   await liftUserSuspensions(dbPool);

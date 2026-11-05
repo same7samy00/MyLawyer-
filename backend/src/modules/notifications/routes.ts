@@ -70,6 +70,17 @@ export async function notificationRoutes(fastify: FastifyInstance) {
       [userId]
     );
 
+    // A request waiting for this lawyer's price counts like a new order
+    const requestsRes = role === 'lawyer'
+      ? await query(
+          `SELECT COUNT(*)::int AS total FROM request_recipients rr
+           JOIN service_requests r ON r.id = rr.request_id
+           WHERE rr.lawyer_id = $1 AND r.status = 'OPEN' AND rr.round = r.round AND r.round_deadline > NOW()
+             AND NOT EXISTS (SELECT 1 FROM request_offers ro WHERE ro.request_id = r.id AND ro.lawyer_id = $1 AND ro.withdrawn_at IS NULL)`,
+          [userId]
+        )
+      : null;
+
     const availabilityRes = role === 'lawyer'
       ? await query('SELECT is_available FROM lawyer_profiles WHERE user_id = $1', [userId])
       : null;
@@ -78,7 +89,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
       success: true,
       data: {
         unread: unreadRes.rows[0].total,
-        pendingOrders: ordersRes.rows[0].total,
+        pendingOrders: ordersRes.rows[0].total + (requestsRes?.rows[0].total ?? 0),
         isAvailable: availabilityRes?.rows[0]?.is_available,
       },
     });

@@ -4,46 +4,6 @@ import '../../core/services/api_service.dart';
 
 /// المستودع المسؤول عن إنشاء ومتابعة وتحديث طلبات الخدمة
 class OrderRepository {
-  /// إنشاء طلب خدمة جديد
-  static Future<ApiResponse<OrderModel>> createOrder({
-    required String lawyerId,
-    required String serviceTitle,
-    required String problemDescription,
-    required double clientLat,
-    required double clientLon,
-    String? problemType,
-    String? clientAddress,
-  }) async {
-    final payload = {
-      'lawyerId': lawyerId,
-      'serviceType': 'lawyer_now',
-      'serviceTitle': serviceTitle,
-      'problemType': problemType,
-      'problemDescription': problemDescription,
-      'clientLat': clientLat,
-      'clientLon': clientLon,
-      'clientAddress': clientAddress,
-    };
-
-    final res = await ApiService.post('/orders', payload);
-
-    if (res.isOk && res.data is Map<String, dynamic>) {
-      final order = OrderModel.fromJson(res.data as Map<String, dynamic>);
-      return ApiResponse<OrderModel>(
-        success: true,
-        statusCode: res.statusCode,
-        message: res.message,
-        data: order,
-      );
-    }
-
-    return ApiResponse<OrderModel>(
-      success: false,
-      statusCode: res.statusCode,
-      error: res.error ?? 'فشل إنشاء الطلب',
-    );
-  }
-
   /// الحصول على تفاصيل طلب محدد بالمعرف
   static Future<ApiResponse<OrderModel>> getOrderById(String orderId) async {
     final res = await ApiService.get('/orders/$orderId');
@@ -170,20 +130,6 @@ class OrderRepository {
       success: false,
       statusCode: res.statusCode,
       error: res.error ?? 'تعذر إلغاء الطلب',
-    );
-  }
-
-  /// السعر الذي يراه الموكل قبل إرسال طلبه
-  static Future<ApiResponse<int>> getQuote(String? problemType) async {
-    final res = await ApiService.post('/orders/quote', {'problemType': problemType});
-    if (res.isOk && res.data is Map<String, dynamic>) {
-      final price = (res.data as Map<String, dynamic>)['price'] as num? ?? 0;
-      return ApiResponse<int>(success: true, statusCode: res.statusCode, data: price.round());
-    }
-    return ApiResponse<int>(
-      success: false,
-      statusCode: res.statusCode,
-      error: res.error ?? 'تعذر تقييم سعر الخدمة',
     );
   }
 

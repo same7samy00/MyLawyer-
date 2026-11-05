@@ -282,3 +282,72 @@ class _DashedLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+/// عرض محامي: اسمه وتقييمه ومسافته وسعره
+class _OfferCard extends StatelessWidget {
+  final RequestOffer offer;
+  final bool isBusy;
+  final VoidCallback onChoose;
+  final VoidCallback onReviews;
+
+  const _OfferCard({required this.offer, required this.isBusy, required this.onChoose, required this.onReviews});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14.0),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              _LawyerAvatarPhoto(
+                imageUrl: offer.avatarUrl,
+                initials: offer.name.isEmpty ? 'م' : offer.name.characters.first,
+                fallbackColor: AppColors.primary,
+                size: 44,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      offer.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.dark),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '★ ${offer.rating.toStringAsFixed(1)} • ${offer.distanceKm} كم • يوصل خلال ${offer.minutesAway} دقيقة تقريبًا',
+                      style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '${offer.price} ج.م',
+                style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.primary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(flex: 6, child: AppButton.primary(text: 'اختار العرض', height: 40, fontSize: 13, onPressed: isBusy ? null : onChoose)),
+              const SizedBox(width: 8),
+              Expanded(flex: 4, child: AppButton.outlined(text: 'التقييمات (${offer.reviewsCount})', height: 40, fontSize: 12, onPressed: onReviews)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

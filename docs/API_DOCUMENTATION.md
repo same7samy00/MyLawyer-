@@ -80,6 +80,14 @@
 | `/orders/:id/accept` و`/orders/:id/reject` | `POST` | محامٍ | الرد على الطلب خلال دقيقتين |
 | `/orders/:id/confirm-payment` | `POST` | موكل | الدفع خلال 10 دقايق، و`method: wallet` من الرصيد لو كفاية |
 | `/orders/:id/cancel` | `POST` | أطراف الطلب | قبل الدفع، وللموكل بعد الدفع وقبل الوصول في أول 5 دقايق أو بعد انتهاء مهلة الوصول |
+| `/requests/range` | `GET` | موكل | حدود سعر المشكلة |
+| `/requests` | `POST` | موكل | إرسال الطلب لأقرب 5 محامين |
+| `/requests/:id` | `GET` | موكل | حالة الطلب وعروضه |
+| `/requests/:id/cancel` | `POST` | موكل | إلغاء الطلب قبل اختيار عرض |
+| `/requests/:id/offers/:offerId/select` | `POST` | موكل | اختيار عرض، وينشئ طلبًا بانتظار الدفع |
+| `/requests/incoming` | `GET` | محامٍ | الطلبات المنتظرة لسعره |
+| `/requests/:id/offer` | `POST` | محامٍ | إرسال السعر `price` جوه الحدود |
+| `/requests/:id/offer/withdraw` | `POST` | محامٍ | سحب العرض قبل الاختيار |
 | `/orders/:id/keep-waiting` | `POST` | موكل | يختار انتظار المحامي المتأخر، فيقف الرد بعد ساعتين |
 | `/orders/:id/postpone` | `POST` | محامٍ | تأجيل المهمة بعد الوصول، بالسبب `reason` والميعاد `until` |
 | `/orders/:id/arrive` | `POST` | محامٍ | تسجيل الوصول، ومقبول بس على بعد 50 متر من الموكل |

@@ -248,7 +248,12 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     );
     if (orderRes.rows.length === 0) return reply.status(404).send({ success: false, error: 'الطلب غير موجود' });
 
-    const [logs, tickets, reviews, movements, events, payments] = await Promise.all([
+    const [offers, logs, tickets, reviews, movements, events, payments] = await Promise.all([
+      query(`SELECT ro.lawyer_id, ro.price, ro.lawyer_amount, ro.withdrawn_at, ro.created_at, lp.full_name AS lawyer_name
+             FROM service_requests r
+             JOIN request_offers ro ON ro.request_id = r.id
+             JOIN lawyer_profiles lp ON lp.user_id = ro.lawyer_id
+             WHERE r.order_id = $1 ORDER BY ro.created_at ASC`, [id]),
       query(`SELECT l.old_status, l.new_status, l.note, l.created_at, u.role AS actor_role
              FROM order_status_logs l LEFT JOIN users u ON u.id = l.changed_by_user_id
              WHERE l.order_id = $1 ORDER BY l.created_at ASC`, [id]),
@@ -276,7 +281,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
     const { completion_code: _hidden, ...order } = orderRes.rows[0];
     return reply.send({
       success: true,
-      data: { order, logs: logs.rows, tickets: tickets.rows, reviews: reviews.rows, movements: movements.rows, events: events.rows, payment: payments.rows[0] ?? null },
+      data: { order, offers: offers.rows, logs: logs.rows, tickets: tickets.rows, reviews: reviews.rows, movements: movements.rows, events: events.rows, payment: payments.rows[0] ?? null },
     });
   });
 

@@ -70,6 +70,12 @@ async function orderPage(box) {
         item, cells: [copyable(item.reference), item.title, item.user_role === 'lawyer' ? 'المحامي' : 'الموكل', ticketStatus(item.status), date(item.created_at)],
       })), (item) => open('ticket', item.id))));
     }
+    if (data.offers?.length) {
+      pane.append(section('عروض الأسعار', table(['المحامي', 'السعر', 'صافي المحامي', 'الحالة', 'التاريخ'], data.offers.map((item) => ({
+        item, cells: [item.lawyer_name, Number(item.price) + ' ج.م', Number(item.lawyer_amount) + ' ج.م',
+          item.lawyer_id === order.lawyer_id ? 'العرض المختار' : item.withdrawn_at ? 'مسحوب' : 'لم يُختر', date(item.created_at)],
+      })))));
+    }
     if (data.reviews.length) {
       pane.append(section('التقييم', table(['التقييم', 'التعليق'], data.reviews.map((item) => ({ item, cells: [item.rating + ' / 5', item.comment] })))));
     }
