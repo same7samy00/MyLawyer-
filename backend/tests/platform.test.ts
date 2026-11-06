@@ -77,9 +77,9 @@ describe('ظهور المحامي على الخريطة', () => {
     assert.equal(bad.status, 200);
   });
 
-  it('المحامي البعيد يظهر على الخريطة بنطاق مصر كلها', async () => {
+  it('الخريطة بتعرض المحامين جوه 50 كم بس، حتى لو التطبيق طلب أبعد (قرار 2026-11-06)', async () => {
     const res = await call('GET', '/lawyers/nearby?lat=23.9&lon=32.9&radius_km=1500', null);
-    assert.equal(res.body.data.some((l: any) => l.id === lawyerId), true);
+    assert.equal(res.body.data.some((l: any) => l.id === lawyerId), false);
   });
 
   it('القبول يحدث مكان المحامي في الطلب', async () => {
@@ -92,9 +92,11 @@ describe('ظهور المحامي على الخريطة', () => {
     await sql(`UPDATE lawyer_profiles SET latitude = 30.05, longitude = 31.25 WHERE user_id = $1`, [lawyerId]);
   });
 
-  it('تصفح الخريطة يوصل لمحامين أبعد من نطاق الطلب', async () => {
-    const res = await call('GET', '/lawyers/nearby?lat=30.05&lon=30.45&radius_km=100', null);
-    assert.equal(res.body.data.some((l: any) => l.id === lawyerId), true);
+  it('المحامي على بعد حوالي 77 كم ما يظهرش، وعلى بعد 40 كم يظهر', async () => {
+    const far = await call('GET', '/lawyers/nearby?lat=30.05&lon=30.45&radius_km=100', null);
+    assert.equal(far.body.data.some((l: any) => l.id === lawyerId), false);
+    const near = await call('GET', '/lawyers/nearby?lat=30.05&lon=30.836', null);
+    assert.equal(near.body.data.some((l: any) => l.id === lawyerId), true);
   });
 });
 

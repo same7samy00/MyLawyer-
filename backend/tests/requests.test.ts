@@ -166,14 +166,14 @@ describe('الطلب وعروض الأسعار', () => {
     assert.equal((await sql('SELECT 1 FROM service_requests')).length, 0);
   });
 
-  it('أقرب 5 بس، ولو محدش بعت عرض يروح للي بعدهم، وبعد 3 محاولات يتقفل', async () => {
+  it('أقرب 10، ولو محدش بعت عرض يروح للـ 10 اللي بعدهم، وبعد الجولتين يتقفل', async () => {
     const others = [];
-    for (let i = 1; i <= 5; i++) others.push(await otherLawyer(30.05 + i * 0.01));
+    for (let i = 1; i <= 11; i++) others.push(await otherLawyer(30.05 + i * 0.01));
     const id = await createRequest();
 
     const firstRound = await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [id]);
-    assert.equal(firstRound.length, 5);
-    const farthest = others[4];
+    assert.equal(firstRound.length, 10);
+    const farthest = others[10];
     assert.equal(firstRound.some((row: any) => row.lawyer_id === farthest.id), false);
 
     await endRound(id);
@@ -186,6 +186,40 @@ describe('الطلب وعروض الأسعار', () => {
     assert.equal((await follow(id)).status, 'NO_OFFERS');
     assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'مفيش محامي متاح'`, [clientId])).length, 1);
     for (const lawyer of others) await removeLawyer(lawyer.id);
+  });
+
+  it('«بحث جديد» بيبعت للـ 10 اللي بعد الأولانيين، وبعدها يرجع للأقرب 10، والعروض اللي وصلت بتفضل', async () => {
+    const others = [];
+    for (let i = 1; i <= 11; i++) others.push(await otherLawyer(30.05 + i * 0.01));
+    const id = await createRequest();
+    const nearest = (await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1 AND round = 1', [id])).map((r: any) => r.lawyer_id);
+    assert.equal(nearest.length, 10);
+    assert.equal((await offer(id, 1000)).status, 201);
+
+    const search = () => call('POST', `/requests/${id}/search`, clientToken, {});
+    assert.equal((await search()).body.data.round, 2);
+    const second = (await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1 AND round = 2', [id])).map((r: any) => r.lawyer_id);
+    // The main lawyer already sent a price, so the second group starts after the other nearest ones
+    assert.equal(second.includes(others[10].id), true);
+    assert.equal(second.includes(lawyerId), false);
+
+    assert.equal((await search()).body.data.round, 3);
+    const third = (await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1 AND round = 3', [id])).map((r: any) => r.lawyer_id);
+    assert.equal(third.includes(others[0].id), true, 'back to the nearest');
+    assert.equal((await follow(id)).offers.length, 1, 'the price already sent stays');
+
+    assert.equal((await call('POST', `/requests/${id}/search`, lawyerToken, {})).status, 404);
+    for (const lawyer of others) await removeLawyer(lawyer.id);
+  });
+
+  it('المحامي اللي على بعد أكتر من 50 كم ما يوصلوش الطلب، والخريطة ما تعرضوش', async () => {
+    const far = await otherLawyer(30.05 + 0.6);
+    const id = await createRequest();
+    const sent = (await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [id])).map((r: any) => r.lawyer_id);
+    assert.equal(sent.includes(far.id), false);
+    const map = (await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25', clientToken)).body.data as any[];
+    assert.equal(map.some((lawyer) => lawyer.id === far.id), false);
+    await removeLawyer(far.id);
   });
 
   it('لو فيه عرض الجولة ما تتغيرش، وبعد 5 دقايق من غير اختيار الطلب يتلغي ويتبلغ الطرفين', async () => {

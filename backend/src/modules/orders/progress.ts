@@ -4,7 +4,7 @@ import { CANCEL_MINUTES } from '../lifecycle/settlement.js';
 import { OPEN_ORDER_TICKET } from '../support/service.js';
 import { sanitizeText } from '../../utils/security.js';
 import { HttpError, UUID_PATTERN } from '../../utils/http.js';
-import { addClientCredit, addLawyerStrike, ARRIVAL_RADIUS_KM, HOLD_HOURS, LIVE_POSITION_FRESH_SECONDS, LIVE_POSITION_SECONDS, notify } from '../lifecycle/service.js';
+import { addClientCredit, addLawyerStrike, ARRIVAL_RADIUS_KM, HOLD_HOURS, LIVE_POSITION_SECONDS, notify } from '../lifecycle/service.js';
 import { publishPosition } from '../../services/liveUpdates.js';
 import { distanceKm, lockOrder, AuthenticatedUser } from './shared.js';
 
@@ -27,11 +27,10 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
       if (!order || order.lawyer_id !== userId) throw new HttpError(404, 'الطلب غير موجود أو غير مسند إليك');
       if (order.status !== 'ACTIVE' || order.arrived_at) throw new HttpError(400, 'لا يمكن تسجيل الوصول لهذا الطلب');
 
-      // The arrival is the proof that the two really met: near where the client asked from,
-      // or near where the client is now, when the client's phone shared it in the last two minutes
+      // The arrival is the proof that the two really met: near where the client asked from, or near the last
+      // point the client's phone shared on the way, however old, since a phone may stop sharing (owner decision 2026-11-06)
       const distance = distanceKm(lat, lon, Number(order.client_latitude), Number(order.client_longitude));
-      const liveIsFresh = order.client_live_at && Date.now() - new Date(order.client_live_at).getTime() <= LIVE_POSITION_FRESH_SECONDS * 1000;
-      const liveDistance = liveIsFresh
+      const liveDistance = order.client_live_latitude != null
         ? distanceKm(lat, lon, Number(order.client_live_latitude), Number(order.client_live_longitude))
         : Infinity;
       if (Math.min(distance, liveDistance) > ARRIVAL_RADIUS_KM) throw new HttpError(400, 'لازم تكون قريب من الموكل');

@@ -238,6 +238,32 @@ export async function requestRoutes(fastify: FastifyInstance) {
     return reply.send({ success: true, message: 'تم إلغاء الطلب' });
   });
 
+  // «بحث جديد»: the next group right away. After the nearest 10 come the 10 after them, then the nearest 10 again.
+  // The offers already sent stay for the client to choose from.
+  fastify.post('/:id/search', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
+    const { id } = request.params as { id: string };
+    requireId(id);
+
+    const round = await withTransaction(async (client) => {
+      const locked = await client.query(`SELECT * FROM service_requests WHERE id = $1 AND client_id = $2 FOR UPDATE`, [id, userId]);
+      const target = locked.rows[0];
+      if (!target) throw new HttpError(404, 'الطلب غير موجود');
+      if (target.status !== 'OPEN') throw new HttpError(409, 'الطلب اتقفل، ابعت طلب جديد');
+
+      const next = target.round + 1;
+      const sent = await sendRound(client, target, next);
+      if (sent === 0) throw new HttpError(409, 'مفيش محامين تانيين متاحين قريب منك دلوقتي');
+      await client.query(
+        `UPDATE service_requests SET round = $1, round_deadline = NOW() + make_interval(secs => $2) WHERE id = $3`,
+        [next, ROUND_SECONDS, id]
+      );
+      return next;
+    });
+
+    return reply.send({ success: true, message: 'بعتنا طلبك لمحامين تانيين', data: { round } });
+  });
+
   // Choosing an offer turns the request into an order waiting for payment
   fastify.post('/:id/offers/:offerId/select', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = request.user as AuthenticatedUser;

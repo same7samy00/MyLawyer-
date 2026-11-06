@@ -67,12 +67,12 @@ describe('التتبع اللحظي', () => {
     assert.equal((await listed(clientToken, order.id)).liveLatitude, null);
   });
 
-  it('نقطة الموكل القديمة (أكتر من دقيقتين) ما تتحسبش للوصول', async () => {
+  it('لو موبايل الموكل بطّل يبعت، «وصلت» بيتقبل جنب آخر نقطة بعتها مهما كانت قديمة', async () => {
     await closeOrders();
     const order = await createPaidOrder();
     await send(clientToken, order.id, 30.059, 31.25);
-    await sql(`UPDATE service_orders SET client_live_at = NOW() - INTERVAL '3 minutes' WHERE id = $1`, [order.id]);
+    await sql(`UPDATE service_orders SET client_live_at = NOW() - INTERVAL '3 hours' WHERE id = $1`, [order.id]);
     const res = await call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.0592, longitude: 31.25 });
-    assert.equal(res.status, 400);
+    assert.equal(res.status, 200, JSON.stringify(res.body));
   });
 });

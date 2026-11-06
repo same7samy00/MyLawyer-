@@ -8,10 +8,10 @@ import { sanitizeText, shortName } from '../../utils/security.js';
 import { detectFileType } from '../../utils/files.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { approximateCoordinate } from '../lifecycle/service.js';
-import { LAWYER_CAN_WORK } from '../requests/service.js';
+import { LAWYER_CAN_WORK, SEARCH_RADIUS_KM } from '../requests/service.js';
 
-// Clients can browse the map further than the area they can order from
-const MAX_MAP_RADIUS_KM = 1500;
+// The map shows the lawyers the client could ask: within the service's 50 km
+const MAX_MAP_RADIUS_KM = SEARCH_RADIUS_KM;
 const MAX_NEARBY_RESULTS = 1000;
 
 export async function lawyerRoutes(fastify: FastifyInstance) {
