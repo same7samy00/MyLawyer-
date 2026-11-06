@@ -19,7 +19,7 @@ class SupportScreen extends StatefulWidget {
 }
 
 class _SupportScreenState extends State<SupportScreen> {
-  List<SupportTicket>? _tickets;
+  List<SupportTicket>? _tickets = SupportRepository.savedTickets();
   String? _error;
 
   @override

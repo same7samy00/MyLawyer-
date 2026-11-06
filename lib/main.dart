@@ -3,14 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/services/api_service.dart';
+import 'core/services/saved_data.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/connection_gate.dart';
 import 'core/widgets/keyboard_dismiss_area.dart';
 import 'features/auth/session_router.dart';
 import 'features/auth/splash_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // آخر بيانات اتعرضت بتظهر من أول لحظة، والسيرفر بيحدثها بعدها
+  await SavedData.preload();
   // لا تصل رسائل التشخيص لسجلات الجهاز في الإصدار النهائي
   if (kReleaseMode) {
     debugPrint = (String? message, {int? wrapWidth}) {};

@@ -280,35 +280,42 @@ extension _TrackingScreenViews on _TrackingScreenState {
               ),
             ),
             const SizedBox(height: 10),
-            // وإحنا مستنيين: تحميل من غير عداد. ولو الوقت خلص ومحدش بعت، جملة توضح وزرار «بحث جديد»
-            if (!_noOffers && offers.isEmpty && (_activeRequest?.secondsLeft ?? 120) > 0) ...[
-              const Center(
-                child: SizedBox(width: 34, height: 34, child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.primary)),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'بنبعت طلبك لأقرب المحامين، والعروض هتظهر هنا أول ما توصل',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textMuted,
-                ),
-              ),
-            ],
-            if (_noOffers || (offers.isEmpty && (_activeRequest?.secondsLeft ?? 120) <= 0))
-              const Text(
-                'محدش من المحامين القريبين بعت عرض لسه. دوس «بحث جديد» ونبعت طلبك لمحامين تانيين',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 13,
-                  height: 1.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.dark,
+            // وإحنا مستنيين: نقط بتنط من غير عداد. ولو محدش بعت، جملة توضح. المساحة ثابتة في الحالتين عشان الصفحة ما تتحركش
+            if (offers.isEmpty)
+              SizedBox(
+                height: 64,
+                child: Center(
+                  child: _noOffers || (_activeRequest?.secondsLeft ?? 120) <= 0
+                      ? const Text(
+                          'محدش من المحامين القريبين بعت عرض لسه. دوس «بحث جديد» ونبعت طلبك لمحامين تانيين',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'AppFont',
+                            fontFamilyFallback: appFontFallback,
+                            fontSize: 13,
+                            height: 1.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.dark,
+                          ),
+                        )
+                      : const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            BouncingDots(),
+                            SizedBox(height: 10),
+                            Text(
+                              'بنبعت طلبك لأقرب المحامين، والعروض هتظهر هنا أول ما توصل',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'AppFont',
+                                fontFamilyFallback: appFontFallback,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
               ),
             if (offers.isNotEmpty)
@@ -337,16 +344,21 @@ extension _TrackingScreenViews on _TrackingScreenState {
             const SizedBox(height: 10),
             // بيظهر لما العروض توصل أو لما الوقت يخلص من غير عروض، ومش وقت التحميل.
             // بيبعت للـ 10 اللي بعدهم على طول، والعروض اللي وصلت بتفضل
-            if (_noOffers || offers.isNotEmpty || (_activeRequest?.secondsLeft ?? 120) <= 0) ...[
-              AppButton(
+            // مكانه محجوز من الأول، فلما يظهر الصفحة ما تكبرش
+            Visibility(
+              visible: _noOffers || offers.isNotEmpty || (_activeRequest?.secondsLeft ?? 120) <= 0,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: AppButton(
                 text: 'بحث جديد',
                 height: 46,
                 icon: Icons.travel_explore_rounded,
                 isLoading: _isSearchingAgain,
                 onPressed: _searchAgain,
               ),
-              const SizedBox(height: 8),
-            ],
+            ),
+            const SizedBox(height: 8),
             AppButton.outlined(text: 'إلغاء الطلب', height: 46, onPressed: _returnToLawyerProfile),
           ],
         );

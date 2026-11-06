@@ -10,6 +10,22 @@ class SavedData {
   static const String _prefix = 'saved_data_';
   static final Map<String, Object?> _memory = {};
 
+  /// كل المحفوظ بيتقرا مرة واحدة أول ما التطبيق يفتح، عشان الصفحات تقراه من غير انتظار
+  static Future<void> preload() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      for (final key in prefs.getKeys().where((key) => key.startsWith(_prefix))) {
+        final raw = prefs.getString(key);
+        if (raw != null) _memory[key.substring(_prefix.length)] = jsonDecode(raw);
+      }
+    } catch (_) {
+      // من غير المحفوظ الصفحات بتستنى السيرفر زي الأول
+    }
+  }
+
+  /// المحفوظ فورًا من غير انتظار، للصفحة وهي بتترسم أول مرة
+  static Object? peek(String key) => _memory[key];
+
   static Future<Object?> read(String key) async {
     if (_memory.containsKey(key)) return _memory[key];
     try {

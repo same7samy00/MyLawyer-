@@ -41,7 +41,7 @@ class PaymentsScreen extends StatefulWidget {
 }
 
 class _PaymentsScreenState extends State<PaymentsScreen> {
-  List<PaymentRecord>? _payments;
+  List<PaymentRecord>? _payments = OrderRepository.savedPayments();
   String? _error;
   String? _downloadingId;
 

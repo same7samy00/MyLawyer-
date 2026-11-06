@@ -1,5 +1,9 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Instant Screens and Bouncing Dots] - 2026-11-06
+- **Shown at once:** `SavedData.preload()` reads every saved item when the app opens, and `SavedData.peek()` gives it to a screen while it draws. The home profile card, the account tabs, personal data, the lawyer «متاح» card, payments and support tickets now show their last data from the first frame, then refresh from the server. The phone number and email are not kept in the saved profile.
+- **Waiting for offers:** three bouncing dots instead of a spinner, in a fixed-height area, and the «بحث جديد» button keeps its place while hidden, so the page never changes size.
+
 ## [Lighter No-Offers Ending] - 2026-11-06
 - **Server:** after the two automatic rounds with no offer the request closes right away (notice «محدش بعت عرض»), so nothing stays open or checked on the server. «بحث جديد» on an open request still moves to the next group.
 - **App:** a closed request with no offers keeps the waiting page, with the sentence and «بحث جديد», which sends a new request with the same details to the nearest 10, from the same page.

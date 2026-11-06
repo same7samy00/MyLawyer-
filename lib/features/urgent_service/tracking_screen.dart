@@ -15,6 +15,7 @@ import '../../core/services/location_service.dart';
 import '../../core/services/map_lawyer_loader.dart';
 import '../../core/services/routing_service.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/bouncing_dots.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_map_layer.dart';
 import '../../core/widgets/app_state_message.dart';

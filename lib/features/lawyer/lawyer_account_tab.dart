@@ -23,7 +23,7 @@ class _LawyerAccountTabState extends State<LawyerAccountTab> {
   String _lawyerName = '';
   String _syndicateNumber = '';
   String _userPhone = '';
-  String? _photoPath;
+  String? _photoPath = ProfileRepository.saved?['profilePhotoPath']?.toString();
 
   @override
   void initState() {

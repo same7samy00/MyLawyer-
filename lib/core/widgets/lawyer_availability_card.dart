@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/saved_data.dart';
 import '../../data/repositories/lawyer_repository.dart';
 import '../services/live_updates.dart';
 import '../services/location_service.dart';
@@ -18,7 +20,10 @@ class LawyerAvailabilityCard extends StatefulWidget {
 
 class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
   bool _isSaving = false;
-  bool _canServe = false;
+  // آخر حالة اتعرضت بتظهر على طول، والسيرفر بيحدثها بعدها
+  bool _canServe = SavedData.peek(_canServeKey) == true;
+  static const String _canServeKey = 'lawyer_can_serve';
+  static const String _availableKey = 'lawyer_available';
   DateTime? _suspendedUntil;
 
   AppLifecycleListener? _lifecycle;
@@ -49,6 +54,8 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
       _canServe = profile['urgent_status'] == 'APPROVED' && profile['status'] == 'active';
     });
     NotificationCenter.isAvailable.value = profile['is_available'] == true;
+    unawaited(SavedData.write(_canServeKey, _canServe));
+    unawaited(SavedData.write(_availableKey, profile['is_available'] == true));
   }
 
   Future<void> _toggle(bool value) async {
@@ -74,7 +81,10 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
     if (!mounted) return;
 
     setState(() => _isSaving = false);
-    if (res.isOk) NotificationCenter.isAvailable.value = value;
+    if (res.isOk) {
+      NotificationCenter.isAvailable.value = value;
+      unawaited(SavedData.write(_availableKey, value));
+    }
 
     if (!res.isOk) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -88,8 +98,9 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
     return ValueListenableBuilder<bool?>(
       valueListenable: NotificationCenter.isAvailable,
       builder: (context, isAvailable, _) {
-        if (isAvailable == null || !_canServe) return const SizedBox.shrink();
-        return _buildCard(isAvailable);
+        final shown = isAvailable ?? (SavedData.peek(_availableKey) as bool?);
+        if (shown == null || !_canServe) return const SizedBox.shrink();
+        return _buildCard(shown);
       },
     );
   }

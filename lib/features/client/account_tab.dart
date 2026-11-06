@@ -19,7 +19,7 @@ class AccountTab extends StatefulWidget {
 }
 
 class _AccountTabState extends State<AccountTab> {
-  Map<String, dynamic>? _profile;
+  Map<String, dynamic>? _profile = ProfileRepository.saved;
 
   @override
   void initState() {

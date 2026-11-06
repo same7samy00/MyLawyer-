@@ -18,7 +18,8 @@ class ProfileHomeCard extends StatefulWidget {
 }
 
 class _ProfileHomeCardState extends State<ProfileHomeCard> {
-  Map<String, dynamic>? _profile;
+  // آخر بيانات اتعرضت بتظهر على طول، والسيرفر بيحدثها بعدها
+  Map<String, dynamic>? _profile = ProfileRepository.saved;
   late final AppLifecycleListener _lifecycle;
 
   @override

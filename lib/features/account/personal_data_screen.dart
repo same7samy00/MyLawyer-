@@ -18,7 +18,7 @@ class PersonalDataScreen extends StatefulWidget {
 }
 
 class _PersonalDataScreenState extends State<PersonalDataScreen> {
-  Map<String, dynamic>? _profile;
+  Map<String, dynamic>? _profile = ProfileRepository.saved;
   String? _error;
   bool _isUploading = false;
 

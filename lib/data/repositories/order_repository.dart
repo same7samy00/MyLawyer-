@@ -242,9 +242,16 @@ class OrderRepository {
   }
 
   /// كل دفعات الموكل: اللي اتدفعت واللي اتردت واللي ما تمتش، الأحدث الأول
+  /// آخر مدفوعات اتعرضت، عشان الصفحة تظهر على طول
+  static List<PaymentRecord>? savedPayments() {
+    final value = SavedData.peek('payments');
+    return value is List ? value.whereType<Map<String, dynamic>>().map(PaymentRecord.fromJson).toList() : null;
+  }
+
   static Future<ApiResponse<List<PaymentRecord>>> getPayments() async {
     final res = await ApiService.get('/wallet/payments');
     if (res.isOk && res.data is List) {
+      unawaited(SavedData.write('payments', res.data));
       final list = (res.data as List).whereType<Map<String, dynamic>>().map(PaymentRecord.fromJson).toList();
       return ApiResponse<List<PaymentRecord>>(success: true, statusCode: res.statusCode, data: list);
     }
