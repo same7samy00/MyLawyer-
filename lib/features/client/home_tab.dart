@@ -1,4 +1,3 @@
-import '../../core/widgets/line_illustration.dart';
 import '../../core/widgets/app_pressable.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -245,8 +244,9 @@ class _HomeTabState extends State<HomeTab> {
       child: Row(
         children: [
           // Icon or SVG with RepaintBoundary for optimal scrolling performance
+          // «محاميك حالاً» بنفس صورة البانر اللي فوق
           if (highlighted)
-            IllustrationBadge(icon: icon!, size: 36)
+            const RepaintBoundary(child: LawyerPinIllustration(size: 48))
           else
             Container(
               width: 44,

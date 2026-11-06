@@ -9,20 +9,62 @@ class TermsSection {
   const TermsSection({required this.icon, required this.title, required this.items});
 }
 
-/// الشروط مقسمة أقسام، كل قسم في حاوية تفتح وتقفل
-class TermsAccordion extends StatelessWidget {
+/// الشروط مقسمة أقسام، وقسم واحد بس مفتوح دايمًا: الأول في البداية،
+/// وفتح أي قسم بيقفل اللي كان مفتوح، والمفتوح ما يتقفلش غير بفتح غيره
+class TermsAccordion extends StatefulWidget {
   final List<TermsSection> sections;
 
   const TermsAccordion({super.key, required this.sections});
+
+  @override
+  State<TermsAccordion> createState() => _TermsAccordionState();
+}
+
+class _TermsAccordionState extends State<TermsAccordion> {
+  late List<ExpansionTileController> _controllers;
+  int _open = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = List.generate(widget.sections.length, (_) => ExpansionTileController());
+  }
+
+  @override
+  void didUpdateWidget(TermsAccordion oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.sections.length != widget.sections.length) {
+      _controllers = List.generate(widget.sections.length, (_) => ExpansionTileController());
+      _open = 0;
+    }
+  }
+
+  void _changed(int index, bool expanded) {
+    if (expanded) {
+      final previous = _open;
+      _open = index;
+      if (previous != index) _controllers[previous].collapse();
+    } else if (index == _open) {
+      // المفتوح يفضل مفتوح، عشان الصفحة ما تبقاش كلها مقفولة
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _open == index) _controllers[index].expand();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < sections.length; i++) ...[
+        for (var i = 0; i < widget.sections.length; i++) ...[
           if (i > 0) const SizedBox(height: 10),
-          _TermsTile(section: sections[i], initiallyExpanded: i == 0),
+          _TermsTile(
+            section: widget.sections[i],
+            controller: _controllers[i],
+            initiallyExpanded: i == _open,
+            onChanged: (expanded) => _changed(i, expanded),
+          ),
         ],
       ],
     );
@@ -31,9 +73,11 @@ class TermsAccordion extends StatelessWidget {
 
 class _TermsTile extends StatelessWidget {
   final TermsSection section;
+  final ExpansionTileController controller;
   final bool initiallyExpanded;
+  final ValueChanged<bool> onChanged;
 
-  const _TermsTile({required this.section, required this.initiallyExpanded});
+  const _TermsTile({required this.section, required this.controller, required this.initiallyExpanded, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +89,9 @@ class _TermsTile extends StatelessWidget {
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
+        controller: controller,
         initiallyExpanded: initiallyExpanded,
+        onExpansionChanged: onChanged,
         backgroundColor: Colors.white,
         collapsedBackgroundColor: Colors.white,
         shape: shape,

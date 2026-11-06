@@ -18,6 +18,7 @@ class LawyerAvailabilityCard extends StatefulWidget {
 
 class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
   bool _isSaving = false;
+  bool _canServe = false;
   DateTime? _suspendedUntil;
 
   AppLifecycleListener? _lifecycle;
@@ -42,7 +43,11 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
     final profile = await LawyerRepository.getProfile();
     if (!mounted || profile == null) return;
     final until = DateTime.tryParse(profile['suspended_until']?.toString() ?? '')?.toLocal();
-    setState(() => _suspendedUntil = until != null && until.isAfter(DateTime.now()) ? until : null);
+    setState(() {
+      _suspendedUntil = until != null && until.isAfter(DateTime.now()) ? until : null;
+      // الكارت للمحامي اللي الإدارة وافقت عليه للخدمة وحسابه مفعّل بس
+      _canServe = profile['urgent_status'] == 'APPROVED' && profile['status'] == 'active';
+    });
     NotificationCenter.isAvailable.value = profile['is_available'] == true;
   }
 
@@ -83,7 +88,7 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
     return ValueListenableBuilder<bool?>(
       valueListenable: NotificationCenter.isAvailable,
       builder: (context, isAvailable, _) {
-        if (isAvailable == null) return const SizedBox.shrink();
+        if (isAvailable == null || !_canServe) return const SizedBox.shrink();
         return _buildCard(isAvailable);
       },
     );
