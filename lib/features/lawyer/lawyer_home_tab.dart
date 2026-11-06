@@ -109,7 +109,7 @@ class _LawyerHomeTabState extends State<LawyerHomeTab> {
               child: const Row(
                 children: [
                   RepaintBoundary(
-                    child: LawyerPinIllustration(size: 48, color: AppColors.primary),
+                    child: LawyerPinIllustration(size: 56),
                   ),
                   SizedBox(width: 14),
 

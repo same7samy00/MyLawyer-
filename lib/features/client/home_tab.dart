@@ -139,7 +139,7 @@ class _HomeTabState extends State<HomeTab> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const LawyerPinIllustration(size: 76),
+                  const LawyerPinIllustration(size: 70, onDark: true),
                 ],
               ),
             ),
