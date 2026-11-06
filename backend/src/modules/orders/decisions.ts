@@ -162,6 +162,14 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
         )
       : 0;
 
+    const method = body.method === 'wallet' ? 'WALLET' : 'DIRECT';
+    // A payment that did not go through is kept, so the client sees it in their payments page
+    let failed: { orderId: string; amount: number; reason: string } | null = null;
+    const failPayment = (locked: any, reason: string, status: number) => {
+      failed = { orderId: locked.id, amount: Number(locked.price), reason };
+      return new HttpError(status, reason);
+    };
+
     const order = await withTransaction(async (client) => {
       // The balance is shared with wallet transfers, which take the same account lock
       await client.query('SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);
@@ -169,14 +177,14 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
 
       if (!locked || locked.client_id !== userId) throw new HttpError(404, 'الطلب غير موجود');
       if (locked.status !== 'ACCEPTED') throw new HttpError(400, 'لا يمكن الدفع قبل موافقة المحامي على الطلب');
-      if (new Date(locked.payment_deadline).getTime() <= Date.now()) throw new HttpError(409, 'انتهت مهلة الدفع لهذا الطلب');
+      if (new Date(locked.payment_deadline).getTime() <= Date.now()) throw failPayment(locked, 'انتهت مهلة الدفع لهذا الطلب', 409);
 
       if (body.method === 'wallet') {
         const balanceRes = await client.query(
           'SELECT COALESCE(SUM(amount), 0) AS balance FROM client_credits WHERE client_id = $1',
           [userId]
         );
-        if (Number(balanceRes.rows[0].balance) < Number(locked.price)) throw new HttpError(400, 'رصيدك مش كفاية');
+        if (Number(balanceRes.rows[0].balance) < Number(locked.price)) throw failPayment(locked, 'رصيدك مش كفاية', 400);
         await addClientCredit(client, userId, locked.id, -Number(locked.price), 'سداد طلب من الرصيد');
       }
 
@@ -190,7 +198,7 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
 
       await client.query(
         'INSERT INTO payments (order_id, client_id, amount, method) VALUES ($1, $2, $3, $4) ON CONFLICT (order_id) DO NOTHING',
-        [locked.id, userId, locked.price, body.method === 'wallet' ? 'WALLET' : 'DIRECT']
+        [locked.id, userId, locked.price, method]
       );
 
       await client.query(
@@ -201,6 +209,15 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
 
       await notify(client, locked.lawyer_id, 'الموكل دفع', 'ابدأ المهمة، ودوس «وصلت» عند الموكل', locked.id);
       return locked;
+    }).catch(async (error) => {
+      const attempt = failed as { orderId: string; amount: number; reason: string } | null;
+      if (attempt) {
+        await query(
+          'INSERT INTO failed_payments (order_id, client_id, amount, method, reason) VALUES ($1, $2, $3, $4, $5)',
+          [attempt.orderId, userId, attempt.amount, method, attempt.reason]
+        );
+      }
+      throw error;
     });
 
     return reply.send({

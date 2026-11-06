@@ -73,6 +73,52 @@ export async function walletRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // GET /api/v1/wallet/payments - The client's payments, the ones that went through and the ones that failed
+  fastify.get('/payments', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
+    return handle(reply, async () => {
+      const res = await query(
+        `SELECT * FROM (
+           SELECT p.id, p.reference, 'PAID' AS kind, p.amount, p.method, NULL AS reason, p.paid_at AS at,
+                  o.order_number, COALESCE(o.problem_type, o.service_title) AS service, lp.full_name AS lawyer_name,
+                  (SELECT COALESCE(SUM(c.amount), 0) FROM client_credits c WHERE c.order_id = o.id AND c.amount > 0) AS refunded
+           FROM payments p
+           JOIN service_orders o ON o.id = p.order_id
+           LEFT JOIN lawyer_profiles lp ON lp.user_id = o.lawyer_id
+           WHERE p.client_id = $1
+           UNION ALL
+           SELECT f.id, NULL, 'FAILED', f.amount, f.method, f.reason, f.created_at,
+                  o.order_number, COALESCE(o.problem_type, o.service_title), lp.full_name, 0
+           FROM failed_payments f
+           JOIN service_orders o ON o.id = f.order_id
+           LEFT JOIN lawyer_profiles lp ON lp.user_id = o.lawyer_id
+           WHERE f.client_id = $1
+         ) list
+         ORDER BY at DESC
+         LIMIT 200`,
+        [userId]
+      );
+      return res.rows.map((row) => {
+        const amount = Number(row.amount);
+        const refunded = Math.min(amount, Number(row.refunded));
+        const status = row.kind === 'FAILED' ? 'FAILED' : refunded >= amount ? 'REFUNDED' : refunded > 0 ? 'PARTLY_REFUNDED' : 'PAID';
+        return {
+          id: row.id,
+          reference: row.reference,
+          status,
+          amount,
+          refunded,
+          method: row.method,
+          reason: row.reason,
+          at: row.at,
+          orderNumber: row.order_number,
+          service: row.service || 'محاميك حالاً',
+          lawyerName: row.lawyer_name ? shortName(row.lawyer_name) : null,
+        };
+      });
+    });
+  });
+
   // POST /api/v1/wallet/transfer - Send money from my balance to another account by phone
   fastify.post('/transfer', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId, role } = request.user as AuthenticatedUser;

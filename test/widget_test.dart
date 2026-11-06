@@ -218,7 +218,7 @@ void main() {
       expect(find.text('تفاصيل سداد الأتعاب'), findsOneWidget);
       expect(find.text('فاتورة الخدمة'), findsOneWidget);
       expect(find.text('350 ج.م'), findsWidgets);
-      expect(find.text('فودافون كاش ومحافظ المحمول الإلكترونية'), findsOneWidget);
+      expect(find.text('اختار طريقة الدفع'), findsOneWidget);
     });
 
     testWidgets('OrdersTab renders a summary card and keeps actions on the details page', (WidgetTester tester) async {

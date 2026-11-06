@@ -1,6 +1,7 @@
 import 'dart:async';
 import '../models/lifecycle_models.dart';
 import '../models/order_model.dart';
+import '../models/payment_record.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/saved_data.dart';
 
@@ -237,6 +238,20 @@ class OrderRepository {
       success: false,
       statusCode: res.statusCode,
       error: res.error ?? 'تعذر تحميل الرصيد',
+    );
+  }
+
+  /// كل دفعات الموكل: اللي اتدفعت واللي اتردت واللي ما تمتش، الأحدث الأول
+  static Future<ApiResponse<List<PaymentRecord>>> getPayments() async {
+    final res = await ApiService.get('/wallet/payments');
+    if (res.isOk && res.data is List) {
+      final list = (res.data as List).whereType<Map<String, dynamic>>().map(PaymentRecord.fromJson).toList();
+      return ApiResponse<List<PaymentRecord>>(success: true, statusCode: res.statusCode, data: list);
+    }
+    return ApiResponse<List<PaymentRecord>>(
+      success: false,
+      statusCode: res.statusCode,
+      error: res.error ?? 'تعذر تحميل المدفوعات',
     );
   }
 

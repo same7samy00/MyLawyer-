@@ -6,6 +6,7 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_pressable.dart';
 import '../../core/widgets/logout_confirmation_sheet.dart';
 import '../../core/widgets/profile_photo.dart';
+import '../account/payments_screen.dart';
 import '../account/personal_data_screen.dart';
 import '../support/support_screen.dart';
 import '../auth/session_router.dart';
@@ -104,6 +105,15 @@ class _AccountTabState extends State<AccountTab> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) => const PersonalDataScreen()),
+                );
+              },
+            ),
+            _buildSettingItem(
+              title: 'المدفوعات والفواتير',
+              icon: Icons.receipt_long_rounded,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const PaymentsScreen()),
                 );
               },
             ),

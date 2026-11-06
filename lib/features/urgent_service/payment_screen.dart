@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/widgets/app_pressable.dart';
 import '../../core/services/routing_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/line_illustration.dart';
 import '../../data/models/map_lawyer.dart';
-import '../../data/repositories/order_repository.dart';
-import 'payment_success_screen.dart';
+import 'payment_method_screen.dart';
 
 class PaymentScreen extends StatefulWidget {
   final MapLawyer? lawyer;
@@ -36,75 +34,38 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  int _selectedPaymentMethod = 0; // 0: Vodafone Cash / Wallets, 1: Credit Card, 2: My Lawyer Wallet
-  bool _isProcessing = false;
-
   String get _orderRef => widget.orderNumber ?? '';
 
-  double? _balance;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBalance();
-  }
-
-  Future<void> _loadBalance() async {
-    final res = await OrderRepository.getClientBalance();
-    if (mounted && res.isOk) setState(() => _balance = res.data);
-  }
-
-  Future<void> _processPayment() async {
+  /// الدفع نفسه في صفحة لوحدها بعد مراجعة الفاتورة
+  void _chooseMethod() {
     final orderId = widget.orderId;
     if (orderId == null) {
-      _showError('تعذر العثور على الطلب، يرجى العودة وإعادة المحاولة.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تعذر العثور على الطلب، ارجع وجرب تاني', style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback)),
+          backgroundColor: AppColors.dark,
+        ),
+      );
       return;
     }
-
-    setState(() {
-      _isProcessing = true;
-    });
-
-    final res = await OrderRepository.confirmPayment(orderId, fromBalance: _selectedPaymentMethod == 2);
-
-    if (!mounted) return;
-
-    if (!res.isOk) {
-      setState(() {
-        _isProcessing = false;
-      });
-      _showError(res.error ?? 'تعذر تأكيد السداد، يرجى المحاولة مرة أخرى.');
-      return;
-    }
-
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => PaymentSuccessScreen(
+        builder: (context) => PaymentMethodScreen(
+          orderId: orderId,
+          orderRef: _orderRef,
+          price: widget.price,
           lawyer: widget.lawyer,
           problemTitle: widget.problemTitle,
           problemDescription: widget.problemDescription,
-          price: widget.price,
-          orderRef: _orderRef,
           locationName: widget.locationName,
         ),
       ),
     );
   }
 
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback)),
-        backgroundColor: AppColors.dark,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: !_isProcessing,
-      child: Scaffold(
+    return Scaffold(
       backgroundColor: Colors.white,
       appBar: const AppHeader(
         title: 'تفاصيل سداد الأتعاب',
@@ -139,7 +100,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     const SizedBox(height: 6),
                     const Center(
                       child: Text(
-                        'راجع الفاتورة واختر وسيلة السداد',
+                        'راجع الفاتورة وبعدها اختار طريقة الدفع',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'AppFont',
@@ -243,39 +204,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // اختيار وسيلة الدفع
-                    const Text(
-                      'وسيلة السداد المعتمدة',
-                      style: TextStyle(
-                        fontFamily: 'AppFont',
-                        fontFamilyFallback: appFontFallback,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.dark,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    _buildPaymentOption(
-                      index: 0,
-                      title: 'فودافون كاش ومحافظ المحمول الإلكترونية',
-                      subtitle: 'الدفع الفوري السريع عبر رقم الهاتف',
-                      icon: Icons.phone_android_rounded,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildPaymentOption(
-                      index: 1,
-                      title: 'بطاقة بنكية (Visa / MasterCard / ميزة)',
-                      subtitle: 'خصم مباشر بأعلى معايير الحماية',
-                      icon: Icons.credit_card_rounded,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildPaymentOption(
-                      index: 2,
-                      title: 'رصيد محفظة My Lawyer',
-                      subtitle: _balance == null ? 'الدفع من رصيدك' : 'رصيدك ${_balance!.toStringAsFixed(0)} ج.م',
-                      icon: Icons.account_balance_wallet_rounded,
-                    ),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -290,15 +218,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 border: Border(top: BorderSide(color: AppColors.cardBorder, width: 0.8)),
               ),
               child: AppButton.primary(
-                text: 'دفع ${widget.price} ج.م وتأكيد الطلب',
-                icon: Icons.lock_rounded,
-                onPressed: _processPayment,
+                text: 'اختار طريقة الدفع',
+                icon: Icons.arrow_forward_rounded,
+                onPressed: _chooseMethod,
               ),
             ),
           ],
         ),
       ),
-    ),
     );
   }
 
@@ -340,84 +267,4 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
     );
   }
-
-  Widget _buildPaymentOption({
-    required int index,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-  }) {
-    final isSelected = _selectedPaymentMethod == index;
-    return AppPressable(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          setState(() {
-            _selectedPaymentMethod = index;
-          });
-        },
-        child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(7.0),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.cardBorder,
-            width: isSelected ? 1.5 : 1.0,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary : AppColors.background,
-                borderRadius: BorderRadius.circular(7.0),
-              ),
-              child: Icon(
-                icon,
-                size: 20,
-                color: isSelected ? Colors.white : AppColors.dark,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontFamily: 'AppFont',
-                      fontFamilyFallback: appFontFallback,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: isSelected ? AppColors.primary : AppColors.dark,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontFamily: 'AppFont',
-                      fontFamilyFallback: appFontFallback,
-                      fontSize: 11,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-              color: isSelected ? AppColors.primary : AppColors.cardBorder,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-      ),
-    );
-  }
 }
-

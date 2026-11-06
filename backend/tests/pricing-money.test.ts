@@ -217,3 +217,34 @@ describe('التحويل بين الحسابات', () => {
     assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 100 })).status, 200);
   });
 });
+
+describe('صفحة المدفوعات', () => {
+  const payments = async () => (await call('GET', '/wallet/payments', clientToken)).body.data as any[];
+
+  it('الدفعة الناجحة والمرتجعة والفاشلة بتظهر للموكل بس', async () => {
+    const order = await createOrder();
+    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
+    const noBalance = await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, { method: 'wallet' });
+    assert.equal(noBalance.status, 400);
+
+    let list = await payments();
+    assert.equal(list.length, 1);
+    assert.equal(list[0].status, 'FAILED');
+    assert.equal(list[0].reason, 'رصيدك مش كفاية');
+    assert.equal(list[0].method, 'WALLET');
+
+    assert.equal((await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, {})).status, 200);
+    list = await payments();
+    assert.equal(list.length, 2);
+    assert.equal(list[0].status, 'PAID');
+    assert.match(list[0].reference, /^ML-PAY-\d{6}$/);
+    assert.equal(list[0].amount, 350);
+
+    assert.equal((await call('POST', `/orders/${order.id}/cancel`, clientToken, {})).status, 200);
+    list = await payments();
+    assert.equal(list[0].status, 'REFUNDED');
+    assert.equal(list[0].refunded, 350);
+
+    assert.equal((await call('GET', '/wallet/payments', lawyerToken)).body.data.length, 0);
+  });
+});

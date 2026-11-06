@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Payment Method Page and Payments History] - 2026-11-06
+- **Paying:** the invoice page only reviews the bill, and «اختار طريقة الدفع» opens a page of its own with the line drawing and title like the sign-up pages. The balance option is off when the balance is not enough.
+- **Payments page:** «المدفوعات والفواتير» in the client account lists every payment with its state: paid, refunded, partly refunded or failed with the reason. Paid ones download a PDF invoice in Arabic through the phone's save and share screen.
+- **Server:** `GET /wallet/payments`, and a failed payment (balance not enough or payment time over) is kept in `failed_payments`, migration `029`.
+- **Libraries:** `pdf` and `printing`, approved by the owner for the invoice.
+
 ## [Transfers Without Held Fees] - 2026-11-06
 - **Wallet transfers:** anyone sends to anyone, lawyer to lawyer included, and refunds can be sent. Only a lawyer's held or frozen fees cannot move until they are released, and the refusal says so.
 - **Unactivated accounts:** by the owner's decision, an account keeps its phone and email reserved once created, and the phone is not checked by a code.

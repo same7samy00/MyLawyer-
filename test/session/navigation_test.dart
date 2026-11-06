@@ -167,8 +167,13 @@ void main() {
         locationName: 'قصر النيل',
       )));
 
-      await tester.ensureVisible(find.text('دفع 350 ج.م وتأكيد الطلب'));
-      await tester.tap(find.text('دفع 350 ج.م وتأكيد الطلب'));
+      // الفاتورة الأول، وبعدها صفحة طريقة الدفع لوحدها
+      await tester.tap(find.text('اختار طريقة الدفع'));
+      await tester.pumpAndSettle();
+      expect(find.text('اختار طريقة الدفع'), findsOneWidget);
+      expect(find.text('فودافون كاش ومحافظ الموبايل'), findsOneWidget);
+
+      await tester.tap(find.text('ادفع 350 ج.م'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
