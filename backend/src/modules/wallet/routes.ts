@@ -19,6 +19,19 @@ export async function spendableBalance(db: Db, userId: string, role: string): Pr
   return Number(res.rows[0].balance);
 }
 
+/// What the account can transfer: only withdrawable money. All of a lawyer's available earnings,
+/// and for a client only what reached them by transfer, since refunds stay in the app and are spent first
+export async function transferableBalance(db: Db, userId: string, role: string): Promise<number> {
+  const balance = await spendableBalance(db, userId, role);
+  if (role === 'lawyer') return Math.max(0, balance);
+  const res = await db.query(
+    `SELECT COALESCE((SELECT SUM(amount) FROM wallet_transfers WHERE recipient_id = $1), 0)
+          - COALESCE((SELECT SUM(amount) FROM wallet_transfers WHERE sender_id = $1), 0) AS received`,
+    [userId]
+  );
+  return Math.max(0, Math.min(balance, Number(res.rows[0].received)));
+}
+
 async function addToLedger(db: Db, user: { id: string; role: string }, amount: number, reason: string) {
   if (user.role === 'lawyer') {
     await db.query('INSERT INTO lawyer_adjustments (lawyer_id, amount, reason, created_by) VALUES ($1, $2, $3, $1)', [user.id, amount, reason]);
@@ -69,6 +82,7 @@ export async function walletRoutes(fastify: FastifyInstance) {
         dailyLimit: DAILY_TRANSFER_LIMIT,
         remainingToday: Math.max(0, DAILY_TRANSFER_LIMIT - Number(sent.rows[0].total)),
         balance: await spendableBalance(dbPool, userId, role),
+        transferable: await transferableBalance(dbPool, userId, role),
       };
     });
   });
@@ -101,6 +115,10 @@ export async function walletRoutes(fastify: FastifyInstance) {
       }
 
       if (amount > await spendableBalance(db, userId, role)) throw new HttpError(400, 'رصيدك مش كفاية');
+      const transferable = await transferableBalance(db, userId, role);
+      if (amount > transferable) {
+        throw new HttpError(400, `بيتحول بس الرصيد المتاح للسحب، والمبالغ المرتجعة ما بتتحولش. المتاح للتحويل ${transferable} ج.م`);
+      }
 
       const transfer = await db.query(
         'INSERT INTO wallet_transfers (sender_id, recipient_id, amount) VALUES ($1, $2, $3) RETURNING id, reference, created_at',

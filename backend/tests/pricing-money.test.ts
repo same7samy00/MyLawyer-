@@ -164,9 +164,28 @@ describe('السعر قبل الطلب والنسبة', () => {
 });
 
 describe('التحويل بين الحسابات', () => {
-  const credit = (amount: number) => sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, $2, 'شحن تجريبي')`, [clientId, amount]);
+  const refund = (amount: number) => sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, $2, 'مبلغ مرتجع')`, [clientId, amount]);
+  // Money that reached the client by transfer can be withdrawn, so it can be transferred again
+  const credit = async (amount: number) => {
+    await sql('INSERT INTO wallet_transfers (sender_id, recipient_id, amount, created_at) VALUES ($1, $2, $3, NOW() - INTERVAL \'2 days\')', [lawyerId, clientId, amount]);
+    await sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, $2, 'تحويل تجريبي')`, [clientId, amount]);
+  };
 
-  it('الموكل يحوّل للمحامي برقم الموبايل، والرصيد يتنقل للطرفين', async () => {
+  it('المبالغ المرتجعة ما بتتحولش، والمتاح للسحب بس هو اللي بيتحول', async () => {
+    await refund(500);
+    const blocked = await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 100 });
+    assert.equal(blocked.status, 400);
+    assert.match(blocked.body.error, /المبالغ المرتجعة/);
+    assert.equal((await call('GET', '/wallet/limits', clientToken)).body.data.transferable, 0);
+
+    await credit(200);
+    assert.equal((await call('GET', '/wallet/limits', clientToken)).body.data.transferable, 200);
+    assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 250 })).status, 400);
+    assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 200 })).status, 200);
+    assert.equal(await clientBalance(), 500);
+  });
+
+  it('أي حد يحوّل لأي حد: الموكل للمحامي والمحامي للموكل', async () => {
     await credit(500);
     const who = await call('GET', '/wallet/recipient?phone=01000000002', clientToken);
     assert.equal(who.status, 200);

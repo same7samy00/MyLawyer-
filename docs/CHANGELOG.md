@@ -1,5 +1,9 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Transfers From Withdrawable Money Only] - 2026-11-06
+- **Wallet transfers:** anyone can still send to anyone, but only money that can be withdrawn. A lawyer sends from their available earnings. A client sends only what reached them by transfer; refunds stay in the app and cannot be sent. Refunds are spent first on orders. A refused transfer says why and how much can be sent. `GET /wallet/limits` adds `transferable`.
+- **Unactivated accounts:** by the owner's decision, an account keeps its phone and email reserved once created, and the phone is not checked by a code.
+
 ## [No Lawyer Degree] - 2026-11-06
 - **Lawyer card:** the line under the lawyer's name (degree such as «محامي استئناف») is gone from the map sheet and the nearby lawyers sheet, by the owner's choice: no titles or specialties. The «الأقرب إليك» badge stays under the name.
 - **Server:** `/lawyers/nearby` and `/lawyers/me` no longer send `degree`. The old database column stays untouched.

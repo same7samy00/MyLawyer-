@@ -263,6 +263,8 @@ describe('الفلوس لما عمليتين ييجوا في نفس اللحظة
 
   it('طلبين من نفس الرصيد ما يقدروش يخصموا أكتر من الموجود', async () => {
     await sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, 350, 'رصيد')`, [clientId]);
+    // Received by transfer, so the transfer below is allowed and races the payment
+    await sql('INSERT INTO wallet_transfers (sender_id, recipient_id, amount) VALUES ($1, $2, 350)', [lawyerId, clientId]);
     const recipientPhone = newPhone();
     await createUser(recipientPhone, 'client');
     const order = await createOrder();
