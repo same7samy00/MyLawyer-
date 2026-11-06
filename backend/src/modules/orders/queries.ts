@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { query } from '../../database/index.js';
 import { REVIEW_WINDOW_DAYS } from '../lifecycle/service.js';
 import { OPEN_ORDER_TICKET } from '../support/service.js';
-import { PAID_STATUSES, responseSecondsLeft, visibleLocation, AuthenticatedUser } from './shared.js';
+import { hideLiveColumns, livePosition, PAID_STATUSES, responseSecondsLeft, visibleLocation, AuthenticatedUser } from './shared.js';
 
 // Building a date format is slow, and this list is read on every refresh
 const ORDER_DATE = new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -97,6 +97,7 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
         date: formattedDate,
         createdAt: o.created_at,
         ...visibleLocation(o, userId, role),
+        ...livePosition(o, userId),
         cancellationReason: o.cancellation_reason,
         rejectionReason: o.rejection_reason,
         acceptedAt: o.accepted_at,
@@ -169,6 +170,8 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
     }
 
     order.responseSecondsLeft = responseSecondsLeft(order);
+    Object.assign(order, livePosition(order, userId));
+    hideLiveColumns(order);
 
     const location = visibleLocation(order, userId, role);
     order.client_latitude = location.clientLatitude;

@@ -34,6 +34,24 @@ export function governorateOf(area: string | null): string | null {
   return area.split('،').pop()?.trim() || null;
 }
 
+/// The other side's newest point, only between payment and the arrival
+export function livePosition(order: any, viewerId: string) {
+  const tracking = order.status === 'ACTIVE' && !order.arrived_at;
+  const ofLawyer = order.client_id === viewerId;
+  const lat = ofLawyer ? order.lawyer_live_latitude : order.client_live_latitude;
+  const lon = ofLawyer ? order.lawyer_live_longitude : order.client_live_longitude;
+  const at = ofLawyer ? order.lawyer_live_at : order.client_live_at;
+  if (!tracking || lat == null || lon == null) return { liveLatitude: null, liveLongitude: null, liveAt: null };
+  return { liveLatitude: Number(lat), liveLongitude: Number(lon), liveAt: at };
+}
+
+/// Live points never leave the server outside the way to the meeting
+export function hideLiveColumns(order: any) {
+  for (const key of ['lawyer_live_latitude', 'lawyer_live_longitude', 'lawyer_live_at', 'client_live_latitude', 'client_live_longitude', 'client_live_at']) {
+    delete order[key];
+  }
+}
+
 // Each side sees the other's exact place and area only after payment
 export function visibleLocation(order: any, viewerId: string, role: string) {
   const isShared = role === 'admin' || PAID_STATUSES.includes(order.status);

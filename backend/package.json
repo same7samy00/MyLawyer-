@@ -10,7 +10,7 @@
     "dev": "tsx watch src/server.ts",
     "migrate": "node dist/database/migrate.js",
     "migrate:dev": "tsx src/database/migrate.ts",
-    "test": "node --import tsx --test --test-force-exit --test-concurrency=1 tests/pricing-money.test.ts tests/order-flow.test.ts tests/requests.test.ts tests/tickets-settlement.test.ts tests/support.test.ts tests/reviews.test.ts tests/platform.test.ts tests/hardening.test.ts",
+    "test": "node --import tsx --test --test-force-exit --test-concurrency=1 tests/pricing-money.test.ts tests/order-flow.test.ts tests/requests.test.ts tests/tickets-settlement.test.ts tests/support.test.ts tests/reviews.test.ts tests/platform.test.ts tests/hardening.test.ts tests/live-tracking.test.ts",
     "preview:panel": "node --import tsx scripts/panel-preview.ts"
   },
   "dependencies": {

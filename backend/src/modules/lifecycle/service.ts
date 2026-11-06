@@ -10,6 +10,10 @@ export const LAWYER_RESPONSE_SECONDS = 120;
 export const PAYMENT_MINUTES = 10;
 /// The lawyer and the client must really meet, so arrival is accepted within 50 meters only
 export const ARRIVAL_RADIUS_KM = 0.05;
+/// Each side shares its newest point at most this often on the way to the meeting
+export const LIVE_POSITION_SECONDS = 4;
+/// A shared point younger than this counts as where the client is now
+export const LIVE_POSITION_FRESH_SECONDS = 120;
 export const ARRIVAL_REMINDER_MINUTES = 10;
 export const CLIENT_REPLY_HOURS = 2;
 const ARRIVAL_MARGIN_MINUTES = 30;

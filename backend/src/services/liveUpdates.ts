@@ -4,6 +4,8 @@ import { config } from '../config/index.js';
 import type { Db } from '../database/index.js';
 
 const CHANNEL = 'user_changes';
+// Live positions on the way to a meeting: never stored in change_log, only the newest one matters
+const POSITION_CHANNEL = 'order_positions';
 const HEARTBEAT_MS = 25_000;
 const RECONNECT_MS = 3_000;
 const MAX_LINES_PER_USER = 3;
@@ -30,6 +32,18 @@ export function deliverChange(userId: string, alert = false, kind = 'all', entit
   for (const line of lines.get(userId) ?? []) line.write(text);
   // The control page hears about every change, without sound
   for (const line of adminLines) line.write(`data: change ${kind} ${entityId}\n\n`);
+}
+
+/// Sends one side's newest point to the other side of the order, and to nobody else
+export async function publishPosition(db: Db, toUserId: string, orderId: string, side: 'lawyer' | 'client', lat: number, lon: number) {
+  await db.query('SELECT pg_notify($1, $2)', [POSITION_CHANNEL, `${toUserId}|${orderId}|${side}|${lat}|${lon}`]);
+}
+
+function deliverPosition(payload: string) {
+  const [userId, orderId, side, lat, lon] = payload.split('|');
+  if (!userId || !orderId) return;
+  const text = `data: position ${orderId} ${side} ${lat} ${lon}\n\n`;
+  for (const line of lines.get(userId) ?? []) line.write(text);
 }
 
 /// One open line per phone. A person's oldest line closes when they pass the limit.
@@ -82,12 +96,14 @@ async function connectListener() {
   client.on('error', retryOnce);
   client.on('end', retryOnce);
   client.on('notification', (message) => {
+    if (message.channel === POSITION_CHANNEL) return deliverPosition(message.payload ?? '');
     const [userId, level, kind, entityId, changeId] = (message.payload ?? '').split('|');
     if (userId) deliverChange(userId, level === 'alert', kind || 'all', entityId || '-', changeId || '');
   });
   try {
     await client.connect();
     await client.query(`LISTEN ${CHANNEL}`);
+    await client.query(`LISTEN ${POSITION_CHANNEL}`);
     listener = client;
   } catch (err) {
     console.error('[MyLawyer Backend] Live updates connection failed:', err);
