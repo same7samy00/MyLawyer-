@@ -181,27 +181,29 @@ describe('الطلب وعروض الأسعار', () => {
     assert.equal((await follow(id)).round, 2);
     assert.equal((await sql('SELECT round FROM request_recipients WHERE request_id = $1 AND lawyer_id = $2', [id, farthest.id]))[0].round, 2);
 
-    // After the two rounds the request waits for «بحث جديد» a few minutes, then closes by itself
+    // After the two rounds the request closes right away, nothing stays waiting on the server
     await endRound(id);
     await sweepLifecycle();
-    assert.equal((await follow(id)).status, 'OPEN');
-    assert.equal((await follow(id)).secondsLeft, 0);
-    await sql(`UPDATE service_requests SET round_deadline = NOW() - INTERVAL '6 minutes' WHERE id = $1`, [id]);
-    await sweepLifecycle();
     assert.equal((await follow(id)).status, 'NO_OFFERS');
-    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'مفيش محامي متاح'`, [clientId])).length, 1);
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'محدش بعت عرض'`, [clientId])).length, 1);
     for (const lawyer of others) await removeLawyer(lawyer.id);
   });
 
-  it('بعد الجولتين من غير عروض، «بحث جديد» لسه شغال ويرجع للأقرب', async () => {
+  it('بعد ما الطلب يتقفل من غير عروض، «بحث جديد» في التطبيق بيبعت طلب جديد للأقرب', async () => {
     const id = await createRequest();
     await endRound(id);
     await sweepLifecycle();
-    await endRound(id);
-    await sweepLifecycle();
-    const res = await call('POST', `/requests/${id}/search`, clientToken, {});
-    assert.equal(res.status, 200, JSON.stringify(res.body));
-    assert.ok((await follow(id)).secondsLeft > 100);
+    if ((await follow(id)).status === 'OPEN') {
+      await endRound(id);
+      await sweepLifecycle();
+    }
+    assert.equal((await follow(id)).status, 'NO_OFFERS');
+    assert.equal((await call('POST', `/requests/${id}/search`, clientToken, {})).status, 409);
+    const again = await send();
+    assert.equal(again.status, 201, JSON.stringify(again.body));
+    const sent = await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [again.body.data.id]);
+    assert.equal(sent.some((row: any) => row.lawyer_id === lawyerId), true);
+    await call('POST', `/requests/${again.body.data.id}/cancel`, clientToken, {});
   });
 
   it('«بحث جديد» بيبعت للـ 10 اللي بعد الأولانيين، وبعدها يرجع للأقرب 10، والعروض اللي وصلت بتفضل', async () => {

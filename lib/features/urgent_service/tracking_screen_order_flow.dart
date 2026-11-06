@@ -52,7 +52,8 @@ extension _TrackingOrderFlow on _TrackingScreenState {
   Future<void> _sendRequest() async {
     // الطلب بيروح لأقرب المحامين، فلازم مكان الموكل الحقيقي دلوقتي
     final location = await LocationService.instance.checkAndRequestPermission(fresh: true);
-    if (!mounted || _orderFlowStage != _OrderFlowStage.priceApproval) return;
+    // «بحث جديد» بعد ما الطلب اتقفل بيبعت من نفس صفحة الانتظار
+    if (!mounted || (_orderFlowStage != _OrderFlowStage.priceApproval && !_noOffers)) return;
     final position = location.position;
     if (position == null) {
       _showMessage(location.errorMessage ?? 'تعذر تحديد موقعك، حاول تاني.');
@@ -73,6 +74,7 @@ extension _TrackingOrderFlow on _TrackingScreenState {
     final requestId = res.data;
     if (!res.isOk || requestId == null) {
       _update(() {
+        _noOffers = false;
         _orderFlowStage = _OrderFlowStage.idle;
       });
       _showMessage(res.error ?? 'تعذر إرسال طلبك، يرجى المحاولة مرة أخرى.');
@@ -82,6 +84,7 @@ extension _TrackingOrderFlow on _TrackingScreenState {
     _activeRequestId = requestId;
     _update(() {
       _activeRequest = null;
+      _noOffers = false;
       _orderFlowStage = _OrderFlowStage.waitingOffers;
     });
     _followRequest(requestId);
@@ -118,6 +121,14 @@ extension _TrackingOrderFlow on _TrackingScreenState {
     if (!request.isOpen) {
       _stopFollowingRequest();
       _activeRequestId = null;
+      // محدش بعت عرض بعد الجولتين: الصفحة تفضل زي ما هي، بجملة توضح وزرار «بحث جديد» بيبعت طلب جديد
+      if (request.status == 'NO_OFFERS') {
+        _update(() {
+          _activeRequest = null;
+          _noOffers = true;
+        });
+        return;
+      }
       _update(() {
         _activeRequest = null;
         _orderFlowStage = _OrderFlowStage.idle;
@@ -140,8 +151,16 @@ extension _TrackingOrderFlow on _TrackingScreenState {
 
   /// «بحث جديد»: الطلب يروح للـ 10 اللي بعد الأولانيين، والمرة اللي بعدها يرجع للأقرب
   Future<void> _searchAgain() async {
+    if (_isSearchingAgain) return;
+    // الطلب اتقفل من غير عروض: طلب جديد بنفس البيانات، فيروح للأقرب 10
+    if (_noOffers) {
+      _update(() => _isSearchingAgain = true);
+      await _sendRequest();
+      if (mounted) _update(() => _isSearchingAgain = false);
+      return;
+    }
     final requestId = _activeRequestId;
-    if (requestId == null || _isSearchingAgain) return;
+    if (requestId == null) return;
     _update(() => _isSearchingAgain = true);
     final res = await RequestRepository.searchAgain(requestId);
     if (!mounted) return;
@@ -196,6 +215,7 @@ extension _TrackingOrderFlow on _TrackingScreenState {
     _update(() {
       _activeRequest = null;
       _showReviews = false;
+      _noOffers = false;
       _reviewsLawyerId = null;
       _orderFlowStage = _OrderFlowStage.idle;
       _selectedLawyer ??= _nearbyLawyers.firstOrNull;

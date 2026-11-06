@@ -104,6 +104,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   String? _reviewsLawyerId;
   bool _isChoosingOffer = false;
   bool _isSearchingAgain = false;
+  bool _noOffers = false;
   String? _followedRequestId;
   bool _isCheckingRequest = false;
   bool _showReviews = false;

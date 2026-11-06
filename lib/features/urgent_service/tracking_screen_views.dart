@@ -269,7 +269,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              offers.isEmpty ? 'مستنيين عروض المحامين' : 'اختار العرض المناسب ليك',
+              _noOffers ? 'محدش بعت عرض' : offers.isEmpty ? 'مستنيين عروض المحامين' : 'اختار العرض المناسب ليك',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: 'AppFont',
@@ -281,7 +281,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
             ),
             const SizedBox(height: 10),
             // وإحنا مستنيين: تحميل من غير عداد. ولو الوقت خلص ومحدش بعت، جملة توضح وزرار «بحث جديد»
-            if (offers.isEmpty && (_activeRequest?.secondsLeft ?? 120) > 0) ...[
+            if (!_noOffers && offers.isEmpty && (_activeRequest?.secondsLeft ?? 120) > 0) ...[
               const Center(
                 child: SizedBox(width: 34, height: 34, child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.primary)),
               ),
@@ -298,7 +298,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
                 ),
               ),
             ],
-            if (offers.isEmpty && (_activeRequest?.secondsLeft ?? 120) <= 0)
+            if (_noOffers || (offers.isEmpty && (_activeRequest?.secondsLeft ?? 120) <= 0))
               const Text(
                 'محدش من المحامين القريبين بعت عرض لسه. دوس «بحث جديد» ونبعت طلبك لمحامين تانيين',
                 textAlign: TextAlign.center,
@@ -337,7 +337,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
             const SizedBox(height: 10),
             // بيظهر لما العروض توصل أو لما الوقت يخلص من غير عروض، ومش وقت التحميل.
             // بيبعت للـ 10 اللي بعدهم على طول، والعروض اللي وصلت بتفضل
-            if (offers.isNotEmpty || (_activeRequest?.secondsLeft ?? 120) <= 0) ...[
+            if (_noOffers || offers.isNotEmpty || (_activeRequest?.secondsLeft ?? 120) <= 0) ...[
               AppButton(
                 text: 'بحث جديد',
                 height: 46,

@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Lighter No-Offers Ending] - 2026-11-06
+- **Server:** after the two automatic rounds with no offer the request closes right away (notice «محدش بعت عرض»), so nothing stays open or checked on the server. «بحث جديد» on an open request still moves to the next group.
+- **App:** a closed request with no offers keeps the waiting page, with the sentence and «بحث جديد», which sends a new request with the same details to the nearest 10, from the same page.
+- **Refund:** no answer to «wait or cancel» refunds after 5 minutes (was 2 hours).
+
 ## [Arrival Time Card and Waiting Screen] - 2026-11-06
 - **No in-app map for tracking:** the order sheet shows only the arrival time on real roads (OSRM, with expected traffic), asked at most every 30 seconds or after the lawyer moves 150 meters. The lawyer sees the distance and time and keeps the Google Maps button; the client sees «المحامي هيوصلك خلال ...» with no Google Maps button.
 - **Waiting for offers:** a loader and a sentence, without a countdown. When the round ends with no offer, a sentence says so and shows «بحث جديد»; when offers arrive they show with «بحث جديد».

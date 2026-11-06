@@ -124,9 +124,9 @@ export async function advanceRequests() {
       const nextRound = request.round + 1;
       const sent = nextRound <= AUTO_ROUNDS ? await sendRound(client, request, nextRound) : 0;
       if (sent === 0) {
-        // Nobody offered after the automatic rounds: the request waits a few minutes for «بحث جديد», then closes
-        const left = await client.query(`SELECT $1::timestamptz + make_interval(mins => $2) > NOW() AS waiting`, [request.round_deadline, CHOOSE_MINUTES]);
-        if (!left.rows[0].waiting) await closeRequest(client, request, 'NO_OFFERS', 'مفيش محامي متاح', 'جرب تاني كمان شوية');
+        // Nobody offered after the automatic rounds: the request closes right away, so nothing waits on the server.
+        // The app keeps «بحث جديد», which sends a new request to the nearest 10 (owner decision 2026-11-06)
+        await closeRequest(client, request, 'NO_OFFERS', 'محدش بعت عرض', 'دوس «بحث جديد» ونبعت طلبك لمحامين تانيين');
         return;
       }
       await client.query(
