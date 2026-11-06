@@ -67,6 +67,20 @@ class OrderRepository {
     );
   }
 
+  /// طلب واحد بنفس شكل القائمة، وفاضي لو مبقاش من طلبات المستخدم
+  static Future<ApiResponse<OrderModel?>> getOrderFromList(String id) async {
+    final res = await ApiService.get('/orders', queryParams: {'id': id});
+    if (res.isOk && res.data is List) {
+      final list = res.data as List;
+      return ApiResponse<OrderModel?>(
+        success: true,
+        statusCode: res.statusCode,
+        data: list.isEmpty ? null : OrderModel.fromJson(list.first as Map<String, dynamic>),
+      );
+    }
+    return ApiResponse<OrderModel?>(success: false, statusCode: res.statusCode, error: res.error);
+  }
+
   /// قبول الطلب من قبل المحامي
   static Future<ApiResponse<OrderModel>> acceptOrder(String orderId, {double? lat, double? lon}) async {
     final res = await ApiService.post('/orders/$orderId/accept', {

@@ -70,7 +70,7 @@ export async function notify(db: Db, userId: string, title: string, body: string
     );
   }
 
-  await publishChange(db, userId, !quiet, orderId ? 'orders' : requestId ? 'requests' : ticketId ? 'support' : 'notifications');
+  await publishChange(db, userId, !quiet, orderId ? 'orders' : requestId ? 'requests' : ticketId ? 'support' : 'notifications', orderId ?? requestId ?? ticketId ?? null);
 
   // The order never waits for the phone
   if (!quiet) void sendPush(userId, title, body, { orderId, ticketId, requestId });

@@ -65,8 +65,10 @@ class PushService {
     // والتطبيق مفتوح مفيش إشعار على الجهاز، صوت واهتزاز والصفحة تتحدث
     FirebaseMessaging.onMessage.listen((message) {
       NotificationCenter.refresh();
-      LiveUpdates.changes.value++;
-      LiveUpdates.orders.value++;
+      final data = message.data;
+      final orderId = data['orderId']?.toString();
+      final requestId = data['requestId']?.toString();
+      LiveUpdates.announce(orderId != null ? LiveChange('orders', orderId) : requestId != null ? LiveChange('requests', requestId) : const LiveChange('notifications'));
       LiveUpdates.alertUser();
     });
     // التطبيق كان في الخلفية واتفتح بلمس الإشعار

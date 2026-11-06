@@ -32,6 +32,25 @@ async function otherLawyer(lat = 30.06) {
 const removeLawyer = (id: string) => sql('DELETE FROM users WHERE id = $1', [id]);
 
 describe('الخط المفتوح', () => {
+  it('كل تغيير له رقم، والتطبيق يسأل عن اللي فاته بس', async () => {
+    const start = (await call('GET', '/events/since', lawyerToken)).body.data;
+    assert.equal(start.reset, true);
+    await setRange();
+    await send();
+    const missed = (await call('GET', `/events/since?after=${start.last}`, lawyerToken)).body.data;
+    assert.equal(missed.reset, false);
+    assert.equal(missed.changes[0].kind, 'requests');
+    assert.ok(missed.changes[0].entityId);
+    assert.ok(missed.last > start.last);
+  });
+
+  it('طلب واحد بنفس شكل القائمة', async () => {
+    await setRange();
+    const list = (await call('GET', '/orders', clientToken)).body.data;
+    const one = (await call('GET', `/orders?id=${list[0]?.orderId ?? '00000000-0000-0000-0000-000000000000'}`, clientToken)).body.data;
+    assert.equal(one.length, list.length ? 1 : 0);
+  });
+
   it('الخط محتاج تسجيل دخول', async () => {
     assert.equal((await app.inject({ method: 'GET', url: '/api/v1/events' })).statusCode, 401);
   });

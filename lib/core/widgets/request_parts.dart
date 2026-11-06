@@ -1,18 +1,49 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
 /// أجزاء مشتركة بين بطاقة الطلب الجديد وشيت تفاصيله
 
-/// الوقت الباقي لإرسال السعر، أحمر عشان يلفت النظر
-class RequestTimeBadge extends StatelessWidget {
+/// الوقت الباقي لإرسال السعر، أحمر عشان يلفت النظر، وبيعد لوحده كل ثانية
+class RequestTimeBadge extends StatefulWidget {
   final int secondsLeft;
 
   const RequestTimeBadge({super.key, required this.secondsLeft});
 
   @override
+  State<RequestTimeBadge> createState() => _RequestTimeBadgeState();
+}
+
+class _RequestTimeBadgeState extends State<RequestTimeBadge> {
+  late DateTime _end = DateTime.now().add(Duration(seconds: widget.secondsLeft));
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void didUpdateWidget(RequestTimeBadge old) {
+    super.didUpdateWidget(old);
+    if (old.secondsLeft != widget.secondsLeft) _end = DateTime.now().add(Duration(seconds: widget.secondsLeft));
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isOver = secondsLeft <= 0;
-    final text = isOver ? 'الوقت خلص' : '${secondsLeft ~/ 60}:${(secondsLeft % 60).toString().padLeft(2, '0')}';
+    final left = _end.difference(DateTime.now()).inSeconds;
+    final isOver = left <= 0;
+    if (isOver) _timer?.cancel();
+    final text = isOver ? 'الوقت خلص' : '${left ~/ 60}:${(left % 60).toString().padLeft(2, '0')}';
     final color = isOver ? AppColors.textMuted : AppColors.danger;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

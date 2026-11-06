@@ -1,4 +1,5 @@
 import 'package:flutter_map/flutter_map.dart';
+import 'package:my_lawyer/core/services/order_store.dart';
 import 'package:my_lawyer/core/services/app_cached_tile_provider.dart';
 import 'package:my_lawyer/core/widgets/app_button.dart';
 import 'package:my_lawyer/core/widgets/app_header.dart';
@@ -46,6 +47,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    OrderStore.clear();
     backend = FakeBackend();
     ApiService.useHttpClient(backend.client);
   });

@@ -52,7 +52,7 @@ async function closeUnpaidOrders() {
       [order.id]
     );
     await notify(dbPool, order.client_id, 'انتهت مهلة الدفع', 'الطلب اتلغى، وتقدر تبدأ طلب جديد', order.id);
-    await publishChange(dbPool, order.lawyer_id, false, 'orders');
+    await publishChange(dbPool, order.lawyer_id, false, 'orders', order.id);
   }
 }
 
@@ -93,6 +93,8 @@ async function removeOldNotifications() {
   if (Date.now() - lastCleanup < 3_600_000) return;
   lastCleanup = Date.now();
   await dbPool.query(`DELETE FROM notifications WHERE created_at < NOW() - INTERVAL '30 days'`);
+  // An app away longer than two days reloads everything instead of reading old changes
+  await dbPool.query(`DELETE FROM change_log WHERE created_at < NOW() - INTERVAL '2 days'`);
 }
 
 async function sendArrivalReminders() {

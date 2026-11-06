@@ -4,20 +4,39 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'api_service.dart';
 import 'app_visibility.dart';
+import 'saved_data.dart';
 
-/// خط مفتوح مع السيرفر: أول ما حاجة تخص المستخدم تتغير، الصفحات المفتوحة تتحدث.
-/// لو الخط قطع بيتوصل تاني لوحده، والصفحات بتتحدث أول ما يرجع عشان ما يفوتهاش حاجة.
+/// تغيير واحد بعته السيرفر: نوعه، والطلب أو التذكرة اللي اتغيرت لو معروفة
+class LiveChange {
+  final String kind;
+  final String? entityId;
+
+  const LiveChange(this.kind, [this.entityId]);
+
+  bool get isEverything => kind == 'all';
+}
+
+/// خط مفتوح مع السيرفر زي التطبيقات الكبيرة:
+/// السيرفر بيبعت إيه اللي اتغير بالظبط، والتطبيق بيحدث الحاجة دي بس.
+/// كل تغيير له رقم، ولو الخط قطع، التطبيق بيسأل عن اللي فاته بس أول ما يرجع، من غير شاشة تحميل أو رسالة.
 class LiveUpdates {
   LiveUpdates._();
 
-  /// بيزيد مع كل تغيير، والصفحات بتسمعه
+  /// بيزيد مع كل تغيير، للعدادات والإشعارات
   static final ValueNotifier<int> changes = ValueNotifier<int>(0);
 
-  /// الطلبات والعروض والفلوس اتغيرت
+  /// الطلبات والفلوس اتغيرت
   static final ValueNotifier<int> orders = ValueNotifier<int>(0);
 
-  static final Set<String> _pendingKinds = {};
+  /// الطلبات الجديدة والعروض اتغيرت
+  static final ValueNotifier<int> requests = ValueNotifier<int>(0);
 
+  static final StreamController<LiveChange> _changes = StreamController<LiveChange>.broadcast();
+
+  /// كل تغيير لوحده، للي محتاج يعرف أنهي طلب اتغير
+  static Stream<LiveChange> get stream => _changes.stream;
+
+  static const String _lastIdKey = 'live_last_id';
   static const Duration _firstRetry = Duration(seconds: 2);
   static const Duration _maxRetry = Duration(seconds: 30);
   static const Duration _gatherChanges = Duration(milliseconds: 150);
@@ -32,6 +51,8 @@ class LiveUpdates {
   static Duration _nextRetry = _firstRetry;
   static bool _isRunning = false;
   static int _turn = 0;
+  static int? _lastId;
+  static final Set<String> _pendingKinds = {};
 
   static void start() {
     if (_isRunning) return;
@@ -43,6 +64,7 @@ class LiveUpdates {
   static void stop() {
     _isRunning = false;
     _turn++;
+    _lastId = null;
     _retryTimer?.cancel();
     _gatherTimer?.cancel();
     unawaited(_line?.cancel());
@@ -70,15 +92,46 @@ class LiveUpdates {
     unawaited(_device.invokeMethod<void>('alert').catchError((Object _) {}));
   }
 
-  static void _announce([String kind = 'all']) {
-    _pendingKinds.add(kind);
+  /// تغيير وصل من الإشعار وهو مش على الخط
+  static void announce(LiveChange change) => _announce(change);
+
+  static void _announce(LiveChange change) {
+    _changes.add(change);
+    _pendingKinds.add(change.kind);
     _gatherTimer?.cancel();
     _gatherTimer = Timer(_gatherChanges, () {
       final kinds = Set<String>.of(_pendingKinds);
       _pendingKinds.clear();
+      final everything = kinds.contains('all');
       changes.value++;
-      if (kinds.contains('all') || kinds.contains('orders') || kinds.contains('requests')) orders.value++;
+      if (everything || kinds.contains('orders')) orders.value++;
+      if (everything || kinds.contains('requests')) requests.value++;
     });
+  }
+
+  static void _remember(int id) {
+    _lastId = id;
+    unawaited(SavedData.write(_lastIdKey, id));
+  }
+
+  /// اللي فات وقت ما الخط كان مقطوع: لو كتير أو قديم، كل حاجة تتحدث مرة واحدة
+  static Future<void> _catchUp(int turn) async {
+    _lastId ??= (await SavedData.read(_lastIdKey) as num?)?.toInt();
+    final known = _lastId;
+    final res = await ApiService.get('/events/since', queryParams: {if (known != null) 'after': '$known'});
+    if (turn != _turn || !res.isOk || res.data is! Map<String, dynamic>) return;
+    final data = res.data as Map<String, dynamic>;
+    if (known != null) {
+      if (data['reset'] == true) {
+        _announce(const LiveChange('all'));
+      } else {
+        for (final item in (data['changes'] as List? ?? const [])) {
+          if (item is Map<String, dynamic>) _announce(LiveChange(item['kind'].toString(), item['entityId']?.toString()));
+        }
+      }
+    }
+    final last = (data['last'] as num?)?.toInt();
+    if (last != null && last > (_lastId ?? 0)) _remember(last);
   }
 
   static Future<void> _connect() async {
@@ -99,10 +152,18 @@ class LiveUpdates {
       }
 
       _nextRetry = _firstRetry;
-      _announce();
       _line = response.stream.transform(utf8.decoder).transform(const LineSplitter()).listen(
         (text) {
-          if (text.startsWith('data: change')) _announce(text.split(' ').length > 2 ? text.split(' ')[2] : 'all');
+          if (text.startsWith('id: ')) {
+            final id = int.tryParse(text.substring(4).trim());
+            if (id != null) _remember(id);
+            return;
+          }
+          if (!text.startsWith('data: change')) return;
+          final parts = text.split(' ');
+          final kind = parts.length > 2 ? parts[2] : 'all';
+          final entity = parts.length > 3 && parts[3] != '-' ? parts[3] : null;
+          _announce(LiveChange(kind, entity));
           if (text.startsWith('data: change-alert')) alertUser();
         },
         onError: (Object _) {
@@ -113,6 +174,7 @@ class LiveUpdates {
         },
         cancelOnError: true,
       );
+      await _catchUp(turn);
     } catch (_) {
       if (turn == _turn && _isRunning) _retryLater();
     }

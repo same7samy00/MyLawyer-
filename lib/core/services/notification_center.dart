@@ -4,6 +4,7 @@ import '../../data/models/lifecycle_models.dart';
 import 'api_service.dart';
 import 'app_visibility.dart';
 import 'live_updates.dart';
+import 'order_store.dart';
 import 'saved_data.dart';
 
 /// الصفحة اللي الإشعار بيفتحها
@@ -54,6 +55,7 @@ class NotificationCenter {
     LiveUpdates.changes.removeListener(refresh);
     LiveUpdates.changes.addListener(refresh);
     LiveUpdates.start();
+    OrderStore.start();
   }
 
   static void stop() {

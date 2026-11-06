@@ -153,6 +153,31 @@ export function buildApp() {
       reply.hijack();
       openLine(userId, reply.raw, role === 'admin');
     });
+    // What changed after a number the app already has. Too far back, and the app reloads everything
+    api.get('/events/since', { onRequest: requireAuth() }, async (request) => {
+      const { userId } = request.user as { userId: string };
+      const given = (request.query as { after?: string }).after;
+      const latest = await dbPool.query('SELECT COALESCE(MAX(id), 0)::bigint AS last FROM change_log WHERE user_id = $1', [userId]);
+      const last = Number(latest.rows[0].last);
+      // An app with no number yet starts from the newest one
+      if (given === undefined || given === '') return { success: true, data: { last, reset: true, changes: [] } };
+      const after = Math.max(0, Number(given) || 0);
+      const res = await dbPool.query(
+        'SELECT id, kind, entity_id FROM change_log WHERE user_id = $1 AND id > $2 ORDER BY id LIMIT 201',
+        [userId, after]
+      );
+      const oldest = await dbPool.query('SELECT MIN(id)::bigint AS first FROM change_log');
+      // The changes after this number were already removed, so the app reloads everything
+      const gone = after > 0 && Number(oldest.rows[0].first ?? 0) > after + 1;
+      return {
+        success: true,
+        data: {
+          last,
+          reset: gone || res.rows.length > 200,
+          changes: res.rows.slice(0, 200).map((row) => ({ kind: row.kind, entityId: row.entity_id })),
+        },
+      };
+    });
     registerAdminPanel(api);
     api.register(authRoutes, { prefix: '/auth' });
     api.register(userRoutes, { prefix: '/users' });

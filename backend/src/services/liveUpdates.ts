@@ -18,15 +18,18 @@ let stopped = false;
 /// PostgreSQL delivers it only after the transaction commits, so the app never reads old data.
 /// [alert] makes the open app play its sound and vibrate.
 /// [kind] tells the app which screens to reload: orders, requests, support, notifications or all.
-export async function publishChange(db: Db, userId: string, alert = false, kind = 'all') {
-  await db.query('SELECT pg_notify($1, $2)', [CHANNEL, `${userId}|${alert ? 'alert' : 'change'}|${kind}`]);
+/// [entityId] is the order, request or ticket that changed, so the app reloads that one item only.
+/// Every change gets a number, so an app that was offline asks for what it missed and nothing more.
+export async function publishChange(db: Db, userId: string, alert = false, kind = 'all', entityId: string | null = null) {
+  const saved = await db.query('INSERT INTO change_log (user_id, kind, entity_id) VALUES ($1, $2, $3) RETURNING id', [userId, kind, entityId]);
+  await db.query('SELECT pg_notify($1, $2)', [CHANNEL, `${userId}|${alert ? 'alert' : 'change'}|${kind}|${entityId ?? '-'}|${saved.rows[0].id}`]);
 }
 
-export function deliverChange(userId: string, alert = false, kind = 'all') {
-  const text = `data: ${alert ? 'change-alert' : 'change'} ${kind}\n\n`;
+export function deliverChange(userId: string, alert = false, kind = 'all', entityId = '-', changeId = '') {
+  const text = `${changeId ? `id: ${changeId}\n` : ''}data: ${alert ? 'change-alert' : 'change'} ${kind} ${entityId}\n\n`;
   for (const line of lines.get(userId) ?? []) line.write(text);
   // The control page hears about every change, without sound
-  for (const line of adminLines) line.write(`data: change ${kind}\n\n`);
+  for (const line of adminLines) line.write(`data: change ${kind} ${entityId}\n\n`);
 }
 
 /// One open line per phone. A person's oldest line closes when they pass the limit.
@@ -79,8 +82,8 @@ async function connectListener() {
   client.on('error', retryOnce);
   client.on('end', retryOnce);
   client.on('notification', (message) => {
-    const [userId, level, kind] = (message.payload ?? '').split('|');
-    if (userId) deliverChange(userId, level === 'alert', kind || 'all');
+    const [userId, level, kind, entityId, changeId] = (message.payload ?? '').split('|');
+    if (userId) deliverChange(userId, level === 'alert', kind || 'all', entityId || '-', changeId || '');
   });
   try {
     await client.connect();

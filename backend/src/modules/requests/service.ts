@@ -100,7 +100,7 @@ export async function advanceRequests() {
         if (!left.rows[0].waiting) {
           await closeRequest(client, request, 'EXPIRED', 'الطلب اتلغى', 'ما اخترتش عرض في الوقت المحدد. تقدر تطلب تاني');
           const offered = await client.query('SELECT lawyer_id FROM request_offers WHERE request_id = $1 AND withdrawn_at IS NULL', [id]);
-          for (const row of offered.rows) await publishChange(client, row.lawyer_id, false, 'requests');
+          for (const row of offered.rows) await publishChange(client, row.lawyer_id, false, 'requests', id);
         }
         return;
       }

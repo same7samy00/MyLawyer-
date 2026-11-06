@@ -3,13 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
-import '../../core/services/app_visibility.dart';
-import '../../core/services/live_updates.dart';
+import '../../core/services/order_store.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/order_summary_card.dart';
 import '../../core/widgets/orders_filter.dart';
 import '../../data/models/order_model.dart';
-import '../../data/repositories/order_repository.dart';
 import '../urgent_service/order_details_sheet.dart';
 
 class OrdersTab extends StatefulWidget {
@@ -27,28 +25,32 @@ class _OrdersTabState extends State<OrdersTab> {
   bool _isFetching = false;
   String? _errorMessage;
   List<OrderModel> _orders = const [];
-  Timer? _refreshTimer;
   bool _showCurrent = true;
 
   @override
   void initState() {
     super.initState();
     widget.refreshSignal?.addListener(_loadOrders);
-    LiveUpdates.orders.addListener(_loadOrders);
+    OrderStore.start();
+    OrderStore.orders.addListener(_onStoreChanged);
     ApiService.isServerReachable.addListener(_onReachabilityChanged);
     _showSaved();
     _loadOrders();
-    // تحديث حالة الطلب الجاري من غير سحب الصفحة
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (isAppVisible && _orders.any((order) => order.isOngoing)) _loadOrders();
+  }
+
+  /// أي طلب اتغير في المخزن، الصفحة تتغير معاه
+  void _onStoreChanged() {
+    if (!mounted) return;
+    setState(() {
+      _orders = OrderStore.orders.value;
+      if (OrderStore.isLoaded) _isLoading = false;
     });
   }
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
     widget.refreshSignal?.removeListener(_loadOrders);
-    LiveUpdates.orders.removeListener(_loadOrders);
+    OrderStore.orders.removeListener(_onStoreChanged);
     ApiService.isServerReachable.removeListener(_onReachabilityChanged);
     super.dispose();
   }
@@ -61,10 +63,10 @@ class _OrdersTabState extends State<OrdersTab> {
 
   /// آخر طلبات محفوظة بتظهر فورًا، والتحديث من السيرفر بيحل محلها
   Future<void> _showSaved() async {
-    final saved = await OrderRepository.savedOrders();
-    if (!mounted || saved.isEmpty || !_isLoading) return;
+    await OrderStore.showSaved();
+    if (!mounted || OrderStore.orders.value.isEmpty || !_isLoading) return;
     setState(() {
-      _orders = saved;
+      _orders = OrderStore.orders.value;
       _isLoading = false;
     });
   }
@@ -73,7 +75,7 @@ class _OrdersTabState extends State<OrdersTab> {
     if (_isFetching) return;
     _isFetching = true;
 
-    final res = await OrderRepository.getOrders();
+    final res = await OrderStore.load();
     _isFetching = false;
     if (!mounted) return;
 
@@ -90,7 +92,6 @@ class _OrdersTabState extends State<OrdersTab> {
 
   Future<void> _openDetails(OrderModel order) async {
     await OrderDetailsSheet.open(context, order);
-    if (mounted) await _loadOrders();
   }
 
   @override

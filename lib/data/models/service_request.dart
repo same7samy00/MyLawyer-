@@ -18,6 +18,9 @@ class IncomingRequest {
   final String state;
   final String? orderId;
 
+  /// وقت ما الطلب اتقرا، عشان العد التنازلي يكمل من غير ما نسأل السيرفر تاني
+  final DateTime? receivedAt;
+
   const IncomingRequest({
     required this.id,
     this.service = 'محاميك حالاً',
@@ -32,7 +35,15 @@ class IncomingRequest {
     this.myPrice,
     this.state = 'OPEN',
     this.orderId,
+    this.receivedAt,
   });
+
+  int get secondsLeftNow {
+    final at = receivedAt;
+    if (at == null) return secondsLeft;
+    final left = secondsLeft - DateTime.now().difference(at).inSeconds;
+    return left < 0 ? 0 : left;
+  }
 
   factory IncomingRequest.fromJson(Map<String, dynamic> json) => IncomingRequest(
         id: json['id'].toString(),
@@ -48,6 +59,7 @@ class IncomingRequest {
         myPrice: json['myPrice'] == null ? null : _number(json['myPrice']).round(),
         state: json['state']?.toString() ?? 'OPEN',
         orderId: json['orderId']?.toString(),
+        receivedAt: DateTime.now(),
       );
 
   int netOf(int price) => (price * netRate).round();

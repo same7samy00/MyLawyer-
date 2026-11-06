@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:my_lawyer/core/services/order_store.dart';
 import 'package:my_lawyer/core/services/api_service.dart';
 import 'package:my_lawyer/core/theme/app_theme.dart';
 import 'package:my_lawyer/features/lawyer/lawyer_orders_tab.dart';
@@ -77,6 +78,7 @@ void setUpSessionTests() {
 
 
   setUp(() {
+    OrderStore.clear();
     SharedPreferences.setMockInitialValues({});
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('flutter.baseflow.com/geolocator'),

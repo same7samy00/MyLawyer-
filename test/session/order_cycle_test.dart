@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/core/services/api_service.dart';
 import 'package:my_lawyer/core/services/auth_service.dart';
+import 'package:my_lawyer/core/services/live_updates.dart';
 import 'package:my_lawyer/data/models/order_model.dart';
 import 'package:my_lawyer/data/models/service_request.dart';
 import 'package:my_lawyer/features/lawyer/request_offer_sheet.dart';
@@ -154,7 +155,8 @@ void main() {
       backend.orders = [
         {...sampleOrder(status: 'COMPLETED'), 'completedAt': DateTime.now().toIso8601String()},
       ];
-      await tester.pump(const Duration(seconds: 31));
+      // السيرفر بيقول إن الطلب ده بالذات اتغير، فبيتجاب لوحده
+      LiveUpdates.announce(const LiveChange('orders', 'order-1'));
       await settleAsync(tester);
 
       expect(find.byType(BottomSheet), findsNWidgets(2));

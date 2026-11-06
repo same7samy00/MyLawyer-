@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
-import '../../core/services/app_visibility.dart';
-import '../../core/services/live_updates.dart';
+import '../../core/services/order_store.dart';
 import '../../core/services/notification_center.dart';
 import '../../core/services/external_navigation.dart';
 import '../../core/services/location_service.dart';
@@ -38,7 +37,6 @@ class OrderDetailsSheet extends StatefulWidget {
 
 class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   late OrderModel _order = widget.order;
-  Timer? _refreshTimer;
   bool _isFetching = false;
   bool _isBusy = false;
   String? _notice;
@@ -47,40 +45,33 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   @override
   void initState() {
     super.initState();
-    LiveUpdates.orders.addListener(_load);
+    OrderStore.orders.addListener(_onStoreChanged);
     _load();
     NotificationCenter.markTargetRead(NotificationTarget(orderId: widget.order.id));
-    // احتياطي لو الخط المفتوح قطع
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (isAppVisible && _order.isOngoing) _load();
-    });
   }
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
     _noticeTimer?.cancel();
-    LiveUpdates.orders.removeListener(_load);
+    OrderStore.orders.removeListener(_onStoreChanged);
     super.dispose();
   }
 
+  /// الطلب ده بس بيتجاب من السيرفر، والمخزن بيوزعه على كل الشاشات
   Future<void> _load() async {
     if (_isFetching) return;
     _isFetching = true;
-
-    final res = await OrderRepository.getOrders();
+    await OrderStore.refreshOne(_order.id);
     _isFetching = false;
-    if (!mounted || !res.isOk) return;
+  }
 
-    for (final order in res.data ?? const <OrderModel>[]) {
-      if (order.id == _order.id) {
-        final justFinished = !_order.canReview && order.canReview;
-        setState(() => _order = order);
-        // The rating opens by itself the moment the lawyer finishes the task
-        if (justFinished && !widget.isLawyer) await _openReview(isEdit: false);
-        return;
-      }
-    }
+  Future<void> _onStoreChanged() async {
+    final order = OrderStore.find(_order.id);
+    if (!mounted || order == null) return;
+    final justFinished = !_order.canReview && order.canReview;
+    setState(() => _order = order);
+    // The rating opens by itself the moment the lawyer finishes the task
+    if (justFinished && !widget.isLawyer) await _openReview(isEdit: false);
   }
 
   /// الرسالة بتظهر جوه الشيت، لأن الصفحة اللي تحته متغطية

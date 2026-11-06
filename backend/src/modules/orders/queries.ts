@@ -12,7 +12,7 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
   // 2. GET /api/v1/orders - List orders for current user (client or lawyer)
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId, role } = request.user as AuthenticatedUser;
-    const queryParams = request.query as { status?: string };
+    const queryParams = request.query as { status?: string; id?: string };
     const statusFilter = queryParams.status ? queryParams.status.toUpperCase() : 'ALL';
 
     let sql = `
@@ -50,6 +50,12 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
     if (statusFilter !== 'ALL') {
       params.push(statusFilter);
       sql += ` AND o.status = $${params.length}`;
+    }
+
+    // One order in the same shape as the list, for an app that heard only this one changed
+    if (queryParams.id) {
+      params.push(queryParams.id);
+      sql += ` AND o.id::text = $${params.length}`;
     }
 
     sql += ` ORDER BY o.created_at DESC LIMIT 100`;

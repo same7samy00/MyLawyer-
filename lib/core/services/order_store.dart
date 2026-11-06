@@ -1,0 +1,72 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import '../../data/models/order_model.dart';
+import '../../data/repositories/order_repository.dart';
+import 'api_service.dart';
+import 'live_updates.dart';
+
+/// مكان واحد للطلبات تقرأ منه كل الشاشات.
+/// لما السيرفر يقول إن طلب معين اتغير، الطلب ده بس هو اللي بيتجاب، وكل شاشة بتعرضه بتتغير مع بعض.
+class OrderStore {
+  OrderStore._();
+
+  static final ValueNotifier<List<OrderModel>> orders = ValueNotifier<List<OrderModel>>(const []);
+  static bool isLoaded = false;
+  static StreamSubscription<LiveChange>? _subscription;
+  static Future<ApiResponse<List<OrderModel>>>? _loading;
+
+  static void start() {
+    _subscription ??= LiveUpdates.stream.listen((change) {
+      if (change.isEverything) {
+        unawaited(load());
+      } else if (change.kind == 'orders') {
+        final id = change.entityId;
+        unawaited(id == null ? load() : refreshOne(id));
+      }
+    });
+  }
+
+  static void clear() {
+    unawaited(_subscription?.cancel());
+    _subscription = null;
+    orders.value = const [];
+    isLoaded = false;
+  }
+
+  /// آخر نسخة محفوظة بتظهر لحد ما السيرفر يرد
+  static Future<void> showSaved() async {
+    if (isLoaded || orders.value.isNotEmpty) return;
+    final saved = await OrderRepository.savedOrders();
+    if (!isLoaded && saved.isNotEmpty) orders.value = saved;
+  }
+
+  /// كل الطلبات مرة واحدة، والطلبات المتزامنة بتستنى نفس الرد
+  static Future<ApiResponse<List<OrderModel>>> load() {
+    return _loading ??= OrderRepository.getOrders().then((res) {
+      if (res.isOk) {
+        orders.value = res.data ?? const [];
+        isLoaded = true;
+      }
+      return res;
+    }).whenComplete(() => _loading = null);
+  }
+
+  /// طلب واحد اتغير: يتجاب لوحده ويتحط مكانه
+  static Future<void> refreshOne(String id) async {
+    final res = await OrderRepository.getOrderFromList(id);
+    if (!res.isOk) return;
+    final fresh = res.data;
+    final list = List<OrderModel>.of(orders.value);
+    final index = list.indexWhere((order) => order.id == id);
+    if (fresh == null) {
+      if (index >= 0) list.removeAt(index);
+    } else if (index >= 0) {
+      list[index] = fresh;
+    } else {
+      list.insert(0, fresh);
+    }
+    orders.value = list;
+  }
+
+  static OrderModel? find(String id) => orders.value.where((order) => order.id == id).firstOrNull;
+}

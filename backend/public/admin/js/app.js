@@ -326,10 +326,18 @@ if (session) { render(); showAccount(); }
 let liveTurn = 0;
 let liveDirty = false;
 
-function onLiveChange() {
+// Which pages a change touches: support changes don't reload order pages, and the other way around
+const SUPPORT_PAGES = ['tickets', 'ticket', 'tasks', 'overview'];
+function touchesPage(kind) {
+  if (!kind || kind === 'all') return true;
+  return kind === 'support' ? SUPPORT_PAGES.includes(current.page) : current.page !== 'tickets' && current.page !== 'ticket';
+}
+
+function onLiveChange(kind) {
   apiCache.clear();
   navCountsAt = 0;
-  liveDirty = true;
+  if (touchesPage(kind)) liveDirty = true;
+  else refreshNavCounts();
 }
 
 setInterval(() => {
@@ -357,7 +365,9 @@ async function startLive() {
       for (;;) {
         const { value, done } = await reader.read();
         if (done || turn !== liveTurn) break;
-        if (value.includes('data: change')) onLiveChange();
+        for (const line of value.split(/\r?\n/)) {
+          if (line.startsWith('data: change')) onLiveChange(line.split(' ')[2]);
+        }
       }
       reader.cancel().catch(() => {});
     } catch {

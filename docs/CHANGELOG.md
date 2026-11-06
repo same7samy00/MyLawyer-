@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Live Like Big Apps] - 2026-11-06
+- **Changes with numbers:** every change on the live line names what changed (the order, request or ticket) and has a number. After a dropped line, the app asks `GET /events/since` for only what it missed, or reloads everything once if too much was missed. Migration `028`.
+- **One orders store in the app:** every screen reads orders from `OrderStore`. A change to one order fetches that order alone with `GET /orders?id=` and every screen showing it updates together. The 30-second checks are gone, so screens no longer ask the server on a timer.
+- **New request countdowns:** they count down on the phone, and a request whose time ran out without a price leaves the page by itself.
+- **Control page:** a support change reloads only support pages, and other changes skip them.
+
 ## [Live Control Page and Dialogs] - 2026-11-06
 - **Control page:** it keeps the same live line as the app, and every change reloads the open page and the counts quietly, with no button or notice. A change waits while a window is open or a field is being typed in. The one-minute count refresh is gone.
 - **App:** the «data may be old» bar is removed, and the app reconnects and reloads quietly.
