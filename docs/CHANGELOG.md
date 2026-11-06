@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Engineering Review and Approval Rule] - 2026-11-06
+- **Review:** full review of the app, server, control page, database and VPS, built from the current code. New `docs/engineering/` holds the system map, the reference of all 97 server routes, the findings register (`FINDINGS.md`, numbered issues with severity and evidence), the checks report and the performance baseline and plan. No code changed.
+- **Most serious finding:** SEC-01, a «direct» payment marks an order paid without collecting money, and cancelling it in the first 5 minutes adds real balance that can be transferred. It must close before launch, and the owner decides how.
+- **New owner rule:** no `git push`, pull request, server change, restart, migration or deploy without the owner's explicit approval each time. This replaces the 2026-11-05 open-access rule in `AGENTS.md` section 7. Access details without secrets in `docs/ACCESS.md`, and the VPS opens with `ssh mylawyer-vps`.
+- **Checks:** `flutter analyze` clean, `flutter test` 128 passed and 3 skipped, backend `tsc` clean, `npm test` 141 passed, `npm audit` 0. Production database statistics were not read because the safety tool refused the query.
+
 ## [New Logo] - 2026-11-06
 - **Logo:** the owner's new bold blue «My Lawyer» logo, cleaned of stray dots, replaces the old one on the login screen, the Android and iPhone app icons, the control panel (login, side menu and browser tab) and the website header and tab icon. The splash video still shows the old logo until a new video is made.
 

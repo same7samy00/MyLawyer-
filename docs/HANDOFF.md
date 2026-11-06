@@ -1,6 +1,10 @@
 # تسليم العمل - My Lawyer
 
-آخر تحديث: 2026-11-03.
+آخر تحديث: 2026-11-06 (مراجعة هندسية كاملة).
+
+**قاعدة جديدة (2026-11-06):** ممنوع `git push` أو Pull Request أو أي رفع أو تعديل على السيرفر من غير موافقة صريحة من صاحب المشروع على كل عملية. الـ push على `main` بيرفع الإنتاج تلقائيًا. التفاصيل في `AGENTS.md` القسم 7 و`docs/ACCESS.md`، والسيرفر بيتفتح بـ `ssh mylawyer-vps`.
+
+**المراجعة الهندسية:** `docs/engineering/` فيه خريطة النظام ومرجع الـ 97 مسار وسجل المشاكل (`FINDINGS.md`) وتقرير الأداء. أهم حاجة: SEC-01 (الدفع المباشر بيعمل رصيد من غير فلوس) لازم يتقفل قبل أي إطلاق.
 
 ابدأ بقراءة `AGENTS.md` ثم هذا الملف ثم `docs/TASKS.md` و`docs/DECISIONS.md` و`docs/GPS_SYSTEM.md`. صاحب المشروع غير تقني: اشرح له بالعربية البسيطة، ونفذ بدون أسئلة تقنية.
 
@@ -50,7 +54,7 @@
 - **الخادم:** Contabo `13.140.141.32`، بذاكرة 7.8 جيجا و4 معالجات.
 - **الدخول:** مفتاح `~/.ssh/mylawyer_deploy` مع `~/.ssh/known_hosts_mylawyer`. الدخول بكلمة المرور مقفول، والطوارئ من لوحة Contabo.
 - **توكن GitHub:** محفوظ في Windows Credential Manager على جهاز صاحب المشروع باسم `x-access-token`، والريبو مضبوط عليه (`credential.https://github.com.username`). يعني `git push` بيشتغل لوحده من غير ما حد يكتب التوكن، وممنوع يتكتب في أي ملف (2026-11-06).
-- **الرفع:** أي push على `main` يغيّر `backend` يرفع الخادم تلقائياً عبر GitHub Actions، والتفاصيل في `docs/DEVELOPMENT_GUIDE.md`، والنسخ الاحتياطية في `/root/mylawyer-backups`.
+- **الرفع:** أي push على `main` يغيّر `backend` يرفع الخادم تلقائياً عبر GitHub Actions، **ومحتاج موافقة صاحب المشروع قبله**، والتفاصيل في `docs/DEVELOPMENT_GUIDE.md`، والنسخ الاحتياطية في `/root/mylawyer-backups`.
 - **الخدمات:** `mylawyer-backend` عبر systemd، و`mylawyer-osrm` و`mylawyer-tileserver` عبر Docker محلياً فقط.
 - **الموقع العام:** `https://my-lawyer.online` (وصف التطبيق والعنوان والسياسات المؤقتة لبوابة الدفع)، ملفاته في `backend/public/site` وبيترفع مع السيرفر.
 - **لوحة التحكم:** `https://my-lawyer.online/api/v1/admin-panel`، وشرحها في `docs/ARCHITECTURE.md` (4.1)، وبيانات الإدارة في `admin-credentials.txt` على الجهاز.
@@ -69,8 +73,8 @@
 
 ## 5. الفحوص الحالية
 - `flutter analyze`: بدون مشاكل.
-- `flutter test`: 122 نجحوا و3 متخطين.
-- `cd backend && npm test`: 134 نجحوا. بيئة الاختبار فيها اتصال واحد بقاعدة البيانات، فأقفال الطلب في الفلوس ما اتجربتش على PostgreSQL حقيقي باتصالات متزامنة.
+- `flutter test`: 128 نجحوا و3 متخطين (2026-11-06).
+- `cd backend && npm test`: 141 نجحوا (2026-11-06). بيئة الاختبار فيها اتصال واحد بقاعدة البيانات، فأقفال الطلب في الفلوس ما اتجربتش على PostgreSQL حقيقي باتصالات متزامنة.
 - `npx tsc --noEmit`: بدون أخطاء.
 - `npm audit --omit=dev`: مفيش تحذيرات.
 
