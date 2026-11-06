@@ -1,4 +1,3 @@
-import '../../core/widgets/line_illustration.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/widgets/lawyer_availability_card.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/lawyer_pin_illustration.dart';
 import '../../core/widgets/profile_home_card.dart';
 import 'lawyer_urgent_service_intro_screen.dart';
 
@@ -109,7 +109,7 @@ class _LawyerHomeTabState extends State<LawyerHomeTab> {
               child: const Row(
                 children: [
                   RepaintBoundary(
-                    child: IllustrationBadge(icon: Icons.shield_rounded, size: 40),
+                    child: LawyerPinIllustration(size: 48, color: AppColors.primary),
                   ),
                   SizedBox(width: 14),
 

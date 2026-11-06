@@ -94,7 +94,8 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
     final rating = profile['rating'] ?? 0;
 
     return AppCard(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
+      backgroundColor: AppColors.primary,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -113,10 +114,7 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
                       const SizedBox(height: 3),
                       Text(
                         profile['isApproved'] == true ? 'محامٍ معتمد' : 'محامٍ غير معتمد',
-                        style: _detailStyle.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: profile['isApproved'] == true ? AppColors.success : AppColors.textMuted,
-                        ),
+                        style: _detailStyle.copyWith(fontWeight: FontWeight.w800, color: Colors.white),
                       ),
                     ],
                   ],
@@ -124,13 +122,19 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
               ),
             ],
           ),
-          if (_isLawyer) ...[
-            const SizedBox(height: 10),
-            Text('رقم القيد: ${profile['syndicateNumber'] ?? 'غير مسجل'}', style: _detailStyle),
-            const SizedBox(height: 3),
-            Text('سنوات الخبرة: ${profile['experienceYears'] ?? 0}', style: _detailStyle),
-          ],
           const SizedBox(height: 12),
+          const DashedDivider(color: Colors.white38),
+          const SizedBox(height: 12),
+          if (_isLawyer) ...[
+            Row(
+              children: [
+                Expanded(child: _infoChip('رقم القيد', '${profile['syndicateNumber'] ?? 'غير مسجل'}')),
+                const SizedBox(width: 8),
+                Expanded(child: _infoChip('سنوات الخبرة', '${profile['experienceYears'] ?? 0}')),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
           Row(
             children: [
               _buildStars(rating is num ? rating : 0),
@@ -138,7 +142,14 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
               if (_isLawyer)
                 SizedBox(
                   width: 120,
-                  child: AppButton.outlined(text: 'التقييمات', height: 38, fontSize: 12, onPressed: _openReviews),
+                  child: AppButton(
+                    text: 'التقييمات',
+                    height: 38,
+                    fontSize: 12,
+                    backgroundColor: Colors.white,
+                    textColor: AppColors.primary,
+                    onPressed: _openReviews,
+                  ),
                 )
               else
                 Text('${profile['completedOrders'] ?? 0} طلب مكتمل', style: _detailStyle),
@@ -149,12 +160,27 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
     );
   }
 
+  Widget _infoChip(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.14), borderRadius: BorderRadius.circular(7.0)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: _detailStyle.copyWith(fontSize: 11)),
+          const SizedBox(height: 2),
+          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: _nameStyle.copyWith(fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
   static const TextStyle _nameStyle = TextStyle(
     fontFamily: 'AppFont',
     fontFamilyFallback: appFontFallback,
     fontSize: 16,
     fontWeight: FontWeight.w900,
-    color: AppColors.dark,
+    color: Colors.white,
   );
 
   static const TextStyle _detailStyle = TextStyle(
@@ -163,6 +189,6 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
     fontSize: 12,
     height: 1.4,
     fontWeight: FontWeight.w600,
-    color: AppColors.textMain,
+    color: Color(0xDDFFFFFF),
   );
 }

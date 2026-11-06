@@ -1,4 +1,3 @@
-import '../../core/services/notification_center.dart';
 import '../client/nearby_lawyers_showcase_screen.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -36,10 +35,8 @@ class SessionRouter {
         final locationDone = await DevicePermissionService.instance.isLocationScreenDone() ||
             (hasLocation && savedLocation != null && savedLocation.isNotEmpty);
         if (!locationDone) return const LocationPermissionScreen();
-        // لمس إشعار لازم يفتح صفحته على طول، ومن غيره الموكل يبدأ بالخريطة الترويجية
-        return showPromoMap && NotificationCenter.openRequest.value == null
-            ? const NearbyLawyersShowcaseScreen()
-            : const MainNavigationShell();
+        // الموكل يبدأ كل فتحة بالخريطة الترويجية، والإشعار اللي لمسه بيتفتح بعد ما يقفلها
+        return showPromoMap ? const NearbyLawyersShowcaseScreen() : const MainNavigationShell();
       case SessionStatus.lawyerApproved:
         return await DevicePermissionService.instance.isLocationPermissionGranted() ||
                 await DevicePermissionService.instance.isLocationScreenDone()

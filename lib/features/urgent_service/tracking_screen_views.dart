@@ -22,24 +22,24 @@ extension _TrackingScreenViews on _TrackingScreenState {
     }
     if (_isLoading) return const SheetLoading(key: ValueKey('loading_lawyers'), text: 'جاري البحث عن المحامين القريبين');
 
-    final nearest = _nearbyLawyers.map((lawyer) => lawyer.distanceMeters).reduce((a, b) => a < b ? a : b);
-    final nearestText = nearest < 1000 ? '${nearest.round()} متر' : '${(nearest / 1000).toStringAsFixed(1)} كم';
+    final lawyers = [..._nearbyLawyers]..sort((a, b) => a.distanceMeters.compareTo(b.distanceMeters));
     return Column(
       key: const ValueKey('nearby_summary'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const LineIllustration(icon: Icons.location_on_rounded, height: 72),
-        const SizedBox(height: 10),
         Text(
-          '${_nearbyLawyers.length} محامي متاح قريب منك',
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.dark),
+          '${lawyers.length} محامي متاح قريب منك',
+          style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.dark),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'أقربهم على بعد $nearestText تقريبًا',
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 128,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: lawyers.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, i) => _buildNearbyLawyerCard(lawyers[i]),
+          ),
         ),
         const SizedBox(height: 14),
         AppButton.primary(
@@ -56,6 +56,53 @@ extension _TrackingScreenViews on _TrackingScreenState {
           style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12, height: 1.4, color: AppColors.textMuted),
         ),
       ],
+    );
+  }
+
+  /// كارت محامي صغير في صف القريبين، لمسه بيفتح ملفه
+  Widget _buildNearbyLawyerCard(MapLawyer lawyer) {
+    final distance = lawyer.distanceMeters < 1000
+        ? '${lawyer.distanceMeters.round()} م'
+        : '${(lawyer.distanceMeters / 1000).toStringAsFixed(1)} كم';
+    const small = TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.textMuted);
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(7.0),
+        side: BorderSide(color: lawyer.id == _nearestLawyerId ? AppColors.primary : AppColors.cardBorder),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(7.0),
+        onTap: () => _onLawyerTapped(lawyer),
+        child: SizedBox(
+          width: 118,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              children: [
+                _LawyerAvatarPhoto(imageUrl: lawyer.imageUrl, initials: lawyer.avatarInitials, fallbackColor: lawyer.avatarColor, size: 46),
+                const SizedBox(height: 6),
+                Text(
+                  lawyer.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.dark),
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF5B301)),
+                    Flexible(
+                      child: Text(' ${lawyer.rating.toStringAsFixed(1)}  ·  $distance', maxLines: 1, overflow: TextOverflow.ellipsis, style: small),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

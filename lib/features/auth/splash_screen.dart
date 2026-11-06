@@ -18,8 +18,8 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  // الحد الأقصى لبقاء الشعار، ولا يؤخر فتح التطبيق انتهاء الفيديو كاملاً
-  static const Duration _maxLogoDuration = Duration(milliseconds: 2600);
+  // الشعار بيكمل حركته للآخر، وده حد أمان بس لو الفيديو ما اشتغلش
+  static const Duration _maxLogoDuration = Duration(seconds: 8);
 
   late VideoPlayerController _controller;
   late final Future<SessionCheck> _sessionCheck;

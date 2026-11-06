@@ -279,7 +279,17 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
                 child: Row(
                   children: [
-                    const SizedBox(width: 44),
+                    Material(
+                      color: Colors.white,
+                      elevation: 3,
+                      shadowColor: Colors.black.withOpacity(0.12),
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        icon: const Icon(Icons.close_rounded, color: AppColors.dark),
+                        tooltip: 'إغلاق',
+                        onPressed: _proceedToMainApp,
+                      ),
+                    ),
                     Expanded(
                       child: Center(
                         child: Material(
@@ -318,17 +328,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
                   ),
                       ),
                     ),
-                    Material(
-                      color: Colors.white,
-                      elevation: 3,
-                      shadowColor: Colors.black.withOpacity(0.12),
-                      shape: const CircleBorder(),
-                      child: IconButton(
-                        icon: const Icon(Icons.close_rounded, color: AppColors.dark),
-                        tooltip: 'إغلاق',
-                        onPressed: _proceedToMainApp,
-                      ),
-                    ),
+                    const SizedBox(width: 48),
                   ],
                 ),
               ),

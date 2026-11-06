@@ -7,6 +7,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/device_permission_service.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/lawyer_pin_illustration.dart';
 import '../../core/widgets/profile_home_card.dart';
 import '../urgent_service/urgent_service_problem_screen.dart';
 import '../auth/location_permission_screen.dart';
@@ -138,7 +139,7 @@ class _HomeTabState extends State<HomeTab> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const IllustrationBadge(icon: Icons.shield_rounded, size: 60),
+                  const LawyerPinIllustration(size: 76),
                 ],
               ),
             ),
