@@ -653,7 +653,7 @@ void main() {
       expect(find.textContaining('ابحث عن محامي'), findsNothing);
 
       // Services list preserved
-      expect(find.text('استشارة قانونية متخصصة'), findsOneWidget);
+      expect(find.text('استشارة سريعة'), findsOneWidget);
       expect(find.text('صياغة ومراجعة العقود'), findsOneWidget);
       expect(find.text('تأسيس الشركات والتراخيص'), findsOneWidget);
       expect(find.text('إدارة القضايا والتوكيلات'), findsOneWidget);
@@ -716,7 +716,7 @@ void main() {
 
       // Exactly ONE service: محاميك حالاً
       expect(find.text('محاميك حالاً'), findsOneWidget);
-      expect(find.text('استشارة قانونية متخصصة'), findsNothing);
+      expect(find.text('استشارة سريعة'), findsNothing);
       expect(find.text('صياغة ومراجعة العقود'), findsNothing);
     });
 
