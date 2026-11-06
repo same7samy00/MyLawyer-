@@ -98,10 +98,18 @@ flutter build apk --release -PlawyerTestApp=true
 
 الطريقة اليدوية:
 
-يتم الرفع من جهاز المطور بعد عمل commit بمفتاح الدخول `mylawyer_deploy` وملف البصمة `known_hosts_mylawyer` في مجلد `.ssh`. السكربت `backend/deploy.sh` يأخذ نسخة احتياطية من قاعدة البيانات والكود في `/root/mylawyer-backups`، ثم يبني النسخة في مجلد مؤقت، ويستبدل `dist` و`migrations` و`public`، ويعيد تشغيل خدمة `mylawyer-backend`:
+يتم الرفع من جهاز المطور بعد عمل commit، بالمفتاح اللي في `.access/` (`docs/ACCESS.md`).
+
+**خطوات `backend/deploy.sh` (من 2026-11-06):**
+1. نسخة احتياطية من قاعدة البيانات والكود في `/root/mylawyer-backups`.
+2. يبني النسخة الجديدة في مجلد مؤقت، ويسطّب مكتبات التشغيل بس، ويكتب رقم النسخة (الـ commit) في `dist/RELEASE`.
+3. يبدّل `dist` و`migrations` و`public` و`package*.json` و`node_modules` في ثواني، والقديم يتحط في `.previous/`.
+4. **من غير توقف:** لو `dist/server.js` ما اتغيرش، بيبعت `SIGHUP` للعملية الرئيسية. ساعتها بتشغّل الـ migrations الجديدة، وبتبدّل الـ workers واحد واحد: كل جديد لازم يبتدي يستقبل طلبات قبل ما القديم يقفل. ولو `server.js` اتغير، أو الخدمة واقفة، بيعمل `systemctl restart` (فيه توقف ثواني).
+5. لازم `/api/v1/health` يرد `UP` بنفس رقم النسخة 6 مرات ورا بعض في خلال 90 ثانية. **لو ده ما حصلش، الكود القديم بيرجع لوحده** والخدمة بتتعاد. الـ migrations ما بترجعش، والنسخة الاحتياطية موجودة.
+6. المهام الزمنية (`sweep`) بتشتغل في كل worker، بس قفل في قاعدة البيانات (`pg_try_advisory_lock`) بيخلي واحد بس يشتغل في المرة، فهي مش بتقف أثناء التبديل.
 
 ```bash
-git archive HEAD backend | ssh -i ~/.ssh/mylawyer_deploy -o UserKnownHostsFile=~/.ssh/known_hosts_mylawyer root@13.140.141.32 'cat > /tmp/mylawyer-backend.tar && tar -xOf /tmp/mylawyer-backend.tar backend/deploy.sh | tr -d "\r" | bash'
+git archive HEAD backend | ssh -F D:/KAREM/.access/ssh_config mylawyer-vps 'cat > /tmp/mylawyer-backend.tar && tar -xOf /tmp/mylawyer-backend.tar backend/deploy.sh | tr -d "\r" | bash -s manual-$(date +%s)'
 ```
 
 ## لوحة التحكم

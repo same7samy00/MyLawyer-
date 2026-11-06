@@ -33,4 +33,4 @@ jobs:
       - name: Deploy
         run: |
           git archive HEAD backend > /tmp/mylawyer-backend.tar
-          sudo bash backend/deploy.sh
+          sudo bash backend/deploy.sh "$GITHUB_SHA"

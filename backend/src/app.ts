@@ -124,7 +124,8 @@ export function buildApp() {
   const healthHandler = async () => {
     try {
       await dbPool.query('SELECT 1');
-      return { status: 'UP', database: 'CONNECTED' };
+      // The release lets deploy.sh see that the new code is the one answering
+      return { status: 'UP', database: 'CONNECTED', release: process.env.MYLAWYER_RELEASE || null };
     } catch {
       return { status: 'DEGRADED', database: 'ERROR' };
     }
