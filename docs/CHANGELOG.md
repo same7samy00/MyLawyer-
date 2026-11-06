@@ -1,5 +1,8 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [New Logo] - 2026-11-06
+- **Logo:** the owner's new bold blue «My Lawyer» logo, cleaned of stray dots, replaces the old one on the login screen, the Android and iPhone app icons, the control panel (login, side menu and browser tab) and the website header and tab icon. The splash video still shows the old logo until a new video is made.
+
 ## [Payment Method Page and Payments History] - 2026-11-06
 - **Paying:** the invoice page only reviews the bill, and «اختار طريقة الدفع» opens a page of its own with the line drawing and title like the sign-up pages. The balance option is off when the balance is not enough.
 - **Payments page:** «المدفوعات والفواتير» in the client account lists every payment with its state: paid, refunded, partly refunded or failed with the reason. Paid ones download a PDF invoice in Arabic through the phone's save and share screen.
