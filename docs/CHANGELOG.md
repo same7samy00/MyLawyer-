@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Where I'll Be Page] - 2026-11-06
+- **New standalone page** `/tawagod/` (`backend/public/site/tawagod`): lawyers post the day, city, courts or places and an optional time, and anyone sees them grouped by day with WhatsApp and call buttons. Works on phone and desktop in the app's colours and fonts.
+- **Own accounts:** name, phone, WhatsApp and a password, apart from the app's users (`presence_accounts`, `presence_sessions`, `presence_entries` in migration 031). Routes under `/api/v1/presence`. An entry disappears after its day.
+- **Search:** by whole word or part of one, every word must match, ignoring أ/إ/آ/ا، ة/ه، ى/ي، ؤ، ئ، ء، tashkeel, tatweel and Arabic digits, and a leading «ال».
+- **Local preview:** `npm run preview:tawagod` from `backend`, sample login 01000000101 / demo123.
+
 ## [Paired Sheet Buttons, Red Cancel and Postpone Counter] - 2026-11-06
 - **Bottom sheets:** short buttons sit two in a row (`SheetButton` and `packSheetActions` in `lib/core/widgets/sheet_actions.dart`), and a button with long text, like the Google Maps one, keeps its own row. Used in the order details sheet, the lawyer offer sheet («ابعت عرضك» or «اسحب العرض» with «إغلاق»), the transfer confirmation and the location permission sheet.
 - **Cancel is red everywhere:** `AppButton` turns any button whose text starts with «إلغاء» or is «إغلاق» red, the dialogs' cancel button is red, and so are the text-style cancel buttons.

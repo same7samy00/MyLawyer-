@@ -17,6 +17,7 @@ import { closeAllLines, openLine } from './services/liveUpdates.js';
 import { requireAuth } from './utils/http.js';
 import { adminRoutes } from './modules/admin/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
+import { presenceRoutes } from './modules/presence/routes.js';
 import { registerAdminPanel } from './modules/admin/panel.js';
 import { dbPool } from './database/index.js';
 
@@ -189,6 +190,7 @@ export function buildApp() {
     api.register(requestRoutes, { prefix: '/requests' });
     api.register(adminRoutes, { prefix: '/admin' });
     api.register(notificationRoutes, { prefix: '/notifications' });
+    api.register(presenceRoutes, { prefix: '/presence' });
   }, { prefix: '/api/v1' });
 
   // Open lines would otherwise hold a restart forever
