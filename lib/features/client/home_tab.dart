@@ -10,6 +10,7 @@ import '../../core/widgets/lawyer_pin_illustration.dart';
 import '../../core/widgets/profile_home_card.dart';
 import '../urgent_service/urgent_service_problem_screen.dart';
 import '../auth/location_permission_screen.dart';
+import '../consultation/quick_consultation_screen.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -167,12 +168,12 @@ class _HomeTabState extends State<HomeTab> {
             ),
             const SizedBox(height: 10),
             _buildServiceListItem(
-              title: 'استشارة قانونية متخصصة',
-              desc: 'تواصل مباشر واستشارة مع نخبة من المستشارين القانونيين المعتمدين',
-              icon: Icons.forum_rounded,
-              onTap: () {
-                _showServiceNotice('خدمة الاستشارات القانونية المتخصصة');
-              },
+              title: 'استشارة سريعة',
+              desc: 'اكتب مشكلتك وادفع، وفريقنا القانوني يكلمك على تليفونك خلال دقايق',
+              icon: Icons.support_agent_rounded,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const QuickConsultationScreen()),
+              ),
             ),
             const SizedBox(height: 10),
             _buildServiceListItem(
