@@ -103,6 +103,7 @@ extension _TrackingOrderFlow on _TrackingScreenState {
     _followedRequestId = null;
     LiveUpdates.changes.removeListener(_checkRequest);
     _orderPollTimer?.cancel();
+    _roundEndTimer?.cancel();
   }
 
   Future<void> _checkRequest() async {
@@ -130,6 +131,11 @@ extension _TrackingOrderFlow on _TrackingScreenState {
     _update(() {
       _activeRequest = request;
     });
+    // التحميل بيخلص لما الجولة تخلص: بعدها بثواني نسأل تاني، يا جولة جديدة يا جملة «محدش بعت عرض»
+    _roundEndTimer?.cancel();
+    if (request.offers.isEmpty && request.secondsLeft > 0) {
+      _roundEndTimer = Timer(Duration(seconds: request.secondsLeft + 4), _checkRequest);
+    }
   }
 
   /// «بحث جديد»: الطلب يروح للـ 10 اللي بعد الأولانيين، والمرة اللي بعدها يرجع للأقرب

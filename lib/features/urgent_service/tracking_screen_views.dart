@@ -280,10 +280,36 @@ extension _TrackingScreenViews on _TrackingScreenState {
               ),
             ),
             const SizedBox(height: 10),
-            if (offers.isEmpty && (_activeRequest?.secondsLeft ?? 120) > 0)
-              ResponseCountdown(
-                key: ValueKey('round-${_activeRequest?.round ?? 1}'),
-                secondsLeft: _activeRequest?.secondsLeft ?? 120,
+            // وإحنا مستنيين: تحميل من غير عداد. ولو الوقت خلص ومحدش بعت، جملة توضح وزرار «بحث جديد»
+            if (offers.isEmpty && (_activeRequest?.secondsLeft ?? 120) > 0) ...[
+              const Center(
+                child: SizedBox(width: 34, height: 34, child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.primary)),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'بنبعت طلبك لأقرب المحامين، والعروض هتظهر هنا أول ما توصل',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'AppFont',
+                  fontFamilyFallback: appFontFallback,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+            if (offers.isEmpty && (_activeRequest?.secondsLeft ?? 120) <= 0)
+              const Text(
+                'محدش من المحامين القريبين بعت عرض لسه. دوس «بحث جديد» ونبعت طلبك لمحامين تانيين',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'AppFont',
+                  fontFamilyFallback: appFontFallback,
+                  fontSize: 13,
+                  height: 1.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.dark,
+                ),
               ),
             if (offers.isNotEmpty)
               Padding(
@@ -309,15 +335,18 @@ extension _TrackingScreenViews on _TrackingScreenState {
                 onProfile: () => _showOfferProfile(offer),
               ),
             const SizedBox(height: 10),
-            // يبعت للـ 10 اللي بعدهم على طول، والعروض اللي وصلت بتفضل
-            AppButton(
-              text: 'بحث جديد',
-              height: 46,
-              icon: Icons.travel_explore_rounded,
-              isLoading: _isSearchingAgain,
-              onPressed: _searchAgain,
-            ),
-            const SizedBox(height: 8),
+            // بيظهر لما العروض توصل أو لما الوقت يخلص من غير عروض، ومش وقت التحميل.
+            // بيبعت للـ 10 اللي بعدهم على طول، والعروض اللي وصلت بتفضل
+            if (offers.isNotEmpty || (_activeRequest?.secondsLeft ?? 120) <= 0) ...[
+              AppButton(
+                text: 'بحث جديد',
+                height: 46,
+                icon: Icons.travel_explore_rounded,
+                isLoading: _isSearchingAgain,
+                onPressed: _searchAgain,
+              ),
+              const SizedBox(height: 8),
+            ],
             AppButton.outlined(text: 'إلغاء الطلب', height: 46, onPressed: _returnToLawyerProfile),
           ],
         );

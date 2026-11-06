@@ -21,7 +21,6 @@ import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/lawyer_profile_summary.dart';
 import '../../core/widgets/lawyer_reviews_panel.dart';
 import '../../core/widgets/map_cards.dart';
-import '../../core/widgets/response_countdown.dart';
 import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/app_switcher.dart';
 import '../../data/models/map_lawyer.dart';
@@ -92,6 +91,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   List<LatLng> _routePoints = [];
   RouteEstimate? _routeEstimate;
   Timer? _orderPollTimer;
+  Timer? _roundEndTimer;
   Timer? _stageTimer;
   String? _activeOrderId;
   String? _activeOrderNumber;
@@ -131,6 +131,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   @override
   void dispose() {
     _orderPollTimer?.cancel();
+    _roundEndTimer?.cancel();
     _followedRequestId = null;
     LiveUpdates.changes.removeListener(_checkRequest);
     _lawyersRefreshTimer?.cancel();

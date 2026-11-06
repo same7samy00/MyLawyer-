@@ -251,8 +251,10 @@ export async function requestRoutes(fastify: FastifyInstance) {
       if (!target) throw new HttpError(404, 'الطلب غير موجود');
       if (target.status !== 'OPEN') throw new HttpError(409, 'الطلب اتقفل، ابعت طلب جديد');
 
-      const next = target.round + 1;
-      const sent = await sendRound(client, target, next);
+      // With fewer than 10 lawyers around, the next group is empty, so the search goes straight back to the nearest
+      let next = target.round + 1;
+      let sent = await sendRound(client, target, next);
+      if (sent === 0) sent = await sendRound(client, target, ++next);
       if (sent === 0) throw new HttpError(409, 'مفيش محامين تانيين متاحين قريب منك دلوقتي');
       await client.query(
         `UPDATE service_requests SET round = $1, round_deadline = NOW() + make_interval(secs => $2) WHERE id = $3`,
