@@ -1,5 +1,8 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Nearby Lawyers Sheet] - 2026-11-06
+- **Map sheet:** before a request it shows how many lawyers are near and the nearest distance, with one «اطلب عروض أسعار» button that sends to the nearest 5. A lawyer's profile shows only after tapping their card, with a back button and no order button. «بحث جديد» is gone.
+
 ## [Live Like Big Apps] - 2026-11-06
 - **Changes with numbers:** every change on the live line names what changed (the order, request or ticket) and has a number. After a dropped line, the app asks `GET /events/since` for only what it missed, or reloads everything once if too much was missed. Migration `028`.
 - **One orders store in the app:** every screen reads orders from `OrderStore`. A change to one order fetches that order alone with `GET /orders?id=` and every screen showing it updates together. The 30-second checks are gone, so screens no longer ask the server on a timer.

@@ -338,7 +338,7 @@ void main() {
       await tester.pump(const Duration(seconds: 11));
       await settleAsync(tester);
 
-      await tester.tap(find.text('اطلب محامي'));
+      await tester.tap(find.text('اطلب عروض أسعار'));
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('من 500 لـ 1500 ج.م'), findsOneWidget);
@@ -438,7 +438,7 @@ void main() {
       await tester.pump(const Duration(seconds: 11));
       await settleAsync(tester);
 
-      await tester.tap(find.text('اطلب محامي'));
+      await tester.tap(find.text('اطلب عروض أسعار'));
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump(const Duration(milliseconds: 500));
       await tester.tap(find.text('ابعت الطلب'));
@@ -471,7 +471,7 @@ void main() {
       await tester.pump(const Duration(seconds: 11));
       await settleAsync(tester);
 
-      await tester.tap(find.text('اطلب محامي'));
+      await tester.tap(find.text('اطلب عروض أسعار'));
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump(const Duration(milliseconds: 500));
       await tester.tap(find.text('ابعت الطلب'));
@@ -480,7 +480,7 @@ void main() {
 
       expect(backend.countOf('POST /requests'), 1);
       expect(find.text('مفيش محامي متاح دلوقتي، جرب تاني كمان شوية'), findsOneWidget);
-      expect(find.text('اطلب محامي'), findsOneWidget);
+      expect(find.text('اطلب عروض أسعار'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(seconds: 2));

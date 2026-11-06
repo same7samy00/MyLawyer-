@@ -106,7 +106,8 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   String? _followedRequestId;
   bool _isCheckingRequest = false;
   bool _showReviews = false;
-  bool _isSearchingAgain = false;
+  /// الموكل لمس كارت محامي وبيتفرج على ملفه
+  bool _isViewingLawyer = false;
   Timer? _lawyersRefreshTimer;
   double _mapZoom = appMapMaxZoom;
   MapCamera? _lastCamera;
@@ -289,9 +290,11 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                       AppSheetHeader(
                         title: _showReviews
                             ? 'التقييمات'
-                            : _orderFlowStage == _OrderFlowStage.idle
-                                ? 'أقرب المحامين إليك'
-                                : 'متابعة الطلب',
+                            : _orderFlowStage != _OrderFlowStage.idle
+                                ? 'متابعة الطلب'
+                                : _isViewingLawyer
+                                    ? 'ملف المحامي'
+                                    : 'المحامين القريبين منك',
                       ),
                       ConstrainedBox(
                         constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.65),

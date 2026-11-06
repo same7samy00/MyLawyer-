@@ -357,7 +357,7 @@ void main() {
         await tester.tap(find.text('أ. أحمد الشافعي'));
         await tester.pump(const Duration(milliseconds: 700));
 
-        expect(find.text('أقرب المحامين إليك'), findsOneWidget);
+        expect(find.text('ملف المحامي'), findsOneWidget);
         expect(find.text('ملف Google'), findsOneWidget);
         expect(find.text('مقيد بالنقابة العامة'), findsOneWidget);
         expect(find.text('جاهزية حضور فوري'), findsOneWidget);

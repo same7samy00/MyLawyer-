@@ -13,7 +13,7 @@ extension _TrackingOrderFlow on _TrackingScreenState {
     _setReviewsVisible(true);
   }
 
-  /// «اطلب محامي»: الموكل يشوف حدود السعر قبل ما الطلب يتبعت
+  /// «اطلب عروض أسعار»: الموكل يشوف حدود السعر قبل ما الطلب يتبعت
   Future<void> _startOrderFlow() async {
     _update(() {
       _orderFlowStage = _OrderFlowStage.evaluatingPrice;

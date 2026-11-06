@@ -140,62 +140,18 @@ extension _TrackingMapControls on _TrackingScreenState {
     if (_currentLawyerIndex < 0) _currentLawyerIndex = 0;
 
     _calculateRouteToLawyer(lawyer);
+    _update(() => _isViewingLawyer = true);
 
     _zoomFitRouteAndLawyer(_searchCenter, lawyer.position);
+  }
+
+  void _closeLawyerProfile() {
+    _update(() => _isViewingLawyer = false);
   }
 
   LatLng get _searchCenter => _currentPosition != null
       ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
       : const LatLng(30.0444, 31.2357);
-
-  /// زر «بحث جديد»: يبحث فعلياً من السيرفر ثم يعرض المحامي التالي أو يوضح أنه لا يوجد غيره
-  Future<void> _searchForNewLawyer() async {
-    if (_isSearchingAgain) return;
-    final currentId = _selectedLawyer?.id;
-
-    _update(() {
-      _isSearchingAgain = true;
-    });
-
-    final res = await LawyerRepository.getNearbyLawyers(
-      lat: _searchCenter.latitude,
-      lon: _searchCenter.longitude,
-      radiusKm: _TrackingScreenState._allEgyptRadiusKm,
-    );
-    if (!mounted) return;
-
-    _update(() {
-      _isSearchingAgain = false;
-    });
-
-    if (!res.isOk) {
-      _showMessage(res.error ?? 'تعذر البحث، جرب تاني');
-      return;
-    }
-
-    final lawyers = (res.data ?? const []).map(MapLawyer.fromModel).toList();
-    _update(() {
-      _nearbyLawyers = lawyers;
-      _lawyersError = null;
-      if (lawyers.isEmpty) {
-        _selectedLawyer = null;
-        _routePoints = [];
-      }
-    });
-
-    if (lawyers.isEmpty) {
-      _showMessage('مفيش محامين متاحين دلوقتي');
-      return;
-    }
-
-    if (lawyers.length == 1 && lawyers.first.id == currentId) {
-      _showMessage('مفيش محامي تاني متاح دلوقتي، ده المحامي الوحيد المتاح');
-      return;
-    }
-
-    final currentIndex = lawyers.indexWhere((lawyer) => lawyer.id == currentId);
-    _onLawyerTapped(lawyers[(currentIndex + 1) % lawyers.length]);
-  }
 
   /// جلب الموقع الفعلي والمحامين المتاحين وحساب المسار لأقربهم تلقائياً
   Future<void> _fetchCurrentLocation() async {

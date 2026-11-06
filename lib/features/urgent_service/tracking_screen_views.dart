@@ -1,24 +1,70 @@
 part of 'tracking_screen.dart';
 
 extension _TrackingScreenViews on _TrackingScreenState {
+  /// قبل الطلب: ملخص المحامين القريبين وزرار واحد بيبعت الطلب لأقرب 5. ملف المحامي بيظهر لما تلمس كارته بس
   Widget _buildLawyerProfileCard() {
+    return AppSwitcher(
+      child: _isViewingLawyer && _selectedLawyer != null ? _buildChosenLawyer() : _buildNearbySummary(),
+    );
+  }
+
+  Widget _buildNearbySummary() {
+    if (!_isLoading && _nearbyLawyers.isEmpty) {
+      return KeyedSubtree(
+        key: const ValueKey('no_lawyers'),
+        child: AppStateMessage(
+          icon: _lawyersError != null ? Icons.wifi_off_rounded : Icons.person_search_rounded,
+          title: _lawyersError != null ? 'تعذر تحميل المحامين' : 'لا يوجد محامون متاحون حالياً',
+          message: _lawyersError,
+          onRetry: _fetchCurrentLocation,
+        ),
+      );
+    }
+    if (_isLoading) return const SheetLoading(key: ValueKey('loading_lawyers'), text: 'جاري البحث عن المحامين القريبين');
+
+    final nearest = _nearbyLawyers.map((lawyer) => lawyer.distanceMeters).reduce((a, b) => a < b ? a : b);
+    final nearestText = nearest < 1000 ? '${nearest.round()} متر' : '${(nearest / 1000).toStringAsFixed(1)} كم';
     return Column(
+      key: const ValueKey('nearby_summary'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // مساحة الملف التعريفي / حالة التحميل الثابتة
-        AppSwitcher(
-          child: !_isLoading && _nearbyLawyers.isEmpty
-              ? KeyedSubtree(key: const ValueKey('no_lawyers'), child: AppStateMessage(
-                  icon: _lawyersError != null ? Icons.wifi_off_rounded : Icons.person_search_rounded,
-                  title: _lawyersError != null ? 'تعذر تحميل المحامين' : 'لا يوجد محامون متاحون حالياً',
-                  message: _lawyersError,
-                  onRetry: _fetchCurrentLocation,
-                ))
-              : _selectedLawyer == null
-              ? const SheetLoading(key: ValueKey('loading_lawyer'), text: 'جاري البحث عن أقرب محامٍ متاح')
-              : KeyedSubtree(key: ValueKey(_selectedLawyer!.id), child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+        const LineIllustration(icon: Icons.location_on_rounded, height: 72),
+        const SizedBox(height: 10),
+        Text(
+          '${_nearbyLawyers.length} محامي متاح قريب منك',
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.dark),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'أقربهم على بعد $nearestText تقريبًا',
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+        ),
+        const SizedBox(height: 14),
+        AppButton.primary(
+          text: 'اطلب عروض أسعار',
+          icon: Icons.send_rounded,
+          height: 48,
+          fontSize: 14,
+          onPressed: _startOrderFlow,
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'طلبك هيوصل لأقرب 5 محامين، وانت تختار العرض اللي يناسبك',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12, height: 1.4, color: AppColors.textMuted),
+        ),
+      ],
+    );
+  }
+
+  /// ملف محامي لمسته على الخريطة، للتعرف عليه بس
+  Widget _buildChosenLawyer() {
+    return Column(
+      key: ValueKey('lawyer_${_selectedLawyer!.id}'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
                     LawyerProfileSummary(
                       avatar: _LawyerAvatarPhoto(
                         imageUrl: _selectedLawyer!.imageUrl,
@@ -71,64 +117,8 @@ extension _TrackingScreenViews on _TrackingScreenState {
                         ),
                       ],
                     ),
-                  ],
-                )),
-        ),
         const SizedBox(height: 10),
-
-        // 7. زرين بجوار بعضهما: «طلب الآن» و «بحث جديد»
-        Row(
-          children: [
-            // الزر الأول: طلب الآن (الرئيسي)
-            Expanded(
-              flex: 6,
-              child: AppButton.primary(
-                text: 'اطلب محامي',
-                icon: Icons.check_circle_outline_rounded,
-                height: 48,
-                fontSize: 14,
-                onPressed: _isLoading ? null : _startOrderFlow,
-              ),
-            ),
-            const SizedBox(width: 10),
-
-            // الزر الثاني: بحث جديد من السيرفر عن محامٍ تاني
-            Expanded(
-              flex: 4,
-              child: AppPressable(
-                child: OutlinedButton.icon(
-                  onPressed: (_isLoading || _isSearchingAgain) ? null : _searchForNewLawyer,
-                  icon: _isSearchingAgain
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                        )
-                      : const Icon(Icons.refresh_rounded, color: AppColors.primary, size: 18),
-                  label: const Text(
-                    'بحث جديد',
-                    style: TextStyle(
-                      fontFamily: 'AppFont',
-                      fontFamilyFallback: appFontFallback,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    overlayColor: Colors.transparent,
-                    foregroundColor: AppColors.primary,
-                    side: BorderSide(color: AppColors.primary.withOpacity(0.35), width: 1.2),
-                    minimumSize: const Size(double.infinity, 48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24.0),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+        AppButton.outlined(text: 'رجوع', height: 44, onPressed: _closeLawyerProfile),
       ],
     );
   }
