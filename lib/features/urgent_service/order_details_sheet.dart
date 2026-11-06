@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'arrival_time_card.dart';
+import '../../core/widgets/sheet_actions.dart';
+import '../../core/widgets/postponed_since.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
@@ -8,7 +10,6 @@ import '../../core/services/order_store.dart';
 import '../../core/services/notification_center.dart';
 import '../../core/services/external_navigation.dart';
 import '../../core/services/location_service.dart';
-import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_dialog.dart';
 import '../../core/widgets/app_sheet.dart';
@@ -262,7 +263,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         ],
         _buildDetailsCard(order),
         const SizedBox(height: 16),
-        if (widget.isLawyer) ..._buildLawyerActions(order) else ..._buildClientActions(order),
+        ...packSheetActions(widget.isLawyer ? _buildLawyerActions(order) : _buildClientActions(order)),
       ],
     );
   }
@@ -348,31 +349,11 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   }
 
   Widget _action(String text, VoidCallback onPressed, {bool isDanger = false, IconData? icon}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: AppButton.outlined(
-        text: text,
-        icon: icon,
-        height: 44,
-        fontSize: 13,
-        textColor: isDanger ? AppColors.danger : null,
-        borderColor: isDanger ? AppColors.danger.withOpacity(0.35) : null,
-        onPressed: _isBusy ? null : onPressed,
-      ),
-    );
+    return SheetButton(text, _isBusy ? null : onPressed, icon: icon, isDanger: isDanger);
   }
 
   Widget _primaryAction(String text, VoidCallback onPressed, {IconData? icon}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: AppButton.primary(
-        text: text,
-        icon: icon,
-        height: 46,
-        fontSize: 14,
-        onPressed: _isBusy ? null : onPressed,
-      ),
-    );
+    return SheetButton(text, _isBusy ? null : onPressed, icon: icon, isPrimary: true);
   }
 
   Widget _statusNote(String text) {
@@ -402,7 +383,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         _statusNote('المحامي اتأخر. تحب تستنى ولا تلغي وترجع فلوسك؟'),
         _primaryAction('هستنى', () => _run(() => OrderRepository.keepWaiting(order.id), 'تمام، هنكمل الانتظار')),
       ],
-      if (order.isPostponed) _statusNote('المهمة مؤجلة، والفلوس محجوزة لحد ما المحامي ينهيها'),
+      if (order.isPostponed) PostponedSince(since: order.postponedAt!, note: 'والفلوس محجوزة لحد ما المحامي ينهيها'),
       if (order.isActive && order.lawyerPhone != null)
         _primaryAction('اتصل بالمحامي', () => _call(order.lawyerPhone), icon: Icons.call_rounded),
       if (order.canReview) _primaryAction('قيّم المحامي', () => _openReview(isEdit: false)),
@@ -433,7 +414,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         _action('افتح مكان الموكل في Google Maps', _openDirections, icon: Icons.navigation_rounded),
         if (!order.hasOpenComplaint) ...[
           // Finishing stays hidden until the lawyer arrives within 50 meters of the client
-          if (order.isPostponed) _statusNote('المهمة مؤجلة، وأتعابها محجوزة لحد ما تنهيها'),
+          if (order.isPostponed) PostponedSince(since: order.postponedAt!, note: 'وأتعابها محجوزة لحد ما تنهيها'),
           if (order.arrivedAt == null)
             _primaryAction('وصلت', _markArrived)
           else ...[

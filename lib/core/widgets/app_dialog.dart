@@ -94,8 +94,9 @@ class AppDialog extends StatelessWidget {
                           text: cancelText,
                           height: 44,
                           fontSize: 14,
-                          backgroundColor: AppColors.primaryLight,
-                          textColor: AppColors.primary,
+                          // زرار الإلغاء أحمر في التطبيق كله
+                          backgroundColor: AppColors.danger.withOpacity(0.08),
+                          textColor: AppColors.danger,
                           onPressed: onCancel,
                         ),
                       ),

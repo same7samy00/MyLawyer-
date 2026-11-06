@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import '../constants/app_colors.dart';
 import '../services/push_service.dart';
 import 'app_button.dart';
+import 'sheet_actions.dart';
 import 'app_sheet.dart';
 
 /// خطوات تجهيز الموبايل قبل ما المحامي يبقى متاح، عشان تجيله طلبات وهو برّه التطبيق
@@ -149,18 +150,10 @@ class _BackgroundLocationSheetState extends State<BackgroundLocationSheet> with 
             _step('اسمح بالإشعارات', _notificationsReady, _enableNotifications),
             _step('استثني التطبيق من توفير البطارية', _batteryReady, _enableBattery, note: 'من غيرها الطلبات ممكن تقف'),
             const SizedBox(height: 8),
-            AppButton.primary(
-              text: 'ابدأ استقبال الطلبات',
-              height: 48,
-              onPressed: canStart ? () => Navigator.of(context).pop(true) : null,
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
-                'مش دلوقتي',
-                style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 13, color: AppColors.textMuted),
-              ),
-            ),
+            ...packSheetActions([
+              SheetButton('ابدأ الاستقبال', canStart ? () => Navigator.of(context).pop(true) : null, isPrimary: true),
+              SheetButton('مش دلوقتي', () => Navigator.of(context).pop(false)),
+            ]),
       ],
     );
   }

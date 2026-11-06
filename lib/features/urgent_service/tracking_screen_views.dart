@@ -425,7 +425,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
                     fontFamilyFallback: appFontFallback,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textMuted,
+                    color: AppColors.danger,
                   ),
                 ),
               ),

@@ -63,7 +63,7 @@ class LogoutConfirmationSheet extends StatelessWidget {
                     fontFamilyFallback: appFontFallback,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textMuted,
+                    color: AppColors.danger,
                   ),
                 ),
               ),

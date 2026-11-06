@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Paired Sheet Buttons, Red Cancel and Postpone Counter] - 2026-11-06
+- **Bottom sheets:** short buttons sit two in a row (`SheetButton` and `packSheetActions` in `lib/core/widgets/sheet_actions.dart`), and a button with long text, like the Google Maps one, keeps its own row. Used in the order details sheet, the lawyer offer sheet («ابعت عرضك» or «اسحب العرض» with «إغلاق»), the transfer confirmation and the location permission sheet.
+- **Cancel is red everywhere:** `AppButton` turns any button whose text starts with «إلغاء» or is «إغلاق» red, the dialogs' cancel button is red, and so are the text-style cancel buttons.
+- **Postponed task:** a counter «المهمة مؤجلة بقالها» counts up every second from the postponement, for the lawyer and the client.
+
 ## [One-Tap Postpone] - 2026-11-06
 - **Postpone:** «مؤجل» opens one confirmation, with no reason, date or text. The lawyer then sees «إلغاء التأجيل» and «إنهاء المهمة». The client is told the task continues later and the money stays held.
 - **Resume:** `POST /orders/:id/resume` opens the task again and tells the client. It is refused while the lawyer has another open task.

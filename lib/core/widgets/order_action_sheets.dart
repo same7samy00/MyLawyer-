@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 import '../services/api_service.dart';
 import 'app_button.dart';
+import 'sheet_actions.dart';
 import 'app_pressable.dart';
 import 'app_sheet.dart';
 
@@ -311,9 +312,10 @@ class _TransferSheetState extends State<_TransferSheet> {
           Text(_phone.text.trim(), textAlign: TextAlign.center, style: _subtitleStyle),
           const SizedBox(height: 16),
           _ErrorText(_error),
-          AppButton.primary(text: 'تأكيد التحويل', onPressed: _isBusy ? null : _send),
-          const SizedBox(height: 8),
-          AppButton.outlined(text: 'تعديل', onPressed: _isBusy ? null : () => setState(() => _recipientName = null)),
+          ...packSheetActions([
+            SheetButton('تأكيد التحويل', _isBusy ? null : _send, isPrimary: true),
+            SheetButton('تعديل', _isBusy ? null : () => setState(() => _recipientName = null)),
+          ]),
         ] else ...[
           TextField(
             controller: _phone,

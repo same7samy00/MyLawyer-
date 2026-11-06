@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/live_updates.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/sheet_actions.dart';
 import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/app_switcher.dart';
 import '../../core/widgets/request_parts.dart';
@@ -140,15 +141,15 @@ class _RequestOfferSheetState extends State<RequestOfferSheet> {
       if (sent != null) ...[
         Text('صافي ليك: ${_request.netOf(sent)} ج.م • مستنيين الموكل يختار', textAlign: TextAlign.center, style: _mutedStyle),
         const SizedBox(height: 10),
-        AppButton.outlined(text: 'اسحب العرض', height: 44, onPressed: _isBusy ? null : _withdraw),
-      ] else
-        AppButton.primary(
-          text: 'ابعت عرضك',
-          height: 46,
-          onPressed: _secondsLeft > 0 ? () => setState(() => _isWritingPrice = true) : null,
-        ),
-      const SizedBox(height: 4),
-      TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('إغلاق')),
+      ],
+      // الزرار الأساسي و«إغلاق» جنب بعض، و«إغلاق» أحمر
+      ...packSheetActions([
+        if (sent != null)
+          SheetButton('اسحب العرض', _isBusy ? null : _withdraw)
+        else
+          SheetButton('ابعت عرضك', _secondsLeft > 0 ? () => setState(() => _isWritingPrice = true) : null, isPrimary: true),
+        SheetButton('إغلاق', () => Navigator.of(context).pop(), isDanger: true),
+      ]),
     ];
   }
 
