@@ -1,7 +1,7 @@
 # 📝 CHANGELOG - My Lawyer
 
-## [Transfers From Withdrawable Money Only] - 2026-11-06
-- **Wallet transfers:** anyone can still send to anyone, but only money that can be withdrawn. A lawyer sends from their available earnings. A client sends only what reached them by transfer; refunds stay in the app and cannot be sent. Refunds are spent first on orders. A refused transfer says why and how much can be sent. `GET /wallet/limits` adds `transferable`.
+## [Transfers Without Held Fees] - 2026-11-06
+- **Wallet transfers:** anyone sends to anyone, lawyer to lawyer included, and refunds can be sent. Only a lawyer's held or frozen fees cannot move until they are released, and the refusal says so.
 - **Unactivated accounts:** by the owner's decision, an account keeps its phone and email reserved once created, and the phone is not checked by a code.
 
 ## [No Lawyer Degree] - 2026-11-06

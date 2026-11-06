@@ -378,8 +378,7 @@ describe('ترقيم ML الموحد', () => {
     const listed = await call('GET', '/admin/support?role=client', adminToken);
     assert.equal(listed.body.data[0].reference, ticket.body.data.reference);
 
-    await sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, 500, 'تحويل تجريبي')`, [clientId]);
-    await sql('INSERT INTO wallet_transfers (sender_id, recipient_id, amount) VALUES ($1, $2, 500)', [lawyerId, clientId]);
+    await sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, 500, 'شحن تجريبي')`, [clientId]);
     const transfer = await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 100 });
     assert.match(transfer.body.data.reference, /^ML-TRF-\d{6}$/);
   });

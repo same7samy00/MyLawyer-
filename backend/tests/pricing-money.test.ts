@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { PROBLEM, app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createOrder, closeOrders, createArrivedOrder, createCompletedOrder, wallet, clientBalance } from './harness.js';
+import { PROBLEM, app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createOrder, closeOrders, createArrivedOrder, createCompletedOrder, createUser, wallet, clientBalance } from './harness.js';
 
 describe('السعر', () => {
   it('الخادم يحدد السعر ويتجاهل ما يرسله التطبيق', async () => {
@@ -164,28 +164,9 @@ describe('السعر قبل الطلب والنسبة', () => {
 });
 
 describe('التحويل بين الحسابات', () => {
-  const refund = (amount: number) => sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, $2, 'مبلغ مرتجع')`, [clientId, amount]);
-  // Money that reached the client by transfer can be withdrawn, so it can be transferred again
-  const credit = async (amount: number) => {
-    await sql('INSERT INTO wallet_transfers (sender_id, recipient_id, amount, created_at) VALUES ($1, $2, $3, NOW() - INTERVAL \'2 days\')', [lawyerId, clientId, amount]);
-    await sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, $2, 'تحويل تجريبي')`, [clientId, amount]);
-  };
+  const credit = (amount: number) => sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, $2, 'شحن تجريبي')`, [clientId, amount]);
 
-  it('المبالغ المرتجعة ما بتتحولش، والمتاح للسحب بس هو اللي بيتحول', async () => {
-    await refund(500);
-    const blocked = await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 100 });
-    assert.equal(blocked.status, 400);
-    assert.match(blocked.body.error, /المبالغ المرتجعة/);
-    assert.equal((await call('GET', '/wallet/limits', clientToken)).body.data.transferable, 0);
-
-    await credit(200);
-    assert.equal((await call('GET', '/wallet/limits', clientToken)).body.data.transferable, 200);
-    assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 250 })).status, 400);
-    assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 200 })).status, 200);
-    assert.equal(await clientBalance(), 500);
-  });
-
-  it('أي حد يحوّل لأي حد: الموكل للمحامي والمحامي للموكل', async () => {
+  it('الموكل يحوّل للمحامي برقم الموبايل، والرصيد يتنقل للطرفين', async () => {
     await credit(500);
     const who = await call('GET', '/wallet/recipient?phone=01000000002', clientToken);
     assert.equal(who.status, 200);
@@ -200,6 +181,20 @@ describe('التحويل بين الحسابات', () => {
     assert.equal(back.status, 200);
     assert.equal(await clientBalance(), 450);
     assert.equal((await wallet()).availableBalance, 50);
+  });
+
+  it('الأتعاب المحجوزة ما بتتحولش، والمحامي يحوّل لمحامي من المتاح', async () => {
+    await createCompletedOrder();
+    assert.equal((await wallet()).heldBalance, 350);
+    const otherLawyer = '01550000077';
+    await createUser(otherLawyer, 'lawyer');
+    assert.equal((await call('POST', '/wallet/transfer', lawyerToken, { phone: otherLawyer, amount: 100 })).status, 400);
+
+    await sql(`UPDATE service_orders SET hold_until = NOW() - INTERVAL '1 minute' WHERE lawyer_id = $1 AND payout_status = 'HELD'`, [lawyerId]);
+    await sweepLifecycle();
+    const sent = await call('POST', '/wallet/transfer', lawyerToken, { phone: otherLawyer, amount: 100 });
+    assert.equal(sent.status, 200, JSON.stringify(sent.body));
+    assert.equal((await wallet()).availableBalance, 250);
   });
 
   it('أقل من 100، أو أكتر من الرصيد، أو لنفسك، أو رقم مش موجود: مرفوض', async () => {
