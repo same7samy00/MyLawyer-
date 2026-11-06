@@ -16,6 +16,15 @@ class LiveChange {
   bool get isEverything => kind == 'all';
 }
 
+/// آخر مكان للطرف التاني في الطريق للمقابلة
+class LivePoint {
+  final String orderId;
+  final double lat;
+  final double lon;
+
+  const LivePoint(this.orderId, this.lat, this.lon);
+}
+
 /// خط مفتوح مع السيرفر زي التطبيقات الكبيرة:
 /// السيرفر بيبعت إيه اللي اتغير بالظبط، والتطبيق بيحدث الحاجة دي بس.
 /// كل تغيير له رقم، ولو الخط قطع، التطبيق بيسأل عن اللي فاته بس أول ما يرجع، من غير شاشة تحميل أو رسالة.
@@ -30,6 +39,9 @@ class LiveUpdates {
 
   /// الطلبات الجديدة والعروض اتغيرت
   static final ValueNotifier<int> requests = ValueNotifier<int>(0);
+
+  /// مكان الطرف التاني بيوصل هنا لحظة بلحظة، ومش بيتسجل كتغيير ولا بيحدث أي شاشة تانية
+  static final ValueNotifier<LivePoint?> position = ValueNotifier<LivePoint?>(null);
 
   static final StreamController<LiveChange> _changes = StreamController<LiveChange>.broadcast();
 
@@ -65,6 +77,7 @@ class LiveUpdates {
     _isRunning = false;
     _turn++;
     _lastId = null;
+    position.value = null;
     _retryTimer?.cancel();
     _gatherTimer?.cancel();
     unawaited(_line?.cancel());
@@ -157,6 +170,13 @@ class LiveUpdates {
           if (text.startsWith('id: ')) {
             final id = int.tryParse(text.substring(4).trim());
             if (id != null) _remember(id);
+            return;
+          }
+          if (text.startsWith('data: position ')) {
+            final parts = text.split(' ');
+            final lat = parts.length > 5 ? double.tryParse(parts[4]) : null;
+            final lon = parts.length > 5 ? double.tryParse(parts[5]) : null;
+            if (lat != null && lon != null) position.value = LivePoint(parts[2], lat, lon);
             return;
           }
           if (!text.startsWith('data: change')) return;

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../data/models/order_model.dart';
 import '../../data/repositories/order_repository.dart';
 import 'api_service.dart';
+import 'background_location_service.dart';
 import 'live_updates.dart';
 
 /// مكان واحد للطلبات تقرأ منه كل الشاشات.
@@ -16,6 +17,11 @@ class OrderStore {
   static Future<ApiResponse<List<OrderModel>>>? _loading;
 
   static void start() {
+    if (_subscription == null) {
+      orders.addListener(_followMission);
+      // الطريق للمقابلة لازم يكمل حتى لو التطبيق اتفتح من جديد وصفحة الطلبات مقفولة
+      unawaited(load());
+    }
     _subscription ??= LiveUpdates.stream.listen((change) {
       if (change.isEverything) {
         unawaited(load());
@@ -26,7 +32,14 @@ class OrderStore {
     });
   }
 
+  /// الطلب المدفوع اللي المحامي لسه ما وصلش فيه: الطرفين بيشاركوا مكانهم لحظيًا لحد «وصلت»
+  static void _followMission() {
+    final mission = orders.value.where((order) => order.isActive && order.arrivedAt == null).firstOrNull;
+    unawaited(BackgroundLocationService.setMission(mission?.id));
+  }
+
   static void clear() {
+    orders.removeListener(_followMission);
     unawaited(_subscription?.cancel());
     _subscription = null;
     orders.value = const [];

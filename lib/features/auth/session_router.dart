@@ -92,7 +92,7 @@ class SessionRouter {
     if (_isSuspendedScreenOpen || navigator == null) return;
 
     _isSuspendedScreenOpen = true;
-    unawaited(BackgroundLocationService.stop());
+    unawaited(BackgroundLocationService.stopAll());
     await replaceStack(navigator, const AccountSuspendedScreen());
   }
 

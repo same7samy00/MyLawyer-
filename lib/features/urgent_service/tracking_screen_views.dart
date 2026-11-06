@@ -1,7 +1,7 @@
 part of 'tracking_screen.dart';
 
 extension _TrackingScreenViews on _TrackingScreenState {
-  /// قبل الطلب: ملخص المحامين القريبين وزرار واحد بيبعت الطلب لأقرب 5. ملف المحامي بيظهر لما تلمس كارته بس
+  /// قبل الطلب: ملخص المحامين القريبين وزرار واحد بيبعت الطلب لأقرب 10 جوه 50 كم. ملف المحامي بيظهر لما تلمس كارته بس
   Widget _buildLawyerProfileCard() {
     return AppSwitcher(
       child: _isViewingLawyer && _selectedLawyer != null ? _buildChosenLawyer() : _buildNearbySummary(),
@@ -46,7 +46,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
         ),
         const SizedBox(height: 8),
         const Text(
-          'طلبك هيوصل لأقرب 5 محامين، وانت تختار العرض اللي يناسبك',
+          'طلبك هيوصل لأقرب 10 محامين، وانت تختار العرض اللي يناسبك',
           textAlign: TextAlign.center,
           style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12, height: 1.4, color: AppColors.textMuted),
         ),
@@ -309,6 +309,15 @@ extension _TrackingScreenViews on _TrackingScreenState {
                 onProfile: () => _showOfferProfile(offer),
               ),
             const SizedBox(height: 10),
+            // يبعت للـ 10 اللي بعدهم على طول، والعروض اللي وصلت بتفضل
+            AppButton(
+              text: 'بحث جديد',
+              height: 46,
+              icon: Icons.travel_explore_rounded,
+              isLoading: _isSearchingAgain,
+              onPressed: _searchAgain,
+            ),
+            const SizedBox(height: 8),
             AppButton.outlined(text: 'إلغاء الطلب', height: 46, onPressed: _returnToLawyerProfile),
           ],
         );

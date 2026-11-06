@@ -48,6 +48,9 @@ class RequestRepository {
 
   static Future<ApiResponse<dynamic>> cancel(String id) => ApiService.post('/requests/$id/cancel', {});
 
+  /// «بحث جديد»: المجموعة اللي بعدها من المحامين على طول
+  static Future<ApiResponse<dynamic>> searchAgain(String id) => ApiService.post('/requests/$id/search', {});
+
   static Future<ApiResponse<SelectedOffer>> select(String id, String offerId) async {
     final res = await ApiService.post('/requests/$id/offers/$offerId/select', {});
     if (res.isOk && res.data is Map<String, dynamic>) {

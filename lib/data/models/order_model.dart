@@ -33,6 +33,9 @@ class OrderModel {
   final bool hasOpenComplaint;
   final bool canEditReview;
   final DateTime? arrivedAt;
+  /// آخر مكان للطرف التاني بين الدفع والوصول، والخط اللايف بيحدثه أول بأول
+  final double? liveLat;
+  final double? liveLon;
   final DateTime? paymentDeadline;
   final DateTime? acceptedAt;
   final DateTime? paidAt;
@@ -77,6 +80,8 @@ class OrderModel {
     this.hasOpenComplaint = false,
     this.canEditReview = false,
     this.arrivedAt,
+    this.liveLat,
+    this.liveLon,
     this.paymentDeadline,
     this.acceptedAt,
     this.paidAt,
@@ -136,6 +141,8 @@ class OrderModel {
       hasOpenComplaint: json['hasOpenComplaint'] == true,
       canEditReview: json['canEditReview'] == true,
       arrivedAt: _toDate(json['arrivedAt'] ?? json['arrived_at']),
+      liveLat: _toDouble(json['liveLatitude']),
+      liveLon: _toDouble(json['liveLongitude']),
       paymentDeadline: _toDate(json['paymentDeadline'] ?? json['payment_deadline']),
       acceptedAt: _toDate(json['acceptedAt'] ?? json['accepted_at']),
       paidAt: _toDate(json['paidAt'] ?? json['paid_at']),

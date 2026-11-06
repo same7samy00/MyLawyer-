@@ -132,6 +132,18 @@ extension _TrackingOrderFlow on _TrackingScreenState {
     });
   }
 
+  /// «بحث جديد»: الطلب يروح للـ 10 اللي بعد الأولانيين، والمرة اللي بعدها يرجع للأقرب
+  Future<void> _searchAgain() async {
+    final requestId = _activeRequestId;
+    if (requestId == null || _isSearchingAgain) return;
+    _update(() => _isSearchingAgain = true);
+    final res = await RequestRepository.searchAgain(requestId);
+    if (!mounted) return;
+    _update(() => _isSearchingAgain = false);
+    _showMessage(res.isOk ? 'بعتنا طلبك لمحامين تانيين قريبين منك' : (res.error ?? 'تعذر البحث، حاول تاني'));
+    if (res.isOk) await _checkRequest();
+  }
+
   /// اختيار العرض يعمل الطلب بسعر المحامي، ويفتح الدفع
   Future<void> _chooseOffer(RequestOffer offer) async {
     final requestId = _activeRequestId;

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'live_tracking_card.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
@@ -261,6 +262,10 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
           ),
         ),
         const SizedBox(height: 12),
+        if (order.isActive && order.arrivedAt == null) ...[
+          LiveTrackingCard(order: order, isLawyer: widget.isLawyer),
+          const SizedBox(height: 12),
+        ],
         _buildDetailsCard(order),
         const SizedBox(height: 16),
         if (widget.isLawyer) ..._buildLawyerActions(order) else ..._buildClientActions(order),

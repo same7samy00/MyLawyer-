@@ -560,7 +560,7 @@ class AuthService {
     await SavedData.clear();
     OrderStore.clear();
     // الخروج ما يستناش نظام الموبايل
-    unawaited(BackgroundLocationService.stop());
+    unawaited(BackgroundLocationService.stopAll());
     final prefs = await SharedPreferences.getInstance();
     final loginPhone = prefs.getString(_prefLoginPhone);
     final permissionsAsked = await DevicePermissionService.instance.hasRequestedInitialPermissions();
