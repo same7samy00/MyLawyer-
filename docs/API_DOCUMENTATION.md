@@ -91,7 +91,8 @@
 | `/requests/:id/offer` | `POST` | محامٍ | إرسال السعر `price` جوه الحدود |
 | `/requests/:id/offer/withdraw` | `POST` | محامٍ | سحب العرض قبل الاختيار |
 | `/orders/:id/keep-waiting` | `POST` | موكل | يختار انتظار المحامي المتأخر، فيقف الرد بعد ساعتين |
-| `/orders/:id/postpone` | `POST` | محامٍ | تأجيل المهمة بعد الوصول، بالسبب `reason` والميعاد `until` |
+| `/orders/:id/postpone` | `POST` | محامٍ | تأجيل المهمة بعد الوصول، من غير أي بيانات. 409 لو مؤجلة بالفعل |
+| `/orders/:id/resume` | `POST` | محامٍ | «إلغاء التأجيل»: المهمة ترجع مفتوحة. 409 لو عنده مهمة تانية مفتوحة |
 | `/orders/:id/arrive` | `POST` | محامٍ | تسجيل الوصول، ومقبول على بعد 50 متر من مكان الطلب أو من آخر نقطة بعتها الموكل في الطريق |
 | `/orders/:id/position` | `POST` | طرف في الطلب | التتبع اللحظي: آخر نقطة للطرف ده (`latitude` و`longitude`) من الدفع لحد الوصول، مرة كل 4 ثواني بالكتير. بترد `tracking: false` لما الطريق يخلص. النقطة بتوصل للطرف التاني على `/events` كـ `data: position <orderId> <side> <lat> <lon>`، و`GET /orders` بيرجعها في `liveLatitude` و`liveLongitude` |
 | `/orders/:id/complete` | `POST` | محامٍ | إنهاء المهمة بعد تسجيل الوصول، من غير كود |

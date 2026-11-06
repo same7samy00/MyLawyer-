@@ -190,26 +190,45 @@ describe('تأخر المحامي عن الوصول', () => {
 });
 
 describe('تأجيل المهمة', () => {
-  const later = () => new Date(Date.now() + 3 * 86400000).toISOString();
+  const postpone = (id: string, token = lawyerToken) => call('POST', `/orders/${id}/postpone`, token, {});
 
-  it('التأجيل بعد «وصلت» بس، وبسبب وميعاد صحيحين', async () => {
+  it('التأجيل بعد «وصلت» بس، ومن غير سبب ولا ميعاد', async () => {
     const paid = await createPaidOrder();
-    assert.equal((await call('POST', `/orders/${paid.id}/postpone`, lawyerToken, { reason: 'الجلسة', until: later() })).status, 400);
+    assert.equal((await postpone(paid.id)).status, 400);
     await closeOrders();
 
     const order = await createArrivedOrder();
-    assert.equal((await call('POST', `/orders/${order.id}/postpone`, lawyerToken, { until: later() })).status, 400);
-    assert.equal((await call('POST', `/orders/${order.id}/postpone`, lawyerToken, { reason: 'الجلسة', until: '2020-01-01' })).status, 400);
-    assert.equal((await call('POST', `/orders/${order.id}/postpone`, clientToken, { reason: 'الجلسة', until: later() })).status, 404);
+    assert.equal((await postpone(order.id, clientToken)).status, 404);
+    assert.equal((await postpone(order.id)).status, 200);
+    assert.equal((await postpone(order.id)).status, 409, 'already postponed');
+    await closeOrders();
+  });
+
+  it('«إلغاء التأجيل» بيرجّع المهمة مفتوحة، ومرفوض لو المحامي عنده مهمة تانية مفتوحة', async () => {
+    const order = await createArrivedOrder();
+    const resume = () => call('POST', `/orders/${order.id}/resume`, lawyerToken, {});
+    assert.equal((await resume()).status, 400, 'not postponed yet');
+    await postpone(order.id);
+
+    // While postponed the lawyer takes another task, so resuming waits for it
+    const other = await createOrder();
+    assert.equal((await resume()).status, 409);
+    await sql(`UPDATE service_orders SET status = 'CANCELLED' WHERE id = $1`, [other.id]);
+
+    assert.equal((await resume()).status, 200);
+    const listed = (await call('GET', '/orders', clientToken)).body.data.find((o: any) => o.orderId === order.id);
+    assert.equal(listed.postponedAt, null);
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'المحامي كمل المهمة'`, [clientId])).length, 1);
+    await closeOrders();
   });
 
   it('المؤجل يفضل محجوز، ويكمل بـ «إنهاء»، والمحامي يقدر يستقبل طلبات', async () => {
     const order = await createArrivedOrder();
-    assert.equal((await call('POST', `/orders/${order.id}/postpone`, lawyerToken, { reason: 'الجلسة يوم الخميس', until: later() })).status, 200);
+    assert.equal((await postpone(order.id)).status, 200);
 
     const listed = (await call('GET', '/orders', clientToken)).body.data[0];
-    assert.equal(listed.postponedReason, 'الجلسة يوم الخميس');
-    assert.ok(listed.postponedUntil);
+    assert.ok(listed.postponedAt);
+    assert.equal(listed.postponedReason, null);
     assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'المحامي أجّل المهمة'`, [clientId])).length, 1);
 
     await sql(`UPDATE service_orders SET expires_at = NOW() - INTERVAL '40 days' WHERE id = $1`, [order.id]);

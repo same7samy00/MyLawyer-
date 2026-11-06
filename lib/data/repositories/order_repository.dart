@@ -177,8 +177,14 @@ class OrderRepository {
   }
 
   /// المحامي يأجل المهمة بعد وصوله، والفلوس تفضل محجوزة
-  static Future<ApiResponse<dynamic>> postponeOrder(String orderId, String reason, DateTime until) {
-    return ApiService.post('/orders/$orderId/postpone', {'reason': reason, 'until': until.toUtc().toIso8601String()});
+  /// تأجيل المهمة بعد الوصول: تأكيد بس، من غير سبب ولا ميعاد
+  static Future<ApiResponse<dynamic>> postponeOrder(String orderId) {
+    return ApiService.post('/orders/$orderId/postpone', {});
+  }
+
+  /// «إلغاء التأجيل»: المهمة ترجع مفتوحة
+  static Future<ApiResponse<dynamic>> resumeOrder(String orderId) {
+    return ApiService.post('/orders/$orderId/resume', {});
   }
 
   /// اعتذار المحامي بعد الدفع

@@ -1,5 +1,9 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [One-Tap Postpone] - 2026-11-06
+- **Postpone:** «مؤجل» opens one confirmation, with no reason, date or text. The lawyer then sees «إلغاء التأجيل» and «إنهاء المهمة». The client is told the task continues later and the money stays held.
+- **Resume:** `POST /orders/:id/resume` opens the task again and tells the client. It is refused while the lawyer has another open task.
+
 ## [Instant Screens and Bouncing Dots] - 2026-11-06
 - **Shown at once:** `SavedData.preload()` reads every saved item when the app opens, and `SavedData.peek()` gives it to a screen while it draws. The home profile card, the account tabs, personal data, the lawyer «متاح» card, payments and support tickets now show their last data from the first frame, then refresh from the server. The phone number and email are not kept in the saved profile.
 - **Waiting for offers:** three bouncing dots instead of a spinner, in a fixed-height area, and the «بحث جديد» button keeps its place while hidden, so the page never changes size.

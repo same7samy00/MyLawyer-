@@ -74,7 +74,8 @@
 | `POST /orders/:id/arrive` | المحامي | App | 50 متر من مكان الطلب أو من آخر نقطة للموكل |
 | `POST /orders/:id/position` | طرف في الطلب | App | التتبع اللحظي من الدفع لحد الوصول |
 | `POST /orders/:id/keep-waiting` | الموكل | App | |
-| `POST /orders/:id/postpone` | المحامي بعد الوصول | App | |
+| `POST /orders/:id/postpone` | المحامي بعد الوصول | App | من غير سبب ولا ميعاد |
+| `POST /orders/:id/resume` | المحامي | App | إلغاء التأجيل |
 | `POST /orders/:id/complete` | المحامي بعد الوصول | App | |
 | `POST /orders/:id/cancel` | طرف أو admin | App | |
 | `POST /orders/:id/withdraw` | المحامي بعد الدفع | App | مخالفة على المحامي |

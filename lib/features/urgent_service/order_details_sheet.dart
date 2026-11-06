@@ -209,19 +209,13 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   }
 
   Future<void> _openPostpone() async {
-    final now = DateTime.now();
-    final until = await showDatePicker(
-      context: context,
-      initialDate: now.add(const Duration(days: 1)),
-      firstDate: now.add(const Duration(days: 1)),
-      lastDate: now.add(const Duration(days: 365)),
-      helpText: 'الميعاد الجديد',
-    );
-    if (until == null || !mounted) return;
+    if (!await _confirm('تأجيل المهمة', 'المهمة هتتأجل وفلوسها هتفضل محجوزة لحد ما تنهيها. وتقدر تستقبل طلبات تانية لحد ما تكملها', 'تأجيل', icon: Icons.schedule_rounded)) return;
+    await _run(() => OrderRepository.postponeOrder(_order.id), 'تم تأجيل المهمة');
+  }
 
-    final reason = await showDialog<String>(context: context, builder: (_) => const _PostponeReasonDialog());
-    if (reason == null || !mounted) return;
-    await _run(() => OrderRepository.postponeOrder(_order.id, reason, until), 'تم تأجيل المهمة');
+  Future<void> _resume() async {
+    if (!await _confirm('إلغاء التأجيل', 'المهمة هترجع مفتوحة، ومش هتوصلك طلبات جديدة لحد ما تنهيها', 'إلغاء التأجيل', icon: Icons.play_circle_outline_rounded)) return;
+    await _run(() => OrderRepository.resumeOrder(_order.id), 'تم إلغاء التأجيل');
   }
 
   Future<void> _withdraw() async {
@@ -408,7 +402,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         _statusNote('المحامي اتأخر. تحب تستنى ولا تلغي وترجع فلوسك؟'),
         _primaryAction('هستنى', () => _run(() => OrderRepository.keepWaiting(order.id), 'تمام، هنكمل الانتظار')),
       ],
-      if (order.isPostponed) _statusNote(_postponedText(order)),
+      if (order.isPostponed) _statusNote('المهمة مؤجلة، والفلوس محجوزة لحد ما المحامي ينهيها'),
       if (order.isActive && order.lawyerPhone != null)
         _primaryAction('اتصل بالمحامي', () => _call(order.lawyerPhone), icon: Icons.call_rounded),
       if (order.canReview) _primaryAction('قيّم المحامي', () => _openReview(isEdit: false)),
@@ -417,12 +411,6 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
       ..._problemAction(order),
       if (order.canCancel) _action('إلغاء الطلب', _cancelOrder, isDanger: true),
     ];
-  }
-
-  String _postponedText(OrderModel order) {
-    final until = order.postponedUntil;
-    final date = until == null ? '' : ' • الميعاد الجديد ${until.day}/${until.month}/${until.year}';
-    return 'المهمة مؤجلة: ${order.postponedReason ?? ''}$date';
   }
 
   /// «عندك مشكلة؟» يفتح تذكرة جديدة، ولو فيه تذكرة مفتوحة يبقى «تابع مشكلتك»
@@ -445,12 +433,12 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         _action('افتح مكان الموكل في Google Maps', _openDirections, icon: Icons.navigation_rounded),
         if (!order.hasOpenComplaint) ...[
           // Finishing stays hidden until the lawyer arrives within 50 meters of the client
-          if (order.isPostponed) _statusNote(_postponedText(order)),
+          if (order.isPostponed) _statusNote('المهمة مؤجلة، وأتعابها محجوزة لحد ما تنهيها'),
           if (order.arrivedAt == null)
             _primaryAction('وصلت', _markArrived)
           else ...[
             _primaryAction('إنهاء المهمة', _openCompletion),
-            _action(order.isPostponed ? 'تغيير ميعاد التأجيل' : 'مؤجل', _openPostpone),
+            order.isPostponed ? _action('إلغاء التأجيل', _resume) : _action('مؤجل', _openPostpone),
           ],
           _action('اعتذار', _withdraw, isDanger: true),
         ],
@@ -477,40 +465,3 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
 }
 
 /// سبب التأجيل اللي بيوصل للموكل
-class _PostponeReasonDialog extends StatefulWidget {
-  const _PostponeReasonDialog();
-
-  @override
-  State<_PostponeReasonDialog> createState() => _PostponeReasonDialogState();
-}
-
-class _PostponeReasonDialogState extends State<_PostponeReasonDialog> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppDialog(
-      icon: Icons.event_rounded,
-      title: 'سبب التأجيل',
-      message: 'السبب هيوصل للموكل مع الميعاد الجديد',
-      confirmText: 'تأجيل',
-      onCancel: () => Navigator.pop(context),
-      onConfirm: () {
-        final reason = _controller.text.trim();
-        if (reason.isNotEmpty) Navigator.pop(context, reason);
-      },
-      child: TextField(
-        controller: _controller,
-        maxLength: 200,
-        maxLines: 2,
-        decoration: const InputDecoration(hintText: 'مثلًا: الجلسة يوم الخميس'),
-      ),
-    );
-  }
-}
