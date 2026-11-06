@@ -58,6 +58,7 @@
 | `POST /requests/:id/offer/withdraw` | صاحب العرض | App |
 | `GET /requests/:id` | صاحب الطلب | App |
 | `POST /requests/:id/cancel` | صاحب الطلب | App |
+| `POST /requests/:id/search` | صاحب الطلب | App |
 | `POST /requests/:id/offers/:offerId/select` | صاحب الطلب | App |
 
 ## الطلبات (`modules/orders/*`)
@@ -70,7 +71,8 @@
 | `GET /orders/wallet/me` | دخول | App | ملخص محفظة المحامي |
 | `POST /orders/:id/accept` و`/reject` | المحامي | App | ليهم لازمة مع طلبات `PENDING` من المسار القديم بس، لأن الطلبات الجديدة بتبدأ `ACCEPTED` |
 | `POST /orders/:id/confirm-payment` | الموكل | App | `method: 'wallet'` أو من غيره = `DIRECT`. انظر SEC-01 |
-| `POST /orders/:id/arrive` | المحامي | App | 50 متر من مكان الموكل |
+| `POST /orders/:id/arrive` | المحامي | App | 50 متر من مكان الطلب أو من آخر نقطة للموكل |
+| `POST /orders/:id/position` | طرف في الطلب | App | التتبع اللحظي من الدفع لحد الوصول |
 | `POST /orders/:id/keep-waiting` | الموكل | App | |
 | `POST /orders/:id/postpone` | المحامي بعد الوصول | App | |
 | `POST /orders/:id/complete` | المحامي بعد الوصول | App | |

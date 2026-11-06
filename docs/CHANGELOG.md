@@ -1,5 +1,12 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Live Tracking, 10 Lawyers and New Search] - 2026-11-06
+- **Rounds:** a request goes to the nearest 10 lawyers within 50 km. With no offer in two minutes, it moves to the 10 after them; after these two rounds it closes and the client asks again. «بحث جديد» (`POST /requests/:id/search`) moves to the next group at once, then back to the nearest 10, keeping the offers already sent. A lawyer whose price is with the client is not asked again.
+- **Map:** the urgent service map shows lawyers within 50 km only, at their approximate places. A box filter runs before the distance, for the map and the rounds.
+- **Live tracking:** from payment until «وصلت», the lawyer's and the client's phones share their newest point every 5 seconds while moving (`POST /orders/:id/position`, at most every 4 seconds on the server). Only the newest point is stored (migration `030`), never a route. It reaches the other side on the live line, and the order sheet shows both on a small map with the distance and the time. One location stream in the app serves both «متاح» and the way to the meeting, with an Android notification while it runs.
+- **Arrival:** «وصلت» is accepted within 50 meters of where the client asked from, or of the last point the client's phone shared, however old.
+- **App:** the urgent service row in the client's services list uses the lawyer-on-pin picture like the banner. The «متاح لاستقبال الطلبات» card shows only for a lawyer approved for the service with an active account. The terms sections keep exactly one open: the first at start, and opening one closes the other.
+
 ## [Production App Only] - 2026-11-06
 - **One app:** the Android build has a single app id, `com.mylawyer.my_lawyer`, named «My Lawyer», with Firebase always on, for clients and lawyers. The phone and the emulator run this build.
 

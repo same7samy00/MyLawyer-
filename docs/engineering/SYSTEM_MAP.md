@@ -88,8 +88,8 @@ sequenceDiagram
 
 ```mermaid
 stateDiagram-v2
-  [*] --> OPEN: POST /requests (أقرب 5)
-  OPEN --> OPEN: جولة مفيهاش عروض = أقرب 5 بعدهم (لحد 3 جولات)
+  [*] --> OPEN: POST /requests (أقرب 10 جوه 50 كم)
+  OPEN --> OPEN: جولة مفيهاش عروض = الـ 10 اللي بعدهم (جولتين). وزرار «بحث جديد» بيبعت للمجموعة اللي بعدها
   OPEN --> SELECTED: الموكل يختار عرض
   OPEN --> NO_OFFERS: مفيش محامين
   OPEN --> EXPIRED: 5 دقايق من غير اختيار
