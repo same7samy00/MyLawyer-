@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/services/api_service.dart';
+import '../../data/repositories/profile_repository.dart';
 import '../../core/services/notification_center.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_pressable.dart';
@@ -35,7 +35,7 @@ class _AccountTabState extends State<AccountTab> {
   }
 
   Future<void> _load() async {
-    final res = await ApiService.get('/users/me');
+    final res = await ProfileRepository.me();
     if (mounted && res.data is Map<String, dynamic>) {
       setState(() => _profile = res.data as Map<String, dynamic>);
     }

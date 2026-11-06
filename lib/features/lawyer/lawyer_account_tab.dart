@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/services/api_service.dart';
+import '../../data/repositories/profile_repository.dart';
 import '../../core/services/notification_center.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/logout_confirmation_sheet.dart';
@@ -40,7 +40,7 @@ class _LawyerAccountTabState extends State<LawyerAccountTab> {
   }
 
   Future<void> _loadPhoto() async {
-    final res = await ApiService.get('/users/me');
+    final res = await ProfileRepository.me();
     if (mounted && res.data is Map<String, dynamic>) {
       setState(() => _photoPath = (res.data as Map<String, dynamic>)['profilePhotoPath']?.toString());
     }

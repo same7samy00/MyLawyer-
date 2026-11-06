@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/services/api_service.dart';
+import '../../data/repositories/profile_repository.dart';
 import '../../core/services/notification_center.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
@@ -29,7 +29,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
   }
 
   Future<void> _load() async {
-    final res = await ApiService.get('/users/me');
+    final res = await ProfileRepository.me();
     if (!mounted) return;
 
     setState(() {
@@ -61,7 +61,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
     if (image == null || !mounted) return;
 
     setState(() => _isUploading = true);
-    final res = await ApiService.uploadFile('/users/me/profile-photo', image.path);
+    final res = await ProfileRepository.uploadPhoto(image.path);
     if (!mounted) return;
 
     setState(() => _isUploading = false);

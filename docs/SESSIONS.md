@@ -5,6 +5,7 @@
 
 | التاريخ | النموذج والبرنامج | الفرع وآخر commit | اللي اتعمل | الحالة |
 |---|---|---|---|---|
+| 2026-11-06 | Claude Opus 5.5، Claude Code | `claude/engineering-review` | التنضيف المرحلة 1: حصر الكود الميت (مفيش ملفات ميتة)، و`ProfileRepository`، وشيل `lottie` و`splash_gif.json` و3 خطوط. خطة إعادة التنظيم في `docs/engineering/CLEANUP.md` | جزئي (الخطوة 1 من 9 اتعملت)، ما اترفعش |
 | 2026-11-06 | Claude Opus 5.5، Claude Code | `claude/engineering-review` | نظام الذاكرة المشتركة: `docs/STATE.md` و`docs/SESSIONS.md` و`docs/README.md`، وبروتوكول البداية والتسليم في `AGENTS.md` | تم، ما اترفعش |
 | 2026-11-06 | Claude Opus 5.5، Claude Code | `claude/engineering-review` `97e4966` | إصلاح SEC-02 وSEC-04 باختبارات، ومجلد `.access/`، وتسجيل قرارات صاحب المشروع | تم (143 اختبار)، ما اترفعش |
 | 2026-11-06 | Claude Opus 5.5، Claude Code | `claude/engineering-review` `e9d8a43` | مراجعة هندسية كاملة، وتوثيق في `docs/engineering/`، وقاعدة الموافقة قبل الرفع | تم، ما اترفعش |

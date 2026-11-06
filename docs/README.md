@@ -20,6 +20,7 @@
 | مسار معين في الخادم ومين بيستخدمه | `docs/engineering/API_REFERENCE.md`، والطلب والرد بالتفصيل في `docs/API_DOCUMENTATION.md` |
 | مشكلة معروفة أو ثغرة | `docs/engineering/FINDINGS.md` (الملخص في أوله) |
 | الأداء والكاش | `docs/engineering/PERFORMANCE.md` |
+| التنضيف وإعادة التنظيم (كمّل من أول خطوة «لسه») | `docs/engineering/CLEANUP.md` |
 | قاعدة البيانات | `docs/DATABASE_ARCHITECTURE.md`، و`backend/migrations` هو المرجع |
 | طبقات التطبيق ولوحة التحكم | `docs/ARCHITECTURE.md` |
 | الخريطة والموقع | `docs/GPS_SYSTEM.md` و`docs/VPS_SERVER_AND_MAPS.md` |

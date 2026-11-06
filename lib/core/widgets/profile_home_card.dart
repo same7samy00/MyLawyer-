@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
-import '../services/api_service.dart';
+import '../../data/repositories/profile_repository.dart';
 import '../services/notification_center.dart';
 import 'app_button.dart';
 import 'app_card.dart';
@@ -40,7 +40,7 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
   }
 
   Future<void> _load() async {
-    final res = await ApiService.get('/users/me');
+    final res = await ProfileRepository.me();
     if (mounted && res.data is Map<String, dynamic>) {
       setState(() => _profile = res.data as Map<String, dynamic>);
     }

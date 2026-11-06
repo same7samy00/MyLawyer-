@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Cleanup Stage 1 and Shared Project Memory] - 2026-11-06
+- **Shared memory for every model:** `docs/STATE.md` (read first, the current state), `docs/SESSIONS.md` (one line per session from any model, newest first) and `docs/README.md` (which doc answers which question). `AGENTS.md` section 7 now has the start routine (read only what the task needs, compare Git with `STATE.md`) and a required handoff. `.windsurfrules` and `.github/copilot-instructions.md` point to `AGENTS.md` like `CLAUDE.md`, `GEMINI.md` and `.cursorrules`.
+- **Profile requests:** the account tabs, the personal data page and the home profile card read `/users/me` through `ProfileRepository`, so screens opened together share one request, with no stale copy kept.
+- **Removed, unused:** the `lottie` package, `assets/images/splash_gif.json`, and the Thin, ExtraLight and Light IBM Plex Sans Arabic fonts (no weight under 400 is used anywhere). The app is about 720 KB smaller, and nothing looks different. Evidence and the restructuring plan are in `docs/engineering/CLEANUP.md`.
+
 ## [Code Guess Limit, Lawyer Tickets and Access Folder] - 2026-11-06
 - **Verification and reset codes (SEC-02):** each guess now takes its attempt in one database step before the code is compared, so guesses sent together can't pass the limit of 5. A new test sends 12 at once: the old code let all 12 through, now only 5.
 - **Lawyer tickets (SEC-04, owner decision):** a lawyer can't open a ticket on a paid order before registering arrival, so a lawyer who never came can't hold the client's refund. The client still can.
