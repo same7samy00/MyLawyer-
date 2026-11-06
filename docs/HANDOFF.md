@@ -66,8 +66,8 @@
 - **النسخة الأساسية:** `flutter build apk --release`.
 - **التوقيع:** مفتاح الإنتاج `android/mylawyer-release.jks` وبياناته في `android/key.properties` خارج Git. ضياعه يمنع تحديث التطبيق، ويلزم حذف نسخ التوقيع القديم قبل التثبيت.
 - **Google Play:** `flutter build appbundle --release`.
-- **نسخة المحاكي:** `flutter build apk --release -PlawyerTestApp=true`، باسم `My Lawyer محامي` وبدون Firebase.
-- **الأجهزة:** الموبايل `OFDI4TCAFA9XBQOJ` والمحاكي `MyLawyer_Lawyer` عليهما نسخة الإنتاج بدون حسابات.
+- **نسخة واحدة بس (قرار صاحب المشروع 2026-11-06):** الموبايل والمحاكي الاتنين عليهم النسخة الأساسية `com.mylawyer.my_lawyer` (`flutter build apk --release`)، بـ Firebase وكل حاجة شغالة، وبتنفع للموكل والمحامي. ما تثبتش النسخة التجريبية `-PlawyerTestApp=true` (`My Lawyer محامي`) غير لو صاحب المشروع طلبها.
+- **الأجهزة:** الموبايل `OFDI4TCAFA9XBQOJ` والمحاكي `MyLawyer_Lawyer` (عليه Google Play services) عليهم النسخة الأساسية من commit `c19b6a1`، واتثبتت 2026-11-06.
 - **موقع المحاكي:** يتحدد عبر `adb root` و`cmd location providers`، ويحتاج إعادة ضبط بعد إعادة التشغيل.
 - لا تثبت APK إلا بعد التأكد من ظهور «Built build» واسم الحزمة، وأوقف الأوامر عند فشل الفحص.
 
