@@ -232,9 +232,9 @@ class _OfferCard extends StatelessWidget {
   final RequestOffer offer;
   final bool isBusy;
   final VoidCallback onChoose;
-  final VoidCallback onReviews;
+  final VoidCallback onProfile;
 
-  const _OfferCard({super.key, required this.offer, required this.isBusy, required this.onChoose, required this.onReviews});
+  const _OfferCard({super.key, required this.offer, required this.isBusy, required this.onChoose, required this.onProfile});
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +287,7 @@ class _OfferCard extends StatelessWidget {
             children: [
               Expanded(flex: 6, child: AppButton.primary(text: 'اختار العرض', height: 40, fontSize: 13, onPressed: isBusy ? null : onChoose)),
               const SizedBox(width: 8),
-              Expanded(flex: 4, child: AppButton.outlined(text: 'التقييمات (${offer.reviewsCount})', height: 40, fontSize: 12, onPressed: onReviews)),
+              Expanded(flex: 4, child: AppButton.outlined(text: 'عرض الملف', height: 40, fontSize: 12, onPressed: onProfile)),
             ],
           ),
         ],

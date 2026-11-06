@@ -164,8 +164,6 @@ extension _TrackingScreenViews on _TrackingScreenState {
                         ),
                       ],
                     ),
-        const SizedBox(height: 10),
-        AppButton.outlined(text: 'رجوع', height: 44, onPressed: _closeLawyerProfile),
       ],
     );
   }
@@ -318,7 +316,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
                 offer: offer,
                 isBusy: _isChoosingOffer,
                 onChoose: () => _chooseOffer(offer),
-                onReviews: () => _showOfferReviews(offer),
+                onProfile: () => _showOfferProfile(offer),
               ),
             const SizedBox(height: 10),
             AppButton.outlined(text: 'إلغاء الطلب', height: 46, onPressed: _returnToLawyerProfile),

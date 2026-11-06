@@ -290,11 +290,16 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                       AppSheetHeader(
                         title: _showReviews
                             ? 'التقييمات'
-                            : _orderFlowStage != _OrderFlowStage.idle
-                                ? 'متابعة الطلب'
-                                : _isViewingLawyer
-                                    ? 'ملف المحامي'
+                            : _isViewingLawyer
+                                ? 'ملف المحامي'
+                                : _orderFlowStage != _OrderFlowStage.idle
+                                    ? 'متابعة الطلب'
                                     : 'المحامين القريبين منك',
+                        onBack: _showReviews
+                            ? () => _setReviewsVisible(false)
+                            : _isViewingLawyer
+                                ? _closeLawyerProfile
+                                : null,
                       ),
                       ConstrainedBox(
                         constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.65),
@@ -311,7 +316,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                               )
                             : SingleChildScrollView(
                                 padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
-                                child: _orderFlowStage != _OrderFlowStage.idle
+                                child: _orderFlowStage != _OrderFlowStage.idle && !_isViewingLawyer
                                     ? _buildOrderFlowContent()
                                     : _buildLawyerProfileCard(),
                               ),

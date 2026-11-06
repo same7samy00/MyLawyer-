@@ -24,8 +24,12 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               AppSheetHeader(
-                title: _selectedLawyer != null ? 'ملف المحامي' : 'الأعلى تقييماً حولك',
-                onBack: _selectedLawyer != null ? _closeLawyerProfile : null,
+                title: _showReviews ? 'التقييمات' : _selectedLawyer != null ? 'ملف المحامي' : 'الأعلى تقييماً حولك',
+                onBack: _showReviews
+                    ? () => _update(() => _showReviews = false)
+                    : _selectedLawyer != null
+                        ? _closeLawyerProfile
+                        : null,
               ),
               ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.5),

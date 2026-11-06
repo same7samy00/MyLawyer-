@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../data/models/lifecycle_models.dart';
 import '../../data/repositories/lawyer_repository.dart';
 import '../constants/app_colors.dart';
-import 'app_button.dart';
 import 'app_state_message.dart';
 import 'order_action_sheets.dart';
 import 'review_card.dart';
@@ -54,14 +53,8 @@ class _LawyerReviewsPanelState extends State<LawyerReviewsPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(child: _buildBody()),
-        const SizedBox(height: 10),
-        AppButton.outlined(text: 'رجوع لملف المحامي', height: 46, onPressed: widget.onClose),
-      ],
-    );
+    // الرجوع من سهم رأس الشيت
+    return _buildBody();
   }
 
   Widget _buildBody() {

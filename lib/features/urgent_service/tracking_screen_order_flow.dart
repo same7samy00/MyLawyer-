@@ -13,6 +13,16 @@ extension _TrackingOrderFlow on _TrackingScreenState {
     _setReviewsVisible(true);
   }
 
+  /// «عرض الملف» في كارت العرض: ملف المحامي، والسهم يرجع للعروض
+  void _showOfferProfile(RequestOffer offer) {
+    final lawyer = _nearbyLawyers.where((item) => item.id == offer.lawyerId).firstOrNull;
+    if (lawyer == null) return _showOfferReviews(offer);
+    _update(() {
+      _selectedLawyer = lawyer;
+      _isViewingLawyer = true;
+    });
+  }
+
   /// «اطلب عروض أسعار»: الموكل يشوف حدود السعر قبل ما الطلب يتبعت
   Future<void> _startOrderFlow() async {
     _update(() {
