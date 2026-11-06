@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Arrival Time Card and Waiting Screen] - 2026-11-06
+- **No in-app map for tracking:** the order sheet shows only the arrival time on real roads (OSRM, with expected traffic), asked at most every 30 seconds or after the lawyer moves 150 meters. The lawyer sees the distance and time and keeps the Google Maps button; the client sees «المحامي هيوصلك خلال ...» with no Google Maps button.
+- **Waiting for offers:** a loader and a sentence, without a countdown. When the round ends with no offer, a sentence says so and shows «بحث جديد»; when offers arrive they show with «بحث جديد».
+- **Server:** after the two automatic rounds with no offer the request stays open 5 minutes for a new search, then closes. A search that lands on an empty group goes straight back to the nearest lawyers.
+
 ## [Live Tracking, 10 Lawyers and New Search] - 2026-11-06
 - **Rounds:** a request goes to the nearest 10 lawyers within 50 km. With no offer in two minutes, it moves to the 10 after them; after these two rounds it closes and the client asks again. «بحث جديد» (`POST /requests/:id/search`) moves to the next group at once, then back to the nearest 10, keeping the offers already sent. A lawyer whose price is with the client is not asked again.
 - **Map:** the urgent service map shows lawyers within 50 km only, at their approximate places. A box filter runs before the distance, for the map and the rounds.
