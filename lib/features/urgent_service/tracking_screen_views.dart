@@ -32,15 +32,10 @@ extension _TrackingScreenViews on _TrackingScreenState {
           style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.dark),
         ),
         const SizedBox(height: 10),
-        SizedBox(
-          height: 128,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: lawyers.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (context, i) => _buildNearbyLawyerCard(lawyers[i]),
-          ),
-        ),
+        for (var i = 0; i < lawyers.length; i++) ...[
+          if (i > 0) const Divider(height: 1, color: AppColors.cardBorder),
+          _buildNearbyLawyerCard(lawyers[i]),
+        ],
         const SizedBox(height: 14),
         AppButton.primary(
           text: 'اطلب عروض أسعار',
@@ -64,43 +59,39 @@ extension _TrackingScreenViews on _TrackingScreenState {
     final distance = lawyer.distanceMeters < 1000
         ? '${lawyer.distanceMeters.round()} م'
         : '${(lawyer.distanceMeters / 1000).toStringAsFixed(1)} كم';
-    const small = TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.textMuted);
-    return Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(7.0),
-        side: BorderSide(color: lawyer.id == _nearestLawyerId ? AppColors.primary : AppColors.cardBorder),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(7.0),
-        onTap: () => _onLawyerTapped(lawyer),
-        child: SizedBox(
-          width: 118,
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              children: [
-                _LawyerAvatarPhoto(imageUrl: lawyer.imageUrl, initials: lawyer.avatarInitials, fallbackColor: lawyer.avatarColor, size: 46),
-                const SizedBox(height: 6),
-                Text(
-                  lawyer.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.dark),
-                ),
-                const SizedBox(height: 3),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF5B301)),
-                    Flexible(
-                      child: Text(' ${lawyer.rating.toStringAsFixed(1)}  ·  $distance', maxLines: 1, overflow: TextOverflow.ellipsis, style: small),
-                    ),
-                  ],
-                ),
-              ],
+    const small = TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted);
+    return InkWell(
+      onTap: () => _onLawyerTapped(lawyer),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            _LawyerAvatarPhoto(imageUrl: lawyer.imageUrl, initials: lawyer.avatarInitials, fallbackColor: lawyer.avatarColor, size: 44),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    lawyer.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.dark),
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, size: 15, color: Color(0xFFF5B301)),
+                      Flexible(
+                        child: Text(' ${lawyer.rating.toStringAsFixed(1)}  ·  $distance', maxLines: 1, overflow: TextOverflow.ellipsis, style: small),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
+            const Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: AppColors.textMuted),
+          ],
         ),
       ),
     );
