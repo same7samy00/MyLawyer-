@@ -68,7 +68,7 @@
 - **Google Play:** `flutter build appbundle --release`.
 - **نسخة واحدة بس (قرار صاحب المشروع 2026-11-06):** نسخة الإنتاج `com.mylawyer.my_lawyer` (`flutter build apk --release`)، للموكل والمحامي، على الموبايل والمحاكي. ومفيش أي نسخة تانية تتبني.
 - **الأجهزة:** الموبايل `OFDI4TCAFA9XBQOJ` والمحاكي `MyLawyer_Lawyer` (عليه Google Play services) عليهم النسخة الأساسية من commit `c19b6a1`، واتثبتت 2026-11-06.
-- **موقع المحاكي:** من غير `adb root` (مع root بيترفض بـ `MOCK_LOCATION`). الخطوات: `adb -s emulator-5554 shell appops set com.android.shell MOCK_LOCATION allow`، وبعدين لكل واحد من `gps` و`fused` و`network`: `cmd location providers add-test-provider <p>`، و`set-test-provider-enabled <p> true`، و`set-test-provider-location <p> --location <lat>,<lon> --accuracy 5`. الموقع بيضيع لما المحاكي يتقفل ويتفتح. ولو المطلوب «جنب صاحب المشروع»، خد مكانه من رابط Google Maps منه، وما تكتبش إحداثياته في أي ملف لأن الريبو عام.
+- **موقع المحاكي:** من غير `adb root` (مع root بيترفض بـ `MOCK_LOCATION`). الخطوات: `adb -s emulator-5554 shell appops set com.android.shell MOCK_LOCATION allow`، وبعدين لكل واحد من `gps` و`fused` و`network`: `cmd location providers add-test-provider <p>`، و`set-test-provider-enabled <p> true`، و`set-test-provider-location <p> --location <lat>,<lon> --accuracy 5`. **ولازم `set-test-provider-location` يتكرر كل ثانيتين في loop في الخلفية**، لأن طلب المحامي بيستنى قراءة GPS جديدة لحد 15 ثانية، ومن غيرها بيظهر «تعذر تحديد موقعك». والموقع بيضيع لما المحاكي يتقفل ويتفتح. ولو المطلوب «جنب صاحب المشروع»، خد مكانه من رابط Google Maps منه، وما تكتبش إحداثياته في أي ملف لأن الريبو عام.
 - لا تثبت APK إلا بعد التأكد من ظهور «Built build» واسم الحزمة، وأوقف الأوامر عند فشل الفحص.
 
 ## 5. الفحوص الحالية
