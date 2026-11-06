@@ -1,5 +1,5 @@
 import { dbPool, withTransaction } from '../../database/index.js';
-import { ARRIVAL_REMINDER_MINUTES, CLIENT_REPLY_HOURS, notify, REVIEW_WINDOW_DAYS } from './service.js';
+import { ARRIVAL_REMINDER_MINUTES, CLIENT_REPLY_MINUTES, notify, REVIEW_WINDOW_DAYS } from './service.js';
 import { applySettlement, liftUserSuspensions } from './settlement.js';
 import { advanceRequests } from '../requests/service.js';
 import { publishChange } from '../../services/liveUpdates.js';
@@ -119,20 +119,20 @@ async function askClientAboutDelay() {
   );
 
   for (const order of res.rows) {
-    await notify(dbPool, order.client_id, 'المحامي اتأخر', 'تحب تستنى ولا تلغي وترجع فلوسك؟', order.id);
+    await notify(dbPool, order.client_id, 'المحامي اتأخر', 'تحب تستنى ولا تلغي وترجع فلوسك؟ لو ما ردتش خلال 5 دقايق فلوسك هترجعلك', order.id);
   }
 }
 
-/// Without an arrival the money goes back: two hours after an unanswered question, or at the 24-hour deadline.
+/// Without an arrival the money goes back: five minutes after an unanswered question, or at the 24-hour deadline.
 /// After an arrival nothing moves by itself, the money stays held until the task ends or the admin decides.
 async function refundUnreachedOrders() {
   const unreached = await dbPool.query(
     `SELECT o.id FROM service_orders o
      WHERE o.status = 'ACTIVE' AND o.arrived_at IS NULL
        AND (o.expires_at <= NOW()
-            OR (o.client_keeps_waiting = FALSE AND o.delay_notified_at <= NOW() - make_interval(hours => $1)))
+            OR (o.client_keeps_waiting = FALSE AND o.delay_notified_at <= NOW() - make_interval(mins => $1)))
        AND NOT EXISTS (SELECT 1 FROM support_tickets st WHERE st.order_id = o.id AND st.status <> 'CLOSED')`,
-    [CLIENT_REPLY_HOURS]
+    [CLIENT_REPLY_MINUTES]
   );
 
   for (const order of unreached.rows) {

@@ -13,7 +13,8 @@ export const ARRIVAL_RADIUS_KM = 0.05;
 /// Each side shares its newest point at most this often on the way to the meeting
 export const LIVE_POSITION_SECONDS = 4;
 export const ARRIVAL_REMINDER_MINUTES = 10;
-export const CLIENT_REPLY_HOURS = 2;
+/// A client who does not answer «wait or cancel» gets the money back after this (owner decision 2026-11-06)
+export const CLIENT_REPLY_MINUTES = 5;
 const ARRIVAL_MARGIN_MINUTES = 30;
 const FALLBACK_TRAVEL_MINUTES = 60;
 const ROAD_FACTOR = 1.4;

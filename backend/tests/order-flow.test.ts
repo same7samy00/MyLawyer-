@@ -141,20 +141,20 @@ describe('تأخر المحامي عن الوصول', () => {
     assert.equal(await clientBalance(), 350);
   });
 
-  it('الموكل ما ردش: الفلوس ترجع بعد ساعتين', async () => {
+  it('الموكل ما ردش: الفلوس ترجع بعد 5 دقايق', async () => {
     const order = await createPaidOrder();
     await passDeadline(order.id);
     await sweepLifecycle();
     assert.equal(await clientBalance(), 0);
 
-    await sql(`UPDATE service_orders SET delay_notified_at = NOW() - INTERVAL '121 minutes' WHERE id = $1`, [order.id]);
+    await sql(`UPDATE service_orders SET delay_notified_at = NOW() - INTERVAL '6 minutes' WHERE id = $1`, [order.id]);
     await sweepLifecycle();
     await sweepLifecycle();
     assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'REFUNDED');
     assert.equal(await clientBalance(), 350);
   });
 
-  it('الموكل اختار يستنى: مفيش رد بعد ساعتين، والرد عند 24 ساعة من الدفع', async () => {
+  it('الموكل اختار يستنى: مفيش رد بعد 5 دقايق، والرد عند 24 ساعة من الدفع', async () => {
     const order = await createPaidOrder();
     await passDeadline(order.id);
     await sweepLifecycle();
