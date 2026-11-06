@@ -9,7 +9,7 @@
 | البند | القيمة |
 |---|---|
 | `origin/main` (= الإنتاج) | `966119a` |
-| الفرع الشغال | `claude/engineering-review`، متقدم على `origin/main` بـ 4 commits **ما اترفعوش** (`git log --oneline origin/main..HEAD`) |
+| الفرع الشغال | `claude/engineering-review`، متقدم على `origin/main` بـ 6 commits **ما اترفعوش** (`git log --oneline origin/main..HEAD`) |
 | `main` المحلي | **قديم** (`5141e9e`، متأخر 38 commit). ما تبنيش عليه: ابدأ من `origin/main` أو من الفرع الشغال |
 | تعديلات من غير commit | لا يوجد بعد آخر commit في الجلسة دي |
 
@@ -20,17 +20,19 @@
 - نظام الذاكرة المشتركة ده (`STATE.md` و`SESSIONS.md` و`docs/README.md`).
 - التنضيف: `ProfileRepository` بدل 4 طلبات مباشرة لـ `/users/me`، وشيل مكتبة `lottie` و`splash_gif.json` و3 خطوط مش مستخدمة (حوالي 720 كيلوبايت). التفاصيل والدليل في `docs/engineering/CLEANUP.md`.
 
+- إعادة التنظيم: الخطوة 2 (شرط «الطلب المفتوح» بقى في مكان واحد) والخطوة 3 (ملف الدخول اتقسم 3 ملفات) اتعملوا.
+
 ## 3. قيد التنفيذ
-- إعادة التنظيم: كمّل من الخطوة 2 في `docs/engineering/CLEANUP.md` القسم 4 (توحيد شرط «المحامي عنده طلب مفتوح»). كل خطوة commit لوحدها بفحوصاتها.
+- إعادة التنظيم: كمّل من الخطوة 4 في `docs/engineering/CLEANUP.md` القسم 4 (تقسيم `admin/directory.ts`). كل خطوة commit لوحدها بفحوصاتها.
 
 ## 4. اللي جاي (بالترتيب)
-1. **مستني صاحب المشروع يقول «ارفع»** للـ commits الأربعة. الرفع على `main` بيحدّث السيرفر لوحده.
-2. خطوات إعادة التنظيم 2 لـ 7 في `CLEANUP.md`.
+1. **مستني صاحب المشروع يقول «ارفع»** لكل commits الفرع (`git log --oneline origin/main..HEAD`). الرفع على `main` بيحدّث السيرفر لوحده.
+2. خطوات إعادة التنظيم 4 لـ 7 في `CLEANUP.md`.
 3. قرارات اتاخدت وتنفيذها مؤجل بطلب صاحب المشروع (`docs/DECISIONS.md`): BUG-01 وBUG-02 وBUG-04. ما تبدأهاش غير لما يطلب.
 4. باقي المشاكل المفتوحة في `docs/engineering/FINDINGS.md` (الملخص في أوله).
 
 ## 5. آخر فحوصات (2026-11-06)
-- الخادم بعد إصلاحات SEC-02 وSEC-04: `npx tsc --noEmit` نضيف، و`npm test` 143 نجحوا.
+- الخادم بعد إعادة التنظيم (الخطوتين 2 و3): `npx tsc --noEmit` نضيف، و`npm test` 143 نجحوا.
 - التطبيق بعد التنضيف: `flutter analyze` نضيف، و`flutter test` 128 نجحوا و3 متخطين.
 - `flutter build apk` ما اتشغلش.
 

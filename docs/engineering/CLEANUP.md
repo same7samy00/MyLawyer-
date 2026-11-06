@@ -32,8 +32,8 @@
 | # | الخطوة | الخطورة | الحالة |
 |---|---|---|---|
 | 1 | `ProfileRepository` بدل 4 شاشات بتطلب `/users/me` بنفسها (CODE-01). الشاشات اللي بتفتح مع بعض بتستنى طلب واحد | قليلة | **اتعملت 2026-11-06** |
-| 2 | شرط «المحامي عنده طلب مفتوح» مكتوب 5 مرات (`requests/service.ts` و`lifecycle/service.ts` و`lawyers/routes.ts` و`orders/create.ts` و`lifecycle/sweep.ts`). يتوحّد في دالة SQL واحدة | متوسطة، بيلمس توزيع الطلبات | لسه |
-| 3 | تقسيم `auth/routes.ts` (600 سطر) لـ `register.ts` و`session.ts` و`password.ts`. نقل بس، من غير تغيير سلوك | قليلة | لسه |
+| 2 | شرط «المحامي عنده طلب مفتوح» مكتوب 5 مرات (`requests/service.ts` و`lifecycle/service.ts` و`lawyers/routes.ts` و`orders/create.ts` و`lifecycle/sweep.ts`). يتوحّد في دالة SQL واحدة | متوسطة، بيلمس توزيع الطلبات | **اتعملت 2026-11-06** (`048e5d1`): `IS_OPEN_ORDER` و`HAS_OPEN_ORDER` في `lifecycle/service.ts`، وبحث `nearby` بقى بيستخدم `LAWYER_CAN_WORK`. واتساب مكانين مختلفين عن قصد: عدّاد `admin/overview` (بيعد المؤجل كمان)، و`hideSilentLawyers` (BUG-01 المؤجل) |
+| 3 | تقسيم `auth/routes.ts` (600 سطر) لـ `register.ts` و`session.ts` و`password.ts`. نقل بس، من غير تغيير سلوك | قليلة | **اتعملت 2026-11-06**: والمشترك في `codes.ts`، و`routes.ts` بقى 11 سطر |
 | 4 | تقسيم `admin/directory.ts` (440 سطر) لـ `users.ts` و`orders.ts` و`discipline.ts` (الإنذارات والمخالفات والتجميد) | قليلة | لسه |
 | 5 | `lib/core/services` فيه 17 ملف مخلوطين. خدمات البيانات (`order_store` و`saved_data` و`map_lawyer_loader` و`notification_center`) تتنقل لـ `lib/data`، وخدمات الجهاز (الموقع والأذونات والإشعارات) تفضل | متوسطة، imports كتير | لسه |
 | 6 | `lib/core/widgets` فيه 34 ملف في مجلد واحد. يتقسموا (sheets، وcards، وbuttons، وmap) | قليلة، نقل بس | لسه |
@@ -44,5 +44,6 @@
 **ليه ما اتعملتش الخطوات كلها مرة واحدة:** التوجيه نفسه بيقول «مفيش refactor كبير مرة واحدة». الخطوات 2 لـ 7 بتلمس عشرات الملفات، وكل واحدة محتاجة الفحوصات كاملة لوحدها. والخطوتين 8 و9 محتاجين موافقة صاحب المشروع.
 
 ## 5. الفحوصات بعد التنضيف (2026-11-06)
+- الخادم بعد الخطوتين 2 و3: `npx tsc --noEmit` نضيف، و`npm test` 143 نجحوا.
 - `flutter analyze`: `No issues found!`. `flutter test`: 128 نجحوا و3 متخطين، بعد كل خطوة (الـ Repository، والمكتبة، والخطوط).
 - `flutter build apk` ما اتشغلش، فحجم التطبيق بعد الحذف ما اتقاسش.

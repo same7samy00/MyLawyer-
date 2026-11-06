@@ -15,7 +15,7 @@
 | `GET /events` | دخول | App وPanel | خط SSE |
 | `GET /events/since?after=` | دخول | App | استرجاع اللي فات |
 
-## الدخول (`modules/auth/routes.ts`)، وعليه حد Nginx `auth_requests` وحد الخادم 120 في الدقيقة للعنوان
+## الدخول (`modules/auth/`: `register.ts` للتسجيل والتفعيل، و`session.ts` للدخول والتجديد والخروج، و`password.ts` للاستعادة)، وعليه حد Nginx `auth_requests` وحد الخادم 120 في الدقيقة للعنوان
 | المسار | الصلاحية | المستخدم |
 |---|---|---|
 | `POST /auth/register` | عام | App |

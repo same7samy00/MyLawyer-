@@ -1,5 +1,9 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Restructuring Steps 2 and 3] - 2026-11-06
+- **One definition of an open order:** `IS_OPEN_ORDER` and `HAS_OPEN_ORDER` in `lifecycle/service.ts` replace five copies, and the nearby lawyers search uses `LAWYER_CAN_WORK` like the request rounds. Behavior is the same.
+- **Auth split:** `modules/auth/routes.ts` (600 lines) is now `register.ts` (sign up and activation), `session.ts` (sign in, renew, sign out), `password.ts` (reset) and `codes.ts` (code limits). Same routes and answers.
+
 ## [Cleanup Stage 1 and Shared Project Memory] - 2026-11-06
 - **Shared memory for every model:** `docs/STATE.md` (read first, the current state), `docs/SESSIONS.md` (one line per session from any model, newest first) and `docs/README.md` (which doc answers which question). `AGENTS.md` section 7 now has the start routine (read only what the task needs, compare Git with `STATE.md`) and a required handoff. `.windsurfrules` and `.github/copilot-instructions.md` point to `AGENTS.md` like `CLAUDE.md`, `GEMINI.md` and `.cursorrules`.
 - **Profile requests:** the account tabs, the personal data page and the home profile card read `/users/me` through `ProfileRepository`, so screens opened together share one request, with no stale copy kept.
