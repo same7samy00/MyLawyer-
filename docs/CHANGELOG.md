@@ -1,5 +1,8 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Production App Only] - 2026-11-06
+- **One app:** the Android build has a single app id, `com.mylawyer.my_lawyer`, named «My Lawyer», with Firebase always on, for clients and lawyers. The phone and the emulator run this build.
+
 ## [Releases Without Downtime and Admin Split] - 2026-11-06
 - **Releases:** `deploy.sh` builds the new code aside, swaps it in seconds and sends `SIGHUP`. The main process runs new migrations and replaces the workers one by one, each new one listening before an old one stops. A change to `server.js` itself still restarts fully. The new release must answer `UP` with its id in `/api/v1/health`, or the previous code comes back by itself. The time-based steps run in the workers behind a database lock, so they never stop during a release.
 - **Admin routes:** `modules/admin/directory.ts` is split into `directory.ts` (counts, search, reviews), `accounts.ts` and `orders.ts`. Same 15 routes.

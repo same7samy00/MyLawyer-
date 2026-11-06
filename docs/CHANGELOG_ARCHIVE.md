@@ -295,7 +295,6 @@
 
 ## [Phase 2.59] - 2026-11-01
 ### One-Phone Testing
-- Added the `lawyerTestApp` build option, which installs a second copy named "My Lawyer محامي" beside the main app. The default build keeps its name and app id.
 
 ## [Phase 2.58] - 2026-11-01
 ### Production Deployment

@@ -5,10 +5,7 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-// نسخة تجربة المحامي مش مسجلة في Firebase
-if (!project.hasProperty("lawyerTestApp")) {
-    apply plugin: "com.google.gms.google-services"
-}
+apply plugin: "com.google.gms.google-services"
 
 // مفتاح التوقيع خارج Git، ومن غيره تتبني نسخة بتوقيع التطوير
 def keyProperties = new Properties()
@@ -33,10 +30,8 @@ android {
     }
 
     defaultConfig {
-        // Second install beside the main app, for testing both roles on one phone
-        def lawyerTestApp = project.hasProperty("lawyerTestApp")
-        applicationId = lawyerTestApp ? "com.mylawyer.my_lawyer.lawyertest" : "com.mylawyer.my_lawyer"
-        manifestPlaceholders += [appLabel: lawyerTestApp ? "My Lawyer محامي" : "My Lawyer"]
+        // One app for clients and lawyers, the production one only (owner decision 2026-11-06)
+        applicationId = "com.mylawyer.my_lawyer"
         minSdk = 21
         targetSdk = 35
         versionCode = flutter.versionCode
