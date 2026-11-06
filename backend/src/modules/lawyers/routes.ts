@@ -69,7 +69,6 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
         lp.id as profile_id,
         lp.full_name,
         lp.profile_photo_path,
-        lp.degree,
         lp.rating,
         lp.reviews_count,
         lp.experience_years,
@@ -116,7 +115,6 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
           profileId: lawyer.profile_id,
           userId: lawyer.user_id,
           name: lawyer.full_name,
-          degree: lawyer.degree || 'محامي استئناف',
           rating: Number(lawyer.rating) || 0,
           reviewsCount: Number(lawyer.reviews_count) || 0,
           experienceYears: Number(lawyer.experience_years) || 0,
@@ -197,7 +195,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
 
     const lawyerRes = await query(
       `SELECT lp.id as profile_id, lp.full_name, lp.profile_photo_path, lp.approval_status,
-              lp.syndicate_number, lp.degree, lp.rating, lp.reviews_count,
+              lp.syndicate_number, lp.rating, lp.reviews_count,
               lp.experience_years, lp.is_available, lp.latitude, lp.longitude,
               lp.last_location_updated_at, lp.last_active_at, lp.availability_off_reason, lp.urgent_status, lp.urgent_rejection_reason, lp.submitted_at, lp.approved_at,
               lp.rejected_at, lp.rejection_reason, lp.suspended_until,

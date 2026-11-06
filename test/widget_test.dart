@@ -116,7 +116,6 @@ void main() {
       const lawyer1 = MapLawyer(
         id: 'lawyer_1',
         name: 'أ. أحمد الشافعي',
-        title: 'محامٍ بالاستئناف',
         rating: 4.9,
         position: LatLng(30.045, 31.238),
         distanceMeters: 450,
@@ -125,7 +124,6 @@ void main() {
       const lawyer2 = MapLawyer(
         id: 'lawyer_2',
         name: 'أ. سارة عبد الرحمن',
-        title: 'محامية بالاستئناف',
         rating: 4.8,
         position: LatLng(30.048, 31.240),
         distanceMeters: 750,
@@ -272,7 +270,6 @@ void main() {
       const lawyerWithCustom = MapLawyer(
         id: 'lawyer_custom',
         name: 'أ. سامح خليل',
-        title: 'محامٍ بالنقض',
         rating: 4.9,
         position: LatLng(30.0444, 31.2357),
         googleProfileUrl: 'https://maps.google.com/?cid=12345',
@@ -282,7 +279,6 @@ void main() {
       const lawyerDefault = MapLawyer(
         id: 'lawyer_default',
         name: 'أ. أحمد الشافعي',
-        title: 'محامٍ استئناف',
         rating: 4.8,
         position: LatLng(30.0444, 31.2357),
       );

@@ -111,7 +111,6 @@ extension _TrackingScreenViews on _TrackingScreenState {
                         size: 56,
                       ),
                       name: _selectedLawyer!.name,
-                      title: _selectedLawyer!.title,
                       rating: _selectedLawyer!.rating,
                       reviewsCount: _selectedLawyer!.reviewsCount,
                       experienceYears: _selectedLawyer!.experienceYears,

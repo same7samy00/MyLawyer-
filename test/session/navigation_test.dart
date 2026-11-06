@@ -106,7 +106,6 @@ void main() {
           'id': 'lawyer-1',
           'name': 'أ/ طارق حسن',
           'specialty': 'قضايا جنائية',
-          'degree': 'محامٍ بالاستئناف',
           'rating': 4.8,
           'reviewsCount': 12,
           'experienceYears': 7,

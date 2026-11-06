@@ -4,7 +4,6 @@ class LawyerModel {
   final String? profileId;
   final String? userId;
   final String name;
-  final String degree;
   final double rating;
   final int reviewsCount;
   final int experienceYears;
@@ -22,7 +21,6 @@ class LawyerModel {
     this.profileId,
     this.userId,
     required this.name,
-    required this.degree,
     required this.rating,
     required this.reviewsCount,
     required this.experienceYears,
@@ -54,7 +52,6 @@ class LawyerModel {
       profileId: json['profileId']?.toString(),
       userId: json['userId']?.toString() ?? json['id']?.toString(),
       name: json['name']?.toString() ?? 'محامٍ معتمد',
-      degree: json['degree']?.toString() ?? 'محامٍ معتمد',
       rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
       reviewsCount: (json['reviewsCount'] as num?)?.toInt() ?? 0,
       experienceYears: (json['experienceYears'] as num?)?.toInt() ?? 0,
@@ -75,7 +72,6 @@ class LawyerModel {
       'profileId': profileId,
       'userId': userId,
       'name': name,
-      'degree': degree,
       'rating': rating,
       'reviewsCount': reviewsCount,
       'experienceYears': experienceYears,

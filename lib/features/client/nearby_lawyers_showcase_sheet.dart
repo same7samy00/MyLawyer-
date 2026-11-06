@@ -158,7 +158,6 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
               size: 56,
             ),
             name: lawyer.name,
-            title: lawyer.title,
             rating: lawyer.rating,
             reviewsCount: lawyer.reviewsCount,
             experienceYears: lawyer.experienceYears,

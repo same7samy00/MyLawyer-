@@ -1,5 +1,9 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [No Lawyer Degree] - 2026-11-06
+- **Lawyer card:** the line under the lawyer's name (degree such as «محامي استئناف») is gone from the map sheet and the nearby lawyers sheet, by the owner's choice: no titles or specialties. The «الأقرب إليك» badge stays under the name.
+- **Server:** `/lawyers/nearby` and `/lawyers/me` no longer send `degree`. The old database column stays untouched.
+
 ## [Nearby Lawyers Sheet] - 2026-11-06
 - **Map sheet:** before a request it shows how many lawyers are near and the nearest distance, with one «اطلب عروض أسعار» button that sends to the nearest 5. A lawyer's profile shows only after tapping their card, with a back button and no order button. «بحث جديد» is gone.
 

@@ -308,7 +308,6 @@ void main() {
         {
           'id': 'lawyer-1',
           'name': 'أ/ طارق حسن',
-          'degree': 'محامٍ بالاستئناف',
           'rating': 4.8,
           'reviewsCount': 12,
           'experienceYears': 7,
@@ -431,7 +430,7 @@ void main() {
 
     testWidgets('من غير موقع حقيقي الطلب ما يتبعتش', (tester) async {
       backend.lawyers = [
-        {'id': 'lawyer-1', 'name': 'أ/ طارق حسن', 'degree': 'محامٍ', 'rating': 4.8, 'reviewsCount': 12, 'experienceYears': 7, 'coordinates': [30.05, 31.24], 'distanceKm': 1.2},
+        {'id': 'lawyer-1', 'name': 'أ/ طارق حسن', 'rating': 4.8, 'reviewsCount': 12, 'experienceYears': 7, 'coordinates': [30.05, 31.24], 'distanceKm': 1.2},
       ];
 
       await tester.pumpWidget(testApp(const TrackingScreen(problemTitle: 'محضر')));
@@ -457,7 +456,6 @@ void main() {
         {
           'id': 'lawyer-1',
           'name': 'أ/ طارق حسن',
-          'degree': 'محامٍ بالاستئناف',
           'rating': 4.8,
           'reviewsCount': 12,
           'experienceYears': 7,

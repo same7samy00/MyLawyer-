@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import 'status_badge.dart';
 
-/// ملخص ملف المحامي الموحد داخل البوتن شيت: الهوية في المنتصف، ثم المؤشرات الثلاثة، ثم التخصص
+/// ملخص ملف المحامي الموحد داخل البوتن شيت: الصورة والاسم في المنتصف، ثم المؤشرات الثلاثة
 class LawyerProfileSummary extends StatelessWidget {
   final Widget avatar;
   final String name;
-  final String title;
   final double rating;
   final int reviewsCount;
   final int experienceYears;
@@ -18,7 +17,6 @@ class LawyerProfileSummary extends StatelessWidget {
     super.key,
     required this.avatar,
     required this.name,
-    required this.title,
     required this.rating,
     required this.reviewsCount,
     required this.experienceYears,
@@ -33,7 +31,7 @@ class LawyerProfileSummary extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 1. الهوية: الصورة والاسم والمسمى وشارة الأقرب
+        // 1. الهوية: الصورة والاسم وشارة الأقرب
         Center(child: avatar),
         const SizedBox(height: 6),
         Row(
@@ -57,30 +55,10 @@ class LawyerProfileSummary extends StatelessWidget {
             const Icon(Icons.verified_user_rounded, color: AppColors.primary, size: 16),
           ],
         ),
-        const SizedBox(height: 3),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Flexible(
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textMuted,
-                ),
-                maxLines: 2,
-              ),
-            ),
-            if (isNearest) ...[
-              const SizedBox(width: 8),
-              const StatusBadge(text: 'الأقرب إليك'),
-            ],
-          ],
-        ),
+        if (isNearest) ...[
+          const SizedBox(height: 4),
+          const Center(child: StatusBadge(text: 'الأقرب إليك')),
+        ],
         const SizedBox(height: 10),
 
         // 2. المؤشرات: التقييم والخبرة والمسافة في أعمدة متساوية
