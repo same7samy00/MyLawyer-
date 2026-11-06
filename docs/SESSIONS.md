@@ -5,6 +5,7 @@
 
 | التاريخ | النموذج والبرنامج | الفرع وآخر commit | اللي اتعمل | الحالة |
 |---|---|---|---|---|
+| 2026-11-06 | Claude Opus 5.5، Claude Code | `claude/engineering-review` | الرفع من غير توقف والرجوع التلقائي (اترفع `d1bc783` والإنتاج بيرد بيه). وتقسيم `admin/directory.ts` (الخطوة 4) | الرفع: تم، بس التبديل واحد واحد لسه ما اتجربش. والخطوة 4: تم محليًا، ما اترفعتش |
 | 2026-11-06 | Claude Opus 5.5، Claude Code | `claude/engineering-review` | إعادة التنظيم: الخطوة 2 (شرط الطلب المفتوح في مكان واحد) والخطوة 3 (`auth` اتقسم لـ `register` و`session` و`password` و`codes`) | تم (143 اختبار)، اترفع مع الجلسة دي كلها (`966119a..9cb1eee`) والسيرفر اتحدث |
 | 2026-11-06 | Claude Opus 5.5، Claude Code | `claude/engineering-review` | التنضيف المرحلة 1: حصر الكود الميت (مفيش ملفات ميتة)، و`ProfileRepository`، وشيل `lottie` و`splash_gif.json` و3 خطوط. خطة إعادة التنظيم في `docs/engineering/CLEANUP.md` | جزئي (الخطوة 1 من 9 اتعملت)، اترفع |
 | 2026-11-06 | Claude Opus 5.5، Claude Code | `claude/engineering-review` | نظام الذاكرة المشتركة: `docs/STATE.md` و`docs/SESSIONS.md` و`docs/README.md`، وبروتوكول البداية والتسليم في `AGENTS.md` | تم، اترفع |

@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Releases Without Downtime and Admin Split] - 2026-11-06
+- **Releases:** `deploy.sh` builds the new code aside, swaps it in seconds and sends `SIGHUP`. The main process runs new migrations and replaces the workers one by one, each new one listening before an old one stops. A change to `server.js` itself still restarts fully. The new release must answer `UP` with its id in `/api/v1/health`, or the previous code comes back by itself. The time-based steps run in the workers behind a database lock, so they never stop during a release.
+- **Admin routes:** `modules/admin/directory.ts` is split into `directory.ts` (counts, search, reviews), `accounts.ts` and `orders.ts`. Same 15 routes.
+- **Owner rule:** a release may drop the server for seconds during development, never once real users are on it.
+
 ## [Restructuring Steps 2 and 3] - 2026-11-06
 - **One definition of an open order:** `IS_OPEN_ORDER` and `HAS_OPEN_ORDER` in `lifecycle/service.ts` replace five copies, and the nearby lawyers search uses `LAWYER_CAN_WORK` like the request rounds. Behavior is the same.
 - **Auth split:** `modules/auth/routes.ts` (600 lines) is now `register.ts` (sign up and activation), `session.ts` (sign in, renew, sign out), `password.ts` (reset) and `codes.ts` (code limits). Same routes and answers.

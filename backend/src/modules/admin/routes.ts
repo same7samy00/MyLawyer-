@@ -1,6 +1,8 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query } from '../../database/index.js';
 import { registerAdminDirectory } from './directory.js';
+import { registerAdminAccounts } from './accounts.js';
+import { registerAdminOrders } from './orders.js';
 import { registerAdminSupport } from '../support/admin.js';
 import { registerAdminMoney } from './money.js';
 import { logAdminAction, registerAdminActions } from './actions.js';
@@ -13,6 +15,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', requireAuth(['admin'], 'غير مصرح: هذه العمليات تتطلب صلاحيات إدارة النظام', 'غير مصرح: يرجى تسجيل الدخول كمسؤول'));
 
   await registerAdminDirectory(fastify);
+  await registerAdminAccounts(fastify);
+  await registerAdminOrders(fastify);
   await registerAdminSupport(fastify);
   await registerAdminMoney(fastify);
   await registerAdminActions(fastify);
