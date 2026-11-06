@@ -3,7 +3,7 @@ import { dbPool, query, withTransaction } from '../../database/index.js';
 import { sanitizeText } from '../../utils/security.js';
 import { publishChange } from '../../services/liveUpdates.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
-import { lawyerHasOpenOrder, lawyerShare, LAWYER_RESPONSE_SECONDS, notify, PAYMENT_MINUTES } from '../lifecycle/service.js';
+import { HAS_OPEN_ORDER, lawyerHasOpenOrder, lawyerShare, LAWYER_RESPONSE_SECONDS, notify, PAYMENT_MINUTES } from '../lifecycle/service.js';
 import { CHOOSE_MINUTES, LAWYER_CAN_WORK, LIVE_OFFERS, priceRangeFor, ROUND_SECONDS, sendRound } from './service.js';
 
 const ROAD_FACTOR = 1.4;
@@ -52,11 +52,8 @@ export async function requestRoutes(fastify: FastifyInstance) {
       const open = await client.query(`SELECT * FROM service_requests WHERE client_id = $1 AND status = 'OPEN' LIMIT 1`, [userId]);
       if (open.rows[0]) return open.rows[0];
 
-      const openOrder = await client.query(
-        `SELECT 1 FROM service_orders WHERE client_id = $1 AND status IN ('PENDING', 'ACCEPTED', 'ACTIVE') AND postponed_at IS NULL LIMIT 1`,
-        [userId]
-      );
-      if (openOrder.rows.length > 0) throw new HttpError(409, 'عندك طلب مفتوح بالفعل، كمله من صفحة الطلبات');
+      const openOrder = await client.query(`SELECT ${HAS_OPEN_ORDER('client_id', '$1')} AS open`, [userId]);
+      if (openOrder.rows[0].open) throw new HttpError(409, 'عندك طلب مفتوح بالفعل، كمله من صفحة الطلبات');
 
       const range = await priceRangeFor(client, problemType);
       const res = await client.query(

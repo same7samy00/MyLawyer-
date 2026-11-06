@@ -1,6 +1,6 @@
 import pg from 'pg';
 import { Db, dbPool, withTransaction } from '../../database/index.js';
-import { notify } from '../lifecycle/service.js';
+import { HAS_OPEN_ORDER, notify } from '../lifecycle/service.js';
 import { publishChange } from '../../services/liveUpdates.js';
 
 export const ROUND_SECONDS = 120;
@@ -13,10 +13,7 @@ const MAX_ROUNDS = 3;
 export const LAWYER_CAN_WORK = (profile: string, user: string) => `
   ${profile}.approval_status = 'approved' AND ${user}.status = 'active' AND ${profile}.is_available = TRUE
   AND ${profile}.suspended_until IS NULL AND ${profile}.urgent_status = 'APPROVED'
-  AND NOT EXISTS (
-    SELECT 1 FROM service_orders busy
-    WHERE busy.lawyer_id = ${user}.id AND busy.status IN ('PENDING', 'ACCEPTED', 'ACTIVE') AND busy.postponed_at IS NULL
-  )`;
+  AND NOT ${HAS_OPEN_ORDER('lawyer_id', `${user}.id`)}`;
 
 /// The offers a client can still choose from
 export const LIVE_OFFERS = `

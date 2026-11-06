@@ -165,12 +165,21 @@ export async function arrivalMinutes(from: { lat: number; lon: number } | null, 
   return Math.ceil((roadKm / FALLBACK_SPEED_KMH) * 60) + ARRIVAL_MARGIN_MINUTES;
 }
 
-/// True while the lawyer has an order waiting, unpaid, or in progress. A postponed task leaves the lawyer free.
+/// SQL condition on one order row: waiting, unpaid, or in progress. A postponed task leaves both sides free.
+/// The one place that says what an open order is, for the lawyer and the client alike.
+export const IS_OPEN_ORDER = (order: string) =>
+  `${order}.status IN ('PENDING', 'ACCEPTED', 'ACTIVE') AND ${order}.postponed_at IS NULL`;
+
+/// SQL condition: this person has an open order, as the lawyer or as the client
+export const HAS_OPEN_ORDER = (side: 'lawyer_id' | 'client_id', person: string) =>
+  `EXISTS (SELECT 1 FROM service_orders busy WHERE busy.${side} = ${person} AND ${IS_OPEN_ORDER('busy')})`;
+
+/// True while the lawyer has an open order, other than the one given
 export async function lawyerHasOpenOrder(db: Db, lawyerId: string, exceptOrderId?: string): Promise<boolean> {
   const res = await db.query(
-    `SELECT 1 FROM service_orders
-     WHERE lawyer_id = $1 AND status IN ('PENDING', 'ACCEPTED', 'ACTIVE') AND postponed_at IS NULL
-       AND ($2::uuid IS NULL OR id <> $2::uuid)
+    `SELECT 1 FROM service_orders o
+     WHERE o.lawyer_id = $1 AND ${IS_OPEN_ORDER('o')}
+       AND ($2::uuid IS NULL OR o.id <> $2::uuid)
      LIMIT 1`,
     [lawyerId, exceptOrderId ?? null]
   );

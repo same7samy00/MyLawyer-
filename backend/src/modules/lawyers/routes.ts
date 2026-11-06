@@ -8,6 +8,7 @@ import { sanitizeText, shortName } from '../../utils/security.js';
 import { detectFileType } from '../../utils/files.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { approximateCoordinate } from '../lifecycle/service.js';
+import { LAWYER_CAN_WORK } from '../requests/service.js';
 
 // Clients can browse the map further than the area they can order from
 const MAX_MAP_RADIUS_KM = 1500;
@@ -86,20 +87,12 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
         ) AS distance_km
       FROM lawyer_profiles lp
       JOIN users u ON lp.user_id = u.id
-      WHERE lp.approval_status = 'approved'
-        AND u.status = 'active'
-        AND lp.is_available = TRUE
+      WHERE ${LAWYER_CAN_WORK('lp', 'u')}
         AND lp.latitude IS NOT NULL
         AND lp.longitude IS NOT NULL
         AND lp.latitude BETWEEN 22.0 AND 31.8
         AND lp.longitude BETWEEN 24.5 AND 37.0
-        AND lp.suspended_until IS NULL
-        AND lp.urgent_status = 'APPROVED'
         ${hasArea ? 'AND lp.latitude BETWEEN $5::float8 AND $4::float8 AND lp.longitude BETWEEN $7::float8 AND $6::float8' : ''}
-        AND NOT EXISTS (
-          SELECT 1 FROM service_orders o
-          WHERE o.lawyer_id = u.id AND o.status IN ('PENDING', 'ACCEPTED', 'ACTIVE') AND o.postponed_at IS NULL
-        )
       ) lp
       WHERE distance_km <= $3::float8
       ORDER BY ${order}

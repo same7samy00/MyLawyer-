@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dbPool, query, withTransaction } from '../../database/index.js';
 import { sanitizeText } from '../../utils/security.js';
 import { HttpError, UUID_PATTERN } from '../../utils/http.js';
-import { LAWYER_RESPONSE_SECONDS, lawyerHasOpenOrder, notify, resolveClientQuote } from '../lifecycle/service.js';
+import { HAS_OPEN_ORDER, LAWYER_RESPONSE_SECONDS, lawyerHasOpenOrder, notify, resolveClientQuote } from '../lifecycle/service.js';
 import { responseSecondsLeft, AuthenticatedUser } from './shared.js';
 
 /// Pricing a request and sending it to a lawyer
@@ -78,12 +78,9 @@ export async function registerOrderCreation(fastify: FastifyInstance) {
         'SELECT id FROM users WHERE id = ANY($1::uuid[]) ORDER BY id FOR NO KEY UPDATE',
         [[userId, targetLawyer.user_id]]
       );
-      const openRes = await client.query(
-        `SELECT 1 FROM service_orders WHERE client_id = $1 AND status IN ('PENDING', 'ACCEPTED', 'ACTIVE') AND postponed_at IS NULL LIMIT 1`,
-        [userId]
-      );
+      const openRes = await client.query(`SELECT ${HAS_OPEN_ORDER('client_id', '$1')} AS open`, [userId]);
       const openRequest = await client.query(`SELECT 1 FROM service_requests WHERE client_id = $1 AND status = 'OPEN' LIMIT 1`, [userId]);
-      if (openRes.rows.length > 0 || openRequest.rows.length > 0) throw new HttpError(409, 'عندك طلب مفتوح بالفعل، كمله من صفحة الطلبات');
+      if (openRes.rows[0].open || openRequest.rows.length > 0) throw new HttpError(409, 'عندك طلب مفتوح بالفعل، كمله من صفحة الطلبات');
       if (await lawyerHasOpenOrder(client, targetLawyer.user_id)) throw new HttpError(409, 'المحامي مشغول دلوقتي، اختار محامي تاني');
 
       // The server owns the price, so a client request cannot change it
