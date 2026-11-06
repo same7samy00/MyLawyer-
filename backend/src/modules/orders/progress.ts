@@ -4,7 +4,7 @@ import { CANCEL_MINUTES } from '../lifecycle/settlement.js';
 import { OPEN_ORDER_TICKET } from '../support/service.js';
 import { sanitizeText } from '../../utils/security.js';
 import { HttpError, UUID_PATTERN } from '../../utils/http.js';
-import { addClientCredit, addLawyerStrike, ARRIVAL_RADIUS_KM, HOLD_HOURS, lawyerHasOpenOrder, LIVE_POSITION_SECONDS, notify } from '../lifecycle/service.js';
+import { addClientCredit, addLawyerStrike, ARRIVAL_RADIUS_KM, HOLD_HOURS, LIVE_POSITION_SECONDS, notify } from '../lifecycle/service.js';
 import { publishPosition } from '../../services/liveUpdates.js';
 import { distanceKm, lockOrder, AuthenticatedUser } from './shared.js';
 
@@ -124,6 +124,12 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
       if (!order || order.lawyer_id !== userId) throw new HttpError(404, 'الطلب غير موجود أو غير مسند إليك');
       if (order.status !== 'ACTIVE' || !order.arrived_at) throw new HttpError(400, 'التأجيل بيبقى بعد «وصلت» بس');
       if (order.postponed_at) throw new HttpError(409, 'المهمة مؤجلة بالفعل');
+      // One postponed task at a time: the lawyer finishes the waiting one before postponing another (owner decision 2026-11-06)
+      const otherPostponed = await client.query(
+        `SELECT 1 FROM service_orders WHERE lawyer_id = $1 AND id <> $2 AND status = 'ACTIVE' AND postponed_at IS NOT NULL LIMIT 1`,
+        [userId, order.id]
+      );
+      if (otherPostponed.rows.length > 0) throw new HttpError(409, 'عندك مهمة مؤجلة تانية، أنهيها الأول');
 
       const openComplaint = await client.query(`SELECT ${OPEN_ORDER_TICKET('$1')} AS open`, [order.id]);
       if (openComplaint.rows[0].open) throw new HttpError(409, 'الطلب قيد مراجعة تذكرة من الإدارة');
@@ -141,34 +147,6 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
     });
 
     return reply.send({ success: true, message: 'تم تأجيل المهمة' });
-  });
-
-  // «إلغاء التأجيل»: the task is open again, so the lawyer is busy with it and gets no new requests
-  fastify.post('/:id/resume', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { userId } = request.user as AuthenticatedUser;
-    const { id } = request.params as { id: string };
-
-    await withTransaction(async (client) => {
-      await client.query('SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);
-      const order = await lockOrder(client, id);
-      if (!order || order.lawyer_id !== userId) throw new HttpError(404, 'الطلب غير موجود أو غير مسند إليك');
-      if (order.status !== 'ACTIVE' || !order.postponed_at) throw new HttpError(400, 'المهمة مش مؤجلة');
-      // A lawyer who took another task while this one waited finishes that one first
-      if (await lawyerHasOpenOrder(client, userId, order.id)) throw new HttpError(409, 'عندك مهمة تانية مفتوحة، خلصها الأول');
-
-      await client.query(
-        `UPDATE service_orders SET postponed_at = NULL, postponed_until = NULL, postponed_reason = NULL, updated_at = NOW() WHERE id = $1`,
-        [order.id]
-      );
-      await client.query(
-        `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)
-         VALUES ($1, $2, 'ACTIVE', 'ACTIVE', 'لغى المحامي التأجيل وكمل المهمة')`,
-        [order.id, userId]
-      );
-      await notify(client, order.client_id, 'المحامي كمل المهمة', 'المحامي لغى التأجيل وبيكمل المهمة دلوقتي', order.id);
-    });
-
-    return reply.send({ success: true, message: 'تم إلغاء التأجيل' });
   });
 
   // 7. POST /api/v1/orders/:id/complete - Lawyer completes active order

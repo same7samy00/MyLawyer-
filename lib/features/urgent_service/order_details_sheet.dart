@@ -214,11 +214,6 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
     await _run(() => OrderRepository.postponeOrder(_order.id), 'تم تأجيل المهمة');
   }
 
-  Future<void> _resume() async {
-    if (!await _confirm('إلغاء التأجيل', 'المهمة هترجع مفتوحة، ومش هتوصلك طلبات جديدة لحد ما تنهيها', 'إلغاء التأجيل', icon: Icons.play_circle_outline_rounded)) return;
-    await _run(() => OrderRepository.resumeOrder(_order.id), 'تم إلغاء التأجيل');
-  }
-
   Future<void> _withdraw() async {
     if (!await _confirm('الاعتذار عن المهمة', 'المبلغ هيرجع للموكل وهتتسجل عليك مخالفة. 3 مخالفات خلال 30 يوم بتوقف حسابك أسبوع', 'اعتذار', icon: Icons.policy_rounded, isDanger: true)) return;
     await _run(() => OrderRepository.withdrawFromOrder(_order.id), 'تم تسجيل الاعتذار');
@@ -294,11 +289,9 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
 
   Widget _buildDetailsCard(OrderModel order) {
     final isLawyer = widget.isLawyer;
-    final phone = isLawyer ? order.clientPhone : order.lawyerPhone;
     final closingReason = order.cancellationReason ?? order.rejectionReason;
     final rows = <Widget>[
       _infoRow(isLawyer ? 'الموكل' : 'المحامي', (isLawyer ? order.clientName : order.lawyerName) ?? '-'),
-      if (order.isPaid && phone != null && phone.isNotEmpty) _infoRow('رقم الهاتف', phone),
       _infoRow('نوع المشكلة', order.problemType ?? order.serviceTitle),
       if (order.problemDescription.isNotEmpty) _infoRow('تفاصيل المشكلة', order.problemDescription),
       if (order.clientAddress != null) _infoRow('المنطقة', order.clientAddress!),
@@ -385,7 +378,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
       ],
       if (order.isPostponed) PostponedSince(since: order.postponedAt!, note: 'والفلوس محجوزة لحد ما المحامي ينهيها'),
       if (order.isActive && order.lawyerPhone != null)
-        _primaryAction('اتصل بالمحامي', () => _call(order.lawyerPhone), icon: Icons.call_rounded),
+        SheetButton('اتصل بالمحامي', _isBusy ? null : () => _call(order.lawyerPhone), icon: Icons.call_rounded, isSuccess: true),
       if (order.canReview) _primaryAction('قيّم المحامي', () => _openReview(isEdit: false)),
       if (order.canEditReview) _action('تعديل التقييم', () => _openReview(isEdit: true)),
       if (order.hasOpenComplaint) _statusNote('الطلب قيد المراجعة، والأتعاب متوقفة لحد قرار الإدارة'),
@@ -410,7 +403,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
       if (order.isActive) ...[
         if (order.hasOpenComplaint) _statusNote('الطلب قيد المراجعة، والأتعاب متوقفة لحد قرار الإدارة'),
         if (order.clientPhone != null)
-          _action('اتصل بالموكل', () => _call(order.clientPhone), icon: Icons.call_rounded),
+          SheetButton('اتصل بالموكل', _isBusy ? null : () => _call(order.clientPhone), icon: Icons.call_rounded, isSuccess: true),
         _action('افتح مكان الموكل في Google Maps', _openDirections, icon: Icons.navigation_rounded),
         if (!order.hasOpenComplaint) ...[
           // Finishing stays hidden until the lawyer arrives within 50 meters of the client
@@ -419,7 +412,8 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
             _primaryAction('وصلت', _markArrived)
           else ...[
             _primaryAction('إنهاء المهمة', _openCompletion),
-            order.isPostponed ? _action('إلغاء التأجيل', _resume) : _action('مؤجل', _openPostpone),
+            // المؤجلة بتتنهي على طول، ومفيش «إلغاء التأجيل»
+            if (!order.isPostponed) _action('مؤجل', _openPostpone),
           ],
           _action('اعتذار', _withdraw, isDanger: true),
         ],

@@ -9,8 +9,10 @@ class SheetButton extends StatelessWidget {
   final IconData? icon;
   final bool isPrimary;
   final bool isDanger;
+  /// زرار الاتصال أخضر
+  final bool isSuccess;
 
-  const SheetButton(this.text, this.onPressed, {super.key, this.icon, this.isPrimary = false, this.isDanger = false});
+  const SheetButton(this.text, this.onPressed, {super.key, this.icon, this.isPrimary = false, this.isDanger = false, this.isSuccess = false});
 
   /// أطول من كده مش هيبان كويس في نص السطر
   static const int _shortLength = 16;
@@ -19,16 +21,22 @@ class SheetButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isSuccess) {
+      return AppButton(text: text, icon: icon, height: 46, fontSize: 14, backgroundColor: AppColors.success, onPressed: onPressed);
+    }
     if (isPrimary) {
       return AppButton.primary(text: text, icon: icon, height: 46, fontSize: 14, onPressed: onPressed);
     }
+    // أزرار الإلغاء AppButton بيلونها لوحده بخلفية حمرا، فما نديهاش لون نص
+    final label = text.trim();
+    final isCancel = label.startsWith('إلغاء') || label == 'إغلاق';
     return AppButton.outlined(
       text: text,
       icon: icon,
       height: 46,
       fontSize: 13,
-      textColor: isDanger ? AppColors.danger : null,
-      borderColor: isDanger ? AppColors.danger.withOpacity(0.35) : null,
+      textColor: isDanger && !isCancel ? AppColors.danger : null,
+      borderColor: isDanger && !isCancel ? AppColors.danger.withOpacity(0.35) : null,
       onPressed: onPressed,
     );
   }

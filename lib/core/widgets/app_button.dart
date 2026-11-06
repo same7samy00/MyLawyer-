@@ -109,10 +109,11 @@ class _AppButtonState extends State<AppButton> {
     // أزرار الإلغاء والإغلاق في التطبيق كله حمرا (قرار صاحب المشروع 2026-11-06)
     final text = widget.text.trim();
     final isCancel = text.startsWith('إلغاء') || text == 'إغلاق';
-    final effectiveBgColor = widget.backgroundColor ?? (isOutlined ? Colors.white : (isCancel ? AppColors.danger : AppColors.primary));
-    final effectiveTextColor = widget.textColor ?? (isOutlined ? (isCancel ? AppColors.danger : AppColors.dark) : Colors.white);
+    // زرار الإلغاء خلفيته حمرا ونصه أبيض، حتى لو كان متكتب كزرار بإطار
+    final effectiveBgColor = widget.backgroundColor ?? (isCancel ? AppColors.danger : (isOutlined ? Colors.white : AppColors.primary));
+    final effectiveTextColor = widget.textColor ?? (isCancel ? Colors.white : (isOutlined ? AppColors.dark : Colors.white));
     final isForwardArrow = widget.customIcon == null && widget.icon == Icons.arrow_forward_rounded;
-    final effectiveBorderColor = widget.borderColor ?? (isCancel ? AppColors.danger.withOpacity(0.35) : AppColors.cardBorder);
+    final effectiveBorderColor = widget.borderColor ?? (isCancel ? AppColors.danger : AppColors.cardBorder);
 
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppButton.buttonRadius), // حواف مستديرة واضحة (Pill Shape) 24.0px

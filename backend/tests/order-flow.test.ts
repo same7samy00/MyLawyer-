@@ -204,21 +204,21 @@ describe('تأجيل المهمة', () => {
     await closeOrders();
   });
 
-  it('«إلغاء التأجيل» بيرجّع المهمة مفتوحة، ومرفوض لو المحامي عنده مهمة تانية مفتوحة', async () => {
-    const order = await createArrivedOrder();
-    const resume = () => call('POST', `/orders/${order.id}/resume`, lawyerToken, {});
-    assert.equal((await resume()).status, 400, 'not postponed yet');
-    await postpone(order.id);
+  it('مهمة مؤجلة واحدة بس للمحامي، والمؤجلة بتتنهي على طول من غير «إلغاء التأجيل»', async () => {
+    const first = await createArrivedOrder();
+    assert.equal((await postpone(first.id)).status, 200);
 
-    // While postponed the lawyer takes another task, so resuming waits for it
-    const other = await createOrder();
-    assert.equal((await resume()).status, 409);
-    await sql(`UPDATE service_orders SET status = 'CANCELLED' WHERE id = $1`, [other.id]);
+    // The lawyer is free while the first task waits, takes a second one, and can't postpone it too
+    const second = await createArrivedOrder();
+    const refused = await postpone(second.id);
+    assert.equal(refused.status, 409);
+    assert.equal(refused.body.error, 'عندك مهمة مؤجلة تانية، أنهيها الأول');
 
-    assert.equal((await resume()).status, 200);
-    const listed = (await call('GET', '/orders', clientToken)).body.data.find((o: any) => o.orderId === order.id);
-    assert.equal(listed.postponedAt, null);
-    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'المحامي كمل المهمة'`, [clientId])).length, 1);
+    // The postponed task finishes straight away, and then the second one may be postponed
+    assert.equal((await call('POST', `/orders/${first.id}/complete`, lawyerToken, {})).status, 200);
+    assert.equal((await postpone(second.id)).status, 200);
+
+    assert.equal((await call('POST', `/orders/${second.id}/resume`, lawyerToken, {})).status, 404, 'no resume route');
     await closeOrders();
   });
 

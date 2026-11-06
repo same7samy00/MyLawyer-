@@ -182,11 +182,6 @@ class OrderRepository {
     return ApiService.post('/orders/$orderId/postpone', {});
   }
 
-  /// «إلغاء التأجيل»: المهمة ترجع مفتوحة
-  static Future<ApiResponse<dynamic>> resumeOrder(String orderId) {
-    return ApiService.post('/orders/$orderId/resume', {});
-  }
-
   /// اعتذار المحامي بعد الدفع
   static Future<ApiResponse<dynamic>> withdrawFromOrder(String orderId) {
     return ApiService.post('/orders/$orderId/withdraw', {});
