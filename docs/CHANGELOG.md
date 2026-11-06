@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Code Guess Limit, Lawyer Tickets and Access Folder] - 2026-11-06
+- **Verification and reset codes (SEC-02):** each guess now takes its attempt in one database step before the code is compared, so guesses sent together can't pass the limit of 5. A new test sends 12 at once: the old code let all 12 through, now only 5.
+- **Lawyer tickets (SEC-04, owner decision):** a lawyer can't open a ticket on a paid order before registering arrival, so a lawyer who never came can't hold the client's refund. The client still can.
+- **Access folder:** `.access/` inside the project (ignored by Git, the repo is public) holds the GitHub token, the VPS key and the panel and test logins, so any tool or model works without asking the owner. A push or deploy still happens only when the owner says «ارفع». Details in `docs/ACCESS.md` and `AGENTS.md` section 7.
+- **Deferred by the owner:** the direct payment fix (SEC-01) until the payment gateway, and daily backups to Google Drive (OPS-01). A postponed task keeps the lawyer available.
+
 ## [Engineering Review and Approval Rule] - 2026-11-06
 - **Review:** full review of the app, server, control page, database and VPS, built from the current code. New `docs/engineering/` holds the system map, the reference of all 97 server routes, the findings register (`FINDINGS.md`, numbered issues with severity and evidence), the checks report and the performance baseline and plan. No code changed.
 - **Most serious finding:** SEC-01, a «direct» payment marks an order paid without collecting money, and cancelling it in the first 5 minutes adds real balance that can be transferred. It must close before launch, and the owner decides how.

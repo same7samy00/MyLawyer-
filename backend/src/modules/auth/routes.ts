@@ -24,6 +24,15 @@ const OTP_MAX_ATTEMPTS = 5;
 const OTP_VALID_MS = 10 * 60 * 1000;
 const UNIQUE_VIOLATION = '23505';
 
+/// Counts one guess on a code in a single step, and says no once the limit is reached
+async function takeAttempt(table: 'email_verifications' | 'password_reset_requests', id: string): Promise<boolean> {
+  const res = await query(
+    `UPDATE ${table} SET attempts = attempts + 1 WHERE id = $1 AND attempts < $2 RETURNING id`,
+    [id, OTP_MAX_ATTEMPTS]
+  );
+  return (res.rowCount ?? 0) > 0;
+}
+
 export async function authRoutes(fastify: FastifyInstance) {
 
   // 1. POST /api/v1/auth/register
@@ -177,12 +186,12 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: 'انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد' });
     }
 
-    if (verif.attempts >= OTP_MAX_ATTEMPTS) {
+    // Each guess takes its attempt before the comparison, so guesses sent together can't pass the limit
+    if (!(await takeAttempt('email_verifications', verif.id))) {
       return reply.status(429).send({ success: false, error: 'تم تجاوز الحد الأقصى للمحاولات الخاطئة، يرجى طلب رمز جديد' });
     }
 
     if (verif.otp_hash !== otpHash) {
-      await query('UPDATE email_verifications SET attempts = attempts + 1 WHERE id = $1', [verif.id]);
       return reply.status(400).send({ success: false, error: 'رمز التحقق غير صحيح، يرجى المحاولة مرة أخرى' });
     }
 
@@ -560,12 +569,11 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: 'انتهت صلاحية رمز التحقق' });
     }
 
-    if (reqData.attempts >= OTP_MAX_ATTEMPTS) {
+    if (!(await takeAttempt('password_reset_requests', reqData.id))) {
       return reply.status(429).send({ success: false, error: 'تم تجاوز الحد الأقصى للمحاولات الخاطئة، يرجى طلب رمز جديد' });
     }
 
     if (reqData.otp_hash !== otpHash) {
-      await query('UPDATE password_reset_requests SET attempts = attempts + 1 WHERE id = $1', [reqData.id]);
       return reply.status(400).send({ success: false, error: 'رمز التحقق غير صحيح أو منتهي' });
     }
 

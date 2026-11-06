@@ -27,6 +27,18 @@ describe('تذاكر الفلوس والتسوية بالالتقاء', () => {
     assert.equal(await clientBalance(), 0);
   });
 
+  it('المحامي ما يفتحش تذكرة على طلب مدفوع قبل وصوله، فرد فلوس الموكل ما يتوقفش (SEC-04)', async () => {
+    const order = await createPaidOrder();
+    assert.equal((await openTicket(lawyerToken, order.id, 'ORDER')).status, 409);
+    assert.equal((await sql('SELECT COUNT(*)::int AS total FROM support_tickets WHERE order_id = $1', [order.id]))[0].total, 0);
+
+    // The client still can, and after arriving the lawyer can too
+    assert.equal((await openTicket(clientToken, order.id, 'ORDER')).status, 201);
+    await sql(`UPDATE support_tickets SET status = 'CLOSED' WHERE order_id = $1`, [order.id]);
+    assert.equal((await call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.0502, longitude: 31.25 })).status, 200);
+    assert.equal((await openTicket(lawyerToken, order.id, 'ORDER')).status, 201);
+  });
+
   it('المحامي وصل وما أنهاش المهمة: الأتعاب للمحامي، والنسبة على نصيبه', async () => {
     await sql(`UPDATE problem_prices SET min_price = 1000, max_price = 1000, commission_percent = 20 WHERE problem_type = $1`, [PROBLEM]);
     const order = await createArrivedOrder();

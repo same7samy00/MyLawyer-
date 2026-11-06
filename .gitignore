@@ -58,3 +58,6 @@ android/app/google-services.json
 # Local admin sign-in
 admin-credentials.txt
 test-accounts.txt
+
+# Access to GitHub, the VPS and the panel for any tool or model. Never commit it.
+.access/

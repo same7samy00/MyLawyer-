@@ -83,6 +83,10 @@ export async function supportRoutes(fastify: FastifyInstance) {
           );
           order = orderRes.rows[0];
           if (!order) throw new HttpError(404, 'الطلب غير موجود');
+          // A lawyer's ticket would hold the client's refund, so it waits until the lawyer has arrived (owner decision 2026-11-06)
+          if (order.lawyer_id === userId && order.status === 'ACTIVE' && !order.arrived_at) {
+            throw new HttpError(409, 'تقدر تفتح تذكرة على الطلب ده بعد ما تسجل وصولك');
+          }
           if (order.completed_at && Date.now() - new Date(order.completed_at).getTime() >= ORDER_TICKET_WINDOW_HOURS * 3600000) {
             throw new HttpError(409, `مينفعش تفتح تذكرة على طلب بعد ${ORDER_TICKET_WINDOW_HOURS} ساعة من إنهائه`);
           }

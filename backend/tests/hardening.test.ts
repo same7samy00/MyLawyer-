@@ -61,6 +61,23 @@ describe('تأمين الدخول والحساب', () => {
     assert.equal((await attempt(OTP)).status, 429);
   });
 
+  it('محاولات الرمز اللي بتوصل مع بعض ما تعدّيش الحد (SEC-02)', async () => {
+    const user = await newAccount();
+    await addOtp('password_reset_requests', user.id);
+    const guesses = Array.from({ length: 12 }, (_, i) => call('POST', '/auth/reset-password', null, {
+      email: user.email, otp: String(100000 + i), newPassword: 'NewStrong123', confirmPassword: 'NewStrong123',
+    }));
+    const statuses = (await Promise.all(guesses)).map((res) => res.status);
+    assert.equal(statuses.filter((status) => status === 400).length, 5);
+    assert.equal((await sql('SELECT attempts FROM password_reset_requests WHERE user_id = $1', [user.id]))[0].attempts, 5);
+
+    const pending = await newAccount('pending_email_verification');
+    await addOtp('email_verifications', pending.id);
+    const checks = Array.from({ length: 12 }, (_, i) => call('POST', '/auth/verify-otp', null, { email: pending.email, otp: String(100000 + i) }));
+    assert.equal((await Promise.all(checks)).filter((res) => res.status === 400).length, 5);
+    assert.equal((await call('POST', '/auth/verify-otp', null, { email: pending.email, otp: OTP })).status, 429);
+  });
+
   it('الرمز الصح بيغير كلمة المرور وبيقفل كل الجلسات', async () => {
     const user = await newAccount();
     await addOtp('password_reset_requests', user.id);
