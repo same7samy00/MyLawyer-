@@ -33,6 +33,11 @@
 | كل حاجة فين، وإضافة ميزة | `docs/PROJECT_STRUCTURE.md` |
 | التقنيات ونسخها | `docs/TECH_STACK.md` |
 | طريقة كتابة الكود والأدوات | `docs/ENGINEERING_STANDARDS.md` |
+| الأدوات المتثبتة والمقترحة بالتكلفة | `docs/SERVER_TOOLS.md` |
+| الفحص التلقائي والرفع وقرارات Docker | `docs/DEVOPS.md` |
+| الصحة والسجلات والتنبيه | `docs/MONITORING.md` |
+| أدوات الأمان وحالتها | `docs/SECURITY_TOOLS.md` |
+| السعة وخطة التوسع | `docs/SCALABILITY.md` |
 | ذاكرة المشروع (الحالة والقواعد واللي جاي) | `docs/memory/README.md` |
 | التشغيل والبناء محليًا | `docs/DEVELOPMENT_GUIDE.md` |
 | إيه اللي اتغير ومتى | `docs/CHANGELOG.md` (الأحدث فوق)، والأقدم في `docs/CHANGELOG_ARCHIVE.md` |
