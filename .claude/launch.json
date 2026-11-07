@@ -2,12 +2,6 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "tawagod",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "backend", "run", "preview:tawagod"],
-      "port": 4100
-    },
-    {
       "name": "panel",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "backend", "run", "preview:panel"],
