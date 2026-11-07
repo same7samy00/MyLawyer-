@@ -51,7 +51,7 @@ function consultationActions(data) {
   list.push({
     title: 'لم نتمكن من الوصول', description: 'يصل الموكل تنبيه: لما تكون متاح افتح الطلب واضغط «طلب التواصل».', success: 'تم إرسال التنبيه للموكل', steps: [],
     summary: () => [['الإجراء', 'تنبيه «لم نتمكن من الوصول إليك»'], ['الموكل', data.client_name + ' • ' + data.client_phone]],
-    run: () => api('POST', '/admin/consultations/' + data.id + '/unreachable'),
+    run: () => api('POST', '/admin/consultations/' + data.id + '/unreachable', {}),
   });
   list.push(move('DONE', 'تمت الاستشارة', 'تُغلق الاستشارة بعد انتهاء المكالمة.', 'تم إغلاق الاستشارة', [note]));
   list.push(move('REJECTED', 'رفض واسترداد', 'يعيد المبلغ كاملًا إلى رصيد الموكل ويرسل له السبب.', 'تم الرفض واسترداد المبلغ', [REASON_STEP]));
