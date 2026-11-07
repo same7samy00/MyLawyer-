@@ -32,7 +32,7 @@ android {
     defaultConfig {
         // One app for clients and lawyers, the production one only (owner decision 2026-11-06)
         applicationId = "com.mylawyer.my_lawyer"
-        minSdk = 21
+        minSdk = 23
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName

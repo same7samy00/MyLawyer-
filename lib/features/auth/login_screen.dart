@@ -1,3 +1,6 @@
+import '../../core/services/biometric_service.dart';
+import '../../core/widgets/app_loader.dart';
+import 'biometric_setup_screen.dart';
 import '../../core/widgets/line_illustration.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_pressable.dart';
@@ -36,6 +39,34 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _errorMessage = widget.initialMessage;
     _loadSavedPhone();
+    _loadBiometric();
+  }
+
+  bool _biometricReady = false;
+  bool _isBiometricBusy = false;
+
+  /// لو البصمة متفعلة: الزرار يظهر، وطلب البصمة يفتح لوحده أول ما الصفحة تفتح
+  Future<void> _loadBiometric() async {
+    final ready = await BiometricService.isEnabled();
+    if (!mounted || !ready) return;
+    setState(() => _biometricReady = true);
+    if (widget.initialMessage == null) _loginWithBiometric();
+  }
+
+  Future<void> _loginWithBiometric() async {
+    if (_isBiometricBusy) return;
+    setState(() {
+      _isBiometricBusy = true;
+      _errorMessage = null;
+    });
+    final saved = await BiometricService.unlock();
+    if (!mounted) return;
+    if (saved == null) {
+      setState(() => _isBiometricBusy = false);
+      return;
+    }
+    await _loginWith(saved.identifier, saved.password, fromBiometric: true);
+    if (mounted) setState(() => _isBiometricBusy = false);
   }
 
   Future<void> _loadSavedPhone() async {
@@ -64,9 +95,11 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    await _loginWith(_phoneController.text.trim(), _passwordController.text.trim());
+  }
+
+  Future<void> _loginWith(String identifier, String password, {bool fromBiometric = false}) async {
     final navigator = Navigator.of(context);
-    final identifier = _phoneController.text.trim();
-    final password = _passwordController.text.trim();
 
     final result = await AuthService.loginUser(
       identifier: identifier,
@@ -77,6 +110,23 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (result.success) {
+      if (!fromBiometric) {
+        // الباسورد اتغير والبصمة متفعلة لنفس الحساب: نحدّث المحفوظ من غير ما نسأل
+        if (await BiometricService.enabledIdentifier() == identifier) {
+          await BiometricService.disable();
+          await BiometricService.enableSilently(identifier, password);
+        } else if (await BiometricService.shouldOffer(identifier)) {
+          await SessionRouter.replaceStack(
+            navigator,
+            BiometricSetupScreen(
+              identifier: identifier,
+              password: password,
+              onDone: () => SessionRouter.openCurrentAccount(navigator),
+            ),
+          );
+          return;
+        }
+      }
       // يبقى التحميل ظاهراً حتى تبدأ شاشة الحساب فلا يومض الزر قبل الانتقال
       await SessionRouter.openCurrentAccount(navigator);
       return;
@@ -93,7 +143,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() {
-      _errorMessage = result.message;
+      _errorMessage = fromBiometric
+          ? '${result.message}\nلو غيرت الباسورد، ادخل بيه مرة وهنحدّث البصمة'
+          : result.message;
     });
   }
 
@@ -368,11 +420,37 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 22),
 
                   // Submit Button
-                  AppButton.primary(
-                    text: 'تسجيل الدخول',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    onPressed: _handleLogin,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppButton.primary(
+                          text: 'تسجيل الدخول',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          onPressed: _handleLogin,
+                        ),
+                      ),
+                      if (_biometricReady) ...[
+                        const SizedBox(width: 10),
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: Material(
+                            color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(12.0),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12.0),
+                              onTap: _isBiometricBusy ? null : _loginWithBiometric,
+                              child: Center(
+                                child: _isBiometricBusy
+                                    ? const AppLoader.inline(size: 22)
+                                    : const Icon(Icons.fingerprint_rounded, color: AppColors.primary, size: 30),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 32),
 

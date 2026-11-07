@@ -1,3 +1,4 @@
+import '../../core/widgets/biometric_toggle_tile.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/repositories/profile_repository.dart';
@@ -117,6 +118,7 @@ class _AccountTabState extends State<AccountTab> {
                 );
               },
             ),
+            const BiometricToggleTile(),
             _buildSettingItem(
               title: 'تغيير كلمة المرور',
               icon: Icons.lock_reset_rounded,

@@ -1,3 +1,4 @@
+import '../../core/widgets/biometric_toggle_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
@@ -152,6 +153,8 @@ class _LawyerAccountTabState extends State<LawyerAccountTab> {
                       );
                     },
                   ),
+                  const Divider(height: 1, color: AppColors.cardBorder, indent: 16, endIndent: 16),
+                  const BiometricToggleTile(),
                   const Divider(height: 1, color: AppColors.cardBorder, indent: 16, endIndent: 16),
                   _buildMenuItem(
                     icon: Icons.access_time_rounded,
