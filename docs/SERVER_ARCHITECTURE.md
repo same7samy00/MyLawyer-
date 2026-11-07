@@ -48,7 +48,7 @@ flowchart LR
 | الكاش | `/var/cache/nginx/map_render` بحد 20 جيجا. خريطة مصر كلها اترسمت مرة (زوم 8 لـ 15، حوالي 1.6 مليون مربع) بـ `backend/map-services/seed-map-cache.py all` |
 | حدود الطلبات | 100 صورة/ثانية و10 طرق/ثانية لكل عنوان، والسيرفر الجديد مستثنى (`mylawyer-map.conf` و`mylawyer-routes.conf`) |
 | مستخدم الحاوية | `mylawyer-maps` (رقم 999) |
-| **بقايا لسه عليه** | PostgreSQL بقاعدة قديمة، وPostfix وOpenDKIM، ونسخة يومية للقاعدة القديمة (`/etc/cron.d/mylawyer-backup`)، وخدمة الباك إند مقفولة، وشهادة `my-lawyer.online` قديمة. **تتشال بعد موافقة صاحب المشروع** |
+| **اتنضف 2026-11-07** | اتشال: الباك إند، وPostgreSQL وبياناته (آخر نسخة على الجديد)، وOpenDKIM، والنسخة اليومية القديمة، وrunner الرفع القديم، وشهادة `my-lawyer.online`، وموقع Nginx القديم. Postfix فاضل للتنبيهات بس (محلي، IPv4، من `maps.my-lawyer.online`). نسخة إعدادات Nginx القديمة `/root/config-backup-20261107-074306` |
 
 ## 4. الدومين
 DNS في Hostinger. `@` و`www` للجديد، و`maps` للقديم. التفاصيل والقيم في `docs/ACCESS.md`.

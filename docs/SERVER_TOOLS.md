@@ -18,7 +18,8 @@
 | Postfix + OpenDKIM | ✅ | ✅ (هيتشال) | الإيميل |
 | GitHub runner | ✅ | — | الرفع التلقائي |
 
-**مش موجود:** مراقبة وتنبيه لو الخدمة وقعت، ونسخ يومية، وتتبع أخطاء التطبيق.
+**اتضاف 2026-11-07:** نسخ يومية (`mylawyer-daily-backup`) ومراقب بالإيميل (`mylawyer-watch`)، سكريبتات bash من غير برامج جديدة، في `backend/ops/`.
+**لسه مش موجود:** نسخ بره السيرفر، وتتبع أخطاء التطبيق.
 
 ## 2. محليًا (جهاز التطوير)
 Flutter 3.24.3 (`C:\src\flutter`)، وNode 24 (الخادم بيتختبر عليه وبيشتغل على 20)، وGit، وOpenSSH، وPGlite للاختبارات. الفحص: `flutter analyze` و`flutter test` و`npx tsc --noEmit` و`npm test` و`npm audit` (`ENGINEERING_STANDARDS.md`).
