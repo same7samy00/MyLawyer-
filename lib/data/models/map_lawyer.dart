@@ -50,6 +50,21 @@ class MapLawyer {
     );
   }
 
+  /// نفس المحامي بالمسافة من نقطة معينة، والمسافة بتتحسب على الموبايل
+  MapLawyer withDistance(double meters) => MapLawyer(
+        id: id,
+        name: name,
+        rating: rating,
+        reviewsCount: reviewsCount,
+        experienceYears: experienceYears,
+        position: position,
+        distanceMeters: meters,
+        avatarInitials: avatarInitials,
+        avatarColor: avatarColor,
+        imageUrl: imageUrl,
+        googleProfileUrl: googleProfileUrl,
+      );
+
   String get effectiveGoogleProfileUrl {
     if (googleProfileUrl != null && googleProfileUrl!.isNotEmpty) {
       return googleProfileUrl!;

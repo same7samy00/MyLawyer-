@@ -15,6 +15,7 @@ import '../../core/widgets/lawyer_profile_summary.dart';
 import '../../core/widgets/lawyer_reviews_panel.dart';
 import '../../core/widgets/map_cards.dart';
 import '../../core/widgets/line_illustration.dart';
+import '../../data/models/lawyer_model.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/repositories/lawyer_repository.dart';
 import '../urgent_service/lawyer_google_profile_screen.dart';
@@ -26,9 +27,9 @@ part 'nearby_lawyers_showcase_widgets.dart';
 part 'nearby_lawyers_showcase_sheet.dart';
 
 /// الخريطة الترويجية: تظهر للموكل كل مرة يدخل فيها التطبيق، وزر الإغلاق فوق يوديه للرئيسية.
-/// البوتن شيت ثابت ويعرض أعلى المحامين تقييماً في نطاق 50 كم، وملف المحامي يفتح جواه بنفس الحجم.
+/// البوتن شيت ثابت ويعرض أعلى المحامين تقييماً في محافظته، وملف المحامي يفتح جواه بنفس الحجم.
+/// المحامين على الخريطة من مربعات جاهزة على السيرفر (`MapLawyerLoader`)، وكل المحامين المعتمدين ظاهرين.
 /// الخريطة للعرض بس، ومفيش منها أي طلب خدمة.
-const double _showcaseRadiusKm = 50;
 /// أول تقدير لطول الشيت قبل ما يتقاس محتواه
 const double _showcaseSheetHeight = 360;
 
@@ -54,6 +55,9 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
   String _locationName = 'جاري تحديد موقعك';
   bool _isInitialLoading = true;
 
+  /// الموقع مش متاح: الخريطة على القاهرة، والشيت بيطلب تحديد المكان
+  LocationServiceStatus? _locationProblem;
+
   List<MapLawyer> _nearbyLawyers = [];
   MapLawyer? _selectedLawyer;
   bool _showReviews = false;
@@ -61,14 +65,21 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
     if (mounted) setState(() {});
   });
 
+  /// راجع من الإعدادات بعد ما فتح الموقع: نحدد مكانه على طول
+  late final AppLifecycleListener _lifecycle = AppLifecycleListener(onResume: () {
+    if (_locationProblem != null) _fetchCurrentLocation();
+  });
+
   @override
   void initState() {
     super.initState();
+    _lifecycle;
     _fetchCurrentLocation();
   }
 
   @override
   void dispose() {
+    _lifecycle.dispose();
     _cameraAnimController?.stop();
     _cameraAnimController?.dispose();
     _mapLawyers.dispose();
@@ -76,48 +87,78 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
   }
 
   Future<void> _fetchCurrentLocation() async {
-    Position? position;
+    LocationResult? result;
     try {
-      final result = await LocationService.instance.checkAndRequestPermission().timeout(
+      result = await LocationService.instance.checkAndRequestPermission().timeout(
         const Duration(seconds: 4),
         onTimeout: () => const LocationResult(
           status: LocationServiceStatus.error,
           errorMessage: 'تحديد الموقع أخد وقت طويل، حاول تاني',
         ),
       );
-      position = result.position;
     } catch (_) {}
     if (!mounted) return;
+    final position = result?.isSuccess == true ? result!.position : null;
 
-    // عند تعذر الموقع تعرض الخريطة نطاق القاهرة الكبرى الافتراضي
-    final center = position != null
-        ? LatLng(position.latitude, position.longitude)
-        : const LatLng(30.0444, 31.2357);
+    // من غير الموقع الخريطة بتفتح على القاهرة، والشيت بيقول محتاجين نحدد مكانك
+    if (position == null) {
+      _update(() {
+        _currentPosition = null;
+        _locationName = 'محافظة القاهرة';
+        _locationProblem = result?.status ?? LocationServiceStatus.error;
+        _nearbyLawyers = [];
+        _isInitialLoading = false;
+      });
+      final camera = _lastCamera;
+      if (camera != null) _mapLawyers.load(camera);
+      return;
+    }
 
+    final here = LatLng(position.latitude, position.longitude);
     try {
-      _mapController.move(center, 14.8);
+      _mapController.move(here, 14.8);
     } catch (_) {}
 
-    // تحويل الإحداثيات لاسم المدينة والمحافظة بالعربية بدقة وبدون تكرار
-    final locationName = position != null
-        ? await GeoNamingService.instance.getCityAndGovernorate(position.latitude, position.longitude)
-        : 'محافظة القاهرة';
-
-    final res = await LawyerRepository.getNearbyLawyers(lat: center.latitude, lon: center.longitude, radiusKm: _showcaseRadiusKm, byRating: true);
+    final locationName = await GeoNamingService.instance.getCityAndGovernorate(position.latitude, position.longitude);
+    final governorate = await GeoNamingService.instance.governorateAt(position.latitude, position.longitude);
     if (!mounted) return;
 
-    setState(() {
+    // آخر قايمة للمحافظة تظهر على طول، والسيرفر بيحدّثها
+    final saved = governorate == null ? null : LawyerRepository.peekTopInGovernorate(governorate);
+    _update(() {
       _currentPosition = position;
       _locationName = locationName;
-      _nearbyLawyers = (res.data ?? const []).map(MapLawyer.fromModel).toList()
-        ..sort((a, b) {
-          final byRating = b.rating.compareTo(a.rating);
-          return byRating != 0 ? byRating : a.distanceMeters.compareTo(b.distanceMeters);
-        });
-      _isInitialLoading = false;
+      _locationProblem = null;
+      if (saved != null) {
+        _nearbyLawyers = _rankTop(saved, here);
+        _isInitialLoading = false;
+      }
     });
     final camera = _lastCamera;
     if (camera != null) _mapLawyers.load(camera);
+
+    if (governorate == null) {
+      _update(() => _isInitialLoading = false);
+      return;
+    }
+    final res = await LawyerRepository.getTopInGovernorate(governorate);
+    if (!mounted) return;
+    _update(() {
+      if (res.isOk) _nearbyLawyers = _rankTop(res.data ?? const [], here);
+      _isInitialLoading = false;
+    });
+  }
+
+  /// الأعلى تقييمًا الأول، ولو التقييم متساوي الأقرب، والمسافة بتتحسب على الموبايل
+  List<MapLawyer> _rankTop(List<LawyerModel> lawyers, LatLng from) {
+    const distance = Distance();
+    return [
+      for (final model in lawyers)
+        MapLawyer.fromModel(model).withDistance(distance(from, LatLng(model.latitude, model.longitude))),
+    ]..sort((a, b) {
+        final byRating = b.rating.compareTo(a.rating);
+        return byRating != 0 ? byRating : a.distanceMeters.compareTo(b.distanceMeters);
+      });
   }
 
   void _animatedMapMove(

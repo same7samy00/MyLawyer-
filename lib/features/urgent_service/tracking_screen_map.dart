@@ -200,18 +200,15 @@ extension _TrackingMapControls on _TrackingScreenState {
 
     if (!mounted) return;
 
-    final res = await LawyerRepository.getNearbyLawyers(
-      lat: centerLatLng.latitude,
-      lon: centerLatLng.longitude,
-    );
+    final loaded = await _mapLawyers.loadAround(centerLatLng);
     if (!mounted) return;
 
-    final lawyers = (res.data ?? const []).map(MapLawyer.fromModel).toList();
+    final lawyers = _mapLawyers.nearest(centerLatLng, count: _TrackingScreenState._nearbyCount);
 
     _update(() {
       _nearbyLawyers = lawyers;
       _isLoading = false;
-      _lawyersError = res.isOk ? null : (res.error ?? 'تعذر البحث عن المحامين المتاحين');
+      _lawyersError = loaded || lawyers.isNotEmpty ? null : 'تعذر البحث عن المحامين';
     });
 
     if (lawyers.isNotEmpty) {
@@ -219,17 +216,9 @@ extension _TrackingMapControls on _TrackingScreenState {
       _calculateRouteToLawyer(lawyers.first);
       _zoomFitRouteAndLawyer(centerLatLng, lawyers.first.position);
     }
-
-    // المحامون يتحدثون وهو فاتح الخريطة ليظهر الموجود فعلاً فقط
-    _lawyersRefreshTimer?.cancel();
-    _lawyersRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-      if (isAppVisible) _loadAllLawyers();
-    });
-    _loadAllLawyers();
   }
 
   void _onMapMoved(MapCamera camera, bool hasGesture) {
-    _lastCamera = camera;
     if (camera.zoom.floor() != _mapZoom.floor()) {
       _update(() {
         _mapZoom = camera.zoom;
@@ -238,31 +227,16 @@ extension _TrackingMapControls on _TrackingScreenState {
     if (_orderFlowStage == _OrderFlowStage.idle) _mapLawyers.cameraMoved(camera);
   }
 
-  /// قائمة أقرب المحامين ومحامو المنطقة الظاهرة يتحدثوا وهو فاتح الخريطة
-  Future<void> _loadAllLawyers() async {
-    if (!mounted || _orderFlowStage != _OrderFlowStage.idle) return;
-
-    final camera = _lastCamera;
-    if (camera != null) _mapLawyers.load(camera);
-    final res = await LawyerRepository.getNearbyLawyers(
-      lat: _searchCenter.latitude,
-      lon: _searchCenter.longitude,
-      radiusKm: _TrackingScreenState._allEgyptRadiusKm,
-    );
-    if (!mounted || !res.isOk || _orderFlowStage != _OrderFlowStage.idle) return;
-
-    final lawyers = (res.data ?? const []).map(MapLawyer.fromModel).toList();
-
+  /// قايمة «القريبين منك» من محامين المربعات اللي على الموبايل، من غير ما نسأل السيرفر.
+  /// المربعات بتتجدد لما الخريطة تتحرك لمنطقة جديدة أو يعدّي عليها 5 دقايق.
+  void _refreshNearby() {
+    if (_orderFlowStage != _OrderFlowStage.idle || _isLoading) return;
+    final lawyers = _mapLawyers.nearest(_searchCenter, count: _TrackingScreenState._nearbyCount);
     // المحامي المختار يفضل ظاهر حتى لو المنطقة الحالية بعيدة عنه
     final selected = _selectedLawyer;
-    if (selected != null && !lawyers.any((lawyer) => lawyer.id == selected.id)) {
-      lawyers.add(selected);
-    }
-
-    _update(() {
-      _nearbyLawyers = lawyers;
-      _lawyersError = null;
-    });
+    if (selected != null && !lawyers.any((lawyer) => lawyer.id == selected.id)) lawyers.add(selected);
+    _nearbyLawyers = lawyers;
+    _lawyersError = null;
   }
 
   /// أقرب محامي لموقع الموكل، والقائمة نفسها ممكن تكون لمنطقة تانية على الخريطة

@@ -45,9 +45,20 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
 
   Widget _buildTopLawyersList() {
     if (_isInitialLoading) return const SheetLoading(text: 'جاري البحث عن المحامين حواليك');
+    if (_locationProblem != null) {
+      return SingleChildScrollView(
+        child: AppStateMessage(
+          icon: Icons.location_on_rounded,
+          title: 'محتاجين نحدد مكانك',
+          message: 'عشان نعرضلك أعلى المحامين تقييمًا في محافظتك',
+          retryText: 'حدد مكاني',
+          onRetry: _enableLocation,
+        ),
+      );
+    }
     if (_nearbyLawyers.isEmpty) {
       return const SingleChildScrollView(
-        child: AppStateMessage(icon: Icons.location_on_rounded, title: 'لا يوجد محامون في نطاق 50 كم حالياً'),
+        child: AppStateMessage(icon: Icons.location_on_rounded, title: 'لا يوجد محامون في محافظتك حالياً'),
       );
     }
     return ListView.separated(
@@ -129,6 +140,21 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
         );
       },
     );
+  }
+
+  /// الإذن المرفوض نهائيًا أو الموقع المقفول بيتفتحوا من الإعدادات، والباقي بيتطلب تاني
+  Future<void> _enableLocation() async {
+    final problem = _locationProblem;
+    if (problem == LocationServiceStatus.permissionDeniedForever) {
+      await LocationService.instance.openAppSettings();
+      return;
+    }
+    if (problem == LocationServiceStatus.serviceDisabled) {
+      await Geolocator.openLocationSettings();
+      return;
+    }
+    _update(() => _isInitialLoading = true);
+    await _fetchCurrentLocation();
   }
 
   String _distanceText(MapLawyer lawyer) {

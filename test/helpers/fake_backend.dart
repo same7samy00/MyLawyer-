@@ -72,7 +72,24 @@ class FakeBackend {
         final status = request.url.queryParameters['status'];
         final list = status == null ? orders : orders.where((order) => order['status'] == status).toList();
         return json(200, {'success': true, 'data': list});
-      case 'GET /lawyers/nearby':
+      case 'GET /lawyers/map':
+        // كل محامي في مربعه زي السيرفر: x = floor(lon / size) و y = floor(lat / size)
+        final size = request.url.queryParameters['size'] == 'l' ? 0.5 : 0.1;
+        final asked = (request.url.queryParameters['cells'] ?? '').split(',');
+        return json(200, {
+          'success': true,
+          'data': {
+            'seconds': 300,
+            'cells': {
+              for (final cell in asked)
+                cell: [
+                  for (final lawyer in lawyers)
+                    if ('${((lawyer['coordinates'] as List)[1] as num) ~/ size}_${((lawyer['coordinates'] as List)[0] as num) ~/ size}' == cell) lawyer,
+                ],
+            },
+          },
+        });
+      case 'GET /lawyers/top':
         return json(200, {'success': true, 'data': lawyers});
       case 'GET /requests/range':
         return json(200, {'success': true, 'data': {'minPrice': 500, 'maxPrice': 1500}});

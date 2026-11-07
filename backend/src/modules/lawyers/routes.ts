@@ -9,6 +9,8 @@ import { detectFileType } from '../../utils/files.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { approximateCoordinate } from '../lifecycle/service.js';
 import { LAWYER_CAN_WORK, SEARCH_RADIUS_KM } from '../requests/service.js';
+import { CELL_DEGREES, CellSize, lawyersInCells, MAX_CELLS, SHOWCASE_SECONDS, topInGovernorate } from './showcase.js';
+import { GOVERNORATES } from './governorates.js';
 
 // The map shows the lawyers the client could ask: within the service's 50 km
 const MAX_MAP_RADIUS_KM = SEARCH_RADIUS_KM;
@@ -18,6 +20,41 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
   // Helper authentication hook for protected lawyer routes
   // Runs first, so the suspended-account check in app.ts sees who is asking
   const requireLawyerAuth = requireAuth(['lawyer', 'admin'], 'هذا المسار مخصص للمحامين فقط');
+
+  // GET /api/v1/lawyers/map?size=s&cells=x_y,x_y - every approved lawyer in the asked squares, for looking only.
+  // A square is x = floor(lon / size), y = floor(lat / size), with size 0.1 (s) or 0.5 (l) degrees.
+  fastify.get('/map', async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.query as { size?: string; cells?: string };
+    const size: CellSize = params.size === 'l' ? 'l' : 's';
+    const degrees = CELL_DEGREES[size];
+    const wanted: [number, number][] = [];
+    for (const part of (params.cells || '').split(',')) {
+      const match = /^(-?\d{1,4})_(-?\d{1,4})$/.exec(part.trim());
+      if (!match) continue;
+      const x = Number(match[1]);
+      const y = Number(match[2]);
+      // Squares outside Egypt have no lawyers to read
+      if (x * degrees > 37.5 || (x + 1) * degrees < 24 || y * degrees > 32.5 || (y + 1) * degrees < 21) continue;
+      if (!wanted.some(([wx, wy]) => wx === x && wy === y)) wanted.push([x, y]);
+    }
+    if (wanted.length === 0) return reply.status(400).send({ success: false, error: 'حدد مربعات الخريطة' });
+    if (wanted.length > MAX_CELLS) return reply.status(400).send({ success: false, error: 'مربعات كتير في طلب واحد' });
+
+    const data = await lawyersInCells(size, wanted);
+    reply.header('Cache-Control', `public, max-age=${SHOWCASE_SECONDS}`);
+    return reply.send({ success: true, data: { size, cells: data, seconds: SHOWCASE_SECONDS } });
+  });
+
+  // GET /api/v1/lawyers/top?governorate=... - the top rated lawyers of one governorate, for the lawyers map list
+  fastify.get('/top', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { governorate } = request.query as { governorate?: string };
+    if (!governorate || !GOVERNORATES.includes(governorate)) {
+      return reply.status(400).send({ success: false, error: 'المحافظة غير معروفة' });
+    }
+    const data = await topInGovernorate(governorate);
+    reply.header('Cache-Control', `public, max-age=${SHOWCASE_SECONDS}`);
+    return reply.send({ success: true, data });
+  });
 
   // 1. GET /api/v1/lawyers/nearby (Open to clients & visitors for real nearby search)
   fastify.get('/nearby', async (request: FastifyRequest, reply: FastifyReply) => {

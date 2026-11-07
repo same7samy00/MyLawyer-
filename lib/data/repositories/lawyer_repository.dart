@@ -1,63 +1,63 @@
-import 'package:latlong2/latlong.dart';
 import '../models/lawyer_model.dart';
 import '../models/lifecycle_models.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/saved_data.dart';
 
 /// المستودع المسؤول عن استعلام وتحديث بيانات المحامين
 class LawyerRepository {
-  /// استرجاع المحامين المتاحين بالقرب من موقع محدد
-  static Future<ApiResponse<List<LawyerModel>>> getNearbyLawyers({
-    required double lat,
-    required double lon,
-    double radiusKm = 1500.0,
-    int limit = 50,
-    bool byRating = false,
-  }) {
-    return _fetchLawyers({
-      'lat': lat.toString(),
-      'lon': lon.toString(),
-      'radius_km': radiusKm.toString(),
-      'limit': limit.toString(),
-      if (byRating) 'sort': 'rating',
-    });
-  }
-
-  /// محامو الجزء الظاهر من الخريطة
-  static Future<ApiResponse<List<LawyerModel>>> getLawyersInArea({
-    required LatLng center,
-    required double north,
-    required double south,
-    required double east,
-    required double west,
-  }) {
-    return _fetchLawyers({
-      'lat': center.latitude.toString(),
-      'lon': center.longitude.toString(),
-      'north': north.toString(),
-      'south': south.toString(),
-      'east': east.toString(),
-      'west': west.toString(),
-      'limit': '300',
-    });
-  }
-
-  static Future<ApiResponse<List<LawyerModel>>> _fetchLawyers(Map<String, String> queryParams) async {
-    final response = await ApiService.get('/lawyers/nearby', queryParams: queryParams);
-
-    if (response.isOk && response.data is List) {
-      final list = response.data as List;
-      return ApiResponse<List<LawyerModel>>(
+  /// محامين مربعات الخريطة، والمربع واحد لكل الناس والسيرفر بيجهزه كل [MapCells.seconds]
+  static Future<ApiResponse<MapCells>> getMapCells({required String size, required List<String> cells}) async {
+    final res = await ApiService.get('/lawyers/map', queryParams: {'size': size, 'cells': cells.join(',')});
+    final data = res.data;
+    if (res.isOk && data is Map<String, dynamic> && data['cells'] is Map) {
+      return ApiResponse<MapCells>(
         success: true,
-        statusCode: response.statusCode,
-        data: list.map((item) => LawyerModel.fromJson(item as Map<String, dynamic>)).toList(),
+        statusCode: res.statusCode,
+        data: MapCells(
+          seconds: (data['seconds'] as num?)?.toInt() ?? 300,
+          cells: {
+            for (final entry in (data['cells'] as Map).entries)
+              entry.key.toString(): [
+                for (final item in entry.value as List) LawyerModel.fromJson(item as Map<String, dynamic>),
+              ],
+          },
+        ),
       );
     }
+    return ApiResponse<MapCells>(
+      success: false,
+      statusCode: res.statusCode,
+      error: res.error ?? 'تعذر تحميل المحامين',
+      isConnectivityError: res.isConnectivityError,
+    );
+  }
 
+  static String _topKey(String governorate) => 'top_lawyers_$governorate';
+
+  /// آخر قايمة اتعرضت للمحافظة، عشان الشيت يترسم بيها من أول لحظة
+  static List<LawyerModel>? peekTopInGovernorate(String governorate) {
+    final saved = SavedData.peek(_topKey(governorate));
+    if (saved is! List) return null;
+    return [for (final item in saved) if (item is Map<String, dynamic>) LawyerModel.fromJson(item)];
+  }
+
+  /// أعلى المحامين تقييمًا في المحافظة، والسيرفر بيجهز القايمة كل 5 دقايق
+  static Future<ApiResponse<List<LawyerModel>>> getTopInGovernorate(String governorate) async {
+    final res = await ApiService.get('/lawyers/top', queryParams: {'governorate': governorate});
+    if (res.isOk && res.data is List) {
+      final list = res.data as List;
+      SavedData.write(_topKey(governorate), list);
+      return ApiResponse<List<LawyerModel>>(
+        success: true,
+        statusCode: res.statusCode,
+        data: [for (final item in list) LawyerModel.fromJson(item as Map<String, dynamic>)],
+      );
+    }
     return ApiResponse<List<LawyerModel>>(
       success: false,
-      statusCode: response.statusCode,
-      error: response.error ?? 'تعذر البحث عن المحامين المتاحين',
-      isConnectivityError: response.isConnectivityError,
+      statusCode: res.statusCode,
+      error: res.error ?? 'تعذر تحميل المحامين',
+      isConnectivityError: res.isConnectivityError,
     );
   }
 
@@ -112,4 +112,11 @@ class LawyerRepository {
       error: res.error ?? 'تعذر تحميل التقييمات',
     );
   }
+}
+
+/// مربعات الخريطة اللي رجعت، وكل مربع بمحاميه، ومدة صلاحيتها
+class MapCells {
+  final int seconds;
+  final Map<String, List<LawyerModel>> cells;
+  const MapCells({required this.seconds, required this.cells});
 }

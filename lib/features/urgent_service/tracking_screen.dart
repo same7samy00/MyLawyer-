@@ -25,7 +25,6 @@ import '../../core/widgets/map_cards.dart';
 import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/app_switcher.dart';
 import '../../data/models/map_lawyer.dart';
-import '../../data/repositories/lawyer_repository.dart';
 import '../../data/models/service_request.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/request_repository.dart';
@@ -69,7 +68,8 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
 
   static const double _cardWidth = 195.0;
   static const double _cardHeight = 53.0;
-  static const double _allEgyptRadiusKm = 1500.0;
+  /// قايمة «المحامين القريبين منك» بحد أقصى العدد ده
+  static const int _nearbyCount = 30;
   String? _lawyersError;
 
   /// الشيت طوله ثابت طول الوقت، ومحتواه بيتمرر جواه
@@ -111,11 +111,10 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   bool _showReviews = false;
   /// الموكل لمس كارت محامي وبيتفرج على ملفه
   bool _isViewingLawyer = false;
-  Timer? _lawyersRefreshTimer;
   double _mapZoom = appMapMaxZoom;
-  MapCamera? _lastCamera;
+  /// محامين الخريطة من المربعات الجاهزة، وقايمة «القريبين منك» بتتحسب منهم على الموبايل
   late final MapLawyerLoader _mapLawyers = MapLawyerLoader(onChanged: () {
-    if (mounted) setState(() {});
+    if (mounted) setState(_refreshNearby);
   });
 
   @override
@@ -136,7 +135,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
     _roundEndTimer?.cancel();
     _followedRequestId = null;
     LiveUpdates.changes.removeListener(_checkRequest);
-    _lawyersRefreshTimer?.cancel();
     _mapLawyers.dispose();
     _stageTimer?.cancel();
     _cameraAnimController?.dispose();
@@ -176,7 +174,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
               maxZoom: appMapMaxZoom,
               cameraConstraint: appMapBounds,
               backgroundColor: appMapBackground,
-              onMapReady: () => _lastCamera = _mapController.camera,
               onPositionChanged: _onMapMoved,
               onPointerDown: (_, __) => _stopCamera(),
             ),

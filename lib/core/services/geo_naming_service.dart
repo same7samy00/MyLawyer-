@@ -42,6 +42,13 @@ class GeoNamingService {
     _cache[cacheKey] = result;
     return result;
   }
+
+  /// اسم المحافظة بس، من أقرب مدينة أو بلد كبيرة، ونفس القاعدة اللي السيرفر بيستخدمها
+  /// (`backend/src/modules/lawyers/showcase.ts`) عشان قايمة المحافظة تبقى صح
+  Future<String?> governorateAt(double lat, double lng) async {
+    final data = await _loadPlaces();
+    return data?.governorateAt(lat, lng);
+  }
 }
 
 const double _closePlaceKm = 3.0;
@@ -78,6 +85,23 @@ class _PlacesData {
           ),
       ],
     );
+  }
+
+  String? governorateAt(double lat, double lon) {
+    final lonScale = math.cos(lat * math.pi / 180);
+    _Place? best;
+    var bestDistance = double.infinity;
+    for (final place in places) {
+      if (place.weight < 2) continue;
+      final dLat = place.lat - lat;
+      final dLon = (place.lon - lon) * lonScale;
+      final distance = dLat * dLat + dLon * dLon;
+      if (distance < bestDistance) {
+        best = place;
+        bestDistance = distance;
+      }
+    }
+    return best == null ? null : governorates[best.governorate];
   }
 
   String areaNameFor(double lat, double lon, double maxDistanceKm) {

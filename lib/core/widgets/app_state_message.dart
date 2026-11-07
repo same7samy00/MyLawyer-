@@ -9,6 +9,7 @@ class AppStateMessage extends StatelessWidget {
   final String title;
   final String? message;
   final Future<void> Function()? onRetry;
+  final String retryText;
 
   const AppStateMessage({
     super.key,
@@ -16,6 +17,7 @@ class AppStateMessage extends StatelessWidget {
     required this.title,
     this.message,
     this.onRetry,
+    this.retryText = 'إعادة المحاولة',
   });
 
   @override
@@ -57,7 +59,7 @@ class AppStateMessage extends StatelessWidget {
           if (onRetry != null) ...[
             const SizedBox(height: 18),
             AppButton.outlined(
-              text: 'إعادة المحاولة',
+              text: retryText,
               icon: Icons.refresh_rounded,
               onPressed: onRetry,
             ),
