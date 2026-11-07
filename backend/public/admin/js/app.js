@@ -159,7 +159,8 @@ async function render({ quiet = false } = {}) {
   const scroll = $('content').scrollTop;
   const busy = setTimeout(() => { if (turn === renderTurn) $('content').classList.add('is-busy'); }, 150);
 
-  const page = el('div', undefined, 'page-view active');
+  // حركة دخول خفيفة لما الصفحة تتغير بس، مش مع البحث والفلاتر والتحديث اللايف
+  const page = el('div', undefined, 'page-view' + (samePage ? '' : ' page-enter'));
   const box = el('div', undefined, 'clothing-page-container');
   page.append(box);
   try {
