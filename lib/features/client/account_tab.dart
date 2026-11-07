@@ -118,7 +118,7 @@ class _AccountTabState extends State<AccountTab> {
                 );
               },
             ),
-            const BiometricToggleTile(),
+            const BiometricToggleTile(card: true),
             _buildSettingItem(
               title: 'تغيير كلمة المرور',
               icon: Icons.lock_reset_rounded,

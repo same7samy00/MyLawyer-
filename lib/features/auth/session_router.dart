@@ -1,7 +1,6 @@
 import '../client/nearby_lawyers_showcase_screen.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/device_permission_service.dart';
 import '../../core/services/background_location_service.dart';
@@ -29,18 +28,16 @@ class SessionRouter {
   static Future<Widget> screenFor(SessionCheck check) async {
     switch (check.status) {
       case SessionStatus.client:
-        final prefs = await SharedPreferences.getInstance();
-        final savedLocation = prefs.getString('user_location_name');
         final hasLocation = await DevicePermissionService.instance.isLocationPermissionGranted();
-        final locationDone = await DevicePermissionService.instance.isLocationScreenDone() ||
-            (hasLocation && savedLocation != null && savedLocation.isNotEmpty);
+        // الإذن متاح من قبل: مفيش داعي لصفحة «محتاجين نحدد موقعك»
+        final locationDone = hasLocation || await DevicePermissionService.instance.isLocationScreenDone();
         if (!locationDone) return const LocationPermissionScreen();
-        // الموكل يبدأ كل فتحة بالخريطة الترويجية، والإشعار اللي لمسه بيتفتح بعد ما يقفلها
+        // أي حساب بيبدأ كل فتحة بالخريطة الترويجية، والإشعار اللي لمسه بيتفتح بعد ما يقفلها
         return showPromoMap ? const NearbyLawyersShowcaseScreen() : const MainNavigationShell();
       case SessionStatus.lawyerApproved:
         return await DevicePermissionService.instance.isLocationPermissionGranted() ||
                 await DevicePermissionService.instance.isLocationScreenDone()
-            ? const LawyerNavigationShell()
+            ? (showPromoMap ? const NearbyLawyersShowcaseScreen(forLawyer: true) : const LawyerNavigationShell())
             : const LocationPermissionScreen(forLawyer: true);
       case SessionStatus.lawyerPending:
         return const LawyerApprovalStatusScreen(isRejected: false);

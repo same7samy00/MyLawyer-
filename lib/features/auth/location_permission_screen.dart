@@ -46,14 +46,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
       );
     }
 
-    if (widget.forLawyer) {
-      _openLawyerHome();
-      return;
-    }
-
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const NearbyLawyersShowcaseScreen()),
-    );
+    SessionRouter.replaceStack(Navigator.of(context), NearbyLawyersShowcaseScreen(forLawyer: widget.forLawyer));
   }
 
   void _openLawyerHome() {

@@ -47,11 +47,12 @@ void main() {
       expect(backend.countOf('GET /users/me'), greaterThanOrEqualTo(1));
     });
 
-    testWidgets('جلسة موكل بدون موقع: يذهب لتحديد الموقع', (tester) async {
+    testWidgets('إذن الموقع متاح من قبل: صفحة «محتاجين نحدد موقعك» ما تظهرش', (tester) async {
       SharedPreferences.setMockInitialValues(savedSession());
       await launchApp(tester);
 
-      expect(find.byType(LocationPermissionScreen), findsOneWidget);
+      expect(find.byType(LocationPermissionScreen), findsNothing);
+      expect(find.byType(MainNavigationShell), findsOneWidget);
     });
 
     testWidgets('حدد موقعه مرة: شاشة الموقع ما تظهرش تاني', (tester) async {

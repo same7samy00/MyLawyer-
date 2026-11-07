@@ -27,14 +27,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   static const int _codeLength = 6;
   static const int _resendCooldownSeconds = 60;
 
-  final List<TextEditingController> _controllers = List.generate(
-    _codeLength,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _focusNodes = List.generate(
-    _codeLength,
-    (_) => FocusNode(),
-  );
+  // خانة واحدة مخفية بتستقبل الرمز كله، والست مربعات للعرض بس.
+  // كده الكيبورد بيفضل مفتوح ثابت وانت بتكتب، واللصق بيشتغل من غير رسايل
+  final TextEditingController _codeController = TextEditingController();
+  final FocusNode _codeFocus = FocusNode();
 
   int _secondsRemaining = _resendCooldownSeconds;
   Timer? _countdownTimer;
@@ -53,12 +49,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   @override
   void dispose() {
     _countdownTimer?.cancel();
-    for (final c in _controllers) {
-      c.dispose();
-    }
-    for (final f in _focusNodes) {
-      f.dispose();
-    }
+    _codeController.dispose();
+    _codeFocus.dispose();
     super.dispose();
   }
 
@@ -95,65 +87,28 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   }
 
   String get _currentCode {
-    return _controllers.map((c) => c.text).join();
+    return _codeController.text;
   }
 
-  /// توزيع رمز ملصوق من الحافظة عبر الخانات الست بالتوالي
-  void _distributePastedCode(String rawText) {
-    // تصفية الأرقام فقط
+  void _setCode(String rawText) {
     final digits = rawText.replaceAll(RegExp(r'\D'), '');
-    if (digits.isEmpty) return;
-
-    final lengthToFill = digits.length < _codeLength ? digits.length : _codeLength;
-    for (int i = 0; i < lengthToFill; i++) {
-      _controllers[i].text = digits[i];
-    }
-
-    // نقل التركيز لآخر خانة ممتلئة أو الأولى الفارغة
-    if (lengthToFill < _codeLength) {
-      _focusNodes[lengthToFill].requestFocus();
-    } else {
-      _focusNodes[_codeLength - 1].unfocus();
-    }
-
-    setState(() {
-      _errorMessage = null;
-      _successNotification = 'تم لصق الرمز بنجاح من الحافظة';
-    });
+    final code = digits.length > _codeLength ? digits.substring(0, _codeLength) : digits;
+    _codeController.value = TextEditingValue(text: code, selection: TextSelection.collapsed(offset: code.length));
+    _onCodeChanged(code);
   }
 
-  /// زر قراءة ولصق محتوى الحافظة مباشرة
+  /// زر اللصق: الرمز بيتحط في المربعات على طول من غير أي رسالة
   Future<void> _pasteFromClipboard() async {
     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-    if (clipboardData != null && clipboardData.text != null && clipboardData.text!.isNotEmpty) {
-      _distributePastedCode(clipboardData.text!);
-    } else {
-      setState(() {
-        _errorMessage = 'الحافظة فارغة أو لا تحتوي على رمز صالح';
-      });
-    }
+    final text = clipboardData?.text ?? '';
+    if (text.replaceAll(RegExp(r'\D'), '').isEmpty) return;
+    _setCode(text);
   }
 
-  /// معالجة إدخال خانة فردية مع التنقل التلقائي
-  void _onDigitChanged(int index, String value) {
-    setState(() {
-      _errorMessage = null;
-    });
-
-    // حالة اللصق المباشر في الخانة
-    if (value.length > 1) {
-      _distributePastedCode(value);
-      return;
-    }
-
-    if (value.isNotEmpty) {
-      // نقل التركيز للخانة التالية
-      if (index < _codeLength - 1) {
-        _focusNodes[index + 1].requestFocus();
-      } else {
-        _focusNodes[index].unfocus();
-      }
-    }
+  void _onCodeChanged(String value) {
+    if (_errorMessage != null) setState(() => _errorMessage = null);
+    setState(() {});
+    if (value.length == _codeLength) _codeFocus.unfocus();
   }
 
   Future<void> _handleVerify() async {
@@ -225,16 +180,79 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         _successNotification = result.message;
       });
       // مسح الخانات وإعادة التركيز للأولى
-      for (final c in _controllers) {
-        c.clear();
-      }
-      _focusNodes[0].requestFocus();
+      _codeController.clear();
+      _codeFocus.requestFocus();
       _startCooldownTimer();
     } else {
       setState(() {
         _errorMessage = result.message;
       });
     }
+  }
+
+  Widget _buildCodeBoxes() {
+    final code = _codeController.text;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _codeFocus.requestFocus(),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // الخانة الحقيقية شفافة فوق المربعات
+          Opacity(
+            opacity: 0,
+            child: SizedBox(
+              height: 52,
+              child: TextField(
+                controller: _codeController,
+                focusNode: _codeFocus,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                maxLength: _codeLength,
+                autofillHints: const [AutofillHints.oneTimeCode],
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                showCursor: false,
+                enableInteractiveSelection: false,
+                decoration: const InputDecoration(counterText: '', border: InputBorder.none),
+                onChanged: (value) => _onCodeChanged(value),
+              ),
+            ),
+          ),
+          IgnorePointer(
+            child: ListenableBuilder(
+              listenable: _codeFocus,
+              builder: (context, _) => Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(_codeLength, (index) {
+                  final active = _codeFocus.hasFocus && (index == code.length || (index == _codeLength - 1 && code.length == _codeLength));
+                  return Container(
+                    width: 44,
+                    height: 52,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(7.0),
+                      border: Border.all(color: active ? AppColors.primary : AppColors.cardBorder, width: active ? 2.0 : 1.2),
+                    ),
+                    child: Text(
+                      index < code.length ? code[index] : '',
+                      style: const TextStyle(
+                        fontFamily: 'AppFont',
+                        fontFamilyFallback: appFontFallback,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.dark,
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -345,64 +363,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     // خانات إدخال الرمز الست بالتوالي
                     Directionality(
                       textDirection: TextDirection.ltr,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(_codeLength, (index) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                            child: SizedBox(
-                              width: 44,
-                              height: 52,
-                              child: KeyboardListener(
-                                focusNode: FocusNode(),
-                                onKeyEvent: (event) {
-                                  if (event is KeyDownEvent &&
-                                      event.logicalKey == LogicalKeyboardKey.backspace) {
-                                    if (_controllers[index].text.isEmpty && index > 0) {
-                                      _focusNodes[index - 1].requestFocus();
-                                      _controllers[index - 1].clear();
-                                    }
-                                  }
-                                },
-                                child: TextFormField(
-                                  controller: _controllers[index],
-                                  focusNode: _focusNodes[index],
-                                  keyboardType: TextInputType.number,
-                                  textAlign: TextAlign.center,
-                                  maxLength: 1,
-                                  style: const TextStyle(
-                                    fontFamily: 'AppFont',
-                                    fontFamilyFallback: appFontFallback,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w900,
-                                    color: AppColors.dark,
-                                  ),
-                                  decoration: InputDecoration(
-                                    counterText: '',
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    contentPadding: EdgeInsets.zero,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(7.0),
-                                      borderSide: const BorderSide(color: AppColors.cardBorder, width: 1.2),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(7.0),
-                                      borderSide: const BorderSide(color: AppColors.cardBorder, width: 1.2),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(7.0),
-                                      borderSide: const BorderSide(color: AppColors.primary, width: 2.0),
-                                    ),
-                                  ),
-                                  onChanged: (val) => _onDigitChanged(index, val),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
+                      child: _buildCodeBoxes(),
                     ),
+
+                    const SizedBox(height: 14),
 
                     const SizedBox(height: 14),
 

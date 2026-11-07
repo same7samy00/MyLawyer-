@@ -1,4 +1,5 @@
 import 'package:flutter_map/flutter_map.dart';
+import 'package:my_lawyer/features/auth/session_router.dart';
 import 'package:my_lawyer/core/services/order_store.dart';
 import 'package:my_lawyer/core/services/app_cached_tile_provider.dart';
 import 'package:my_lawyer/core/widgets/app_button.dart';
@@ -758,6 +759,8 @@ void main() {
     });
 
     testWidgets('LoginScreen routes lawyer account to LawyerNavigationShell', (WidgetTester tester) async {
+      SessionRouter.showPromoMap = false;
+      addTearDown(() => SessionRouter.showPromoMap = true);
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
         const MethodChannel('flutter.baseflow.com/geolocator'),
         (call) async => call.method == 'checkPermission' ? 3 : throw MissingPluginException(),

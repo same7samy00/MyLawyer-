@@ -19,6 +19,7 @@ import '../../data/models/map_lawyer.dart';
 import '../../data/repositories/lawyer_repository.dart';
 import '../urgent_service/lawyer_google_profile_screen.dart';
 import 'main_navigation_shell.dart';
+import '../lawyer/lawyer_navigation_shell.dart';
 import '../auth/session_router.dart';
 
 part 'nearby_lawyers_showcase_widgets.dart';
@@ -32,7 +33,10 @@ const double _showcaseRadiusKm = 50;
 const double _showcaseSheetHeight = 360;
 
 class NearbyLawyersShowcaseScreen extends StatefulWidget {
-  const NearbyLawyersShowcaseScreen({super.key});
+  /// المحامي برضه بيشوف الخريطة، وزرار الإغلاق بيوديه لصفحاته
+  final bool forLawyer;
+
+  const NearbyLawyersShowcaseScreen({super.key, this.forLawyer = false});
 
   @override
   State<NearbyLawyersShowcaseScreen> createState() => _NearbyLawyersShowcaseScreenState();
@@ -194,7 +198,10 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
   }
 
   void _proceedToMainApp() {
-    SessionRouter.replaceStack(Navigator.of(context), const MainNavigationShell());
+    SessionRouter.replaceStack(
+      Navigator.of(context),
+      widget.forLawyer ? const LawyerNavigationShell() : const MainNavigationShell(),
+    );
   }
 
   void _openGoogleProfile() {
