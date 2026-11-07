@@ -16,6 +16,8 @@ class PaymentScreen extends StatefulWidget {
   final int price;
   final String? orderId;
   final String? orderNumber;
+  /// دفع «استشارة سريعة»: تجريبي من غير سيرفر، ومن غير محامي ولا مكان
+  final bool consultation;
 
   const PaymentScreen({
     super.key,
@@ -27,6 +29,7 @@ class PaymentScreen extends StatefulWidget {
     this.price = 350,
     this.orderId,
     this.orderNumber,
+    this.consultation = false,
   });
 
   @override
@@ -38,7 +41,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   /// الدفع نفسه في صفحة لوحدها بعد مراجعة الفاتورة
   void _chooseMethod() {
-    final orderId = widget.orderId;
+    final orderId = widget.orderId ?? (widget.consultation ? '' : null);
     if (orderId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -58,6 +61,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           problemTitle: widget.problemTitle,
           problemDescription: widget.problemDescription,
           locationName: widget.locationName,
+          consultation: widget.consultation,
         ),
       ),
     );
@@ -165,8 +169,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             _buildTableRow('نوع الخدمة', widget.problemTitle ?? 'محاميك حالاً'),
                             if (widget.problemDescription != null && widget.problemDescription!.isNotEmpty)
                               _buildTableRow('تفاصيل المشكلة', widget.problemDescription!),
-                            _buildTableRow('المحامي المعتمد', widget.lawyer?.name ?? '-'),
-                            _buildTableRow('نطاق التواجد', widget.locationName),
+                            if (!widget.consultation) ...[
+                              _buildTableRow('المحامي المعتمد', widget.lawyer?.name ?? '-'),
+                              _buildTableRow('نطاق التواجد', widget.locationName),
+                            ],
                             _buildTableRow('قيمة أتعاب الخدمة', '${widget.price} ج.م'),
                             _buildTableRow('ضريبة ورسوم المنصة', '0.00 ج.م (معفاة)'),
                             Container(

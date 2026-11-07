@@ -18,6 +18,8 @@ class PaymentMethodScreen extends StatefulWidget {
   final String? problemTitle;
   final String? problemDescription;
   final String locationName;
+  /// دفع «استشارة سريعة»: تجريبي من غير سيرفر، ومن غير محامي ولا مكان
+  final bool consultation;
 
   const PaymentMethodScreen({
     super.key,
@@ -28,6 +30,7 @@ class PaymentMethodScreen extends StatefulWidget {
     this.lawyer,
     this.problemTitle,
     this.problemDescription,
+    this.consultation = false,
   });
 
   @override
@@ -54,6 +57,13 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
   Future<void> _pay() async {
     setState(() => _isProcessing = true);
+    if (widget.consultation) {
+      // دفع تجريبي لحد ما بوابة الدفع والسيرفر يجهزوا
+      await Future.delayed(const Duration(milliseconds: 900));
+      if (!mounted) return;
+      _openSuccess();
+      return;
+    }
     final res = await OrderRepository.confirmPayment(widget.orderId, fromBalance: _method == PaymentMethod.balance);
     if (!mounted) return;
 
@@ -71,6 +81,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       return;
     }
 
+    _openSuccess();
+  }
+
+  void _openSuccess() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => PaymentSuccessScreen(
@@ -80,6 +94,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           price: widget.price,
           orderRef: widget.orderRef,
           locationName: widget.locationName,
+          consultation: widget.consultation,
         ),
       ),
     );

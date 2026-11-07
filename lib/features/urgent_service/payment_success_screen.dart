@@ -16,6 +16,8 @@ class PaymentSuccessScreen extends StatefulWidget {
   final int price;
   final String orderRef;
   final String locationName;
+  /// دفع «استشارة سريعة»: تجريبي من غير سيرفر، ومن غير محامي ولا مكان
+  final bool consultation;
 
   const PaymentSuccessScreen({
     super.key,
@@ -25,6 +27,7 @@ class PaymentSuccessScreen extends StatefulWidget {
     required this.price,
     required this.orderRef,
     required this.locationName,
+    this.consultation = false,
   });
 
   @override
@@ -63,7 +66,8 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
 
     SessionRouter.replaceStack(
       Navigator.of(context),
-      const MainNavigationShell(initialIndex: 1), // التبويب الثاني: الطلبات
+      // الاستشارة بترجع للرئيسية، و«محاميك حالاً» للطلبات
+      MainNavigationShell(initialIndex: widget.consultation ? 0 : 1),
     );
   }
 
@@ -115,11 +119,13 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                 ),
               ),
               const SizedBox(height: 6),
-              const Center(
+              Center(
                 child: Text(
-                  'المحامي في طريقه إليك\nتابع طلبك من صفحة الطلبات',
+                  widget.consultation
+                      ? 'فريقنا القانوني هيكلمك على تليفونك خلال دقايق\nخلي تليفونك جنبك'
+                      : 'المحامي في طريقه إليك\nتابع طلبك من صفحة الطلبات',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'AppFont',
                     fontFamilyFallback: appFontFallback,
                     fontSize: 13,
@@ -139,7 +145,9 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                     const AppLoader.inline(size: 16),
                     const SizedBox(width: 10),
                     Text(
-                      'جاري التوجيه إلى صفحة الطلبات خلال ($_secondsLeft) ثوانٍ',
+                      widget.consultation
+                          ? 'جاري الرجوع للرئيسية خلال ($_secondsLeft) ثوانٍ'
+                          : 'جاري التوجيه إلى صفحة الطلبات خلال ($_secondsLeft) ثوانٍ',
                       style: const TextStyle(
                         fontFamily: 'AppFont',
                         fontFamilyFallback: appFontFallback,
