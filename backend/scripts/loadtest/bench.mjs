@@ -1,4 +1,6 @@
-// Load test of the isolated copy on 127.0.0.1:4100, run on the server itself so the network is not the limit.
+// Load test of the isolated copy on 127.0.0.1:4100, run on the backend server itself so the network is not the limit.
+// The maps server is reached over the internet through Nginx and https, the way the app reaches it.
+// A ramp stops when errors pass 5% or p99 passes 10 s, and the whole run stops if production is not UP.
 // Prints numbers only, never secrets.
 import autocannon from 'autocannon';
 import crypto from 'node:crypto';
@@ -55,7 +57,8 @@ function cannon(name, opts) {
       const peak = stop();
       if (err) { console.log(name, 'ERROR', err.message); return resolve(); }
       const codes = Object.entries(r.statusCodeStats || {}).map(([c, v]) => `${c}:${v.count}`).join(' ');
-      const row = { name, connections: opts.connections, rps: Math.round(r.requests.average), p50: r.latency.p50, p90: r.latency.p90, p99: r.latency.p99, max: r.latency.max, codes, errors: r.errors, timeouts: r.timeouts, kbPerReq: r.requests.total ? Math.round(r.throughput.total / r.requests.total / 102.4) / 10 : 0, cpu: Math.round(peak.cpu), rssMb: Math.round(peak.rss), pg: peak.pg };
+      const codesRaw = Object.fromEntries(Object.entries(r.statusCodeStats || {}).map(([c, v]) => [c, v.count]));
+      const row = { name, connections: opts.connections, rps: Math.round(r.requests.average), total: r.requests.total, codesRaw, p50: r.latency.p50, p90: r.latency.p90, p97_5: r.latency.p97_5, p99: r.latency.p99, max: r.latency.max, codes, errors: r.errors, timeouts: r.timeouts, kbPerReq: r.requests.total ? Math.round(r.throughput.total / r.requests.total / 102.4) / 10 : 0, cpu: Math.round(peak.cpu), rssMb: Math.round(peak.rss), pg: peak.pg };
       results.push(row);
       console.log(JSON.stringify(row));
       resolve(row);
@@ -93,6 +96,9 @@ async function burst(name, items, concurrency, send) {
 }
 
 const db = new pg.Pool({ connectionString: env.DATABASE_URL, max: 2 });
+// One admin for the panel routes, in the test copy only
+await db.query(`INSERT INTO users (phone, email, role, status, full_name, email_verified_at) VALUES ('01000000000', 'lt-admin@loadtest.invalid', 'admin', 'active', 'أدمن تجريبي', NOW()) ON CONFLICT DO NOTHING`).catch(() => {});
+const admin = token((await db.query(`SELECT id FROM users WHERE email = 'lt-admin@loadtest.invalid'`)).rows[0].id, 'admin');
 const clients = (await db.query(`SELECT id FROM users WHERE email LIKE 'lt-client-%' ORDER BY email`)).rows.map((r) => token(r.id, 'client'));
 const lawyers = (await db.query(`SELECT id FROM users WHERE email LIKE 'lt-lawyer-%' ORDER BY email`)).rows.map((r) => ({ id: r.id, token: token(r.id, 'lawyer') }));
 let turn = 0;
@@ -100,8 +106,23 @@ const rotate = (list) => (req) => ({ ...req, headers: { ...req.headers, authoriz
 const post = (path, tok, body) => fetch(API + path, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${tok}` }, body: JSON.stringify(body) });
 
 // The same test at rising concurrency, to find where answers start slowing down or failing
-const RAMP = (process.env.RAMP || '100,300,600,1000').split(',').map(Number);
-const ramp = async (name, opts) => { for (const c of RAMP) await cannon(`${name} @${c}`, { ...opts, connections: c }); };
+const RAMP = (process.env.RAMP || '10,25,50,100,250,500,1000,2000,4000').split(',').map(Number);
+async function prodUp() {
+  try { return (await (await fetch('http://127.0.0.1:4000/api/v1/health')).json()).status === 'UP'; } catch { return false; }
+}
+function broke(row) {
+  if (!row) return true;
+  const total = row.total || 1;
+  const bad = row.errors + row.timeouts + Object.entries(row.codesRaw || {}).filter(([c]) => Number(c) >= 500).reduce((a, [, n]) => a + n, 0);
+  return bad > total * 0.05 || row.p99 > 10000;
+}
+const ramp = async (name, opts, levels = RAMP) => {
+  for (const c of levels) {
+    if (!(await prodUp())) { console.log(JSON.stringify({ name, stopped: 'production not UP' })); process.exit(2); }
+    const row = await cannon(`${name} @${c}`, { ...opts, connections: c });
+    if (broke(row)) { console.log(JSON.stringify({ name, stoppedAt: c, reason: 'errors over 5% or p99 over 10 s' })); break; }
+  }
+};
 
 const scenarios = {
   health: () => ramp('health', { url: `${API}/health` }),
@@ -112,12 +133,12 @@ const scenarios = {
   notifications: () => cannon('notifications (signed in)', { url: `${API}/notifications`, connections: 300, requests: [{ setupRequest: rotate(clients) }] }),
   requests: async () => {
     const tokens = clients.slice(0, Number(process.env.REQUESTS || 5000));
-    await burst('create request -> 5 nearest lawyers (writes)', tokens, 100, (tok) => post('/requests', tok, {
+    await burst('POST /requests (writes, lawyers notified)', tokens, Number(process.env.WRITE_C || 100), (tok) => post('/requests', tok, {
       problemType: 'محضر في قسم الشرطة', problemDescription: 'اختبار حمل', clientLat: cairo.lat + (Math.random() - 0.5) * 0.5, clientLon: cairo.lon + (Math.random() - 0.5) * 0.5,
     }));
     const pairs = (await db.query(`SELECT rr.request_id, rr.lawyer_id, r.min_price FROM request_recipients rr JOIN service_requests r ON r.id = rr.request_id WHERE r.status = 'OPEN' LIMIT 10000`)).rows;
     const byId = new Map(lawyers.map((l) => [l.id, l.token]));
-    await burst('lawyer offer on a request (writes)', pairs, 100, (p) => post(`/requests/${p.request_id}/offer`, byId.get(p.lawyer_id), { price: Math.ceil(Number(p.min_price)) }));
+    await burst('POST /requests/:id/offer (writes)', pairs, Number(process.env.WRITE_C || 100), (p) => post(`/requests/${p.request_id}/offer`, byId.get(p.lawyer_id), { price: Math.ceil(Number(p.min_price)) }));
     await cannon('lawyer incoming requests (signed in)', { url: `${API}/requests/incoming`, connections: 100, requests: [{ setupRequest: rotate(lawyers.map((l) => l.token)) }] });
   },
   live: async () => {
@@ -143,26 +164,89 @@ const scenarios = {
     for (const l of lines) l.destroy?.();
     agent.destroy();
   },
-  tiles: () => {
-    const z = [12, 13, 14, 15];
-    return ramp('map tiles, renderer direct (no Nginx cache)', {
-      url: 'http://127.0.0.1:3000',
+  // Every read route the app and the panel use, each as its own ramp
+  reads: async () => {
+    const C = (path) => ({ url: API + path, requests: [{ setupRequest: rotate(clients) }] });
+    const L = (path) => ({ url: API + path, requests: [{ setupRequest: rotate(lawyers.map((l) => l.token)) }] });
+    const A = (path) => ({ url: API + path, headers: { authorization: `Bearer ${admin}` } });
+    const cells = [];
+    for (let x = 310; x <= 315; x++) for (let y = 297; y <= 302; y++) cells.push(`${x}_${y}`);
+    const list = {
+      'GET /users/me': C('/users/me'), 'GET /orders': C('/orders'), 'GET /orders/wallet/me': C('/orders/wallet/me'),
+      'GET /notifications': C('/notifications'), 'GET /notifications/summary': C('/notifications/summary'),
+      'GET /consultations': C('/consultations'), 'GET /consultations/settings': C('/consultations/settings'),
+      'GET /support/tickets': C('/support/tickets'), 'GET /wallet/payments': C('/wallet/payments'), 'GET /wallet/limits': C('/wallet/limits'),
+      'GET /wallet/recipient': C('/wallet/recipient?phone=01180000001'), 'GET /requests/range': C('/requests/range'),
+      'GET /lawyers/map (36 small squares)': { url: `${API}/lawyers/map?size=s&cells=${cells.join(',')}` },
+      'GET /lawyers/map (big squares)': { url: `${API}/lawyers/map?size=l&cells=62_59,62_60,63_59,63_60` },
+      'GET /lawyers/top': { url: `${API}/lawyers/top?governorate=${encodeURIComponent('القاهرة')}` },
+      'GET /lawyers/nearby (old apps)': { url: `${API}/lawyers/nearby?lat=${cairo.lat}&lon=${cairo.lon}&limit=50` },
+      'GET /lawyers/me': L('/lawyers/me'), 'GET /requests/incoming': L('/requests/incoming'),
+      'GET /admin/overview': A('/admin/overview'), 'GET /admin/users': A('/admin/users'), 'GET /admin/orders': A('/admin/orders'),
+      'GET /admin/money': A('/admin/money'), 'GET /admin/support': A('/admin/support'), 'GET /admin/consultations': A('/admin/consultations'),
+      'GET /admin/reviews': A('/admin/reviews'), 'GET /admin/search': A('/admin/search?q=0118'), 'GET /admin/actions': A('/admin/actions'),
+      'GET /admin/prices': A('/admin/prices'), 'GET /admin/urgent-applications': A('/admin/urgent-applications'),
+      'GET /admin-panel (page)': { url: `${API}/admin-panel` }, 'GET /health': { url: `${API}/health` },
+    };
+    const only = process.env.ROUTE;
+    const levels = (process.env.READ_RAMP || '50,250,1000').split(',').map(Number);
+    for (const [name, opts] of Object.entries(list)) {
+      if (!only || name.includes(only)) await ramp(name, opts, levels);
+    }
+  },
+  // Sign in: the slowest single step on purpose (argon2), every login a different client
+  login: async () => {
+    const argon2 = require('argon2');
+    const hash = await argon2.hash('LoadTest-2026');
+    await db.query(`UPDATE users SET password_hash = $1 WHERE email LIKE 'lt-client-%'`, [hash]);
+    const phones = (await db.query(`SELECT phone FROM users WHERE email LIKE 'lt-client-%' ORDER BY email LIMIT 3000`)).rows.map((r) => r.phone);
+    for (const c of [10, 50, 100, 200]) {
+      await burst(`POST /auth/login @${c}`, phones.slice(0, Math.min(phones.length, c * 15)), c, (phone) => fetch(API + '/auth/login', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ identifier: phone, password: 'LoadTest-2026' }),
+      }));
+    }
+  },
+  // The maps server over the internet (Nginx, https, cache), the way phones reach it
+  maps: () => ramp('maps tiles over https (cached)', {
+    url: 'https://maps.my-lawyer.online',
+    requests: [{ setupRequest: (req) => {
+      const zz = [12, 13, 14, 15][Math.floor(Math.random() * 4)]; const n = 2 ** zz;
+      const lat = cairo.lat + (Math.random() - 0.5) * 0.4; const lon = cairo.lon + (Math.random() - 0.5) * 0.4;
+      const x = Math.floor(((lon + 180) / 360) * n); const r = (lat * Math.PI) / 180;
+      const y = Math.floor(((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n);
+      return { ...req, path: `/map/v2/${zz}/${x}/${y}.webp` };
+    } }],
+  }, [10, 50, 100, 250, 500]),
+  routes: () => ramp('road time over https (OSRM)', {
+    url: 'https://maps.my-lawyer.online',
+    requests: [{ setupRequest: (req) => {
+      const p = () => `${(cairo.lon + (Math.random() - 0.5) * 0.4).toFixed(5)},${(cairo.lat + (Math.random() - 0.5) * 0.4).toFixed(5)}`;
+      return { ...req, path: `/osrm/route/v1/driving/${p()};${p()}?overview=false` };
+    } }],
+  }, [10, 50, 100, 250]),
+  // A real crowd at the same time, by share of calls (assumed, there is no real usage data yet):
+  // opening the app 20%, orders 20%, unread count 15%, map squares 15%, notifications 10%,
+  // lawyer incoming requests 10%, governorate list 5%, wallet 5%
+  mix: () => {
+    const cells = []; for (let x = 311; x <= 314; x++) for (let y = 298; y <= 301; y++) cells.push(`${x}_${y}`);
+    const lawyerTokens = lawyers.map((l) => l.token);
+    const pick = [
+      [20, '/users/me', clients], [20, '/orders', clients], [15, '/notifications/summary', clients],
+      [15, `/lawyers/map?size=s&cells=${cells.join(',')}`, null], [10, '/notifications', clients],
+      [10, '/requests/incoming', lawyerTokens], [5, `/lawyers/top?governorate=${encodeURIComponent('القاهرة')}`, null], [5, '/wallet/payments', clients],
+    ];
+    const total = pick.reduce((a, [w]) => a + w, 0);
+    return ramp('realistic mix', {
+      url: API,
       requests: [{ setupRequest: (req) => {
-        const zz = z[Math.floor(Math.random() * z.length)]; const n = 2 ** zz;
-        const lat = cairo.lat + (Math.random() - 0.5) * 0.4; const lon = cairo.lon + (Math.random() - 0.5) * 0.4;
-        const x = Math.floor(((lon + 180) / 360) * n); const r = (lat * Math.PI) / 180;
-        const y = Math.floor(((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n);
-        return { ...req, path: `/styles/mylawyer/256/${zz}/${x}/${y}@2x.webp` };
+        let r = Math.random() * total; let row = pick[0];
+        for (const p of pick) { if ((r -= p[0]) < 0) { row = p; break; } }
+        const headers = { ...req.headers };
+        if (row[2]) headers.authorization = `Bearer ${row[2][turn++ % row[2].length]}`; else delete headers.authorization;
+        return { ...req, path: '/api/v1' + row[1], headers };
       } }],
     });
   },
-  routes: () => ramp('road time (OSRM direct)', {
-    url: 'http://127.0.0.1:5000',
-    requests: [{ setupRequest: (req) => {
-      const p = () => `${(cairo.lon + (Math.random() - 0.5) * 0.4).toFixed(5)},${(cairo.lat + (Math.random() - 0.5) * 0.4).toFixed(5)}`;
-      return { ...req, path: `/route/v1/driving/${p()};${p()}?overview=false` };
-    } }],
-  }),
 };
 
 for (const [key, go] of Object.entries(scenarios)) {

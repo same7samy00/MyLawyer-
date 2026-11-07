@@ -33,9 +33,9 @@ EOF
 chmod 600 "$LT/.env"
 chown -R www-data:www-data "$LT"
 
-# Same shape as production: 3 workers, 15 connections each, the same memory ceiling
+# Same shape as production on the backend server: 5 workers, 15 connections each, the same memory ceiling
 systemd-run --unit=mylawyer-loadtest --property=WorkingDirectory="$LT" --uid=www-data --gid=www-data \
-  -p MemoryMax=3G -p LimitNOFILE=65535 --setenv=WEB_WORKERS=3 --setenv=DB_POOL_MAX=15 /usr/bin/node dist/server.js
+  -p MemoryMax=8G -p LimitNOFILE=65535 --setenv=WEB_WORKERS=5 --setenv=DB_POOL_MAX=15 /usr/bin/node dist/server.js
 
 for _ in $(seq 1 30); do
   if curl -s http://127.0.0.1:4100/api/v1/health | grep -q '"status":"UP"'; then echo "loadtest copy UP"; break; fi
