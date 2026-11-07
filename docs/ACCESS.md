@@ -48,7 +48,7 @@ git -c credential.helper= -c "credential.helper=store --file=D:/KAREM/.access/gi
 - **المكان:** GitHub، الريبو `same7samy00/MyLawyer-`، والريموت اسمه `origin` (HTTPS).
 - **الدخول:** توكن محفوظ في Windows Credential Manager (`credential.helper=manager`، والمستخدم `x-access-token`). يعني `git push` بيشتغل من غير ما حد يكتب حاجة، **وعشان كده لازم الموافقة قبله**.
 - **الفروع:** `main` هو الإنتاج. الفرع المحلي `master` فيه التاريخ القديم اللي فيه أسرار، وممنوع يترفع أبدًا.
-- **الرفع التلقائي:** `.github/workflows/deploy.yml` بيشتغل مع أي push على `main` يغيّر `backend/**`، على runner موجود على السيرفر نفسه. بيشغل `tsc` و`npm test` وبعدين `backend/deploy.sh`. يعني **push على `main` = رفع على الإنتاج**.
+- **الرفع التلقائي:** `.github/workflows/deploy.yml` بيشتغل مع أي push على `main` يغيّر `backend/**`، على runner موجود على السيرفر الجديد (`mylawyer-api`). بيشغل `tsc` و`npm test` وبعدين `backend/deploy.sh`. يعني **push على `main` = رفع على الإنتاج**.
 
 ## السيرفر
 - **الاسم المختصر:** `ssh mylawyer-vps` (الإعداد في `~/.ssh/config` على جهاز صاحب المشروع، بالمفتاح `~/.ssh/mylawyer_deploy`).
@@ -69,7 +69,9 @@ git -c credential.helper= -c "credential.helper=store --file=D:/KAREM/.access/gi
 - **Nginx:** `/etc/nginx/sites-available/mylawyer` زي القديم، و`/map/v2` و`/osrm` بيتحوّلوا لـ `maps.my-lawyer.online` عشان نسخ التطبيق القديمة.
 - **الإيميل:** Postfix محلي بس (`loopback-only`) وOpenDKIM بالمفتاح `mail` لـ `my-lawyer.online`، والإرسال من `noreply@my-lawyer.online`. سجلات MX وSPF وDKIM وDMARC في Hostinger، والـ PTR في Contabo.
 - **https:** شهادات Let's Encrypt للعنوانين (2026-11-07) بالتحقق من `/var/www/letsencrypt`، وبتتجدد لوحدها (`certbot.timer`). قاعدة صلاحية محلية في `.claude/settings.local.json` بتسمح لـ Claude Code يشغّل certbot على السيرفرين بس.
-- **لسه:** runner الرفع التلقائي (لسه على القديم، يعني push على `main` بيرفع على القديم)، وتجربة إيميل حقيقي.
+- **الرفع التلقائي (2026-11-07):** runner اسمه `vps-mylawyer-api` على السيرفر الجديد في `/actions-runner-mylawyer` (خدمة `actions.runner.same7samy00-MyLawyer-.vps-mylawyer-api`)، والقديم `vps-mylawyer` اتشال من GitHub. يعني **push على `main` = رفع على السيرفر الجديد**. أول رفع عليه نجح (`95f0a80`).
+- **DNS السيرفر:** `/etc/systemd/resolved.conf.d/mylawyer.conf` على 1.1.1.1 و8.8.8.8، لأن سيرفرات Contabo كانت بتعلّق.
+- **الإيميل:** بيطلع على IPv4 بس (`inet_protocols = ipv4`)، لأن جوجل بيرفض IPv6 من غير اسم مأكّد. اتجرّب ووصل لـ Gmail.
 
 ## الدومين والسيرفرات (2026-11-07)
 | العنوان | السيرفر | الشغل |

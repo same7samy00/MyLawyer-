@@ -70,25 +70,22 @@ export async function sendOtpEmail(toEmail: string, otpCode: string, purpose: 'r
 
   const title = purpose === 'register' ? 'تأكيد حسابك في My Lawyer' : 'تغيير كلمة السر في My Lawyer';
   const subtitle = purpose === 'register'
-    ? 'أهلًا بيك في My Lawyer. اكتب الكود ده في التطبيق عشان نفعّل حسابك:'
-    : 'وصلنا طلب لتغيير كلمة السر بتاعة حسابك. اكتب الكود ده في التطبيق:';
+    ? 'أهلًا بيك في My Lawyer<br>اكتب الكود ده في التطبيق عشان نفعّل حسابك'
+    : 'وصلنا طلب لتغيير كلمة السر بتاعة حسابك<br>اكتب الكود ده في التطبيق';
 
   const htmlContent = emailLayout(
     title,
-    emailText(subtitle) + emailCode(otpCode) + emailText('الكود شغال 10 دقايق بس', true) + emailText('متدّيش الكود ده لأي حد، وفريق My Lawyer عمره ما هيطلبه منك.', true)
+    emailText(subtitle) + emailCode(otpCode) + emailText('الكود شغال 10 دقايق بس', true) + emailText('متدّيش الكود ده لأي حد<br>وفريق My Lawyer عمره ما هيطلبه منك', true)
   );
 
   try {
     const info = await mailer.sendMail({
       from: config.smtp.from,
       to: toEmail,
-      subject: `كود التأكيد: ${otpCode} - My Lawyer`,
+      // The inbox shows the app's name only, the code stays inside
+      subject: 'My Lawyer',
       html: htmlContent,
-      text: `${title}
-
-الكود: ${otpCode}
-
-الكود شغال 10 دقايق بس، ومتدّيهوش لأي حد.`,
+      text: [title, subtitle.replace('<br>', '\n'), otpCode, 'الكود شغال 10 دقايق بس', 'متدّيش الكود ده لأي حد'].join('\n\n'),
     });
     console.log(`[Email] OTP sent to ${toEmail}. MessageId: ${info.messageId}`);
     return true;
