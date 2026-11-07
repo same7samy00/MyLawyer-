@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Sliding Banners, Cleaner Action Window and Early Checks] - 2026-11-07
+- **Home banners** (`lib/features/client/home_banners.dart`): «محاميك حالاً» with the white picture (`assets/images/lawyer_pin_white.png`, no white circle) and a new «استشارة سريعة» banner, 150 high, sliding to the next every 5 seconds with dots, and a swipe restarts the timer.
+- **Panel action window:** no «اختر الإجراء» line, no repeated borders, solid coloured icon backgrounds, and «التالي» stays disabled with the reason shown while typing until the field is valid.
+- **Registration checks early:** `POST /auth/check-available` tells whether a phone or email is taken. The app asks at the phone step and at the email step, and the register forms show field errors while typing.
+- Deployed with tag `checkpoint/before-quick-consultation` (migration 032 applied).
+
 ## [Quick Consultation in Production] - 2026-11-07
 - **Backend module** `backend/src/modules/consultations` (`service.ts`, `routes.ts`, `admin.ts`) and migration `032_consultations.sql`: `consultation_settings` (one row of prices and limits), `consultations` (reference `ML-CNS-…`, kind `CALL` or `PAPERS`, status `PAID` → `CONTACTING` → `DONE`, or `REJECTED`), and `consultation_pages` (paper photos in private storage).
 - **Client routes** under `/api/v1/consultations`: `settings`, `quote` (the price is computed on the server only), `POST /` (pay and create in one multipart call, from the balance or direct), the list, one item, and `pages/:id` for the owner and admins only.
