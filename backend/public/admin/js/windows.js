@@ -114,14 +114,9 @@ function openActionWindow(actions) {
 
   const drawReview = () => {
     const error = el('p', '', 'text-danger');
-    const list = el('div', undefined, 'wizard-review');
-    action.summary(values).forEach(([label, value]) => {
-      const line = el('div', undefined, 'wizard-review-line');
-      line.append(el('span', label), el('strong', value));
-      list.append(line);
-    });
+    // البيانات في جدول، والوصف فوقه في سطر لوحده
     const runButton = link('تنفيذ', () => execute(error, runButton), action.danger ? 'btn-danger' : 'btn-primary');
-    frame('مراجعة: ' + action.title, stepLabel(), [el('p', action.description, 'muted'), list, error], [link('رجوع', back), runButton]);
+    frame('مراجعة: ' + action.title, stepLabel(), [el('p', action.description, 'wizard-note'), details(action.summary(values)), error], [link('رجوع', back), runButton]);
   };
 
   const draw = () => {

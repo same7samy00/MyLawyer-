@@ -309,19 +309,28 @@ table, thead, tbody, tr, th, td, svg, path, strong, span, p, h1, h2, h3, h4, lab
 .chat-thread .ticket-admin { align-self: flex-end; background: var(--brand-light) !important; }
 .chat-thread .ticket-note { align-self: center; background: #fffbeb !important; }
 
-/* نافذة الإجراءات: من غير خطوط كتير، والأيقونات بخلفيات ملونة */
-.modal-card .modal-header { border-bottom: none; border-right: none; background: var(--bg-surface); }
-.modal-card .modal-actions { border-top: none; background: var(--bg-surface); padding-top: 0.25rem; }
+/* نافذة الإجراءات: أقسام واضحة، وأزرار بحواف متقطعة، والبيانات في جدول، ومن غير خطوط زيادة */
+.modal-card .modal-header { border-bottom: 1px dashed #cbd5e1; border-right: none; background: var(--bg-surface); padding: 0.9rem 1.2rem; }
+.modal-card .modal-actions { border-top: none; background: var(--bg-surface); padding: 0.4rem 1.2rem 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.modal-card .modal-actions .btn { width: 100%; justify-content: center; min-height: 42px; }
+.modal-card .modal-actions .btn:only-child { grid-column: 1 / -1; }
 .modal-title-box .wizard-step:empty { display: none; }
-.wizard-list { gap: 0.5rem; }
-.wizard-row, .wizard-choice { border: none; background: #f8fafc; border-radius: 5px; padding: 0.65rem 0.75rem; }
-.wizard-row:hover, .wizard-choice:hover, .wizard-choice.active { border: none; background: var(--brand-light); }
+.modal-title-box .wizard-step { display: inline-block; margin-inline-start: 0.4rem; padding: 0.1rem 0.5rem; background: var(--brand-light); color: var(--brand-primary); font-weight: 700; border-radius: 5px; }
+.dialog-form { gap: 0.75rem; padding: 1rem 1.2rem; }
+.wizard-note { margin: 0; padding: 0.6rem 0.75rem; background: #f8fafc; color: var(--text-main); font-size: 0.82rem; line-height: 1.6; border-radius: 5px; }
+.wizard-label { margin-bottom: 0.1rem; }
+.wizard-list { gap: 0.55rem; }
+.wizard-row, .wizard-choice { background: var(--bg-surface); border: 1px dashed #94a3b8; border-radius: 5px; padding: 0.7rem 0.8rem; transition: border-color 0.15s, background 0.15s; }
+.wizard-row:hover, .wizard-choice:hover, .wizard-choice.active { border: 1px dashed var(--brand-primary); background: var(--brand-light); }
 .wizard-row .action-icon { flex-basis: 38px; width: 38px; height: 38px; border-radius: 5px; color: #fff; }
 .wizard-row .action-icon svg { width: 19px; height: 19px; }
 .wizard-row .action-icon.tone-blue { background: #1d4ed8; }
 .wizard-row .action-icon.tone-green { background: #16a34a; }
 .wizard-row .action-icon.tone-red { background: #dc2626; }
 .wizard-row .action-icon.tone-amber { background: #d97706; }
-.wizard-review { gap: 0.35rem; }
-.wizard-review-line { border-bottom: none; background: #f8fafc; border-radius: 5px; padding: 0.5rem 0.65rem; }
+.dialog-form .table-wrapper { margin: 0; }
+.dialog-form .field-input { border: 1px dashed #94a3b8; border-radius: 5px; }
+.dialog-form .field-input:focus { border: 1px dashed var(--brand-primary); }
 .dialog-form .btn[disabled], .modal-actions .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+.modal-card .modal-actions .btn-outline { border: 1px dashed #94a3b8; border-radius: 5px; }
+.modal-card .modal-actions .btn { border-radius: 5px; }
