@@ -61,75 +61,93 @@ class _PinsPainter extends CustomPainter {
     ..color = Colors.white
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2;
-  static final Paint _shade = Paint()..color = const Color(0x33000000);
-  static final Map<String, TextPainter> _letters = {};
+  static final Paint _dot = Paint()..color = Colors.white;
+  static final Paint _shade = Paint()..color = const Color(0x2E000000);
+  static final Paint _normal = Paint()..color = AppColors.primary;
+  static final Paint _picked = Paint()..color = AppColors.success;
+  static final Paint _labelBack = Paint()..color = const Color(0xF2FFFFFF);
+  static final Map<double, Path> _shapes = {};
+  /// The names are laid out once and kept, not on every frame while the map moves
+  static final Map<String, TextPainter> _names = {};
 
-  /// أعلى تقييم أغمق
-  static Color _colorFor(double rating) => rating >= 4.5 ? AppColors.primary : rating >= 4 ? const Color(0xFF3B82F6) : const Color(0xFF64748B);
+  /// A simple pin, its tip at (0, 0)
+  static Path _shape(double r) => _shapes.putIfAbsent(r, () {
+        final head = Offset(0, -r * 2.1);
+        return Path()
+          ..moveTo(0, 0)
+          ..quadraticBezierTo(head.dx - r * 1.05, head.dy + r * 0.95, head.dx - r, head.dy)
+          ..arcToPoint(Offset(head.dx + r, head.dy), radius: Radius.circular(r))
+          ..quadraticBezierTo(head.dx + r * 1.05, head.dy + r * 0.95, 0, 0)
+          ..close();
+      });
 
-  static TextPainter _letter(String text) => _letters.putIfAbsent(text, () => TextPainter(
-        text: TextSpan(text: text, style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white)),
-        textDirection: TextDirection.rtl,
-      )..layout(),);
+  static TextPainter _name(String name) {
+    if (_names.length > 400) _names.clear();
+    return _names.putIfAbsent(name, () => TextPainter(
+          text: TextSpan(text: name, style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.dark)),
+          textDirection: TextDirection.rtl,
+          maxLines: 1,
+          ellipsis: '…',
+        )..layout(maxWidth: 120),);
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
     final origin = camera.pixelOrigin;
     final bounds = camera.visibleBounds;
-    final center = camera.project(camera.center) - origin;
-    final visible = <(MapLawyer, Offset)>[];
+    // Lawyers on the same (rounded) spot share one pin: the best rated stands for the spot
+    final spots = <LatLng, MapLawyer>{};
     for (final lawyer in lawyers) {
       if (!bounds.contains(lawyer.position)) continue;
-      final p = camera.project(lawyer.position) - origin;
-      visible.add((lawyer, Offset(p.x.toDouble(), p.y.toDouble())));
+      final there = spots[lawyer.position];
+      if (there == null || lawyer.rating > there.rating || lawyer.id == selectedId) spots[lawyer.position] = lawyer;
     }
-
-    // The nearest to the middle of the screen get their name, like shop names on Google Maps
-    final named = <String>{};
-    if (labels > 0) {
-      final byCenter = [...visible]..sort((a, b) => (a.$2 - Offset(center.x.toDouble(), center.y.toDouble())).distanceSquared
-          .compareTo((b.$2 - Offset(center.x.toDouble(), center.y.toDouble())).distanceSquared),);
-      named.addAll(byCenter.take(labels).map((v) => v.$1.id));
-    }
+    final pins = <(MapLawyer, Offset)>[
+      for (final lawyer in spots.values) (lawyer, () {
+        final p = camera.project(lawyer.position) - origin;
+        return Offset(p.x.toDouble(), p.y.toDouble());
+      }()),
+    ];
 
     MapEntry<MapLawyer, Offset>? selected;
-    for (final (lawyer, tip) in visible) {
+    for (final (lawyer, tip) in pins) {
       if (lawyer.id == selectedId) {
         selected = MapEntry(lawyer, tip);
         continue;
       }
-      _pin(canvas, lawyer, tip, 9, named.contains(lawyer.id));
+      _pin(canvas, tip, 8, _normal);
     }
+
+    // Names next to the spots nearest the middle of the screen, never two names on top of each other
+    if (labels > 0) {
+      final c = camera.project(camera.center) - origin;
+      final middle = Offset(c.x.toDouble(), c.y.toDouble());
+      final byCenter = [...pins]..sort((a, b) => (a.$2 - middle).distanceSquared.compareTo((b.$2 - middle).distanceSquared));
+      final taken = <Rect>[];
+      for (final (lawyer, tip) in byCenter) {
+        if (taken.length >= labels) break;
+        final text = _name(lawyer.name);
+        final box = Rect.fromLTWH(tip.dx + 10, tip.dy - 17 - text.height / 2, text.width + 8, text.height + 2);
+        if (taken.any((other) => other.overlaps(box))) continue;
+        taken.add(box);
+        canvas.drawRRect(RRect.fromRectAndRadius(box, const Radius.circular(4)), _labelBack);
+        text.paint(canvas, box.topLeft + const Offset(4, 1));
+      }
+    }
+
     // The selected lawyer on top and bigger
-    if (selected != null) _pin(canvas, selected.key, selected.value, 13, true, selected: true);
+    if (selected != null) _pin(canvas, selected.value, 12, _picked);
   }
 
-  void _pin(Canvas canvas, MapLawyer lawyer, Offset tip, double r, bool withName, {bool selected = false}) {
-    final head = tip.translate(0, -r * 2.1);
-    final path = Path()
-      ..moveTo(tip.dx, tip.dy)
-      ..quadraticBezierTo(head.dx - r * 1.05, head.dy + r * 0.95, head.dx - r, head.dy)
-      ..arcToPoint(Offset(head.dx + r, head.dy), radius: Radius.circular(r))
-      ..quadraticBezierTo(head.dx + r * 1.05, head.dy + r * 0.95, tip.dx, tip.dy)
-      ..close();
-    canvas.drawCircle(tip, r * 0.35, _shade);
-    canvas.drawPath(path, Paint()..color = selected ? AppColors.success : _colorFor(lawyer.rating));
-    canvas.drawPath(path, _edge);
-    final letter = _letter(lawyer.avatarInitials);
-    letter.paint(canvas, head - Offset(letter.width / 2, letter.height / 2));
-
-    if (!withName) return;
-    final label = TextPainter(
-      text: TextSpan(
-        text: lawyer.name,
-        style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.dark,
-            shadows: [Shadow(color: Colors.white, blurRadius: 3), Shadow(color: Colors.white, blurRadius: 3)],),
-      ),
-      textDirection: TextDirection.rtl,
-      maxLines: 1,
-      ellipsis: '…',
-    )..layout(maxWidth: 120);
-    label.paint(canvas, head + Offset(r + 4, -label.height / 2));
+  void _pin(Canvas canvas, Offset tip, double r, Paint fill) {
+    final shape = _shape(r);
+    canvas.drawOval(Rect.fromCenter(center: tip, width: r * 1.2, height: r * 0.5), _shade);
+    canvas.save();
+    canvas.translate(tip.dx, tip.dy);
+    canvas.drawPath(shape, fill);
+    canvas.drawPath(shape, _edge);
+    canvas.drawCircle(Offset(0, -r * 2.1), r * 0.36, _dot);
+    canvas.restore();
   }
 
   @override
