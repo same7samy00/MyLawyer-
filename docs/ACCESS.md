@@ -65,8 +65,18 @@ git -c credential.helper= -c "credential.helper=store --file=D:/KAREM/.access/gi
 - **الحماية:** Ubuntu 24.04 متحدّث، وUFW مفتوح فيه 22 و80 و443 بس، وfail2ban على SSH، والتحديثات الأمنية تلقائية.
 - **الموارد:** 6 معالجات، و12 جيجا رام، و100 جيجا.
 - **المتسطّب (نفس نسخ القديم):** Node 20.20 وnpm 10.8، وPostgreSQL 16.15 (محلي بس)، وNginx 1.24، وcertbot 2.9، وSwap 4 جيجا، والتوقيت Europe/Berlin زي القديم.
-- **جاهز ومستني النقل:** قاعدة `mylawyer_prod` فاضية ومستخدمها `mylawyer_user`، ورابطها في `/var/www/mylawyer/backend/.env.db` على السيرفر بس. والفولدرات `/var/www/mylawyer/{backend,site,storage/public,storage/private_docs}` و`/root/mylawyer-backups`.
-- **لسه:** الدومين الجديد وشهادته، وNginx للموقع، والإيميل (Postfix وDKIM)، وrunner الرفع التلقائي، ونسخ الكود و`.env` وملف Firebase والبيانات.
+- **الباك إند شغال هنا من 2026-11-07:** الكود من `origin/main` في `/var/www/mylawyer/backend` (`.env` وملف Firebase جنبه)، وخدمة `mylawyer-backend` بـ 5 workers، وقاعدة `mylawyer_prod` المحلية (اتنقلت من القديم كاملة)، والصور والملفات والموقع في `/var/www/mylawyer`. الطرق من `OSRM_URL=https://maps.my-lawyer.online/osrm`.
+- **Nginx:** `/etc/nginx/sites-available/mylawyer` زي القديم، و`/map/v2` و`/osrm` بيتحوّلوا لـ `maps.my-lawyer.online` عشان نسخ التطبيق القديمة.
+- **الإيميل:** Postfix محلي بس (`loopback-only`) وOpenDKIM بالمفتاح `mail` لـ `my-lawyer.online`، والإرسال من `noreply@my-lawyer.online`. سجلات MX وSPF وDKIM وDMARC في Hostinger، والـ PTR في Contabo.
+- **لسه:** شهادات https (certbot) للعنوانين، وrunner الرفع التلقائي (لسه على القديم، يعني push على `main` بيرفع على القديم)، وتجربة إيميل حقيقي.
+
+## الدومين والسيرفرات (2026-11-07)
+| العنوان | السيرفر | الشغل |
+|---|---|---|
+| `my-lawyer.online` و`www` | الجديد `45.13.232.30` | الباك إند واللوحة والموقع والإيميل |
+| `maps.my-lawyer.online` | القديم `13.140.141.32` | صور الخريطة والطرق بس. الباك إند على القديم اتقفل |
+
+الـ DNS في Hostinger (`dns-parking.com`)، والـ PTR في Contabo.
 
 ## أوامر قراءة آمنة
 ```bash
