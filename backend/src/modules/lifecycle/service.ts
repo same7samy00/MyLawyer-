@@ -36,6 +36,7 @@ export interface NotifyLink {
   orderId?: string;
   ticketId?: string;
   requestId?: string;
+  consultationId?: string;
 }
 
 /// Worth knowing, but nothing to do right now: it stays inside the app, with no sound and no device notification
@@ -45,7 +46,9 @@ const QUIET_TITLES = new Set([
 ]);
 
 export async function notify(db: Db, userId: string, title: string, body: string, link?: string | NotifyLink) {
-  const { orderId, ticketId, requestId } = typeof link === 'string' ? { orderId: link, ticketId: undefined, requestId: undefined } : (link ?? {});
+  const { orderId, ticketId, requestId, consultationId } = typeof link === 'string'
+    ? { orderId: link, ticketId: undefined, requestId: undefined, consultationId: undefined }
+    : (link ?? {});
   // One line per order or request: the newest step replaces the older ones
   if (orderId || requestId) {
     await db.query(
@@ -55,8 +58,8 @@ export async function notify(db: Db, userId: string, title: string, body: string
     );
   }
   await db.query(
-    'INSERT INTO notifications (user_id, title, body, order_id, ticket_id, request_id) VALUES ($1, $2, $3, $4, $5, $6)',
-    [userId, title, body, orderId ?? null, ticketId ?? null, requestId ?? null]
+    'INSERT INTO notifications (user_id, title, body, order_id, ticket_id, request_id, consultation_id) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    [userId, title, body, orderId ?? null, ticketId ?? null, requestId ?? null, consultationId ?? null]
   );
   const quiet = QUIET_TITLES.has(title);
 
@@ -73,10 +76,14 @@ export async function notify(db: Db, userId: string, title: string, body: string
     );
   }
 
-  await publishChange(db, userId, !quiet, orderId ? 'orders' : requestId ? 'requests' : ticketId ? 'support' : 'notifications', orderId ?? requestId ?? ticketId ?? null);
+  await publishChange(
+    db, userId, !quiet,
+    orderId ? 'orders' : requestId ? 'requests' : ticketId ? 'support' : consultationId ? 'consultations' : 'notifications',
+    orderId ?? requestId ?? ticketId ?? consultationId ?? null
+  );
 
   // The order never waits for the phone
-  if (!quiet) void sendPush(userId, title, body, { orderId, ticketId, requestId });
+  if (!quiet) void sendPush(userId, title, body, { orderId, ticketId, requestId, consultationId });
 }
 
 export async function addClientCredit(db: Db, clientId: string, orderId: string, amount: number, reason: string) {

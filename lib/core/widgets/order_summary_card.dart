@@ -1,3 +1,4 @@
+import 'service_tag.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/order_model.dart';
 import '../constants/app_colors.dart';
@@ -28,6 +29,8 @@ class OrderSummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          ServiceTag(name: order.serviceTitle, icon: Icons.location_on_rounded),
+          const SizedBox(height: 10),
           if (order.isPending) ...[
             ResponseCountdown(secondsLeft: order.responseSecondsLeft),
             const SizedBox(height: 12),

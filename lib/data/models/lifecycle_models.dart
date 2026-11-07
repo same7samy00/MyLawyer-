@@ -1,3 +1,4 @@
+import '../../core/services/notification_center.dart';
 /// تقييم منشور لمحامٍ
 class LawyerReview {
   final String id;
@@ -37,6 +38,7 @@ class AppNotification {
   final String? orderId;
   final String? ticketId;
   final String? requestId;
+  final String? consultationId;
 
   const AppNotification({
     required this.id,
@@ -46,9 +48,15 @@ class AppNotification {
     this.orderId,
     this.ticketId,
     this.requestId,
+    this.consultationId,
   });
 
-  bool get opensPage => orderId != null || ticketId != null || requestId != null;
+  bool get opensPage => orderId != null || ticketId != null || requestId != null || consultationId != null;
+
+  NotificationTarget get target => NotificationTarget(orderId: orderId, ticketId: ticketId, requestId: requestId, consultationId: consultationId);
+
+  AppNotification asRead() => AppNotification(
+      id: id, title: title, body: body, isRead: true, orderId: orderId, ticketId: ticketId, requestId: requestId, consultationId: consultationId);
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
@@ -59,6 +67,7 @@ class AppNotification {
       orderId: json['orderId']?.toString(),
       ticketId: json['ticketId']?.toString(),
       requestId: json['requestId']?.toString(),
+      consultationId: json['consultationId']?.toString(),
     );
   }
 }

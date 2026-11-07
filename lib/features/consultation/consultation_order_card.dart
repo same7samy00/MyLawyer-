@@ -1,3 +1,4 @@
+import '../../core/widgets/service_tag.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -38,6 +39,8 @@ class ConsultationOrderCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const ServiceTag(name: 'استشارة سريعة', icon: Icons.support_agent_rounded),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(child: Text('استشارة رقم ${item.reference}', style: consultationText(13, FontWeight.w900, AppColors.primary))),
@@ -45,7 +48,7 @@ class ConsultationOrderCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text('استشارة سريعة: ${item.kind.label}', style: consultationText(14, FontWeight.w700, AppColors.dark)),
+          Text(item.kind.label, style: consultationText(14, FontWeight.w700, AppColors.dark)),
           const SizedBox(height: 4),
           Text('${item.price} ج.م', style: consultationText(11, FontWeight.w600, AppColors.textMuted)),
           const SizedBox(height: 12),

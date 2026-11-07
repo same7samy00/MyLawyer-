@@ -12,8 +12,9 @@ class NotificationTarget {
   final String? orderId;
   final String? ticketId;
   final String? requestId;
+  final String? consultationId;
 
-  const NotificationTarget({this.orderId, this.ticketId, this.requestId});
+  const NotificationTarget({this.orderId, this.ticketId, this.requestId, this.consultationId});
 
   factory NotificationTarget.fromMap(Map<String, dynamic> data) {
     String? value(String key) {
@@ -21,7 +22,7 @@ class NotificationTarget {
       return raw == null || raw.isEmpty ? null : raw;
     }
 
-    return NotificationTarget(orderId: value('orderId'), ticketId: value('ticketId'), requestId: value('requestId'));
+    return NotificationTarget(orderId: value('orderId'), ticketId: value('ticketId'), requestId: value('requestId'), consultationId: value('consultationId'));
   }
 }
 
@@ -111,11 +112,12 @@ class NotificationCenter {
 
   /// الإشعار اللي فتحه المستخدم من خارج التطبيق
   static Future<void> markTargetRead(NotificationTarget target) async {
-    if (target.orderId == null && target.ticketId == null && target.requestId == null) return;
+    if (target.orderId == null && target.ticketId == null && target.requestId == null && target.consultationId == null) return;
     await ApiService.post('/notifications/read', {
       if (target.orderId != null) 'orderId': target.orderId,
       if (target.ticketId != null) 'ticketId': target.ticketId,
       if (target.requestId != null) 'requestId': target.requestId,
+      if (target.consultationId != null) 'consultationId': target.consultationId,
     });
     await refresh();
   }

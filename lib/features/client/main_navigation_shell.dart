@@ -1,3 +1,4 @@
+import '../notifications/notifications_screen.dart';
 import '../../core/services/background_alerts.dart';
 import 'package:flutter/material.dart';
 import '../../core/services/notification_center.dart';
@@ -93,7 +94,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       NotificationCenter.openRequest.value = null;
       Navigator.of(context).popUntil((route) => route.isFirst);
       NotificationCenter.markTargetRead(target);
-      if (!await NotificationRouter.open(context, target) && mounted) _onTabSelected(1);
+      // الإشعار المش مربوط بحاجة بيفتح صفحة الإشعارات
+      if (!await NotificationRouter.open(context, target) && mounted) {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+      }
     });
   }
 

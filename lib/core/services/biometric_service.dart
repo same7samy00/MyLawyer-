@@ -44,6 +44,16 @@ class BiometricService {
     }
   }
 
+  /// آخر حالة معروفة، عشان سطر البصمة في الحساب يتبني من أول لحظة من غير ما يظهر متأخر
+  static bool cachedAvailable = false;
+  static bool cachedEnabled = false;
+
+  /// بتتنادى مرة مع فتح التطبيق
+  static Future<void> warmUp() async {
+    cachedAvailable = await isAvailable();
+    cachedEnabled = cachedAvailable && await enabledIdentifier() != null;
+  }
+
   static Future<bool> isEnabled() async => (await enabledIdentifier()) != null && await isAvailable();
 
   /// طلب البصمة نفسه، بيرجع true لو اتأكدت

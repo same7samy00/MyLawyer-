@@ -1,3 +1,4 @@
+import 'core/services/biometric_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // آخر بيانات اتعرضت بتظهر من أول لحظة، والسيرفر بيحدثها بعدها
   await SavedData.preload();
+  // حالة البصمة جاهزة قبل ما أي صفحة تتبني
+  await BiometricService.warmUp();
   // لا تصل رسائل التشخيص لسجلات الجهاز في الإصدار النهائي
   if (kReleaseMode) {
     debugPrint = (String? message, {int? wrapWidth}) {};

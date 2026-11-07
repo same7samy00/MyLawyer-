@@ -74,9 +74,9 @@ export async function registerAdminConsultations(fastify: FastifyInstance) {
           `استرداد استشارة ${saved.reference}`,
           admin.userId,
         ]);
-        await notify(db, saved.client_id, 'استشارتك اترفضت', `${reason}\nرجّعنا ${Number(saved.price)} ج.م لرصيدك`);
+        await notify(db, saved.client_id, 'استشارتك اترفضت', `${reason}\nرجّعنا ${Number(saved.price)} ج.م لرصيدك`, { consultationId: saved.id });
       } else if (status === 'DONE') {
-        await notify(db, saved.client_id, 'الاستشارة تمت', `استشارة ${saved.reference}، شكرًا إنك استخدمت My Lawyer`);
+        await notify(db, saved.client_id, 'الاستشارة تمت', `استشارة ${saved.reference}، شكرًا إنك استخدمت My Lawyer`, { consultationId: saved.id });
       }
       await publishChange(db, saved.client_id, false, 'consultations', saved.id);
       return saved;
@@ -99,7 +99,7 @@ export async function registerAdminConsultations(fastify: FastifyInstance) {
         'UPDATE consultations SET unreachable_at = NOW(), callback_requested_at = NULL, handled_by = $2 WHERE id = $1 RETURNING *',
         [id, admin.userId]
       );
-      await notify(db, current.client_id, 'مقدرناش نوصلك', `حاولنا نكلمك على استشارة ${current.reference}\nلما تكون متاح افتح الطلب واضغط «طلب التواصل»`);
+      await notify(db, current.client_id, 'مقدرناش نوصلك', `حاولنا نكلمك على استشارة ${current.reference}\nلما تكون متاح افتح الطلب واضغط «طلب التواصل»`, { consultationId: current.id });
       await publishChange(db, current.client_id, false, 'consultations', current.id);
       return saved.rows[0];
     });

@@ -20,8 +20,8 @@ class BiometricToggleTile extends StatefulWidget {
 }
 
 class _BiometricToggleTileState extends State<BiometricToggleTile> {
-  bool? _available;
-  bool _enabled = false;
+  bool _available = BiometricService.cachedAvailable;
+  bool _enabled = BiometricService.cachedEnabled;
 
   @override
   void initState() {
@@ -32,7 +32,9 @@ class _BiometricToggleTileState extends State<BiometricToggleTile> {
   Future<void> _load() async {
     final available = await BiometricService.isAvailable();
     final enabled = available && await BiometricService.enabledIdentifier() != null;
-    if (!mounted) return;
+    BiometricService.cachedAvailable = available;
+    BiometricService.cachedEnabled = enabled;
+    if (!mounted || (available == _available && enabled == _enabled)) return;
     setState(() {
       _available = available;
       _enabled = enabled;
@@ -56,7 +58,7 @@ class _BiometricToggleTileState extends State<BiometricToggleTile> {
 
   @override
   Widget build(BuildContext context) {
-    if (_available != true) return const SizedBox.shrink();
+    if (!_available) return const SizedBox.shrink();
     if (widget.card) {
       return Container(
         margin: const EdgeInsets.only(bottom: 10),

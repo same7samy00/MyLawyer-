@@ -86,7 +86,7 @@ export async function consultationRoutes(fastify: FastifyInstance) {
         ]);
       }
       await savePages(db, consultation.id, kind === 'PAPERS' ? pages : []);
-      await notify(db, userId, 'استلمنا استشارتك', `رقم ${consultation.reference}، وفريقنا هيكلمك خلال دقايق`);
+      await notify(db, userId, 'استلمنا استشارتك', `رقم ${consultation.reference}، وفريقنا هيكلمك خلال دقايق`, { consultationId: consultation.id });
       await publishChange(db, userId, false, 'consultations', consultation.id);
       return consultation;
     });

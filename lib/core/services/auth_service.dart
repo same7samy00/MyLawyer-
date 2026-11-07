@@ -1,3 +1,4 @@
+import '../../data/repositories/profile_repository.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -266,6 +267,12 @@ class AuthService {
     } else {
       await prefs.remove(_prefApprovalStatus);
     }
+    // صفحة الحساب بتتبني من البيانات دي فورًا لحد ما السيرفر يرد بالكاملة
+    final saved = Map<String, dynamic>.from(ProfileRepository.saved ?? const {});
+    if (fullName != null && fullName.isNotEmpty) saved['fullName'] ??= fullName;
+    if (phone != null && phone.isNotEmpty) saved['phone'] ??= phone;
+    if (email != null && email.isNotEmpty) saved['email'] ??= email;
+    if (saved.isNotEmpty) await SavedData.write('profile', saved);
   }
 
   /// صورة المحامي والكارنيه المختارين وقت التسجيل يترفعوا أول ما يبقى فيه جلسة، ولو فشلوا يتحاولوا تاني من صفحة الخدمة

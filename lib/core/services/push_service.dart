@@ -68,7 +68,14 @@ class PushService {
       final data = message.data;
       final orderId = data['orderId']?.toString();
       final requestId = data['requestId']?.toString();
-      LiveUpdates.announce(orderId != null ? LiveChange('orders', orderId) : requestId != null ? LiveChange('requests', requestId) : const LiveChange('notifications'));
+      final consultationId = data['consultationId']?.toString();
+      LiveUpdates.announce(orderId != null
+          ? LiveChange('orders', orderId)
+          : requestId != null
+              ? LiveChange('requests', requestId)
+              : consultationId != null
+                  ? LiveChange('consultations', consultationId)
+                  : const LiveChange('notifications'));
       LiveUpdates.alertUser();
     });
     // التطبيق كان في الخلفية واتفتح بلمس الإشعار

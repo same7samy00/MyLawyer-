@@ -29,6 +29,14 @@ class ConsultationRepository {
     return ApiResponse(success: false, statusCode: res.statusCode, error: res.error ?? 'تعذر تحميل الاستشارات');
   }
 
+  static Future<ApiResponse<Consultation>> get(String id) async {
+    final res = await ApiService.get('/consultations/$id');
+    if (res.isOk && res.data is Map<String, dynamic>) {
+      return ApiResponse(success: true, statusCode: res.statusCode, data: Consultation.fromJson(res.data as Map<String, dynamic>));
+    }
+    return ApiResponse(success: false, statusCode: res.statusCode, error: res.error ?? 'تعذر تحميل الاستشارة');
+  }
+
   /// «طلب التواصل» بعد ما الفريق ما قدرش يوصله
   static Future<ApiResponse<Consultation>> requestContact(String id) async {
     final res = await ApiService.post('/consultations/$id/contact', const {});

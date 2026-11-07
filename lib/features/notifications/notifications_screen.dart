@@ -60,22 +60,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (!item.isRead) {
       setState(() {
         _items = _items
-            .map((other) => other.id != item.id
-                ? other
-                : AppNotification(
-                    id: other.id,
-                    title: other.title,
-                    body: other.body,
-                    isRead: true,
-                    orderId: other.orderId,
-                    ticketId: other.ticketId,
-                    requestId: other.requestId))
-            .toList();
+            .map((other) => other.id != item.id ? other : other.asRead()).toList();
       });
       NotificationCenter.markRead(item.id);
     }
     if (!item.opensPage) return;
-    await NotificationRouter.open(context, NotificationTarget(orderId: item.orderId, ticketId: item.ticketId, requestId: item.requestId));
+    await NotificationRouter.open(context, item.target);
     // ممكن الطلب يكون اتقدم من الصفحة اللي اتفتحت
     if (mounted) _load();
   }
@@ -85,15 +75,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (!mounted) return;
     setState(() {
       _items = _items
-          .map((item) => AppNotification(
-              id: item.id,
-              title: item.title,
-              body: item.body,
-              isRead: true,
-              orderId: item.orderId,
-              ticketId: item.ticketId,
-              requestId: item.requestId))
-          .toList();
+          .map((item) => item.asRead()).toList();
     });
   }
 
