@@ -1,5 +1,7 @@
 # خريطة النظام
 
+> **تحديث 2026-11-07:** الخادم والقاعدة والإيميل والرفع اتنقلوا لسيرفر جديد (`my-lawyer.online`)، والخرايط والطرق بقت على القديم لوحدها (`maps.my-lawyer.online`). الرسمة في القسم 2 والسيرفر في القسم 9 بيوصفوا الوضع قبل النقل، والحالي في `docs/SERVER_ARCHITECTURE.md`. الخادم بقى 5 workers. ومسارات الخريطة الجديدة `GET /lawyers/map` و`/lawyers/top`.
+
 **الغرض:** إيه الموجود فعلًا، وإزاي الأجزاء بتكلم بعض. **آخر تحقق:** 2026-11-06. **الحالة:** VERIFIED من الكود، والسيرفر RUNTIME VERIFIED بالقراءة.
 
 ## 1. المكونات
@@ -12,7 +14,7 @@
 | الموقع العام والسياسات | `backend/public/site` | HTML ثابت | Nginx على `/` |
 | قاعدة البيانات | `backend/migrations` (30 ملف) | PostgreSQL 16 | `src/database/migrate.ts` بيشتغل مع كل تشغيل |
 | الخرائط والطرق | `backend/map-services` | Docker: tileserver وOSRM | Nginx على `/map/v2` و`/osrm/` |
-| الرفع التلقائي | `.github/workflows/deploy.yml` و`backend/deploy.sh` | GitHub Actions، والـ runner على السيرفر | push على `main` يغيّر `backend/**` |
+| الرفع التلقائي | `.github/workflows/deploy.yml` و`backend/deploy.sh` | GitHub Actions، والـ runner على السيرفر الجديد | push على `main` يغيّر `backend/**` |
 | الاختبارات | `test/` (Flutter) و`backend/tests` | `flutter test`، و`node --test` مع PGlite | - |
 
 خدمات خارجية: Firebase Cloud Messaging للإشعارات (`services/pushService.ts`)، وPostfix محلي للإيميل (`services/emailService.ts`). مفيش بوابة دفع (NOT IMPLEMENTED).

@@ -159,7 +159,7 @@ lib/
 - **الدومين والتشفير:** `https://my-lawyer.online` بشهادة Let's Encrypt تتجدد تلقائياً.
 - **الإشعارات:** Firebase مشروع `my-lawyer-51a6c` عبر `pushService.ts` وقناة `orders` عالية الأولوية.
 - **نظام الخريطة:** راجع [`docs/GPS_SYSTEM.md`](./GPS_SYSTEM.md).
-- الدليل الفني المفصل: يرجى مراجعة [`docs/VPS_SERVER_AND_MAPS.md`](./VPS_SERVER_AND_MAPS.md).
+- الدليل الفني المفصل: [`docs/SERVER_ARCHITECTURE.md`](./SERVER_ARCHITECTURE.md).
 
 ## 7. قواعد واستقرار البرمجيات (Quality & Maintenance Directives)
 - يمنع استخدام بيانات وهمية (Mock Data) كبديل للمنطق المستقر.

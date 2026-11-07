@@ -51,11 +51,10 @@
 
 ## 3. الخادم
 - **الموقع:** `https://my-lawyer.online` بشهادة تتجدد تلقائياً، والدومين من Hostinger.
-- **الخادم:** Contabo `13.140.141.32`، بذاكرة 7.8 جيجا و4 معالجات.
-- **الدخول:** مفتاح `~/.ssh/mylawyer_deploy` مع `~/.ssh/known_hosts_mylawyer`. الدخول بكلمة المرور مقفول، والطوارئ من لوحة Contabo.
+- **السيرفرين (2026-11-07):** الجديد للباك إند واللوحة والموقع والإيميل والرفع (`my-lawyer.online`)، والقديم للخرايط والطرق بس (`maps.my-lawyer.online`). التفاصيل في `docs/SERVER_ARCHITECTURE.md`، والدخول بالمفاتيح اللي في `.access/` (`docs/ACCESS.md`).
 - **توكن GitHub:** محفوظ في Windows Credential Manager على جهاز صاحب المشروع باسم `x-access-token`، والريبو مضبوط عليه (`credential.https://github.com.username`). يعني `git push` بيشتغل لوحده من غير ما حد يكتب التوكن، وممنوع يتكتب في أي ملف (2026-11-06).
 - **الرفع:** أي push على `main` يغيّر `backend` يرفع الخادم تلقائياً عبر GitHub Actions، **ومحتاج موافقة صاحب المشروع قبله**، والتفاصيل في `docs/DEVELOPMENT_GUIDE.md`، والنسخ الاحتياطية في `/root/mylawyer-backups`.
-- **الخدمات:** `mylawyer-backend` عبر systemd، و`mylawyer-osrm` و`mylawyer-tileserver` عبر Docker محلياً فقط.
+- **الخدمات:** `mylawyer-backend` عبر systemd على الجديد، و`mylawyer-osrm` و`mylawyer-tileserver` عبر Docker على القديم.
 - **الموقع العام:** `https://my-lawyer.online` (وصف التطبيق والعنوان والسياسات المؤقتة لبوابة الدفع)، ملفاته في `backend/public/site` وبيترفع مع السيرفر.
 - **لوحة التحكم:** `https://my-lawyer.online/api/v1/admin-panel`، وشرحها في `docs/ARCHITECTURE.md` (4.1)، وبيانات الإدارة في `admin-credentials.txt` على الجهاز.
 - **Nginx:** الإعداد في `/etc/nginx/sites-available/mylawyer`، وتغيير مفتاح `limit_req_zone` يتطلب اسم منطقة جديداً.
@@ -84,10 +83,10 @@
 - قاعدة البيانات فيها حساب إدارة وحساب موكل تجريبي وحساب محامٍ تجريبي معتمد، وبدون طلبات.
 - سنوات خبرة المحامين الحاليين اتصفرت (migration `020`)، وبتتكتب عند التسجيل، ومفيش مكان لتعديلها بعد التسجيل لسه.
 - نسبة المنصة 30% لكل الخدمات، والضريبة 0% لحين تحديدها من لوحة التحكم.
-- السيرفر فيه التطبيق فقط: `mylawyer-backend` وPostgreSQL وNginx وOSRM وخادم الخريطة وPostfix/OpenDKIM وrunner واحد.
+- الجديد فيه: `mylawyer-backend` وPostgreSQL وNginx وPostfix/OpenDKIM والـ runner. والقديم فيه الخرايط (وبقايا الباك إند لحد ما تتشال بموافقة).
 - جذر الدومين صفحة بسيطة في `/var/www/mylawyer/site`، والسجلات في `/var/log/nginx`.
 - صور الخريطة على `/map/v2`، وشكلها محفوظ في `backend/map-services/styles/mylawyer.json`.
-- النسخ الاحتياطية القديمة اتمسحت بطلب صاحب المشروع. `deploy.sh` ينشئ نسخة جديدة مع كل رفع على السيرفر نفسه فقط.
+- النسخ الاحتياطية: `deploy.sh` بيعمل نسخة مع كل رفع على الجديد، ومفيش نسخة يومية ولا بره السيرفر لسه (`docs/BACKUP_AND_RECOVERY.md`).
 
 **لم يُجرب فعلياً بعد:** طلب كامل بين جهازين بالقواعد الجديدة، والدعم الفني بالصور والتسوية من موبايل حقيقي، والإشعار والتطبيق مقفول، والتحديث في الخلفية على أجهزة مختلفة، وتسجيل محامٍ جديد بالصورة والكارنيه، والآيفون بالكامل.
 

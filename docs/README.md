@@ -23,7 +23,15 @@
 | التنضيف وإعادة التنظيم (كمّل من أول خطوة «لسه») | `docs/engineering/CLEANUP.md` |
 | قاعدة البيانات | `docs/DATABASE_ARCHITECTURE.md`، و`backend/migrations` هو المرجع |
 | طبقات التطبيق ولوحة التحكم | `docs/ARCHITECTURE.md` |
-| الخريطة والموقع | `docs/GPS_SYSTEM.md` و`docs/VPS_SERVER_AND_MAPS.md` |
+| الخريطة والموقع | `docs/GPS_SYSTEM.md` |
+| السيرفرين والخدمات اللي عليهم | `docs/SERVER_ARCHITECTURE.md` |
+| الرفع والرجوع | `docs/DEPLOYMENT.md` |
+| النسخ الاحتياطية والاسترجاع | `docs/BACKUP_AND_RECOVERY.md` |
+| الفروع والـ commits ونقط الرجوع | `docs/GIT_WORKFLOW.md` |
+| تشغيل الاختبارات وإضافتها | `docs/TESTING.md` |
+| الأسرار والدخول والحماية | `docs/SECURITY.md` |
+| كل حاجة فين، وإضافة ميزة | `docs/PROJECT_STRUCTURE.md` |
+| التقنيات ونسخها | `docs/TECH_STACK.md` |
 | التشغيل والبناء محليًا | `docs/DEVELOPMENT_GUIDE.md` |
 | إيه اللي اتغير ومتى | `docs/CHANGELOG.md` (الأحدث فوق)، والأقدم في `docs/CHANGELOG_ARCHIVE.md` |
 | تقرير الفحوصات | `docs/engineering/VERIFICATION.md` و`docs/PRODUCTION_REPORT.md` |

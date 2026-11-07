@@ -21,7 +21,7 @@
 | [`docs/API_DOCUMENTATION.md`](docs/API_DOCUMENTATION.md) | مسارات الخادم |
 | [`docs/DATABASE_ARCHITECTURE.md`](docs/DATABASE_ARCHITECTURE.md) | قاعدة البيانات |
 | [`docs/GPS_SYSTEM.md`](docs/GPS_SYSTEM.md) | الموقع والخريطة |
-| [`docs/VPS_SERVER_AND_MAPS.md`](docs/VPS_SERVER_AND_MAPS.md) | السيرفر |
+| [`docs/SERVER_ARCHITECTURE.md`](docs/SERVER_ARCHITECTURE.md) | السيرفرين |
 | [`docs/DEVELOPMENT_GUIDE.md`](docs/DEVELOPMENT_GUIDE.md) | التشغيل والرفع |
 
 ## التشغيل

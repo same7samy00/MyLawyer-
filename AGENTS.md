@@ -171,7 +171,10 @@ D:\KAREM\
 │   ├── DECISIONS.md                     # قرارات صاحب المشروع
 │   ├── API_DOCUMENTATION.md             # مسارات الخادم
 │   ├── DATABASE_ARCHITECTURE.md         # قاعدة البيانات
-│   ├── VPS_SERVER_AND_MAPS.md           # السيرفر والخرائط
+│   ├── SERVER_ARCHITECTURE.md           # السيرفرين (الباك إند والخرايط)
+│   ├── DEPLOYMENT.md و BACKUP_AND_RECOVERY.md # الرفع والنسخ والاسترجاع
+│   ├── GIT_WORKFLOW.md و TESTING.md و SECURITY.md
+│   ├── PROJECT_STRUCTURE.md و TECH_STACK.md # كل حاجة فين، والتقنيات
 │   └── CHANGELOG.md                     # سجل التغييرات المتزامن
 ├── backend/                             # الخادم ولوحة التحكم (public/admin/)
 ├── assets/
