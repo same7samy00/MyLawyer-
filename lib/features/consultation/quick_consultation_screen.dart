@@ -53,8 +53,6 @@ class _QuickConsultationScreenState extends State<QuickConsultationScreen> {
     super.dispose();
   }
 
-  int get _total => ConsultationPricing.total(withPapers: _withPapers, pages: _pages.length);
-
   bool get _canContinue =>
       _category != null && _description.text.trim().length >= 20 && (!_withPapers || _pages.isNotEmpty);
 
@@ -73,7 +71,7 @@ class _QuickConsultationScreenState extends State<QuickConsultationScreen> {
 
   void _continue() {
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ConsultationCheckoutScreen(
+      builder: (_) => ConsultationEvaluatingScreen(
         category: _category!,
         description: _description.text.trim(),
         withPapers: _withPapers,
@@ -145,7 +143,6 @@ class _QuickConsultationScreenState extends State<QuickConsultationScreen> {
                       icon: Icons.call_rounded,
                       title: 'استشارة بس',
                       subtitle: 'مكالمة ${ConsultationPricing.callMinutes} دقايق من غير ورق',
-                      price: '${ConsultationPricing.consultOnly} ج.م',
                       onTap: () => setState(() => _withPapers = false),
                     ),
                     const SizedBox(height: 8),
@@ -154,14 +151,13 @@ class _QuickConsultationScreenState extends State<QuickConsultationScreen> {
                       icon: Icons.description_rounded,
                       title: 'اطلاع على ورق واستشارة',
                       subtitle: 'ترفع صور الورق ونراجعها قبل المكالمة',
-                      price: 'من ${ConsultationPricing.reviewBase} ج.م',
                       onTap: () => setState(() => _withPapers = true),
                     ),
                     if (_withPapers) ...[
                       const SizedBox(height: 16),
                       _label('صور الورق (${_pages.length} من ${ConsultationPricing.maxPages})'),
                       Text(
-                        'كل صورة لازم تكون ورقة واحدة بس. كل ورقة بـ ${ConsultationPricing.perPage} ج.م',
+                        'كل صورة لازم تكون ورقة واحدة بس',
                         style: _text(12, FontWeight.w600, AppColors.textMuted),
                       ),
                       const SizedBox(height: 10),
@@ -174,22 +170,7 @@ class _QuickConsultationScreenState extends State<QuickConsultationScreen> {
             Container(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
               decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.cardBorder))),
-              child: Row(
-                children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('الإجمالي', style: _text(12, FontWeight.w700, AppColors.textMuted)),
-                      Text('$_total ج.م', style: _text(18, FontWeight.w900, AppColors.primary)),
-                    ],
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: AppButton.primary(text: 'متابعة', height: 48, onPressed: _canContinue ? _continue : null),
-                  ),
-                ],
-              ),
+              child: AppButton.primary(text: 'متابعة', height: 48, onPressed: _canContinue ? _continue : null),
             ),
           ],
         ),
@@ -207,7 +188,6 @@ class _QuickConsultationScreenState extends State<QuickConsultationScreen> {
     required IconData icon,
     required String title,
     required String subtitle,
-    required String price,
     required VoidCallback onTap,
   }) {
     return Material(
@@ -235,7 +215,7 @@ class _QuickConsultationScreenState extends State<QuickConsultationScreen> {
                   ],
                 ),
               ),
-              Text(price, style: _text(13, FontWeight.w900, AppColors.primary)),
+              Icon(selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded, color: selected ? AppColors.primary : AppColors.cardBorder),
             ],
           ),
         ),
@@ -283,6 +263,75 @@ class _QuickConsultationScreenState extends State<QuickConsultationScreen> {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// صفحة «جاري تقييم سعر الخدمة»، وبعدها الملخص بالسعر.
+/// دلوقتي التقييم محلي، وبعدين السعر هييجي من السيرفر حسب إعدادات لوحة التحكم
+class ConsultationEvaluatingScreen extends StatefulWidget {
+  final String category;
+  final String description;
+  final bool withPapers;
+  final int pages;
+
+  const ConsultationEvaluatingScreen({
+    super.key,
+    required this.category,
+    required this.description,
+    required this.withPapers,
+    required this.pages,
+  });
+
+  @override
+  State<ConsultationEvaluatingScreen> createState() => _ConsultationEvaluatingScreenState();
+}
+
+class _ConsultationEvaluatingScreenState extends State<ConsultationEvaluatingScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 2500), () {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+        builder: (_) => ConsultationCheckoutScreen(
+          category: widget.category,
+          description: widget.description,
+          withPapers: widget.withPapers,
+          pages: widget.pages,
+        ),
+      ));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: const AppHeader(title: 'استشارة سريعة', isInnerPage: true),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const LineIllustration(icon: Icons.payments_rounded, height: 100),
+                const SizedBox(height: 20),
+                Text('جاري تقييم سعر الخدمة', textAlign: TextAlign.center, style: _text(18, FontWeight.w900, AppColors.dark)),
+                const SizedBox(height: 8),
+                Text(
+                  widget.withPapers ? 'بنراجع نوع المشكلة وعدد الورق عشان نحددلك السعر' : 'بنراجع نوع المشكلة عشان نحددلك السعر',
+                  textAlign: TextAlign.center,
+                  style: _text(13, FontWeight.w600, AppColors.textMuted, height: 1.5),
+                ),
+                const SizedBox(height: 22),
+                const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2.8, color: AppColors.primary)),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
