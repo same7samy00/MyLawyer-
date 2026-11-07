@@ -15,7 +15,7 @@
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | القواعد الملزمة ودورة العمل |
 | [`docs/HANDOFF.md`](docs/HANDOFF.md) | الوضع الحالي والتشغيل |
-| [`docs/TASKS.md`](docs/TASKS.md) | المهام |
+| [`docs/memory/PENDING_TASKS.md`](docs/memory/PENDING_TASKS.md) | المهام |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | قرارات صاحب المشروع |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | المعمارية |
 | [`docs/API_DOCUMENTATION.md`](docs/API_DOCUMENTATION.md) | مسارات الخادم |

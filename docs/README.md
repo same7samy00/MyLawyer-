@@ -6,9 +6,9 @@
 | الملف | ليه |
 |---|---|
 | `AGENTS.md` | القواعد الملزمة، والقسم 7 فيه بروتوكول البداية والتسليم |
-| `docs/STATE.md` | الوضع الحالي: Git، وآخر حاجة، واللي جاي |
-| `docs/TASKS.md` | المهام والمستني قرار |
-| `docs/SESSIONS.md` | أول 5 سطور بس: مين اشتغل قبلك وعمل إيه |
+| `docs/memory/CURRENT_STATUS.md` | الوضع الحالي: Git، وآخر حاجة، واللي جاي |
+| `docs/memory/PENDING_TASKS.md` | المهام والمستني قرار |
+| `docs/memory/DEVELOPMENT_LOG.md` | أول 5 سطور بس: مين اشتغل قبلك وعمل إيه |
 
 ## لما المهمة تحتاج
 | لو سؤالك عن... | اقرا |
@@ -18,7 +18,7 @@
 | GitHub والسيرفر والرفع وبيانات الدخول | `docs/ACCESS.md` |
 | المكونات وإزاي بتكلم بعض، ورحلة الطلب، والفلوس، والتحديث الحي | `docs/engineering/SYSTEM_MAP.md` |
 | مسار معين في الخادم ومين بيستخدمه | `docs/engineering/API_REFERENCE.md`، والطلب والرد بالتفصيل في `docs/API_DOCUMENTATION.md` |
-| مشكلة معروفة أو ثغرة | `docs/engineering/FINDINGS.md` (الملخص في أوله) |
+| مشكلة معروفة أو ثغرة | `docs/memory/KNOWN_ISSUES.md` (الملخص في أوله) |
 | الأداء والكاش | `docs/engineering/PERFORMANCE.md` |
 | التنضيف وإعادة التنظيم (كمّل من أول خطوة «لسه») | `docs/engineering/CLEANUP.md` |
 | قاعدة البيانات | `docs/DATABASE_ARCHITECTURE.md`، و`backend/migrations` هو المرجع |
@@ -39,4 +39,4 @@
 ## قواعد التوفير
 - ما تقراش `CHANGELOG_ARCHIVE.md` ولا ملفات `docs/engineering/` كلها غير لو المهمة محتاجاها.
 - الكود هو المرجع. لو التوثيق مختلف عن الكود، صدّق الكود وصلّح التوثيق في نفس الـ commit.
-- اللي اتراجع واتوثق ما يتراجعش تاني: افحص بس الملفات اللي اتغيرت من آخر سطر في `SESSIONS.md` (`git diff <commit>..HEAD --stat`).
+- اللي اتراجع واتوثق ما يتراجعش تاني: افحص بس الملفات اللي اتغيرت من آخر سطر في `DEVELOPMENT_LOG.md` (`git diff <commit>..HEAD --stat`).

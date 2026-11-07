@@ -83,7 +83,7 @@ sequenceDiagram
 ```
 
 - الأدوار: `client` و`lawyer` و`admin`، ومكتوبة جوه الـ JWT. تغيير الدور بيتأخر لحد 15 دقيقة، لكن الإيقاف بيتطبق فورًا من الـ `preHandler`.
-- التطبيق بيحفظ الجلسة في `SharedPreferences` (مش مشفرة)، وده متسجل في `TASKS.md`.
+- التطبيق بيحفظ الجلسة في `SharedPreferences` (مش مشفرة)، وده متسجل في `PENDING_TASKS.md`.
 - اللوحة بتحفظ الجلسة في `sessionStorage`، وبيحميها CSP صارم (`panel.ts`)، ومفيش `innerHTML` في كود اللوحة.
 
 ## 5. رحلة «محاميك حالاً» (الحالية)
