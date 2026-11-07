@@ -24,7 +24,6 @@ const COLUMNS = `u.id, lp.full_name, lp.profile_photo_path, lp.rating, lp.review
 /// The same lawyer always lands on the same rounded point, so the card never jumps between visits
 const toCard = (row: any) => ({
   id: row.id,
-  userId: row.id,
   name: row.full_name,
   rating: Number(row.rating) || 0,
   reviewsCount: Number(row.reviews_count) || 0,
