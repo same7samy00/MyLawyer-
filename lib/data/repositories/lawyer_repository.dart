@@ -32,6 +32,24 @@ class LawyerRepository {
     );
   }
 
+  /// الرد الخفيف للخريطة: `pins` [lat, lon, عدد] لكل مكان، أو `counts` [عدد, lat, lon] لكل مربع
+  static Future<ApiResponse<Map<String, List<dynamic>>>> getMapLight({
+    required String kind,
+    required String size,
+    required List<String> cells,
+  }) async {
+    final res = await ApiService.get('/lawyers/map', queryParams: {'kind': kind, 'size': size, 'cells': cells.join(',')});
+    final data = res.data;
+    if (res.isOk && data is Map<String, dynamic> && data['cells'] is Map) {
+      return ApiResponse(
+        success: true,
+        statusCode: res.statusCode,
+        data: {for (final entry in (data['cells'] as Map).entries) entry.key.toString(): entry.value as List<dynamic>},
+      );
+    }
+    return ApiResponse(success: false, statusCode: res.statusCode, error: res.error, isConnectivityError: res.isConnectivityError);
+  }
+
   static String _topKey(String governorate) => 'top_lawyers_$governorate';
 
   /// آخر قايمة اتعرضت للمحافظة، عشان الشيت يترسم بيها من أول لحظة

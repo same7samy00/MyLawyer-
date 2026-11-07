@@ -64,6 +64,20 @@ describe('خريطة المحامين للعرض', () => {
     assert.equal(third.body.data.cells[cell].length, before + 1);
   });
 
+  it('الدبابيس والأعداد: خفاف، وكل المحامين محسوبين', async () => {
+    await addLawyer('01200000009', 30.051, 31.251);
+    await addLawyer('01200000010', 30.052, 31.252);
+    const cell = cellOf(30.05, 31.25);
+    const pins = (await call('GET', `/lawyers/map?kind=pins&cells=${cell}`, null)).body.data;
+    assert.equal(pins.kind, 'pins');
+    const spot = pins.cells[cell].find(([lat, lon]: number[]) => lat === 30.05 && lon === 31.25);
+    assert.ok(spot && spot[2] >= 3, JSON.stringify(pins.cells[cell]));
+    const big = cellOf(30.05, 31.25, 0.5);
+    const counts = (await call('GET', `/lawyers/map?kind=counts&size=l&cells=${big}`, null)).body.data.cells[big];
+    const total = pins.cells[cell].reduce((a: number, p: number[]) => a + p[2], 0);
+    assert.ok(counts[0] >= total && counts[1] > 30 && counts[2] > 31);
+  });
+
   it('المربعات الكبيرة والطلبات الغلط', async () => {
     const big = cellOf(30.05, 31.25, 0.5);
     const res = await call('GET', `/lawyers/map?size=l&cells=${big}`, null);

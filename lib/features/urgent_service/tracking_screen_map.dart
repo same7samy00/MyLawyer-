@@ -262,9 +262,15 @@ extension _TrackingMapControls on _TrackingScreenState {
   List<Marker> _buildLawyerMarkers(double zoom) {
     final nearestId = _nearestLawyerId;
     final scale = mapCardScaleFor(zoom);
-    final shown = {for (final lawyer in _nearbyLawyers) lawyer.id: lawyer};
-    if (_orderFlowStage == _OrderFlowStage.idle) {
-      for (final lawyer in _mapLawyers.lawyers) {
+    final mode = MapLawyerLoader.modeFor(zoom);
+    // بعيد وفي النص الدبابيس والأعداد بس، والكروت لما تقرّب (الأقرب لنص الشاشة) والمحامي المختار دايمًا
+    final selected = _selectedLawyer;
+    final shown = <String, MapLawyer>{
+      if (mode == LawyerMapMode.cards || _orderFlowStage != _OrderFlowStage.idle) for (final lawyer in _nearbyLawyers) lawyer.id: lawyer,
+      if (selected != null) selected.id: selected,
+    };
+    if (_orderFlowStage == _OrderFlowStage.idle && mode == LawyerMapMode.cards) {
+      for (final lawyer in _mapLawyers.cardsNear(_searchCenter)) {
         shown.putIfAbsent(lawyer.id, () => lawyer);
       }
     }

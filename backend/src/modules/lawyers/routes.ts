@@ -9,7 +9,7 @@ import { detectFileType } from '../../utils/files.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { approximateCoordinate } from '../lifecycle/service.js';
 import { LAWYER_CAN_WORK, SEARCH_RADIUS_KM } from '../requests/service.js';
-import { CELL_DEGREES, CellSize, cellsJson, MAX_CELLS, SHOWCASE_SECONDS, topInGovernorate } from './showcase.js';
+import { CELL_DEGREES, CellSize, cellsJson, lightCellsJson, MAX_CELLS, SHOWCASE_SECONDS, topInGovernorate } from './showcase.js';
 import { GOVERNORATES } from './governorates.js';
 
 // The map shows the lawyers the client could ask: within the service's 50 km
@@ -24,7 +24,9 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
   // GET /api/v1/lawyers/map?size=s&cells=x_y,x_y - every approved lawyer in the asked squares, for looking only.
   // A square is x = floor(lon / size), y = floor(lat / size), with size 0.1 (s) or 0.5 (l) degrees.
   fastify.get('/map', async (request: FastifyRequest, reply: FastifyReply) => {
-    const params = request.query as { size?: string; cells?: string };
+    const params = request.query as { size?: string; cells?: string; kind?: string };
+    // cards (default): every lawyer for up close; pins: [lat, lon, count] per spot; counts: [count, lat, lon] per square
+    const kind = params.kind === 'pins' || params.kind === 'counts' ? params.kind : 'cards';
     const size: CellSize = params.size === 'l' ? 'l' : 's';
     const degrees = CELL_DEGREES[size];
     const wanted: [number, number][] = [];
@@ -40,10 +42,10 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
     if (wanted.length === 0) return reply.status(400).send({ success: false, error: 'حدد مربعات الخريطة' });
     if (wanted.length > MAX_CELLS) return reply.status(400).send({ success: false, error: 'مربعات كتير في طلب واحد' });
 
-    const cells = await cellsJson(size, wanted);
+    const cells = kind === 'cards' ? await cellsJson(size, wanted) : await lightCellsJson(kind, size, wanted);
     reply.header('Cache-Control', `public, max-age=${SHOWCASE_SECONDS}`);
     // Ready text from the squares, joined without turning the lawyers into objects again
-    return reply.type('application/json; charset=utf-8').send(`{"success":true,"data":{"size":"${size}","cells":${cells},"seconds":${SHOWCASE_SECONDS}}}`);
+    return reply.type('application/json; charset=utf-8').send(`{"success":true,"data":{"size":"${size}","kind":"${kind}","cells":${cells},"seconds":${SHOWCASE_SECONDS}}}`);
   });
 
   // GET /api/v1/lawyers/top?governorate=... - the top rated lawyers of one governorate, for the lawyers map list

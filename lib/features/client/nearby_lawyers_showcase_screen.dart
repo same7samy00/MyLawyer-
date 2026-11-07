@@ -12,6 +12,7 @@ import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_map_layer.dart';
 import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/app_state_message.dart';
+import '../../core/widgets/lawyer_map_layers.dart';
 import '../../core/widgets/lawyer_profile_summary.dart';
 import '../../core/widgets/lawyer_reviews_panel.dart';
 import '../../core/widgets/line_illustration.dart';
@@ -299,6 +300,11 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
             children: [
               const AppMapLayer(),
 
+              // بعيد عدد في كل منطقة، وفي النص دبابيس صغيرة، وقريب كروت (MapLawyerLoader)
+              if (MapLawyerLoader.modeFor(_mapZoom) == LawyerMapMode.pins) LawyerPinsLayer(pins: _mapLawyers.pins),
+              if (MapLawyerLoader.modeFor(_mapZoom) == LawyerMapMode.counts)
+                MarkerLayer(markers: lawyerCountMarkers(_mapLawyers.counts, (p) => _animatedMapMove(p, _mapZoom + 2.5))),
+
               // علامات المحامين وعلامة المستخدم
               MarkerLayer(
                 markers: [
@@ -436,33 +442,41 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
   /// قائمة أعلى المحامين تقييماً ومحامو المنطقة الظاهرة، وكل محامٍ بكارته
   List<Marker> _buildLawyerMarkers() {
     final scale = mapCardScaleFor(_mapZoom);
+    final selected = _selectedLawyer;
+    // الكروت لما تقرّب بس، والأقرب لنص الشاشة، والمحامي المفتوح ملفه دايمًا ظاهر
+    if (MapLawyerLoader.modeFor(_mapZoom) != LawyerMapMode.cards) {
+      return [if (selected != null) _lawyerMarker(selected, scale)];
+    }
+    // Before the map draws for the first time there is no camera yet
+    final position = _currentPosition;
+    final center = _lastCamera?.center ?? (position != null ? LatLng(position.latitude, position.longitude) : const LatLng(30.0444, 31.2357));
     final shown = {for (final lawyer in _nearbyLawyers) lawyer.id: lawyer};
-    for (final lawyer in _mapLawyers.lawyers) {
+    for (final lawyer in _mapLawyers.cardsNear(center)) {
       shown.putIfAbsent(lawyer.id, () => lawyer);
     }
+    if (selected != null) shown.putIfAbsent(selected.id, () => selected);
 
-    return [
-      for (final lawyer in shown.values)
-        Marker(
-          point: lawyer.position,
-          width: 140 * scale,
-          height: 52 * scale,
-          alignment: Alignment.topCenter,
-          child: GestureDetector(
-            onTap: () => _onLawyerMarkerTapped(lawyer),
-            child: ScaledMapCard(
-              width: 140,
-              height: 52,
-              child: _ShowcaseLawyerPin(
-                lawyer: lawyer,
-                isSelected: _selectedLawyer?.id == lawyer.id,
-                isNearest: false,
-              ),
+    return [for (final lawyer in shown.values) _lawyerMarker(lawyer, scale)];
+  }
+
+  Marker _lawyerMarker(MapLawyer lawyer, double scale) => Marker(
+        point: lawyer.position,
+        width: 140 * scale,
+        height: 52 * scale,
+        alignment: Alignment.topCenter,
+        child: GestureDetector(
+          onTap: () => _onLawyerMarkerTapped(lawyer),
+          child: ScaledMapCard(
+            width: 140,
+            height: 52,
+            child: _ShowcaseLawyerPin(
+              lawyer: lawyer,
+              isSelected: _selectedLawyer?.id == lawyer.id,
+              isNearest: false,
             ),
           ),
         ),
-    ];
-  }
+      );
 
   void _update(VoidCallback change) => setState(change);
 }

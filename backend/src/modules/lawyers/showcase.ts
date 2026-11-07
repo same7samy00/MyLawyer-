@@ -89,6 +89,55 @@ export async function cellsJson(size: CellSize, wanted: [number, number][]): Pro
   return `{${wanted.map(([x, y]) => `"${x}_${y}":${cells.get(cellKey(size, x, y))?.json ?? '[]'}`).join(',')}}`;
 }
 
+/// Lighter answers for a map that shows many lawyers (hundreds of thousands across Egypt), the way big map
+/// apps do it: far away a count per square, in between a small pin per spot, cards only up close.
+/// Both are worked out by the database and kept five minutes, the same for everyone.
+export type MapKind = 'pins' | 'counts';
+const light = new Map<string, { at: number; json: string }>();
+
+export async function lightCellsJson(kind: MapKind, size: CellSize, wanted: [number, number][]): Promise<string> {
+  const now = Date.now();
+  const degrees = CELL_DEGREES[size];
+  const key = (x: number, y: number) => `${kind}:${size}:${x}:${y}`;
+  const missing = wanted.filter(([x, y]) => {
+    const saved = light.get(key(x, y));
+    return !saved || now - saved.at >= SHOWCASE_SECONDS * 1000;
+  });
+
+  if (missing.length > 0) {
+    const xs = missing.map(([x]) => x);
+    const ys = missing.map(([, y]) => y);
+    const box = [Math.min(...ys) * degrees, (Math.max(...ys) + 1) * degrees, Math.min(...xs) * degrees, (Math.max(...xs) + 1) * degrees];
+    const fresh = new Map<string, unknown[]>(missing.map(([x, y]) => [key(x, y), []]));
+    if (kind === 'pins') {
+      // One pin per rounded spot (the same rounding the cards use), with how many lawyers are there
+      const res = await query(
+        `SELECT round(lp.latitude::numeric, 2)::float8 AS lat, round(lp.longitude::numeric, 2)::float8 AS lon, count(*)::int AS n
+         FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id
+         WHERE ${SHOWN} AND lp.latitude >= $1::float8 AND lp.latitude < $2::float8 AND lp.longitude >= $3::float8 AND lp.longitude < $4::float8
+         GROUP BY 1, 2`,
+        box
+      );
+      for (const row of res.rows) fresh.get(key(Math.floor(row.lon / degrees), Math.floor(row.lat / degrees)))?.push([row.lat, row.lon, row.n]);
+    } else {
+      // One count per square, placed at the middle of its lawyers
+      const res = await query(
+        `SELECT floor(lp.longitude::float8 / $5)::int AS x, floor(lp.latitude::float8 / $5)::int AS y, count(*)::int AS n,
+                round(avg(lp.latitude)::numeric, 3)::float8 AS lat, round(avg(lp.longitude)::numeric, 3)::float8 AS lon
+         FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id
+         WHERE ${SHOWN} AND lp.latitude >= $1::float8 AND lp.latitude < $2::float8 AND lp.longitude >= $3::float8 AND lp.longitude < $4::float8
+         GROUP BY 1, 2`,
+        [...box, degrees]
+      );
+      for (const row of res.rows) fresh.get(key(row.x, row.y))?.push(row.n, row.lat, row.lon);
+    }
+    for (const [k, value] of fresh) light.set(k, { at: now, json: JSON.stringify(value) });
+    if (light.size > 20000) for (const [k, saved] of light) if (now - saved.at >= SHOWCASE_SECONDS * 1000) light.delete(k);
+  }
+
+  return `{${wanted.map(([x, y]) => `"${x}_${y}":${light.get(key(x, y))?.json ?? '[]'}`).join(',')}}`;
+}
+
 function forgetOld(now: number) {
   if (cells.size < 5000) return;
   for (const [key, saved] of cells) {
@@ -154,5 +203,6 @@ export async function refreshGovernorates() {
 /// Tests start from an empty memory
 export function forgetShowcase() {
   cells.clear();
+  light.clear();
   top = null;
 }

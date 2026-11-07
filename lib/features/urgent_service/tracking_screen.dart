@@ -22,6 +22,7 @@ import '../../core/widgets/app_pressable.dart';
 import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/app_switcher.dart';
+import '../../core/widgets/lawyer_map_layers.dart';
 import '../../core/widgets/lawyer_profile_summary.dart';
 import '../../core/widgets/lawyer_reviews_panel.dart';
 import '../../core/widgets/line_illustration.dart';
@@ -195,6 +196,12 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                     ),
                   ],
                 ),
+
+              // بعيد عدد في كل منطقة، وفي النص دبابيس صغيرة، وقريب كروت (MapLawyerLoader)
+              if (_orderFlowStage == _OrderFlowStage.idle && MapLawyerLoader.modeFor(_mapZoom) == LawyerMapMode.pins)
+                LawyerPinsLayer(pins: _mapLawyers.pins),
+              if (_orderFlowStage == _OrderFlowStage.idle && MapLawyerLoader.modeFor(_mapZoom) == LawyerMapMode.counts)
+                MarkerLayer(markers: lawyerCountMarkers(_mapLawyers.counts, (p) => _focusPoint(p, _mapZoom + 2.5))),
 
               MarkerLayer(
                 markers: [
