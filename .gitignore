@@ -61,3 +61,5 @@ test-accounts.txt
 
 # Access to GitHub, the VPS and the panel for any tool or model. Never commit it.
 .access/
+
+.claude/settings.local.json

@@ -68,7 +68,8 @@ git -c credential.helper= -c "credential.helper=store --file=D:/KAREM/.access/gi
 - **الباك إند شغال هنا من 2026-11-07:** الكود من `origin/main` في `/var/www/mylawyer/backend` (`.env` وملف Firebase جنبه)، وخدمة `mylawyer-backend` بـ 5 workers، وقاعدة `mylawyer_prod` المحلية (اتنقلت من القديم كاملة)، والصور والملفات والموقع في `/var/www/mylawyer`. الطرق من `OSRM_URL=https://maps.my-lawyer.online/osrm`.
 - **Nginx:** `/etc/nginx/sites-available/mylawyer` زي القديم، و`/map/v2` و`/osrm` بيتحوّلوا لـ `maps.my-lawyer.online` عشان نسخ التطبيق القديمة.
 - **الإيميل:** Postfix محلي بس (`loopback-only`) وOpenDKIM بالمفتاح `mail` لـ `my-lawyer.online`، والإرسال من `noreply@my-lawyer.online`. سجلات MX وSPF وDKIM وDMARC في Hostinger، والـ PTR في Contabo.
-- **لسه:** شهادات https (certbot) للعنوانين، وrunner الرفع التلقائي (لسه على القديم، يعني push على `main` بيرفع على القديم)، وتجربة إيميل حقيقي.
+- **https:** شهادات Let's Encrypt للعنوانين (2026-11-07) بالتحقق من `/var/www/letsencrypt`، وبتتجدد لوحدها (`certbot.timer`). قاعدة صلاحية محلية في `.claude/settings.local.json` بتسمح لـ Claude Code يشغّل certbot على السيرفرين بس.
+- **لسه:** runner الرفع التلقائي (لسه على القديم، يعني push على `main` بيرفع على القديم)، وتجربة إيميل حقيقي.
 
 ## الدومين والسيرفرات (2026-11-07)
 | العنوان | السيرفر | الشغل |
