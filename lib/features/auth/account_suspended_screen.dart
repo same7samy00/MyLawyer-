@@ -1,9 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
+import '../../core/services/api_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/widgets/app_button.dart';
-import '../../core/services/api_service.dart';
 import '../../core/widgets/countdown_text.dart';
 import '../../core/widgets/line_illustration.dart';
 import 'session_router.dart';

@@ -1,13 +1,15 @@
-import '../../core/widgets/app_loader.dart';
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/live_updates.dart';
 import '../../core/services/order_store.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/lawyer_availability_card.dart';
 import '../../core/widgets/order_summary_card.dart';

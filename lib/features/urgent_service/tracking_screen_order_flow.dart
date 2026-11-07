@@ -135,7 +135,7 @@ extension _TrackingOrderFlow on _TrackingScreenState {
       });
       _showMessage(request.status == 'EXPIRED'
           ? 'الطلب اتلغى عشان ما اخترتش عرض في الوقت المحدد\nتقدر تطلب تاني'
-          : 'مفيش محامي متاح دلوقتي، جرب تاني كمان شوية');
+          : 'مفيش محامي متاح دلوقتي، جرب تاني كمان شوية',);
       return;
     }
 

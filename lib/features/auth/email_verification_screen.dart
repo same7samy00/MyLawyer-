@@ -1,12 +1,14 @@
-import '../../core/widgets/app_loader.dart';
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../core/constants/app_colors.dart';
-import '../../core/widgets/app_pressable.dart';
-import '../../core/widgets/auth_hero_header.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_loader.dart';
+import '../../core/widgets/app_pressable.dart';
+import '../../core/widgets/auth_hero_header.dart';
 import 'registration_success_screen.dart';
 import 'session_router.dart';
 

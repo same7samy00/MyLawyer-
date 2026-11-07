@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:my_lawyer/core/widgets/app_loader.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/core/theme/app_theme.dart';
 import 'package:my_lawyer/core/widgets/app_button.dart';
 import 'package:my_lawyer/core/widgets/app_card.dart';
+import 'package:my_lawyer/core/widgets/app_loader.dart';
 import 'package:my_lawyer/core/widgets/app_pressable.dart';
 import 'package:my_lawyer/core/widgets/keyboard_dismiss_area.dart';
 
@@ -83,7 +84,7 @@ void main() {
     testWidgets('الزر المعطل لا يتفاعل مع الضغط', (tester) async {
       await tester.pumpWidget(_host(const AppPressable(
         child: ElevatedButton(onPressed: null, child: Text('زر')),
-      )));
+      ),),);
 
       final pressable = find.byType(AppPressable);
       final gesture = await tester.startGesture(tester.getCenter(pressable));
@@ -137,7 +138,7 @@ void main() {
           calls++;
           return completer.future;
         },
-      )));
+      ),),);
 
       final pressable = find.byType(AppPressable);
       final normalSize = tester.getSize(pressable);
@@ -184,7 +185,7 @@ void main() {
             ),
           ],
         ),
-      )));
+      ),),);
 
       await tester.tap(find.byType(AppButton));
       await tester.pump();
@@ -232,7 +233,7 @@ void main() {
             ],
           ),
         ),
-      ));
+      ),);
 
       await tester.tap(find.byType(TextField));
       await tester.pump();
@@ -273,7 +274,7 @@ void main() {
         text: 'التالي',
         icon: Icons.arrow_forward_rounded,
         onPressed: () {},
-      )));
+      ),),);
 
       final arrow = tester.getCenter(find.byIcon(Icons.arrow_forward_rounded));
       final label = tester.getCenter(find.text('التالي'));

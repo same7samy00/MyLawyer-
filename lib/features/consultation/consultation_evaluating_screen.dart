@@ -55,7 +55,7 @@ class _ConsultationEvaluatingScreenState extends State<ConsultationEvaluatingScr
         draft: ConsultationDraft(kind: widget.kind, details: widget.details, pagePaths: widget.pagePaths, quote: quote),
         settings: widget.settings,
       ),
-    ));
+    ),);
   }
 
   @override

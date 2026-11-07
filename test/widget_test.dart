@@ -1,47 +1,48 @@
-import 'package:flutter_map/flutter_map.dart';
-import 'package:my_lawyer/features/auth/session_router.dart';
-import 'package:my_lawyer/core/services/order_store.dart';
-import 'package:my_lawyer/core/services/app_cached_tile_provider.dart';
-import 'package:my_lawyer/core/widgets/app_button.dart';
-import 'package:my_lawyer/core/widgets/app_header.dart';
-import 'package:my_lawyer/core/widgets/profile_home_card.dart';
 import 'package:flutter/material.dart';
-import 'package:my_lawyer/core/widgets/app_loader.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:my_lawyer/core/constants/app_colors.dart';
 import 'package:my_lawyer/core/constants/map_config.dart';
+import 'package:my_lawyer/core/services/api_service.dart';
+import 'package:my_lawyer/core/services/app_cached_tile_provider.dart';
+import 'package:my_lawyer/core/services/auth_service.dart';
 import 'package:my_lawyer/core/services/geo_naming_service.dart';
+import 'package:my_lawyer/core/services/order_store.dart';
 import 'package:my_lawyer/core/services/routing_service.dart';
 import 'package:my_lawyer/core/theme/app_theme.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:my_lawyer/features/auth/login_screen.dart';
-import 'package:my_lawyer/features/client/orders_tab.dart';
-import 'package:my_lawyer/features/urgent_service/payment_screen.dart';
-import 'package:my_lawyer/features/urgent_service/order_details_sheet.dart';
-import 'package:my_lawyer/features/urgent_service/tracking_screen.dart';
-import 'package:my_lawyer/features/urgent_service/urgent_service_problem_screen.dart';
-import 'package:my_lawyer/features/auth/splash_screen.dart';
-import 'package:my_lawyer/features/client/nearby_lawyers_showcase_screen.dart';
-import 'package:my_lawyer/features/urgent_service/problem_description_screen.dart';
-import 'package:my_lawyer/core/services/auth_service.dart';
-import 'package:my_lawyer/features/auth/user_type_selection_screen.dart';
+import 'package:my_lawyer/core/widgets/app_button.dart';
+import 'package:my_lawyer/core/widgets/app_header.dart';
+import 'package:my_lawyer/core/widgets/app_loader.dart';
+import 'package:my_lawyer/core/widgets/password_strength_widget.dart';
+import 'package:my_lawyer/core/widgets/profile_home_card.dart';
+import 'package:my_lawyer/data/models/map_lawyer.dart';
 import 'package:my_lawyer/features/auth/client_register_screen.dart';
-import 'package:my_lawyer/features/auth/lawyer_register_screen.dart';
 import 'package:my_lawyer/features/auth/email_verification_screen.dart';
+import 'package:my_lawyer/features/auth/lawyer_register_screen.dart';
+import 'package:my_lawyer/features/auth/login_screen.dart';
 import 'package:my_lawyer/features/auth/registration_success_screen.dart';
+import 'package:my_lawyer/features/auth/session_router.dart';
+import 'package:my_lawyer/features/auth/splash_screen.dart';
+import 'package:my_lawyer/features/auth/user_type_selection_screen.dart';
 import 'package:my_lawyer/features/client/home_tab.dart';
+import 'package:my_lawyer/features/client/nearby_lawyers_showcase_screen.dart';
+import 'package:my_lawyer/features/client/orders_tab.dart';
+import 'package:my_lawyer/features/lawyer/lawyer_account_tab.dart';
 import 'package:my_lawyer/features/lawyer/lawyer_home_tab.dart';
 import 'package:my_lawyer/features/lawyer/lawyer_navigation_shell.dart';
-import 'package:my_lawyer/features/lawyer/lawyer_urgent_service_intro_screen.dart';
 import 'package:my_lawyer/features/lawyer/lawyer_orders_tab.dart';
+import 'package:my_lawyer/features/lawyer/lawyer_urgent_service_intro_screen.dart';
 import 'package:my_lawyer/features/lawyer/lawyer_wallet_tab.dart';
-import 'package:my_lawyer/features/lawyer/lawyer_account_tab.dart';
-import 'package:my_lawyer/core/widgets/password_strength_widget.dart';
+import 'package:my_lawyer/features/urgent_service/order_details_sheet.dart';
+import 'package:my_lawyer/features/urgent_service/payment_screen.dart';
+import 'package:my_lawyer/features/urgent_service/problem_description_screen.dart';
+import 'package:my_lawyer/features/urgent_service/tracking_screen.dart';
+import 'package:my_lawyer/features/urgent_service/urgent_service_problem_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:my_lawyer/core/services/api_service.dart';
-import 'package:my_lawyer/data/models/map_lawyer.dart';
+
 import 'helpers/fake_backend.dart';
 
 void main() {
@@ -766,7 +767,7 @@ void main() {
         (call) async => call.method == 'checkPermission' ? 3 : throw MissingPluginException(),
       );
       addTearDown(() => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(const MethodChannel('flutter.baseflow.com/geolocator'), null));
+          .setMockMethodCallHandler(const MethodChannel('flutter.baseflow.com/geolocator'), null),);
       backend.account = lawyerAccount(fullName: 'إبراهيم حسن سالم', syndicateNumber: '554433');
 
       await tester.pumpWidget(

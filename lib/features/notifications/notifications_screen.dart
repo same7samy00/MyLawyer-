@@ -1,11 +1,12 @@
-import '../../core/widgets/app_loader.dart';
-import '../../core/widgets/line_illustration.dart';
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
-import '../../core/services/notification_center.dart';
 import '../../core/services/live_updates.dart';
+import '../../core/services/notification_center.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_state_message.dart';
+import '../../core/widgets/line_illustration.dart';
 import '../../data/models/lifecycle_models.dart';
 import 'notification_router.dart';
 

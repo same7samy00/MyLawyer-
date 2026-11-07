@@ -1,19 +1,20 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:my_lawyer/core/widgets/app_loader.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:my_lawyer/core/services/notification_center.dart';
 import 'package:my_lawyer/core/theme/app_theme.dart';
 import 'package:my_lawyer/core/widgets/app_card.dart';
+import 'package:my_lawyer/core/widgets/app_loader.dart';
 import 'package:my_lawyer/features/auth/email_verification_screen.dart';
 import 'package:my_lawyer/features/auth/location_permission_screen.dart';
 import 'package:my_lawyer/features/auth/login_screen.dart';
+import 'package:my_lawyer/features/auth/user_type_selection_screen.dart';
 import 'package:my_lawyer/features/client/main_navigation_shell.dart';
 import 'package:my_lawyer/features/client/nearby_lawyers_showcase_screen.dart';
-import 'package:my_lawyer/core/services/notification_center.dart';
 import 'package:my_lawyer/features/urgent_service/payment_screen.dart';
 import 'package:my_lawyer/features/urgent_service/payment_success_screen.dart';
-import 'package:my_lawyer/features/auth/user_type_selection_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../helpers/session_test_helpers.dart';
 
 void main() {
@@ -82,7 +83,7 @@ void main() {
             child: const Text('افتح الشيت'),
           ),
         ),
-      )));
+      ),),);
 
       await tester.tap(find.text('افتح الشيت'));
       await tester.pumpAndSettle();
@@ -124,7 +125,7 @@ void main() {
             child: const Text('افتح'),
           ),
         ),
-      )));
+      ),),);
       await tester.tap(find.text('افتح'));
       await settleAsync(tester);
 
@@ -147,7 +148,7 @@ void main() {
         price: 350,
         orderRef: 'ML-ORD-100001',
         locationName: 'قصر النيل',
-      )));
+      ),),);
 
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
@@ -166,7 +167,7 @@ void main() {
         orderId: 'order-1',
         orderNumber: 'ML-ORD-100001',
         locationName: 'قصر النيل',
-      )));
+      ),),);
 
       // الفاتورة الأول، وبعدها صفحة طريقة الدفع لوحدها
       await tester.tap(find.text('اختار طريقة الدفع'));
@@ -227,7 +228,7 @@ void main() {
             child: const Text('فتح'),
           ),
         ),
-      )));
+      ),),);
 
       await tester.tap(find.text('فتح'));
       await tester.pump(const Duration(milliseconds: 40));
@@ -251,7 +252,7 @@ void main() {
             child: const Text('فتح'),
           ),
         ),
-      )));
+      ),),);
 
       await tester.tap(find.text('فتح'));
       await tester.pump();
@@ -277,7 +278,7 @@ void main() {
             child: const Text('فتح'),
           ),
         ),
-      )));
+      ),),);
 
       await tester.tap(find.text('فتح'));
       await tester.pumpAndSettle();

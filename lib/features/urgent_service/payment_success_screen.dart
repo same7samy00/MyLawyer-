@@ -1,13 +1,15 @@
-import '../../core/widgets/app_loader.dart';
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/line_illustration.dart';
 import '../../data/models/map_lawyer.dart';
-import '../client/main_navigation_shell.dart';
 import '../auth/session_router.dart';
+import '../client/main_navigation_shell.dart';
 
 class PaymentSuccessScreen extends StatefulWidget {
   final MapLawyer? lawyer;

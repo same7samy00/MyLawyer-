@@ -164,7 +164,7 @@ class _BannerCard extends StatelessWidget {
                 Text(
                   banner.title,
                   style: const TextStyle(
-                      fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
+                      fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white,),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -176,7 +176,7 @@ class _BannerCard extends StatelessWidget {
                       fontSize: 12,
                       height: 1.5,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.primaryLight),
+                      color: AppColors.primaryLight,),
                 ),
                 const SizedBox(height: 10),
                 AppPressable(

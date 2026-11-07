@@ -1,7 +1,8 @@
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:my_lawyer/core/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _AllowNetworkHttpOverrides extends HttpOverrides {}
 
@@ -34,7 +35,7 @@ void main() {
       final res = await ApiService.get('/lawyers/nearby', queryParams: {
         'lat': '30.0444',
         'lon': '31.2357',
-      });
+      },);
       expect(res.isOk, isTrue);
       expect(res.data, isA<List>());
     });
@@ -51,5 +52,5 @@ void main() {
       },
       skip: liveClientId.isEmpty ? 'يتطلب LIVE_CLIENT_ID وLIVE_CLIENT_PASSWORD' : false,
     );
-  }, skip: runLiveTests ? false : 'اختبارات الخادم الحي تعمل فقط مع RUN_LIVE_API_TESTS=true');
+  }, skip: runLiveTests ? false : 'اختبارات الخادم الحي تعمل فقط مع RUN_LIVE_API_TESTS=true',);
 }

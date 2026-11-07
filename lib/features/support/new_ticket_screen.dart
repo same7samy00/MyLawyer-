@@ -132,7 +132,7 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
                       DropdownMenuItem(
                         value: order.id,
                         child: Text('${order.orderNumber} • ${order.serviceTitle}',
-                            style: supportTextStyle, overflow: TextOverflow.ellipsis),
+                            style: supportTextStyle, overflow: TextOverflow.ellipsis,),
                       ),
                   ],
                   onChanged: (id) => setState(() => _order = _orders.where((order) => order.id == id).firstOrNull),
@@ -162,7 +162,7 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Text(_error!,
-                    textAlign: TextAlign.center, style: supportTextStyle.copyWith(color: AppColors.danger)),
+                    textAlign: TextAlign.center, style: supportTextStyle.copyWith(color: AppColors.danger),),
               ),
             AppButton.primary(text: 'إرسال التذكرة', isLoading: _isSending, onPressed: _isSending ? null : _send),
           ],

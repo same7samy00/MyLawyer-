@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/core/services/api_service.dart';
 import 'package:my_lawyer/core/services/auth_service.dart';
-import 'package:my_lawyer/features/client/account_tab.dart';
 import 'package:my_lawyer/features/auth/email_verification_screen.dart';
 import 'package:my_lawyer/features/auth/forgot_password_screen.dart';
 import 'package:my_lawyer/features/auth/login_screen.dart';
-import 'package:my_lawyer/features/client/main_navigation_shell.dart';
 import 'package:my_lawyer/features/auth/session_router.dart';
+import 'package:my_lawyer/features/client/account_tab.dart';
+import 'package:my_lawyer/features/client/main_navigation_shell.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../helpers/session_test_helpers.dart';
 
 void main() {
@@ -61,7 +62,7 @@ void main() {
       await tester.pumpWidget(testApp(
         const MainNavigationShell(initialIndex: 3),
         navigatorKey: navigatorKey,
-      ));
+      ),);
       await tester.pumpAndSettle();
       expect(find.byType(AccountTab), findsOneWidget);
 

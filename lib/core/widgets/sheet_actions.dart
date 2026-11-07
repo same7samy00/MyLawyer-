@@ -58,7 +58,7 @@ List<Widget> packSheetActions(List<Widget> items) {
             Expanded(child: next),
           ],
         ),
-      ));
+      ),);
       i++;
     } else if (item is SheetButton) {
       packed.add(Padding(padding: const EdgeInsets.only(bottom: 8), child: item));

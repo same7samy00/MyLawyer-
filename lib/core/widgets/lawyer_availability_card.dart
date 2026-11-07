@@ -1,14 +1,16 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import '../services/saved_data.dart';
+
 import '../../data/repositories/lawyer_repository.dart';
+import '../constants/app_colors.dart';
 import '../services/live_updates.dart';
 import '../services/location_service.dart';
-import '../constants/app_colors.dart';
 import '../services/notification_center.dart';
+import '../services/saved_data.dart';
 import 'app_card.dart';
-import 'countdown_text.dart';
 import 'background_location_sheet.dart';
+import 'countdown_text.dart';
 
 /// زر حالة المحامي: الموكلون يشاهدون المحامي المتاح فقط
 class LawyerAvailabilityCard extends StatefulWidget {

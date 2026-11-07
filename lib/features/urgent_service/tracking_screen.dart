@@ -1,13 +1,12 @@
-import '../../core/widgets/app_loader.dart';
-import '../../core/widgets/line_illustration.dart';
 import 'dart:async';
 import 'dart:math' as math;
-import '../../core/widgets/app_pressable.dart';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
+
 import '../../core/constants/app_colors.dart';
 import '../../core/services/app_visibility.dart';
 import '../../core/services/geo_naming_service.dart';
@@ -17,24 +16,27 @@ import '../../core/services/map_lawyer_loader.dart';
 import '../../core/services/routing_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_map_layer.dart';
+import '../../core/widgets/app_pressable.dart';
+import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/app_state_message.dart';
+import '../../core/widgets/app_switcher.dart';
 import '../../core/widgets/lawyer_profile_summary.dart';
 import '../../core/widgets/lawyer_reviews_panel.dart';
+import '../../core/widgets/line_illustration.dart';
 import '../../core/widgets/map_cards.dart';
-import '../../core/widgets/app_sheet.dart';
-import '../../core/widgets/app_switcher.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/models/service_request.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/request_repository.dart';
-import 'payment_screen.dart';
 import 'lawyer_google_profile_screen.dart';
+import 'payment_screen.dart';
 
-part 'tracking_screen_widgets.dart';
-part 'tracking_screen_views.dart';
-part 'tracking_screen_order_flow.dart';
 part 'tracking_screen_map.dart';
+part 'tracking_screen_order_flow.dart';
+part 'tracking_screen_views.dart';
+part 'tracking_screen_widgets.dart';
 
 class TrackingScreen extends StatefulWidget {
   final String? problemTitle;
@@ -115,7 +117,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   /// محامين الخريطة من المربعات الجاهزة، وقايمة «القريبين منك» بتتحسب منهم على الموبايل
   late final MapLawyerLoader _mapLawyers = MapLawyerLoader(onChanged: () {
     if (mounted) setState(_refreshNearby);
-  });
+  },);
 
   @override
   void initState() {

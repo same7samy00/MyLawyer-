@@ -1,14 +1,16 @@
-import '../notifications/notifications_screen.dart';
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../../core/services/background_location_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/notification_center.dart';
-import '../notifications/notification_router.dart';
 import '../../core/services/push_service.dart';
 import '../../core/widgets/app_bottom_bar.dart';
 import '../../core/widgets/app_header.dart';
 import '../../data/repositories/lawyer_repository.dart';
+import '../notifications/notification_router.dart';
+import '../notifications/notifications_screen.dart';
 import 'lawyer_account_tab.dart';
 import 'lawyer_home_tab.dart';
 import 'lawyer_orders_tab.dart';

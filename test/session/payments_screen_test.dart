@@ -54,7 +54,7 @@ void main() {
         lawyerName: 'سارة ع.',
         orderNumber: 'ML-ORD-100002',
         at: DateTime(2026, 11, 6, 10, 5),
-      ));
+      ),);
       expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
       expect(bytes.length, greaterThan(2000));
     });

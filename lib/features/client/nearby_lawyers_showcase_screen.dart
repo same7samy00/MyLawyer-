@@ -3,28 +3,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
+
 import '../../core/constants/app_colors.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/map_lawyer_loader.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_map_layer.dart';
 import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/app_state_message.dart';
-import '../../core/widgets/app_map_layer.dart';
 import '../../core/widgets/lawyer_profile_summary.dart';
 import '../../core/widgets/lawyer_reviews_panel.dart';
-import '../../core/widgets/map_cards.dart';
 import '../../core/widgets/line_illustration.dart';
+import '../../core/widgets/map_cards.dart';
 import '../../data/models/lawyer_model.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/repositories/lawyer_repository.dart';
+import '../auth/session_router.dart';
+import '../lawyer/lawyer_navigation_shell.dart';
 import '../urgent_service/lawyer_google_profile_screen.dart';
 import 'main_navigation_shell.dart';
-import '../lawyer/lawyer_navigation_shell.dart';
-import '../auth/session_router.dart';
 
-part 'nearby_lawyers_showcase_widgets.dart';
 part 'nearby_lawyers_showcase_sheet.dart';
+part 'nearby_lawyers_showcase_widgets.dart';
 
 /// الخريطة الترويجية: تظهر للموكل كل مرة يدخل فيها التطبيق، وزر الإغلاق فوق يوديه للرئيسية.
 /// البوتن شيت ثابت ويعرض أعلى المحامين تقييماً في محافظته، وملف المحامي يفتح جواه بنفس الحجم.
@@ -63,12 +64,12 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
   bool _showReviews = false;
   late final MapLawyerLoader _mapLawyers = MapLawyerLoader(onChanged: () {
     if (mounted) setState(() {});
-  });
+  },);
 
   /// راجع من الإعدادات بعد ما فتح الموقع: نحدد مكانه على طول
   late final AppLifecycleListener _lifecycle = AppLifecycleListener(onResume: () {
     if (_locationProblem != null) _fetchCurrentLocation();
-  });
+  },);
 
   @override
   void initState() {

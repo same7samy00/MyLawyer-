@@ -186,12 +186,12 @@ class AppCachedMapImageProvider extends ImageProvider<AppCachedMapImageProvider>
     if (downloadedBytes != null) {
       _saveTileToDiskAsync(fileName, downloadedBytes);
       final buffer = await ui.ImmutableBuffer.fromUint8List(downloadedBytes);
-      return await decode(buffer);
+      return decode(buffer);
     }
 
     // 5. في حال انقطاع الشبكة تماماً وعدم توفر البلاطة في الكاش: إعادة بلاطة شفافة لمنع تجمد أو انهيار الواجهة
     final transparentBuffer = await ui.ImmutableBuffer.fromUint8List(TileProvider.transparentImage);
-    return await decode(transparentBuffer);
+    return decode(transparentBuffer);
   }
 
   void _saveTileToDiskAsync(String fileName, Uint8List bytes) {

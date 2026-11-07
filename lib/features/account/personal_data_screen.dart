@@ -1,14 +1,15 @@
-import '../../core/widgets/app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../../core/constants/app_colors.dart';
-import '../../data/repositories/profile_repository.dart';
 import '../../core/services/notification_center.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/profile_photo.dart';
+import '../../data/repositories/profile_repository.dart';
 
 /// صورة الحساب وبياناته المسجلة للموكل والمحامي
 class PersonalDataScreen extends StatefulWidget {

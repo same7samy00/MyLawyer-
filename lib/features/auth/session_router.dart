@@ -1,16 +1,18 @@
-import '../client/nearby_lawyers_showcase_screen.dart';
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../../core/services/auth_service.dart';
-import '../../core/services/device_permission_service.dart';
 import '../../core/services/background_location_service.dart';
+import '../../core/services/device_permission_service.dart';
+import '../client/main_navigation_shell.dart';
+import '../client/nearby_lawyers_showcase_screen.dart';
+import '../lawyer/lawyer_navigation_shell.dart';
 import 'account_suspended_screen.dart';
 import 'connection_retry_screen.dart';
 import 'lawyer_approval_status_screen.dart';
-import '../lawyer/lawyer_navigation_shell.dart';
 import 'location_permission_screen.dart';
 import 'login_screen.dart';
-import '../client/main_navigation_shell.dart';
 
 /// المرجع الوحيد لتوجيه المستخدم حسب جلسته ونوع حسابه
 /// كل انتقال بين الدخول والخروج يمسح المكدس حتى لا يعود الرجوع لصفحات غير منطقية

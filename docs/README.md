@@ -32,6 +32,8 @@
 | الأسرار والدخول والحماية | `docs/SECURITY.md` |
 | كل حاجة فين، وإضافة ميزة | `docs/PROJECT_STRUCTURE.md` |
 | التقنيات ونسخها | `docs/TECH_STACK.md` |
+| طريقة كتابة الكود والأدوات | `docs/ENGINEERING_STANDARDS.md` |
+| ذاكرة المشروع (الحالة والقواعد واللي جاي) | `docs/memory/README.md` |
 | التشغيل والبناء محليًا | `docs/DEVELOPMENT_GUIDE.md` |
 | إيه اللي اتغير ومتى | `docs/CHANGELOG.md` (الأحدث فوق)، والأقدم في `docs/CHANGELOG_ARCHIVE.md` |
 | تقرير الفحوصات | `docs/engineering/VERIFICATION.md`، وآخر نتايج في `docs/memory/CURRENT_STATUS.md` |

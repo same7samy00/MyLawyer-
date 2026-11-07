@@ -1,8 +1,9 @@
-import '../../core/widgets/line_illustration.dart';
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/line_illustration.dart';
 import 'problem_description_screen.dart';
 
 /// نموذج بيانات المشكلة القانونية لخدمة «محاميك حالاً»

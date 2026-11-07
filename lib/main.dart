@@ -1,9 +1,10 @@
-import 'core/services/biometric_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'core/services/api_service.dart';
+import 'core/services/biometric_service.dart';
 import 'core/services/saved_data.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/connection_gate.dart';

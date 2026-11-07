@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/core/services/api_service.dart';
@@ -6,16 +7,17 @@ import 'package:my_lawyer/core/services/auth_service.dart';
 import 'package:my_lawyer/core/services/live_updates.dart';
 import 'package:my_lawyer/data/models/order_model.dart';
 import 'package:my_lawyer/data/models/service_request.dart';
-import 'package:my_lawyer/features/lawyer/request_offer_sheet.dart';
-import 'package:my_lawyer/features/client/orders_tab.dart';
-import 'package:my_lawyer/features/lawyer/lawyer_orders_tab.dart';
-import 'package:my_lawyer/features/support/support_screen.dart';
 import 'package:my_lawyer/features/auth/account_suspended_screen.dart';
 import 'package:my_lawyer/features/auth/session_router.dart';
 import 'package:my_lawyer/features/auth/splash_screen.dart';
+import 'package:my_lawyer/features/client/orders_tab.dart';
+import 'package:my_lawyer/features/lawyer/lawyer_orders_tab.dart';
+import 'package:my_lawyer/features/lawyer/request_offer_sheet.dart';
+import 'package:my_lawyer/features/notifications/notifications_screen.dart';
+import 'package:my_lawyer/features/support/support_screen.dart';
 import 'package:my_lawyer/features/urgent_service/tracking_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:my_lawyer/features/notifications/notifications_screen.dart';
+
 import '../helpers/session_test_helpers.dart';
 
 void main() {
@@ -366,7 +368,7 @@ void main() {
       };
       await tester.pumpWidget(testApp(const Scaffold(body: RequestOfferSheet(
         request: IncomingRequest(id: 'req-1', problemType: 'محضر', problemDescription: 'وصف', area: 'محافظة القاهرة', distanceKm: 4, minPrice: 500, maxPrice: 1500, netRate: 0.7, secondsLeft: 100),
-      ))));
+      ),),),);
       await tester.pump();
 
       await tester.tap(find.text('ابعت عرضك'));

@@ -1,9 +1,10 @@
-import '../../core/widgets/app_loader.dart';
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../data/models/support_ticket.dart';
 import '../../data/repositories/support_repository.dart';
@@ -67,7 +68,7 @@ class _SupportScreenState extends State<SupportScreen> {
                     // A ticket under review waits for the admin before anything new goes out
                     if (tickets.any((ticket) => ticket.isUnderReview))
                       const Text('عندك تذكرة تحت المراجعة، تقدر تفتح تذكرة جديدة بعد رد الإدارة',
-                          textAlign: TextAlign.center, style: supportMutedStyle)
+                          textAlign: TextAlign.center, style: supportMutedStyle,)
                     else
                       AppButton.primary(
                         text: 'تذكرة جديدة',
@@ -79,7 +80,7 @@ class _SupportScreenState extends State<SupportScreen> {
                       const Padding(
                         padding: EdgeInsets.only(top: 40),
                         child: Text('مفيش تذاكر لسه، ولو عندك أي مشكلة افتح تذكرة والإدارة هترد عليك',
-                            textAlign: TextAlign.center, style: supportMutedStyle),
+                            textAlign: TextAlign.center, style: supportMutedStyle,),
                       ),
                     for (final ticket in tickets) _TicketCard(ticket: ticket, onTap: () => _open(TicketDetailsScreen(ticketId: ticket.id))),
                   ],

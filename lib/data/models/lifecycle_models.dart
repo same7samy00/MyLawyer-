@@ -56,7 +56,7 @@ class AppNotification {
   NotificationTarget get target => NotificationTarget(orderId: orderId, ticketId: ticketId, requestId: requestId, consultationId: consultationId);
 
   AppNotification asRead() => AppNotification(
-      id: id, title: title, body: body, isRead: true, orderId: orderId, ticketId: ticketId, requestId: requestId, consultationId: consultationId);
+      id: id, title: title, body: body, isRead: true, orderId: orderId, ticketId: ticketId, requestId: requestId, consultationId: consultationId,);
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(

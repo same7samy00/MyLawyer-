@@ -1,10 +1,10 @@
-import '../../core/widgets/service_tag.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_sheet.dart';
+import '../../core/widgets/service_tag.dart';
 import '../../data/models/consultation.dart';
 import '../../data/repositories/consultation_repository.dart';
 import 'consultation_style.dart';

@@ -1,15 +1,17 @@
-import '../../data/repositories/profile_repository.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../data/repositories/profile_repository.dart';
 import 'api_service.dart';
 import 'background_location_service.dart';
-import 'order_store.dart';
-import 'saved_data.dart';
 import 'device_permission_service.dart';
+import 'order_store.dart';
 import 'push_service.dart';
+import 'saved_data.dart';
 
 /// نوع الحساب في منصة My Lawyer
 enum UserAccountType {

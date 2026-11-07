@@ -1,8 +1,10 @@
+import 'dart:convert';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 import 'api_service.dart';
 import 'live_updates.dart';
 import 'notification_center.dart';
@@ -75,7 +77,7 @@ class PushService {
               ? LiveChange('requests', requestId)
               : consultationId != null
                   ? LiveChange('consultations', consultationId)
-                  : const LiveChange('notifications'));
+                  : const LiveChange('notifications'),);
       LiveUpdates.alertUser();
     });
     // التطبيق كان في الخلفية واتفتح بلمس الإشعار

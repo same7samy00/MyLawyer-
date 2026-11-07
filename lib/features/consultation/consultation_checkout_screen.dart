@@ -33,7 +33,7 @@ class _ConsultationCheckoutScreenState extends State<ConsultationCheckoutScreen>
         locationName: '',
         price: _draft.quote.total,
       ),
-    ));
+    ),);
   }
 
   @override

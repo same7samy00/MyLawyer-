@@ -265,7 +265,7 @@ class ApiService {
             statusCode: 403,
             error: 'تم إيقاف هذا الحساب',
             data: {'status': 'suspended'},
-          ));
+          ),);
         }
         if (outcome == _RefreshOutcome.refreshed) {
           response = await request(await _buildHeaders()).timeout(timeout);

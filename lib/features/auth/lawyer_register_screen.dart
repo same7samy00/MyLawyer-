@@ -1,19 +1,22 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../../core/constants/app_colors.dart';
-import '../../core/widgets/app_pressable.dart';
-import '../../core/widgets/app_sheet.dart';
-import '../../core/widgets/auth_hero_header.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_pressable.dart';
+import '../../core/widgets/app_sheet.dart';
+import '../../core/widgets/auth_hero_header.dart';
 import '../../core/widgets/password_strength_widget.dart';
 import 'email_verification_screen.dart';
-part 'lawyer_register_steps.dart';
+
 part 'lawyer_register_documents.dart';
 part 'lawyer_register_review.dart';
+part 'lawyer_register_steps.dart';
 
 /// شاشة إنشاء حساب محامي جديد بنظام متعدد الخطوات (Step-by-Step)
 class LawyerRegisterScreen extends StatefulWidget {

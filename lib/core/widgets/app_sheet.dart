@@ -1,8 +1,9 @@
-import 'app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+
 import '../constants/app_colors.dart';
 import 'app_card.dart';
+import 'app_loader.dart';
 
 /// رأس موحد لكل البوتن شيت: خط السحب في النص، وتحته العنوان، وتحته خط فاصل متقطع.
 /// خط السحب بيظهر حتى في الشيت اللي ما بيتقفلش، عشان الشكل يفضل واحد

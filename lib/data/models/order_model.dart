@@ -184,7 +184,7 @@ class OrderModel {
       'client': {
         'name': clientName,
         'phone': clientPhone,
-      }
+      },
     };
   }
 
@@ -314,7 +314,7 @@ class OrderModel {
 
     const arabicMonths = [
       'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
     ];
     final period = dt.hour >= 12 ? 'م' : 'ص';
     final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;

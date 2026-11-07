@@ -32,7 +32,7 @@ class LocationService {
   /// [fresh] skips the stored position, for checks that depend on where the phone is now
   Future<LocationResult> checkAndRequestPermission({bool fresh = false}) async {
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         return const LocationResult(
           status: LocationServiceStatus.serviceDisabled,
@@ -83,6 +83,6 @@ class LocationService {
 
   /// Open device app settings
   Future<bool> openAppSettings() async {
-    return await Geolocator.openAppSettings();
+    return Geolocator.openAppSettings();
   }
 }

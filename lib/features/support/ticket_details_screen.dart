@@ -1,10 +1,11 @@
-import '../../core/widgets/app_loader.dart';
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../data/models/support_ticket.dart';
 import '../../data/repositories/support_repository.dart';
@@ -115,14 +116,14 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                       const AppCard(
                         padding: EdgeInsets.all(14),
                         child: Text('التذكرة دي اتقفلت، لو عندك مشكلة جديدة افتح تذكرة جديدة',
-                            textAlign: TextAlign.center, style: supportMutedStyle),
+                            textAlign: TextAlign.center, style: supportMutedStyle,),
                       )
                     // After each message the sender waits for the admin before writing again
                     else if (ticket.awaitingReply)
                       const AppCard(
                         padding: EdgeInsets.all(14),
                         child: Text('رسالتك وصلت، استنى رد الإدارة وبعدها تقدر ترد',
-                            textAlign: TextAlign.center, style: supportMutedStyle),
+                            textAlign: TextAlign.center, style: supportMutedStyle,),
                       )
                     else ...[
                       TextField(
@@ -164,7 +165,7 @@ class _MessageCard extends StatelessWidget {
             Row(
               children: [
                 Text(message.fromSupport ? 'الدعم الفني' : 'انت',
-                    style: supportTitleStyle.copyWith(fontSize: 13, color: message.fromSupport ? AppColors.primary : AppColors.dark)),
+                    style: supportTitleStyle.copyWith(fontSize: 13, color: message.fromSupport ? AppColors.primary : AppColors.dark),),
                 const Spacer(),
                 Text(formatTicketDate(message.createdAt), style: supportMutedStyle),
               ],
@@ -191,7 +192,7 @@ class _MessageCard extends StatelessWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(7.0),
                         child: Image.network(url, headers: imageHeaders, width: 80, height: 80, fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const SizedBox(width: 80, height: 80, child: Icon(Icons.broken_image_outlined))),
+                            errorBuilder: (_, __, ___) => const SizedBox(width: 80, height: 80, child: Icon(Icons.broken_image_outlined)),),
                       ),
                     ),
                 ],

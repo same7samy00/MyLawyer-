@@ -1,9 +1,10 @@
-import '../../core/widgets/line_illustration.dart';
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/line_illustration.dart';
 import 'service_terms_screen.dart';
 
 /// شاشة وصف المشكلة القانونية لخدمة «محاميك حالاً»

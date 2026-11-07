@@ -1,9 +1,10 @@
-import '../../core/widgets/app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+
 import '../../core/constants/app_colors.dart';
-import '../../core/widgets/app_pressable.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/app_loader.dart';
+import '../../core/widgets/app_pressable.dart';
 import '../../data/models/map_lawyer.dart';
 
 /// شاشة عرض بروفايل ملف جوجل المعتمد للمحامي عبر WebView

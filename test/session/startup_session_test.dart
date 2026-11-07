@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,16 +7,17 @@ import 'package:my_lawyer/core/config/app_config.dart';
 import 'package:my_lawyer/core/services/api_service.dart';
 import 'package:my_lawyer/core/services/auth_service.dart';
 import 'package:my_lawyer/core/widgets/connection_gate.dart';
+import 'package:my_lawyer/features/auth/account_suspended_screen.dart';
 import 'package:my_lawyer/features/auth/connection_retry_screen.dart';
 import 'package:my_lawyer/features/auth/lawyer_approval_status_screen.dart';
-import 'package:my_lawyer/features/lawyer/lawyer_navigation_shell.dart';
 import 'package:my_lawyer/features/auth/location_permission_screen.dart';
 import 'package:my_lawyer/features/auth/login_screen.dart';
+import 'package:my_lawyer/features/auth/session_router.dart';
 import 'package:my_lawyer/features/client/main_navigation_shell.dart';
 import 'package:my_lawyer/features/client/orders_tab.dart';
-import 'package:my_lawyer/features/auth/account_suspended_screen.dart';
-import 'package:my_lawyer/features/auth/session_router.dart';
+import 'package:my_lawyer/features/lawyer/lawyer_navigation_shell.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../helpers/session_test_helpers.dart';
 
 void main() {
@@ -170,7 +172,7 @@ void main() {
       await tester.pumpWidget(testApp(
         const Scaffold(body: OrdersTab()),
         navigatorKey: SessionRouter.navigatorKey,
-      ));
+      ),);
       await tester.pumpAndSettle();
 
       expect(find.byType(LoginScreen), findsOneWidget);
@@ -244,7 +246,7 @@ void main() {
           recheckInterval: Duration(seconds: 1),
           child: OrdersTab(),
         ),
-      )));
+      ),),);
       await tester.pump();
       await tester.pump();
 

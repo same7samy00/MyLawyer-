@@ -76,7 +76,7 @@ class _ConsultationDetailsScreenState extends State<ConsultationDetailsScreen> {
         pagePaths: _withPapers ? _pages.map((page) => page.path).toList() : const [],
         settings: _settings,
       ),
-    ));
+    ),);
   }
 
   @override

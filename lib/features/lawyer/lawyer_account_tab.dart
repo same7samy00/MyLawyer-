@@ -1,15 +1,16 @@
-import '../../core/widgets/biometric_toggle_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../core/constants/app_colors.dart';
-import '../../data/repositories/profile_repository.dart';
 import '../../core/services/notification_center.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/biometric_toggle_tile.dart';
 import '../../core/widgets/logout_confirmation_sheet.dart';
 import '../../core/widgets/profile_photo.dart';
+import '../../data/repositories/profile_repository.dart';
 import '../account/personal_data_screen.dart';
-import '../support/support_screen.dart';
 import '../auth/session_router.dart';
+import '../support/support_screen.dart';
 
 /// تبويب الحساب الشخصي للمحامي
 /// يطابق تصميم حساب الموكل مع تخصيص البيانات للاعتماد المهني ونقابة المحامين

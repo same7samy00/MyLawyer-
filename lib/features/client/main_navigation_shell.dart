@@ -1,18 +1,19 @@
-import '../notifications/notifications_screen.dart';
-import '../../core/services/background_alerts.dart';
 import 'package:flutter/material.dart';
+
+import '../../core/services/background_alerts.dart';
 import '../../core/services/notification_center.dart';
-import '../notifications/notification_router.dart';
 import '../../core/services/push_service.dart';
+import '../../core/widgets/app_bottom_bar.dart';
+import '../../core/widgets/app_header.dart';
 import '../../core/widgets/order_action_sheets.dart';
 import '../../data/models/order_model.dart';
 import '../../data/repositories/order_repository.dart';
-import '../../core/widgets/app_bottom_bar.dart';
-import '../../core/widgets/app_header.dart';
+import '../notifications/notification_router.dart';
+import '../notifications/notifications_screen.dart';
+import 'account_tab.dart';
 import 'home_tab.dart';
 import 'orders_tab.dart';
 import 'wallet_tab.dart';
-import 'account_tab.dart';
 
 class MainNavigationShell extends StatefulWidget {
   final int initialIndex;

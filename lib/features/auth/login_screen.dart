@@ -1,15 +1,16 @@
-import '../../core/services/biometric_service.dart';
-import '../../core/widgets/app_loader.dart';
-import 'biometric_setup_screen.dart';
-import '../../core/widgets/line_illustration.dart';
-import '../../core/widgets/app_button.dart';
-import '../../core/widgets/app_pressable.dart';
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/biometric_service.dart';
+import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_loader.dart';
+import '../../core/widgets/app_pressable.dart';
+import '../../core/widgets/line_illustration.dart';
+import 'account_suspended_screen.dart';
+import 'biometric_setup_screen.dart';
 import 'email_verification_screen.dart';
 import 'forgot_password_screen.dart';
-import 'account_suspended_screen.dart';
 import 'session_router.dart';
 import 'user_type_selection_screen.dart';
 

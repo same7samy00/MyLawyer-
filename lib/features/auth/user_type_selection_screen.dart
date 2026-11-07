@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
-import '../../core/widgets/app_pressable.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_pressable.dart';
 import '../../core/widgets/auth_hero_header.dart';
 import 'client_register_screen.dart';
 import 'lawyer_register_screen.dart';
