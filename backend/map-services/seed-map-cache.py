@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
-# Fills the map cache for populated areas after a style change
-import math, ssl, sys, time, urllib.request
+# Fills the map cache so no tile is drawn while someone is looking.
+#   python3 seed-map-cache.py          populated areas, after a style change
+#   python3 seed-map-cache.py all      all of Egypt the app can show (zoom 8 to 15, about 1.6 million tiles)
+#   python3 seed-map-cache.py count    only counts (add "all" to count everything)
+# Tiles already in the Nginx cache come back at once, so a stopped run can simply start again.
+#   SEED_THREADS=12 python3 seed-map-cache.py all    more at a time when the server has nothing else to do
+import math, os, ssl, sys, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 AREAS = [
@@ -12,6 +17,10 @@ AREAS = [
     ('greater_cairo', 29.75, 30.85, 30.35, 31.75, 11, 15),
     ('alexandria', 30.95, 29.7, 31.35, 30.15, 11, 15),
 ]
+
+if 'all' in sys.argv:
+    # The same box the app keeps the map inside (lib/core/widgets/app_map_layer.dart)
+    AREAS = [('all_egypt', 21.7, 24.5, 32.0, 37.0, 8, 15)]
 
 
 def tile(lat, lon, z):
@@ -30,7 +39,7 @@ for _, south, west, north, east, z0, z1 in AREAS:
 
 tiles = sorted(todo)
 print('tiles', len(tiles), flush=True)
-if len(sys.argv) > 1 and sys.argv[1] == 'count':
+if 'count' in sys.argv:
     sys.exit(0)
 
 ctx = ssl.create_default_context()
@@ -48,7 +57,8 @@ def fetch(t):
 fails = 0
 done = 0
 started = time.time()
-with ThreadPoolExecutor(8) as pool:
+# Six at a time leaves room for the backend on the same server
+with ThreadPoolExecutor(int(os.environ.get('SEED_THREADS', '6'))) as pool:
     for i in range(0, len(tiles), 40):
         batch = tiles[i:i + 40]
         for future in [pool.submit(fetch, t) for t in batch]:
@@ -57,6 +67,6 @@ with ThreadPoolExecutor(8) as pool:
             except Exception:
                 fails += 1
         done += len(batch)
-        if done % 2000 < 40:
+        if done % 20000 < 40:
             print(done, 'fails', fails, int(time.time() - started), 's', flush=True)
 print('DONE', done, 'fails', fails, int(time.time() - started), 's', flush=True)
