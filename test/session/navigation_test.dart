@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:my_lawyer/core/services/notification_center.dart';
 import 'package:my_lawyer/core/theme/app_theme.dart';
 import 'package:my_lawyer/core/widgets/app_card.dart';
 import 'package:my_lawyer/core/widgets/app_loader.dart';
+import 'package:my_lawyer/core/widgets/lawyer_map_layers.dart';
 import 'package:my_lawyer/features/auth/email_verification_screen.dart';
 import 'package:my_lawyer/features/auth/location_permission_screen.dart';
 import 'package:my_lawyer/features/auth/login_screen.dart';
@@ -129,7 +132,10 @@ void main() {
       await tester.tap(find.text('افتح'));
       await settleAsync(tester);
 
-      await tester.tap(find.text('أ/ طارق حسن').first);
+      // The lawyer is a pin drawn on the map: tap where the pin's head is
+      final layer = tester.element(find.byType(LawyerPinsLayer));
+      final pin = MapCamera.of(layer).latLngToScreenPoint(const LatLng(30.05, 31.24));
+      await tester.tapAt(tester.getTopLeft(find.byType(FlutterMap)) + Offset(pin.x.toDouble(), pin.y.toDouble() - 18));
       await tester.pump(const Duration(milliseconds: 800));
       expect(find.text('ملف Google'), findsOneWidget);
 

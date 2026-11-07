@@ -6,8 +6,9 @@ import '../models/lifecycle_models.dart';
 /// المستودع المسؤول عن استعلام وتحديث بيانات المحامين
 class LawyerRepository {
   /// محامين مربعات الخريطة، والمربع واحد لكل الناس والسيرفر بيجهزه كل [MapCells.seconds]
-  static Future<ApiResponse<MapCells>> getMapCells({required String size, required List<String> cells}) async {
-    final res = await ApiService.get('/lawyers/map', queryParams: {'size': size, 'cells': cells.join(',')});
+  /// [kind] `top` = أعلى محامي في كل منطقة صغيرة بس (الخريطة وهي بعيدة)، ومن غيره كل المحامين
+  static Future<ApiResponse<MapCells>> getMapCells({required String size, required List<String> cells, String? kind}) async {
+    final res = await ApiService.get('/lawyers/map', queryParams: {'size': size, 'cells': cells.join(','), if (kind != null) 'kind': kind});
     final data = res.data;
     if (res.isOk && data is Map<String, dynamic> && data['cells'] is Map) {
       return ApiResponse<MapCells>(
@@ -32,24 +33,6 @@ class LawyerRepository {
     );
   }
 
-  /// الرد الخفيف للخريطة: `pins` [lat, lon, عدد] لكل مكان، أو `counts` [عدد, lat, lon] لكل مربع
-  static Future<ApiResponse<Map<String, List<dynamic>>>> getMapLight({
-    required String kind,
-    required String size,
-    required List<String> cells,
-  }) async {
-    final res = await ApiService.get('/lawyers/map', queryParams: {'kind': kind, 'size': size, 'cells': cells.join(',')});
-    final data = res.data;
-    if (res.isOk && data is Map<String, dynamic> && data['cells'] is Map) {
-      return ApiResponse(
-        success: true,
-        statusCode: res.statusCode,
-        data: {for (final entry in (data['cells'] as Map).entries) entry.key.toString(): entry.value as List<dynamic>},
-      );
-    }
-    return ApiResponse(success: false, statusCode: res.statusCode, error: res.error, isConnectivityError: res.isConnectivityError);
-  }
-
   static String _topKey(String governorate) => 'top_lawyers_$governorate';
 
   /// آخر قايمة اتعرضت للمحافظة، عشان الشيت يترسم بيها من أول لحظة
@@ -60,11 +43,12 @@ class LawyerRepository {
   }
 
   /// أعلى المحامين تقييمًا في المحافظة، والسيرفر بيجهز القايمة كل 5 دقايق
-  static Future<ApiResponse<List<LawyerModel>>> getTopInGovernorate(String governorate) async {
-    final res = await ApiService.get('/lawyers/top', queryParams: {'governorate': governorate});
+  /// 20 في كل مرة، و[offset] للـ «المزيد». أول صفحة بس اللي بتتحفظ للرسم الفوري
+  static Future<ApiResponse<List<LawyerModel>>> getTopInGovernorate(String governorate, {int offset = 0}) async {
+    final res = await ApiService.get('/lawyers/top', queryParams: {'governorate': governorate, 'offset': '$offset', 'limit': '20'});
     if (res.isOk && res.data is List) {
       final list = res.data as List;
-      SavedData.write(_topKey(governorate), list);
+      if (offset == 0) SavedData.write(_topKey(governorate), list);
       return ApiResponse<List<LawyerModel>>(
         success: true,
         statusCode: res.statusCode,

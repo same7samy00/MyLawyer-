@@ -65,9 +65,17 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
       shrinkWrap: true,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       physics: const BouncingScrollPhysics(),
-      itemCount: _nearbyLawyers.length,
+      itemCount: _nearbyLawyers.length + (_topHasMore ? 1 : 0),
       separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
+        if (index == _nearbyLawyers.length) {
+          return _topLoadingMore
+              ? const Padding(padding: EdgeInsets.all(8), child: Center(child: AppLoader(size: 28)))
+              : TextButton(
+                  onPressed: _loadMoreTop,
+                  child: const Text('المزيد', style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontWeight: FontWeight.w800)),
+                );
+        }
         final lawyer = _nearbyLawyers[index];
         return Material(
           color: Colors.white,

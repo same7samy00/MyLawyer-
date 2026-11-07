@@ -258,22 +258,27 @@ extension _TrackingMapControls on _TrackingScreenState {
         (lawyer) => const Distance().as(LengthUnit.Meter, _searchCenter, lawyer.position) < 40,
       );
 
-  /// كل محامٍ يظهر بكارته والكروت تصغر مع تصغير الخريطة، وأثناء الطلب يظهر المحامي المعني بس
+  /// قبل الطلب كل المحامين دبابيس (`LawyerPinsLayer`): محامين الخريطة حسب القرب، والقريبين، والمختار
+  List<MapLawyer> get _pinLawyers {
+    final selected = _selectedLawyer;
+    final all = {for (final lawyer in _mapLawyers.lawyers) lawyer.id: lawyer};
+    for (final lawyer in _nearbyLawyers) {
+      all.putIfAbsent(lawyer.id, () => lawyer);
+    }
+    if (selected != null) all[selected.id] = selected;
+    return all.values.toList();
+  }
+
+  /// أثناء الطلب بس: كارت المحامي المعني على الخريطة
   List<Marker> _buildLawyerMarkers(double zoom) {
+    if (_orderFlowStage == _OrderFlowStage.idle) return const [];
     final nearestId = _nearestLawyerId;
     final scale = mapCardScaleFor(zoom);
-    final mode = MapLawyerLoader.modeFor(zoom);
-    // بعيد وفي النص الدبابيس والأعداد بس، والكروت لما تقرّب (الأقرب لنص الشاشة) والمحامي المختار دايمًا
     final selected = _selectedLawyer;
     final shown = <String, MapLawyer>{
-      if (mode == LawyerMapMode.cards || _orderFlowStage != _OrderFlowStage.idle) for (final lawyer in _nearbyLawyers) lawyer.id: lawyer,
+      for (final lawyer in _nearbyLawyers) lawyer.id: lawyer,
       if (selected != null) selected.id: selected,
     };
-    if (_orderFlowStage == _OrderFlowStage.idle && mode == LawyerMapMode.cards) {
-      for (final lawyer in _mapLawyers.cardsNear(_searchCenter)) {
-        shown.putIfAbsent(lawyer.id, () => lawyer);
-      }
-    }
 
     return [
       for (final lawyer in shown.values)

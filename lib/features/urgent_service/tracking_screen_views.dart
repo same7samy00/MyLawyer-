@@ -32,10 +32,15 @@ extension _TrackingScreenViews on _TrackingScreenState {
           style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.dark),
         ),
         const SizedBox(height: 10),
-        for (var i = 0; i < lawyers.length; i++) ...[
+        for (var i = 0; i < lawyers.length && i < _nearbyShown; i++) ...[
           if (i > 0) const Divider(height: 1, color: AppColors.cardBorder),
           _buildNearbyLawyerCard(lawyers[i]),
         ],
+        if (lawyers.length > _nearbyShown)
+          TextButton(
+            onPressed: () => _update(() => _nearbyShown += 20),
+            child: const Text('المزيد', style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontWeight: FontWeight.w800)),
+          ),
         const SizedBox(height: 14),
         AppButton.primary(
           text: 'اطلب عروض أسعار',

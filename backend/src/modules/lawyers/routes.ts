@@ -25,8 +25,8 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
   // A square is x = floor(lon / size), y = floor(lat / size), with size 0.1 (s) or 0.5 (l) degrees.
   fastify.get('/map', async (request: FastifyRequest, reply: FastifyReply) => {
     const params = request.query as { size?: string; cells?: string; kind?: string };
-    // cards (default): every lawyer for up close; pins: [lat, lon, count] per spot; counts: [count, lat, lon] per square
-    const kind = params.kind === 'pins' || params.kind === 'counts' ? params.kind : 'cards';
+    // cards (default): every lawyer, for up close; top: only the best rated lawyer of each small area (showcase.ts)
+    const kind = params.kind === 'top' ? 'top' : 'cards';
     const size: CellSize = params.size === 'l' ? 'l' : 's';
     const degrees = CELL_DEGREES[size];
     const wanted: [number, number][] = [];
@@ -50,11 +50,14 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
 
   // GET /api/v1/lawyers/top?governorate=... - the top rated lawyers of one governorate, for the lawyers map list
   fastify.get('/top', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { governorate } = request.query as { governorate?: string };
+    const { governorate, offset, limit } = request.query as { governorate?: string; offset?: string; limit?: string };
     if (!governorate || !GOVERNORATES.includes(governorate)) {
       return reply.status(400).send({ success: false, error: 'المحافظة غير معروفة' });
     }
-    const data = await topInGovernorate(governorate);
+    // 20 at a time; the app asks for more with offset
+    const from = Math.max(0, Math.min(100, Number(offset) || 0));
+    const count = Math.max(1, Math.min(50, Number(limit) || 20));
+    const data = (await topInGovernorate(governorate)).slice(from, from + count);
     reply.header('Cache-Control', `public, max-age=${SHOWCASE_SECONDS}`);
     return reply.send({ success: true, data });
   });

@@ -9,6 +9,7 @@ import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/map_lawyer_loader.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_map_layer.dart';
 import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/app_state_message.dart';
@@ -59,6 +60,12 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
 
   /// الموقع مش متاح: الخريطة على القاهرة، والشيت بيطلب تحديد المكان
   LocationServiceStatus? _locationProblem;
+
+  /// «المزيد» في قايمة أعلى المحافظة
+  String? _governorate;
+  LatLng? _here;
+  bool _topHasMore = false;
+  bool _topLoadingMore = false;
 
   List<MapLawyer> _nearbyLawyers = [];
   MapLawyer? _selectedLawyer;
@@ -146,8 +153,28 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
     final res = await LawyerRepository.getTopInGovernorate(governorate);
     if (!mounted) return;
     _update(() {
+      _governorate = governorate;
+      _here = here;
       if (res.isOk) _nearbyLawyers = _rankTop(res.data ?? const [], here);
+      _topHasMore = (res.data?.length ?? 0) >= 20;
       _isInitialLoading = false;
+    });
+  }
+
+  /// «المزيد»: 20 كمان من أعلى المحافظة
+  Future<void> _loadMoreTop() async {
+    final governorate = _governorate;
+    final here = _here;
+    if (governorate == null || here == null || _topLoadingMore) return;
+    _update(() => _topLoadingMore = true);
+    final res = await LawyerRepository.getTopInGovernorate(governorate, offset: _nearbyLawyers.length);
+    if (!mounted) return;
+    final more = res.data ?? const <LawyerModel>[];
+    _update(() {
+      final known = {for (final l in _nearbyLawyers) l.id};
+      _nearbyLawyers = [..._nearbyLawyers, ..._rankTop(more, here).where((l) => !known.contains(l.id))];
+      _topHasMore = res.isOk && more.length >= 20;
+      _topLoadingMore = false;
     });
   }
 
@@ -291,8 +318,12 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
                 if (!_isInitialLoading) _mapLawyers.cameraMoved(camera);
               },
               backgroundColor: appMapBackground,
-              onTap: (_, __) {
-                if (_selectedLawyer != null) {
+              // A tap near a pin opens that lawyer in the sheet, anywhere else closes the open profile
+              onTap: (_, point) {
+                final hit = lawyerAtTap(_mapController.camera, point, _pinLawyers);
+                if (hit != null) {
+                  _onLawyerMarkerTapped(hit);
+                } else if (_selectedLawyer != null) {
                   _closeLawyerProfile();
                 }
               },
@@ -301,9 +332,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
               const AppMapLayer(),
 
               // بعيد عدد في كل منطقة، وفي النص دبابيس صغيرة، وقريب كروت (MapLawyerLoader)
-              if (MapLawyerLoader.modeFor(_mapZoom) == LawyerMapMode.pins) LawyerPinsLayer(pins: _mapLawyers.pins),
-              if (MapLawyerLoader.modeFor(_mapZoom) == LawyerMapMode.counts)
-                MarkerLayer(markers: lawyerCountMarkers(_mapLawyers.counts, (p) => _animatedMapMove(p, _mapZoom + 2.5))),
+              LawyerPinsLayer(lawyers: _pinLawyers, selectedId: _selectedLawyer?.id),
 
               // علامات المحامين وعلامة المستخدم
               MarkerLayer(
@@ -317,7 +346,6 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
                     child: const ScaledMapCard(width: 140, height: 52, child: MyLocationMapCard()),
                   ),
 
-                  ..._buildLawyerMarkers(),
                 ],
               ),
             ],
@@ -439,44 +467,16 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
     );
   }
 
-  /// قائمة أعلى المحامين تقييماً ومحامو المنطقة الظاهرة، وكل محامٍ بكارته
-  List<Marker> _buildLawyerMarkers() {
-    final scale = mapCardScaleFor(_mapZoom);
+  /// كل اللي يترسم دبابيس: محامين الخريطة حسب القرب، وأعلى المحافظة، والمحامي المفتوح ملفه
+  List<MapLawyer> get _pinLawyers {
     final selected = _selectedLawyer;
-    // الكروت لما تقرّب بس، والأقرب لنص الشاشة، والمحامي المفتوح ملفه دايمًا ظاهر
-    if (MapLawyerLoader.modeFor(_mapZoom) != LawyerMapMode.cards) {
-      return [if (selected != null) _lawyerMarker(selected, scale)];
+    final all = {for (final lawyer in _mapLawyers.lawyers) lawyer.id: lawyer};
+    for (final lawyer in _nearbyLawyers) {
+      all.putIfAbsent(lawyer.id, () => lawyer);
     }
-    // Before the map draws for the first time there is no camera yet
-    final position = _currentPosition;
-    final center = _lastCamera?.center ?? (position != null ? LatLng(position.latitude, position.longitude) : const LatLng(30.0444, 31.2357));
-    final shown = {for (final lawyer in _nearbyLawyers) lawyer.id: lawyer};
-    for (final lawyer in _mapLawyers.cardsNear(center)) {
-      shown.putIfAbsent(lawyer.id, () => lawyer);
-    }
-    if (selected != null) shown.putIfAbsent(selected.id, () => selected);
-
-    return [for (final lawyer in shown.values) _lawyerMarker(lawyer, scale)];
+    if (selected != null) all[selected.id] = selected;
+    return all.values.toList();
   }
-
-  Marker _lawyerMarker(MapLawyer lawyer, double scale) => Marker(
-        point: lawyer.position,
-        width: 140 * scale,
-        height: 52 * scale,
-        alignment: Alignment.topCenter,
-        child: GestureDetector(
-          onTap: () => _onLawyerMarkerTapped(lawyer),
-          child: ScaledMapCard(
-            width: 140,
-            height: 52,
-            child: _ShowcaseLawyerPin(
-              lawyer: lawyer,
-              isSelected: _selectedLawyer?.id == lawyer.id,
-              isNearest: false,
-            ),
-          ),
-        ),
-      );
 
   void _update(VoidCallback change) => setState(change);
 }

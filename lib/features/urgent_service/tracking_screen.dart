@@ -72,7 +72,10 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   static const double _cardWidth = 195.0;
   static const double _cardHeight = 53.0;
   /// قايمة «المحامين القريبين منك» بحد أقصى العدد ده
-  static const int _nearbyCount = 30;
+  static const int _nearbyCount = 100;
+
+  /// قايمة القريبين بتظهر 20 بس، و«المزيد» بيزوّد 20
+  int _nearbyShown = 20;
   String? _lawyersError;
 
   /// الشيت طوله ثابت طول الوقت، ومحتواه بيتمرر جواه
@@ -178,6 +181,12 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
               cameraConstraint: appMapBounds,
               backgroundColor: appMapBackground,
               onPositionChanged: _onMapMoved,
+              // A tap near a pin opens that lawyer in the sheet
+              onTap: (_, point) {
+                if (_orderFlowStage != _OrderFlowStage.idle) return;
+                final hit = lawyerAtTap(_mapController.camera, point, _pinLawyers);
+                if (hit != null) _onLawyerTapped(hit);
+              },
               onPointerDown: (_, __) => _stopCamera(),
             ),
             children: [
@@ -198,10 +207,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                 ),
 
               // بعيد عدد في كل منطقة، وفي النص دبابيس صغيرة، وقريب كروت (MapLawyerLoader)
-              if (_orderFlowStage == _OrderFlowStage.idle && MapLawyerLoader.modeFor(_mapZoom) == LawyerMapMode.pins)
-                LawyerPinsLayer(pins: _mapLawyers.pins),
-              if (_orderFlowStage == _OrderFlowStage.idle && MapLawyerLoader.modeFor(_mapZoom) == LawyerMapMode.counts)
-                MarkerLayer(markers: lawyerCountMarkers(_mapLawyers.counts, (p) => _focusPoint(p, _mapZoom + 2.5))),
+              if (_orderFlowStage == _OrderFlowStage.idle) LawyerPinsLayer(lawyers: _pinLawyers, selectedId: _selectedLawyer?.id),
 
               MarkerLayer(
                 markers: [
