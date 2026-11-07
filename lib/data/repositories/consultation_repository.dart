@@ -19,6 +19,25 @@ class ConsultationRepository {
     return ApiResponse(success: false, statusCode: res.statusCode, error: res.error ?? 'تعذر تقييم السعر، حاول تاني');
   }
 
+  /// استشاراتي، عشان تظهر في صفحة الطلبات
+  static Future<ApiResponse<List<Consultation>>> list() async {
+    final res = await ApiService.get('/consultations');
+    if (res.isOk && res.data is List) {
+      final items = (res.data as List).whereType<Map<String, dynamic>>().map(Consultation.fromJson).toList();
+      return ApiResponse(success: true, statusCode: res.statusCode, data: items);
+    }
+    return ApiResponse(success: false, statusCode: res.statusCode, error: res.error ?? 'تعذر تحميل الاستشارات');
+  }
+
+  /// «طلب التواصل» بعد ما الفريق ما قدرش يوصله
+  static Future<ApiResponse<Consultation>> requestContact(String id) async {
+    final res = await ApiService.post('/consultations/$id/contact', const {});
+    if (res.isOk && res.data is Map<String, dynamic>) {
+      return ApiResponse(success: true, statusCode: res.statusCode, data: Consultation.fromJson(res.data as Map<String, dynamic>), message: res.message);
+    }
+    return ApiResponse(success: false, statusCode: res.statusCode, error: res.error ?? 'تعذر إرسال الطلب، حاول تاني');
+  }
+
   /// الدفع والطلب مع بعض: التفاصيل وصور الورق وطريقة الدفع
   static Future<ApiResponse<Consultation>> submit(ConsultationDraft draft, {required bool fromBalance}) async {
     final res = await ApiService.uploadForm(

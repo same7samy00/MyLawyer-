@@ -1,6 +1,14 @@
 const CONSULTATION_STATUS = { PAID: ['تنتظر الاتصال', 'amber'], CONTACTING: ['جارٍ التواصل', 'blue'], DONE: ['تمت', 'green'], REJECTED: ['مرفوضة ومستردة', 'red'] };
 const CONSULTATION_KIND = { CALL: 'استشارة هاتفية', PAPERS: 'اطلاع على مستندات واستشارة' };
 const consultationStatus = (status) => badge(...(CONSULTATION_STATUS[status] || [status, 'gray']));
+/// حالة التواصل: الفريق بعت «لم نتمكن من الوصول»، أو الموكل طلب التواصل
+function contactState(item) {
+  const open = item.status === 'PAID' || item.status === 'CONTACTING';
+  if (!open) return consultationStatus(item.status);
+  if (item.callback_requested_at) return badge('الموكل طلب التواصل', 'green');
+  if (item.unreachable_at) return badge('ننتظر طلب الموكل', 'amber');
+  return consultationStatus(item.status);
+}
 const CONSULTATION_TABS = [['WAITING', 'تنتظر الاتصال'], ['CONTACTING', 'جارٍ التواصل'], ['DONE', 'تمت'], ['REJECTED', 'مرفوضة']];
 const inConsultationTab = (item, tab) => (tab === 'WAITING' ? item.status === 'PAID' : item.status === tab);
 
@@ -26,7 +34,7 @@ async function consultationsPage(box) {
     cells: [
       copyable(item.reference), personCell(item.client_name, item.client_phone),
       CONSULTATION_KIND[item.kind] + (item.kind === 'PAPERS' ? ' • ' + item.pages + ' ورقة' : ''), Number(item.price) + ' ج.م',
-      active === 'WAITING' ? waitingTime(item.created_at) : date(item.created_at), consultationStatus(item.status), openButton('فتح', 'consultation', item.id),
+      active === 'WAITING' ? waitingTime(item.created_at) : date(item.created_at), contactState(item), openButton('فتح', 'consultation', item.id),
     ],
   })), (item) => open('consultation', item.id)));
 }
@@ -40,6 +48,11 @@ function consultationActions(data) {
   const note = { key: 'note', type: 'long', label: 'ملاحظة داخلية عن المكالمة (اختياري)', optional: true };
   const list = [];
   if (data.status === 'PAID') list.push(move('CONTACTING', 'بدء التواصل', 'يعرف الموكل أن الفريق يتصل به الآن.', 'تم تغيير الحالة إلى جارٍ التواصل'));
+  list.push({
+    title: 'لم نتمكن من الوصول', description: 'يصل الموكل تنبيه: لما تكون متاح افتح الطلب واضغط «طلب التواصل».', success: 'تم إرسال التنبيه للموكل', steps: [],
+    summary: () => [['الإجراء', 'تنبيه «لم نتمكن من الوصول إليك»'], ['الموكل', data.client_name + ' • ' + data.client_phone]],
+    run: () => api('POST', '/admin/consultations/' + data.id + '/unreachable'),
+  });
   list.push(move('DONE', 'تمت الاستشارة', 'تُغلق الاستشارة بعد انتهاء المكالمة.', 'تم إغلاق الاستشارة', [note]));
   list.push(move('REJECTED', 'رفض واسترداد', 'يعيد المبلغ كاملًا إلى رصيد الموكل ويرسل له السبب.', 'تم الرفض واسترداد المبلغ', [REASON_STEP]));
   return list;
@@ -53,7 +66,7 @@ async function consultationPage(box) {
   buttons.push(link('اتصال', () => { location.href = 'tel:' + data.client_phone; }, 'btn-outline', 'phone'));
   buttons.push(link(data.client_name, () => open('user', data.client_id), 'btn-outline', 'open'));
   box.append(hero(avatarBox(data.client_photo, 'phone'), CONSULTATION_KIND[data.kind],
-    [statusRow('ticket', 'الحالة', consultationStatus(data.status)), statusRow('money', 'المبلغ', badge(Number(data.price) + ' ج.م', 'purple'))],
+    [statusRow('ticket', 'الحالة', contactState(data)), statusRow('money', 'المبلغ', badge(Number(data.price) + ' ج.م', 'purple'))],
     [['client', data.client_name + ' • ' + data.client_phone], ['calendar', date(data.created_at)], ['ticket', copyable(data.reference)]], buttons));
 
   const layout = el('div', undefined, 'ticket-layout');
@@ -76,7 +89,9 @@ async function consultationPage(box) {
     ['عدد المستندات', data.kind === 'PAPERS' ? data.pages : 'لا يوجد'],
   ])));
   side.append(section('المتابعة', details([
-    ['بدء التواصل', data.contacted_at ? date(data.contacted_at) : '-'], ['الإغلاق', data.closed_at ? date(data.closed_at) : '-'],
+    ['بدء التواصل', data.contacted_at ? date(data.contacted_at) : '-'],
+    ['تنبيه لم نتمكن من الوصول', data.unreachable_at ? date(data.unreachable_at) : '-'], ['طلب الموكل التواصل', data.callback_requested_at ? date(data.callback_requested_at) : '-'],
+    ['الإغلاق', data.closed_at ? date(data.closed_at) : '-'],
     ['المسؤول', data.handled_by_email || '-'], ['ملاحظة داخلية', data.admin_note || '-'], ...(data.reject_reason ? [['سبب الرفض', data.reject_reason]] : []),
   ])));
 }

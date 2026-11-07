@@ -1,3 +1,4 @@
+import '../../core/services/background_alerts.dart';
 import 'package:flutter/material.dart';
 import '../../core/services/notification_center.dart';
 import '../notifications/notification_router.dart';
@@ -52,6 +53,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     NotificationCenter.start();
     PushService.start();
     _promptPendingReview();
+    WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) BackgroundAlerts.askOnce(context); });
   }
 
   @override

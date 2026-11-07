@@ -15,6 +15,7 @@ export async function registerAdminConsultations(fastify: FastifyInstance) {
   fastify.get('/consultations', async (_request: FastifyRequest, reply: FastifyReply) => {
     const res = await query(
       `SELECT c.id, c.reference, c.kind, c.pages, c.price, c.payment_method, c.status, c.created_at, c.contacted_at, c.closed_at,
+              c.unreachable_at, c.callback_requested_at,
               c.client_id, u.phone AS client_phone, COALESCE(u.full_name, u.phone) AS client_name, LEFT(c.details, 160) AS details_preview
        FROM consultations c JOIN users u ON u.id = c.client_id
        ORDER BY c.created_at DESC LIMIT 500`
@@ -82,6 +83,27 @@ export async function registerAdminConsultations(fastify: FastifyInstance) {
     });
 
     return reply.send({ success: true, data: row, message: 'تم تحديث الاستشارة' });
+  });
+
+  // POST /api/v1/admin/consultations/:id/unreachable - «مقدرناش نوصلك»: تنبيه للموكل يطلب التواصل لما يكون متاح
+  fastify.post('/consultations/:id/unreachable', async (request: FastifyRequest, reply: FastifyReply) => {
+    const admin = request.user as AuthenticatedUser;
+    const { id } = request.params as { id: string };
+    if (!UUID_PATTERN.test(id)) throw new HttpError(400, 'المعرف غير صالح');
+    const row = await withTransaction(async (db) => {
+      const res = await db.query('SELECT * FROM consultations WHERE id = $1 FOR UPDATE', [id]);
+      const current = res.rows[0];
+      if (!current) throw new HttpError(404, 'الاستشارة غير موجودة');
+      if (current.status !== 'PAID' && current.status !== 'CONTACTING') throw new HttpError(409, 'الاستشارة دي اتقفلت');
+      const saved = await db.query(
+        'UPDATE consultations SET unreachable_at = NOW(), callback_requested_at = NULL, handled_by = $2 WHERE id = $1 RETURNING *',
+        [id, admin.userId]
+      );
+      await notify(db, current.client_id, 'مقدرناش نوصلك', `حاولنا نكلمك على استشارة ${current.reference}\nلما تكون متاح افتح الطلب واضغط «طلب التواصل»`);
+      await publishChange(db, current.client_id, false, 'consultations', current.id);
+      return saved.rows[0];
+    });
+    return reply.send({ success: true, data: row, message: 'تم إرسال التنبيه للموكل' });
   });
 
   // GET /api/v1/admin/consultation-settings

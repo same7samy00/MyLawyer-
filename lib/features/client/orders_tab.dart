@@ -10,6 +10,10 @@ import '../../core/widgets/order_summary_card.dart';
 import '../../core/widgets/orders_filter.dart';
 import '../../data/models/order_model.dart';
 import '../urgent_service/order_details_sheet.dart';
+import '../../core/services/live_updates.dart';
+import '../../data/models/consultation.dart';
+import '../../data/repositories/consultation_repository.dart';
+import '../consultation/consultation_order_card.dart';
 
 class OrdersTab extends StatefulWidget {
   /// إشارة من الحاوية لتحديث القائمة عند العودة لهذا التبويب
@@ -28,6 +32,10 @@ class _OrdersTabState extends State<OrdersTab> {
   List<OrderModel> _orders = const [];
   bool _showCurrent = true;
 
+  /// صفحة الطلبات شاملة كل الخدمات: «محاميك حالاً» والاستشارة السريعة
+  List<Consultation> _consultations = const [];
+  StreamSubscription<LiveChange>? _live;
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +45,16 @@ class _OrdersTabState extends State<OrdersTab> {
     ApiService.isServerReachable.addListener(_onReachabilityChanged);
     _showSaved();
     _loadOrders();
+    _loadConsultations();
+    _live = LiveUpdates.stream.listen((change) {
+      if (change.kind == 'consultations' || change.isEverything || change.kind == 'notifications') _loadConsultations();
+    });
+  }
+
+  Future<void> _loadConsultations() async {
+    final res = await ConsultationRepository.list();
+    if (!mounted || !res.isOk) return;
+    setState(() => _consultations = res.data ?? const []);
   }
 
   /// أي طلب اتغير في المخزن، الصفحة تتغير معاه
@@ -52,6 +70,7 @@ class _OrdersTabState extends State<OrdersTab> {
   void dispose() {
     widget.refreshSignal?.removeListener(_loadOrders);
     OrderStore.orders.removeListener(_onStoreChanged);
+    _live?.cancel();
     ApiService.isServerReachable.removeListener(_onReachabilityChanged);
     super.dispose();
   }
@@ -91,6 +110,11 @@ class _OrdersTabState extends State<OrdersTab> {
     });
   }
 
+  Future<void> _openConsultation(Consultation item) async {
+    await ConsultationSheet.open(context, item);
+    _loadConsultations();
+  }
+
   Future<void> _openDetails(OrderModel order) async {
     await OrderDetailsSheet.open(context, order);
   }
@@ -116,36 +140,50 @@ class _OrdersTabState extends State<OrdersTab> {
       );
     }
 
-    final orders = _orders.where((order) => order.isOngoing == _showCurrent).toList();
+    // الطلبات والاستشارات مع بعض، الأحدث الأول
+    final entries = <({DateTime date, Widget card, String key})>[
+      for (final order in _orders.where((order) => order.isOngoing == _showCurrent))
+        (
+          date: DateTime.tryParse(order.createdAt) ?? DateTime(2000),
+          key: 'order-${order.id}',
+          card: OrderSummaryCard(order: order, onOpen: () { _openDetails(order); }),
+        ),
+      for (final item in _consultations.where((item) => item.isOngoing == _showCurrent))
+        (
+          date: item.createdAt ?? DateTime(2000),
+          key: 'consultation-${item.id}',
+          card: ConsultationOrderCard(item: item, onOpen: () { _openConsultation(item); }),
+        ),
+    ]..sort((a, b) => b.date.compareTo(a.date));
+    final currentCount = _orders.where((order) => order.isOngoing).length + _consultations.where((item) => item.isOngoing).length;
 
     return SafeArea(
       child: RefreshIndicator(
         color: AppColors.primary,
-        onRefresh: _loadOrders,
+        onRefresh: () => Future.wait([_loadOrders(), _loadConsultations()]),
         child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 16.0),
-          itemCount: 1 + (orders.isEmpty ? 1 : orders.length),
+          itemCount: 1 + (entries.isEmpty ? 1 : entries.length),
           itemBuilder: (context, position) {
             if (position == 0) {
-              return OrdersFilter(currentCount: _orders.where((order) => order.isOngoing).length, showCurrent: _showCurrent, onChanged: (value) => setState(() => _showCurrent = value));
+              return OrdersFilter(currentCount: currentCount, showCurrent: _showCurrent, onChanged: (value) => setState(() => _showCurrent = value));
             }
             final index = position - 1;
-            if (orders.isEmpty) {
-              return const AppStateMessage(
+            if (entries.isEmpty) {
+              return AppStateMessage(
                 icon: Icons.receipt_long_rounded,
-                title: 'لا توجد طلبات حتى الآن',
-                message: 'هتظهر طلباتك هنا فور إرسالها لأحد المحامين',
+                title: _showCurrent ? 'مفيش طلبات حالية' : 'السجل فاضي',
+                message: _showCurrent
+                    ? 'أي طلب مفتوح من أي خدمة بيظهر هنا\nزي «محاميك حالاً» و«استشارة سريعة»'
+                    : 'الطلبات اللي خلصت أو اتلغت من كل الخدمات\nبتتجمع هنا',
               );
             }
-            final order = orders[index];
+            final entry = entries[index];
             return Padding(
-              key: ValueKey(order.id),
+              key: ValueKey(entry.key),
               padding: const EdgeInsets.only(bottom: 12),
-              child: OrderSummaryCard(
-                order: order,
-                onOpen: () { _openDetails(order); },
-              ),
+              child: entry.card,
             );
           },
         ),

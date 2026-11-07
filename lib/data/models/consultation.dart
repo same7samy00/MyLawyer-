@@ -54,21 +54,51 @@ class ConsultationDraft {
   const ConsultationDraft({required this.kind, required this.details, required this.pagePaths, required this.quote});
 }
 
-/// استشارة اتطلبت
+/// استشارة اتطلبت، وبتظهر في صفحة الطلبات مع باقي الخدمات
 class Consultation {
   final String id;
   final String reference;
+  final ConsultationKind kind;
   final String status;
   final String statusText;
   final int price;
+  final int pages;
+  final String details;
+  final String? rejectReason;
+  final bool canRequestContact;
+  final bool contactRequested;
+  final DateTime? createdAt;
 
-  const Consultation({required this.id, required this.reference, required this.status, required this.statusText, required this.price});
+  const Consultation({
+    required this.id,
+    required this.reference,
+    required this.kind,
+    required this.status,
+    required this.statusText,
+    required this.price,
+    this.pages = 0,
+    this.details = '',
+    this.rejectReason,
+    this.canRequestContact = false,
+    this.contactRequested = false,
+    this.createdAt,
+  });
+
+  /// مستنية مكالمة الفريق أو الفريق بيكلمه: في «الطلبات الحالية»، والباقي في السجل
+  bool get isOngoing => status == 'PAID' || status == 'CONTACTING';
 
   factory Consultation.fromJson(Map<String, dynamic> json) => Consultation(
         id: json['id']?.toString() ?? '',
         reference: json['reference']?.toString() ?? '',
+        kind: json['kind'] == ConsultationKind.papers.code ? ConsultationKind.papers : ConsultationKind.call,
         status: json['status']?.toString() ?? '',
         statusText: json['statusText']?.toString() ?? '',
         price: (json['price'] as num?)?.round() ?? 0,
+        pages: (json['pages'] is num) ? (json['pages'] as num).toInt() : (json['pages'] is List ? (json['pages'] as List).length : 0),
+        details: json['details']?.toString() ?? '',
+        rejectReason: json['rejectReason']?.toString(),
+        canRequestContact: json['canRequestContact'] == true,
+        contactRequested: json['contactRequestedAt'] != null,
+        createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '')?.toLocal(),
       );
 }

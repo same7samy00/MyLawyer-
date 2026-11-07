@@ -15,6 +15,7 @@ import {
   readConsultationForm,
   readSettings,
   savePages,
+  waitingForClient,
 } from './service.js';
 
 /// «استشارة سريعة» للموكل: الأسعار والشروط، والسعر قبل الدفع، والطلب بالدفع، وطلباته
@@ -93,6 +94,22 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     return reply.status(201).send({ success: true, data: listItem(row), message: 'استلمنا استشارتك، وفريقنا هيكلمك خلال دقايق' });
   });
 
+  // POST /api/v1/consultations/:id/contact - بعد «مقدرناش نوصلك»: الموكل بيقول إنه متاح دلوقتي
+  fastify.post('/:id/contact', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
+    const { id } = request.params as { id: string };
+    const row = await withTransaction(async (db) => {
+      const res = await db.query('SELECT * FROM consultations WHERE (id::text = $1 OR reference = $1) AND client_id = $2 FOR UPDATE', [id, userId]);
+      const current = res.rows[0];
+      if (!current) throw new HttpError(404, 'الاستشارة غير موجودة');
+      if (!waitingForClient(current)) throw new HttpError(409, 'فريقنا هيكلمك، مش محتاج تطلب التواصل دلوقتي');
+      const saved = await db.query('UPDATE consultations SET callback_requested_at = NOW() WHERE id = $1 RETURNING *', [current.id]);
+      await publishChange(db, userId, false, 'consultations', current.id);
+      return saved.rows[0];
+    });
+    return reply.send({ success: true, data: listItem(row), message: 'وصلنا طلبك، وفريقنا هيكلمك خلال دقايق' });
+  });
+
   // GET /api/v1/consultations/pages/:id - صورة ورقة لصاحبها والإدارة بس
   fastify.get('/pages/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const viewer = request.user as AuthenticatedUser;
@@ -110,6 +127,6 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     const res = await query('SELECT * FROM consultations WHERE (id::text = $1 OR reference = $1) AND client_id = $2', [id, userId]);
     const row = res.rows[0];
     if (!row) return reply.status(404).send({ success: false, error: 'الاستشارة غير موجودة' });
-    return reply.send({ success: true, data: { ...listItem(row), details: row.details, pages: await pageLinks(dbPool, row.id) } });
+    return reply.send({ success: true, data: { ...listItem(row), pages: await pageLinks(dbPool, row.id) } });
   });
 }

@@ -75,3 +75,18 @@ describe('الاستشارة السريعة', () => {
     await call('PUT', '/admin/consultation-settings', adminToken, { callPrice: 200, papersBasePrice: 250, pagePrice: 30, maxPages: 10, callMinutes: 7, minDetailsChars: 50, isOpen: true });
   });
 });
+
+describe('الاستشارة السريعة: التواصل', () => {
+  it('«مقدرناش نوصلك» ثم الموكل يطلب التواصل مرة واحدة', async () => {
+    const created = (await call('POST', '/consultations', clientToken, { kind: 'CALL', details })).body.data;
+    assert.equal(created.canRequestContact, false);
+    assert.equal((await call('POST', `/consultations/${created.id}/contact`, clientToken, {})).status, 409);
+    assert.equal((await call('POST', `/admin/consultations/${created.id}/unreachable`, adminToken, {})).status, 200);
+    const mine = (await call('GET', `/consultations/${created.id}`, clientToken)).body.data;
+    assert.equal(mine.canRequestContact, true);
+    assert.equal((await call('POST', `/consultations/${created.id}/contact`, clientToken, {})).status, 200);
+    assert.equal((await call('POST', `/consultations/${created.id}/contact`, clientToken, {})).status, 409);
+    const forAdmin = (await call('GET', `/admin/consultations/${created.id}`, adminToken)).body.data;
+    assert.ok(forAdmin.callback_requested_at);
+  });
+});

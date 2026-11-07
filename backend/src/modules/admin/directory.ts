@@ -74,10 +74,12 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
   fastify.get('/reviews', async (_request: FastifyRequest, reply: FastifyReply) => {
     const res = await query(
       `SELECT r.id, r.rating, r.comment, r.created_at, r.is_hidden, o.order_number, o.id AS order_id,
-              lp.full_name AS lawyer_name, lp.user_id AS lawyer_id
+              lp.full_name AS lawyer_name, lp.user_id AS lawyer_id,
+              COALESCE(c.full_name, c.phone) AS client_name, c.phone AS client_phone, o.client_id, r.reported_at, r.report_reason
        FROM reviews r
        JOIN service_orders o ON o.id = r.order_id
        JOIN lawyer_profiles lp ON lp.user_id = r.lawyer_id
+       JOIN users c ON c.id = o.client_id
        ORDER BY r.created_at DESC LIMIT $1`,
       [PAGE_LIMIT]
     );

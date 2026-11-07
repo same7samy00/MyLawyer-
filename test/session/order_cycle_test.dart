@@ -414,7 +414,7 @@ void main() {
       await tester.pumpWidget(testApp(const Scaffold(body: OrdersTab())));
       await tester.pumpAndSettle();
 
-      expect(find.text('لا توجد طلبات حتى الآن'), findsOneWidget);
+      expect(find.text('مفيش طلبات حالية'), findsOneWidget);
       expect(find.textContaining('أحمد الشافعي'), findsNothing);
       expect(find.text('ML-984210'), findsNothing);
     });

@@ -109,6 +109,7 @@ class _HomeTabState extends State<HomeTab> {
               title: 'استشارة سريعة',
               desc: 'اكتب مشكلتك وادفع، وفريقنا القانوني يكلمك على تليفونك خلال دقايق',
               icon: Icons.support_agent_rounded,
+              image: 'assets/images/consultation_icon.png',
               onTap: _openConsultation,
             ),
             const SizedBox(height: 10),
@@ -176,6 +177,7 @@ class _HomeTabState extends State<HomeTab> {
     required String title,
     required String desc,
     IconData? icon,
+    String? image,
     bool highlighted = false,
     required VoidCallback onTap,
   }) {
@@ -188,6 +190,8 @@ class _HomeTabState extends State<HomeTab> {
           // «محاميك حالاً» بنفس صورة البانر اللي فوق
           if (highlighted)
             const RepaintBoundary(child: LawyerPinIllustration(size: 48))
+          else if (image != null)
+            Image.asset(image, width: 48, height: 48, fit: BoxFit.contain, cacheWidth: 144)
           else
             Container(
               width: 44,

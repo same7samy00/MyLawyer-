@@ -13,10 +13,10 @@ const PAGES = {
   money: ['إدارة الأموال', 'money', moneyPage],
   prices: ['الأسعار والنسب', 'price', pricesPage],
 };
-const INNER = { user: userPage, order: orderPage, application: applicationPage, ticket: ticketPage, reviewReport: reviewReportPage, consultation: consultationPage };
-const INNER_TITLES = { user: 'الملف الشخصي', order: 'تفاصيل الطلب', application: 'طلب تقديم على محاميك حالاً', ticket: 'تذكرة دعم فني', reviewReport: 'بلاغ عن تقييم', consultation: 'استشارة سريعة' };
+const INNER = { user: userPage, order: orderPage, application: applicationPage, ticket: ticketPage, reviewReport: reviewReportPage, consultation: consultationPage, review: reviewPage };
+const INNER_TITLES = { user: 'الملف الشخصي', order: 'تفاصيل الطلب', application: 'طلب تقديم على محاميك حالاً', ticket: 'تذكرة دعم فني', reviewReport: 'بلاغ عن تقييم', consultation: 'استشارة سريعة', review: 'تفاصيل التقييم' };
 const SUBTITLES = {
-  overview: 'إجمالي إحصائيات التطبيق', consultations: 'استشارات مدفوعة تنتظر اتصال الفريق بالموكل', consultation: 'تفاصيل المشكلة والمستندات والحالة', tasks: 'ما يحتاج إلى متابعتك الآن', tickets: 'كل ما يرسله الموكلون والمحامون إلى الدعم الفني', reports: 'تعليقات أبلغ عنها المحامون',
+  overview: 'إجمالي إحصائيات التطبيق', consultations: 'استشارات مدفوعة تنتظر اتصال الفريق بالموكل', consultation: 'تفاصيل المشكلة والمستندات والحالة', review: 'التقييم والتعليق وطرفا الطلب', tasks: 'ما يحتاج إلى متابعتك الآن', tickets: 'كل ما يرسله الموكلون والمحامون إلى الدعم الفني', reports: 'تعليقات أبلغ عنها المحامون',
   reviewReport: 'مراجعة التعليق والقرار', ticket: 'الرسائل والرد والإغلاق', applications: 'طلبات التقديم على الخدمة والمحامون المفعلة لهم', lawyers: 'كل حسابات المحامين',
   clients: 'كل حسابات الموكلين', orders: 'البحث في الطلبات ومتابعة حالتها', reviews: 'تقييمات الموكلين للمحامين',
   decisions: 'من اتخذ كل قرار في اللوحة ومتى', money: 'المدفوعات والأموال المجمدة والحركات', prices: 'أسعار الخدمات ونسبة المنصة والضريبة', application: 'مراجعة بيانات المحامي والقرار', user: 'البيانات والطلبات والتقييمات', order: 'البيانات ودورة حياة الطلب',

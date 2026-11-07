@@ -12,7 +12,7 @@
 .view-hero-main .view-product-title { margin: 0; font-size: 1.12rem; font-weight: 600; overflow-wrap: anywhere; }
 
 /* Buttons sit directly on the header at a normal size, one line or two as the space allows */
-.view-hero-actions.hero-part { grid-row: 1; grid-column: 2; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.3rem; max-width: 300px; padding: 0.4rem 0.7rem; background: transparent; border: 0; }
+.view-hero-actions.hero-part { grid-row: 1; grid-column: 2; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.3rem; max-width: none; flex-wrap: nowrap; padding: 0.4rem 0.7rem; background: transparent; border: 0; }
 .view-hero-actions.hero-part > * { width: auto !important; min-width: 118px; height: 32px !important; min-height: 32px !important; max-height: 32px !important; padding: 0 0.65rem !important; font-size: 0.88rem !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; white-space: nowrap; }
 .view-hero-actions.hero-part > * svg { width: 15px; height: 15px; }
 
@@ -30,7 +30,7 @@
 .hero-status-row .status-badge, .view-hero-card .status-badge { font-size: 0.96rem !important; font-weight: 600; }
 @media (max-width: 700px) {
   .view-hero-card { grid-template-columns: minmax(0, 1fr); }
-  .view-hero-actions.hero-part { grid-row: 4; grid-column: 1; max-width: none; justify-content: flex-start; border-top: 1px dashed #94a3b8; }
+  .view-hero-actions.hero-part { grid-row: 4; grid-column: 1; max-width: none; justify-content: flex-start; flex-wrap: wrap; border-top: 1px dashed #94a3b8; }
   .view-meta-pill, .hero-status-row { padding: 0 0.6rem 0 0 !important; border-left: 0 !important; }
 }
 

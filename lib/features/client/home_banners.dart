@@ -40,7 +40,7 @@ class HomeBannersCarousel extends StatefulWidget {
           title: 'استشارة سريعة',
           body: 'احكي مشكلتك وادفع\nوفريقنا يكلمك خلال دقايق',
           action: 'ابدأ الاستشارة',
-          art: const Icon(Icons.support_agent_rounded, size: 84, color: Colors.white),
+          art: Image.asset('assets/images/consultation_banner.png', width: 104, height: 104, fit: BoxFit.contain, cacheWidth: 312),
           onTap: onConsultation,
         ),
       ],
@@ -87,17 +87,33 @@ class _HomeBannersCarouselState extends State<HomeBannersCarousel> {
       children: [
         SizedBox(
           height: 150,
-          child: NotificationListener<ScrollStartNotification>(
-            // لو الموكل سحب بإيده، العداد يبدأ من الأول
-            onNotification: (notification) {
-              if (notification.dragDetails != null) _restartTimer();
-              return false;
-            },
-            child: PageView.builder(
-              controller: _controller,
-              itemCount: widget.banners.length,
-              onPageChanged: (index) => _page.value = index,
-              itemBuilder: (context, index) => _BannerCard(banner: widget.banners[index]),
+          child: LayoutBuilder(
+            // البانر بيخرج 6 بكسل من كل ناحية برا هامش الصفحة، عشان المسافة اللي بين البانرات ما تصغرش عرضه
+            builder: (context, constraints) => OverflowBox(
+              maxWidth: constraints.maxWidth + 12,
+              minWidth: constraints.maxWidth + 12,
+              maxHeight: 150,
+              minHeight: 150,
+              child: SizedBox(
+                height: 150,
+                child: NotificationListener<ScrollStartNotification>(
+                  // لو الموكل سحب بإيده، العداد يبدأ من الأول
+                  onNotification: (notification) {
+                    if (notification.dragDetails != null) _restartTimer();
+                    return false;
+                  },
+                  child: PageView.builder(
+                    controller: _controller,
+                    itemCount: widget.banners.length,
+                    onPageChanged: (index) => _page.value = index,
+                    // مسافة بين كل بانر والتاني وهي بتتقلب، فمش لازقين في بعض
+                    itemBuilder: (context, index) => Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: _BannerCard(banner: widget.banners[index]),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -147,13 +163,20 @@ class _BannerCard extends StatelessWidget {
               children: [
                 Text(
                   banner.title,
-                  style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
+                  style: const TextStyle(
+                      fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   banner.body,
                   maxLines: 2,
-                  style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12, height: 1.5, fontWeight: FontWeight.w500, color: AppColors.primaryLight),
+                  style: const TextStyle(
+                      fontFamily: 'AppFont',
+                      fontFamilyFallback: appFontFallback,
+                      fontSize: 12,
+                      height: 1.5,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.primaryLight),
                 ),
                 const SizedBox(height: 10),
                 AppPressable(

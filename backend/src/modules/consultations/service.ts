@@ -110,6 +110,10 @@ export const STATUS_TEXT: Record<string, string> = {
   REJECTED: 'اترفضت والمبلغ رجع لرصيدك',
 };
 
+/// الإدارة بعتت «مقدرناش نوصلك» والموكل لسه ما طلبش التواصل
+export const waitingForClient = (row: any) =>
+  Boolean(row.unreachable_at) && !row.callback_requested_at && (row.status === 'PAID' || row.status === 'CONTACTING');
+
 export const listItem = (row: any) => ({
   id: row.id,
   reference: row.reference,
@@ -117,7 +121,10 @@ export const listItem = (row: any) => ({
   pages: row.pages,
   price: Number(row.price),
   status: row.status,
-  statusText: STATUS_TEXT[row.status] ?? row.status,
+  statusText: waitingForClient(row) ? 'مقدرناش نوصلك، اطلب التواصل' : STATUS_TEXT[row.status] ?? row.status,
   rejectReason: row.reject_reason,
+  canRequestContact: waitingForClient(row),
+  contactRequestedAt: row.callback_requested_at,
+  details: row.details,
   createdAt: row.created_at,
 });

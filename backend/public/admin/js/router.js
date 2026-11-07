@@ -2,7 +2,7 @@
 /// Example: #/orders?status=ACTIVE&from=2026-11-01&to=2026-11-03
 
 const LINK_KEYS = ['tab', 'state', 'status', 'side', 'method', 'filter', 'search', 'from', 'to'];
-const PARENT_PAGES = { order: 'orders', ticket: 'tickets', consultation: 'consultations', application: 'applications', reviewReport: 'reports', user: 'lawyers' };
+const PARENT_PAGES = { order: 'orders', ticket: 'tickets', consultation: 'consultations', review: 'reviews', application: 'applications', reviewReport: 'reports', user: 'lawyers' };
 
 let current = { page: 'overview' };
 let inAppSteps = 0;
