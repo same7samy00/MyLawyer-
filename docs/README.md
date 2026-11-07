@@ -38,6 +38,7 @@
 | الصحة والسجلات والتنبيه | `docs/MONITORING.md` |
 | أدوات الأمان وحالتها | `docs/SECURITY_TOOLS.md` |
 | السعة وخطة التوسع | `docs/SCALABILITY.md` |
+| خطة اختبار الضغط ونتايجه | `docs/LOAD_TESTING.md` |
 | ذاكرة المشروع (الحالة والقواعد واللي جاي) | `docs/memory/README.md` |
 | التشغيل والبناء محليًا | `docs/DEVELOPMENT_GUIDE.md` |
 | إيه اللي اتغير ومتى | `docs/CHANGELOG.md` (الأحدث فوق)، والأقدم في `docs/CHANGELOG_ARCHIVE.md` |
