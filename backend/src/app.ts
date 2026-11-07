@@ -10,6 +10,7 @@ import { authRoutes } from './modules/auth/routes.js';
 import { userRoutes } from './modules/users/routes.js';
 import { walletRoutes } from './modules/wallet/routes.js';
 import { supportRoutes } from './modules/support/routes.js';
+import { consultationRoutes } from './modules/consultations/routes.js';
 import { lawyerRoutes } from './modules/lawyers/routes.js';
 import { orderRoutes } from './modules/orders/routes.js';
 import { requestRoutes } from './modules/requests/routes.js';
@@ -185,6 +186,7 @@ export function buildApp() {
     api.register(userRoutes, { prefix: '/users' });
     api.register(walletRoutes, { prefix: '/wallet' });
     api.register(supportRoutes, { prefix: '/support' });
+    api.register(consultationRoutes, { prefix: '/consultations' });
     api.register(lawyerRoutes, { prefix: '/lawyers' });
     api.register(orderRoutes, { prefix: '/orders' });
     api.register(requestRoutes, { prefix: '/requests' });

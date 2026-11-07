@@ -4,6 +4,7 @@ import { registerAdminDirectory } from './directory.js';
 import { registerAdminAccounts } from './accounts.js';
 import { registerAdminOrders } from './orders.js';
 import { registerAdminSupport } from '../support/admin.js';
+import { registerAdminConsultations } from '../consultations/admin.js';
 import { registerAdminMoney } from './money.js';
 import { logAdminAction, registerAdminActions } from './actions.js';
 import { sanitizeText } from '../../utils/security.js';
@@ -18,6 +19,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
   await registerAdminAccounts(fastify);
   await registerAdminOrders(fastify);
   await registerAdminSupport(fastify);
+  await registerAdminConsultations(fastify);
   await registerAdminMoney(fastify);
   await registerAdminActions(fastify);
 

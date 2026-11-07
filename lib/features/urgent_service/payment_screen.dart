@@ -4,6 +4,7 @@ import '../../core/services/routing_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/line_illustration.dart';
+import '../../data/models/consultation.dart';
 import '../../data/models/map_lawyer.dart';
 import 'payment_method_screen.dart';
 
@@ -16,8 +17,8 @@ class PaymentScreen extends StatefulWidget {
   final int price;
   final String? orderId;
   final String? orderNumber;
-  /// دفع «استشارة سريعة»: تجريبي من غير سيرفر، ومن غير محامي ولا مكان
-  final bool consultation;
+  /// دفع «استشارة سريعة»: الطلب نفسه بيتبعت مع الدفع، ومن غير محامي ولا مكان
+  final ConsultationDraft? consultation;
 
   const PaymentScreen({
     super.key,
@@ -29,7 +30,7 @@ class PaymentScreen extends StatefulWidget {
     this.price = 350,
     this.orderId,
     this.orderNumber,
-    this.consultation = false,
+    this.consultation,
   });
 
   @override
@@ -41,7 +42,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   /// الدفع نفسه في صفحة لوحدها بعد مراجعة الفاتورة
   void _chooseMethod() {
-    final orderId = widget.orderId ?? (widget.consultation ? '' : null);
+    final orderId = widget.orderId ?? (widget.consultation != null ? '' : null);
     if (orderId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -169,7 +170,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             _buildTableRow('نوع الخدمة', widget.problemTitle ?? 'محاميك حالاً'),
                             if (widget.problemDescription != null && widget.problemDescription!.isNotEmpty)
                               _buildTableRow('تفاصيل المشكلة', widget.problemDescription!),
-                            if (!widget.consultation) ...[
+                            if (widget.consultation == null) ...[
                               _buildTableRow('المحامي المعتمد', widget.lawyer?.name ?? '-'),
                               _buildTableRow('نطاق التواجد', widget.locationName),
                             ],

@@ -3,7 +3,9 @@ import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_pressable.dart';
 import '../../core/widgets/auth_hero_header.dart';
+import '../../data/models/consultation.dart';
 import '../../data/models/map_lawyer.dart';
+import '../../data/repositories/consultation_repository.dart';
 import '../../data/repositories/order_repository.dart';
 import 'payment_success_screen.dart';
 
@@ -18,8 +20,8 @@ class PaymentMethodScreen extends StatefulWidget {
   final String? problemTitle;
   final String? problemDescription;
   final String locationName;
-  /// دفع «استشارة سريعة»: تجريبي من غير سيرفر، ومن غير محامي ولا مكان
-  final bool consultation;
+  /// دفع «استشارة سريعة»: الطلب نفسه بيتبعت مع الدفع، ومن غير محامي ولا مكان
+  final ConsultationDraft? consultation;
 
   const PaymentMethodScreen({
     super.key,
@@ -30,7 +32,7 @@ class PaymentMethodScreen extends StatefulWidget {
     this.lawyer,
     this.problemTitle,
     this.problemDescription,
-    this.consultation = false,
+    this.consultation,
   });
 
   @override
@@ -57,34 +59,36 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
   Future<void> _pay() async {
     setState(() => _isProcessing = true);
-    if (widget.consultation) {
-      // دفع تجريبي لحد ما بوابة الدفع والسيرفر يجهزوا
-      await Future.delayed(const Duration(milliseconds: 900));
+    final consultation = widget.consultation;
+    if (consultation != null) {
+      final res = await ConsultationRepository.submit(consultation, fromBalance: _method == PaymentMethod.balance);
       if (!mounted) return;
-      _openSuccess();
+      if (!res.isOk || res.data == null) return _showError(res.error);
+      _openSuccess(reference: res.data!.reference);
       return;
     }
     final res = await OrderRepository.confirmPayment(widget.orderId, fromBalance: _method == PaymentMethod.balance);
     if (!mounted) return;
 
-    if (!res.isOk) {
-      setState(() => _isProcessing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            res.error ?? 'الدفع ما تمش، جرب تاني',
-            style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback),
-          ),
-          backgroundColor: AppColors.dark,
-        ),
-      );
-      return;
-    }
+    if (!res.isOk) return _showError(res.error);
 
     _openSuccess();
   }
 
-  void _openSuccess() {
+  void _showError(String? error) {
+    setState(() => _isProcessing = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error ?? 'الدفع ما تمش، جرب تاني',
+          style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback),
+        ),
+        backgroundColor: AppColors.dark,
+      ),
+    );
+  }
+
+  void _openSuccess({String? reference}) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => PaymentSuccessScreen(
@@ -92,9 +96,9 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           problemTitle: widget.problemTitle,
           problemDescription: widget.problemDescription,
           price: widget.price,
-          orderRef: widget.orderRef,
+          orderRef: reference ?? widget.orderRef,
           locationName: widget.locationName,
-          consultation: widget.consultation,
+          consultation: widget.consultation != null,
         ),
       ),
     );

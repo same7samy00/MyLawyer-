@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { query } from '../../database/index.js';
 
-export type AdminAction = 'ACCOUNT_SUSPEND' | 'ACCOUNT_ACTIVATE' | 'PRICE_UPDATE' | 'COMMISSION_UPDATE' | 'TAX_UPDATE' | 'LAWYER_APPROVE' | 'LAWYER_REJECT' | 'REVIEW_HIDE' | 'REVIEW_KEEP';
+export type AdminAction = 'ACCOUNT_SUSPEND' | 'ACCOUNT_ACTIVATE' | 'PRICE_UPDATE' | 'COMMISSION_UPDATE' | 'TAX_UPDATE' | 'LAWYER_APPROVE' | 'LAWYER_REJECT' | 'REVIEW_HIDE' | 'REVIEW_KEEP' | 'CONSULTATION_SETTINGS';
 
 /// One line in the decisions log: who decided what, and on whom
 export async function logAdminAction(actorId: string, action: AdminAction, label: string | null, details: string | null, targetUserId: string | null = null) {

@@ -25,6 +25,7 @@ export async function registerAdminDirectory(fastify: FastifyInstance) {
         (SELECT COUNT(*)::int FROM service_orders WHERE status IN ('PENDING', 'ACCEPTED', 'ACTIVE')) AS open_orders,
         (SELECT COUNT(*)::int FROM service_orders WHERE status = 'COMPLETED') AS completed_orders,
         (SELECT COUNT(*)::int FROM support_tickets WHERE status = 'UNDER_REVIEW') AS waiting_tickets,
+        (SELECT COUNT(*)::int FROM consultations WHERE status IN ('PAID', 'CONTACTING')) AS waiting_consultations,
         (SELECT COUNT(*)::int FROM support_tickets WHERE status = 'OPEN') AS open_tickets,
         (SELECT COUNT(*)::int FROM reviews WHERE reported_at IS NOT NULL AND is_hidden = FALSE) AS reported_reviews,
         (SELECT COUNT(*)::int FROM service_orders WHERE payout_status = 'FROZEN') AS frozen_orders,

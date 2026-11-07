@@ -10,7 +10,7 @@ import '../../core/widgets/lawyer_pin_illustration.dart';
 import '../../core/widgets/profile_home_card.dart';
 import '../urgent_service/urgent_service_problem_screen.dart';
 import '../auth/location_permission_screen.dart';
-import '../consultation/quick_consultation_screen.dart';
+import '../consultation/consultation_type_screen.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});

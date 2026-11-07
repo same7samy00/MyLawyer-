@@ -3,6 +3,7 @@ const ADMIN_ACTIONS = {
   PRICE_UPDATE: ['تعديل سعر خدمة', 'blue'], COMMISSION_UPDATE: ['تعديل نسبة المنصة', 'blue'], TAX_UPDATE: ['تعديل الضريبة', 'blue'],
   LAWYER_APPROVE: ['موافقة على محامٍ', 'green'], LAWYER_REJECT: ['رفض محامٍ', 'red'],
   REVIEW_HIDE: ['إخفاء تعليق', 'red'], REVIEW_KEEP: ['إبقاء تعليق', 'green'],
+  CONSULTATION_SETTINGS: ['إعدادات الاستشارة السريعة', 'blue'],
 };
 
 /// Who decided what on the control page

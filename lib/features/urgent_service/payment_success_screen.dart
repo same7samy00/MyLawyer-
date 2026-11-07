@@ -16,7 +16,7 @@ class PaymentSuccessScreen extends StatefulWidget {
   final int price;
   final String orderRef;
   final String locationName;
-  /// دفع «استشارة سريعة»: تجريبي من غير سيرفر، ومن غير محامي ولا مكان
+  /// نجاح دفع «استشارة سريعة»: الرسالة والرجوع للرئيسية
   final bool consultation;
 
   const PaymentSuccessScreen({

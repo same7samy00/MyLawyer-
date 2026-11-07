@@ -10,6 +10,7 @@ const SCRIPTS = [
   'js/components.js',
   'js/pages/overview.js',
   'js/pages/tickets.js',
+  'js/pages/consultations.js',
   'js/windows.js',
   'js/actions.js',
   'js/pages/ticket.js',

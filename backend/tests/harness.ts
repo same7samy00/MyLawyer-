@@ -132,7 +132,7 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  for (const table of ['change_log', 'service_requests', 'ticket_attachments', 'ticket_messages', 'support_tickets', 'wallet_transfers', 'reviews', 'lawyer_strikes', 'client_credits', 'account_warnings', 'lawyer_adjustments', 'notifications', 'client_problem_prices', 'order_status_logs']) {
+  for (const table of ['change_log', 'service_requests', 'ticket_attachments', 'ticket_messages', 'support_tickets', 'consultation_pages', 'consultations', 'wallet_transfers', 'reviews', 'lawyer_strikes', 'client_credits', 'account_warnings', 'lawyer_adjustments', 'notifications', 'client_problem_prices', 'order_status_logs']) {
     await sql(`DELETE FROM ${table}`);
   }
   await sql('DELETE FROM service_orders');

@@ -1,5 +1,5 @@
 async function pricesPage(box) {
-  const [prices, tax] = await Promise.all([api('GET', '/admin/prices'), api('GET', '/admin/tax')]);
+  const [prices, tax, consultationTiles] = await Promise.all([api('GET', '/admin/prices'), api('GET', '/admin/tax'), consultationSettingsTiles()]);
 
   const list = prices.data;
   const average = list.length ? (sumOf(list, 'commission_percent') / list.length).toFixed(1) : '0';
@@ -42,5 +42,6 @@ async function pricesPage(box) {
       button('تطبيق', 'btn-primary', confirmed('هل تريد تطبيق هذه النسبة على كل الخدمات؟', () => api('POST', '/admin/commission', { percent: Number(percent.value) })))),
     actionTile('نسبة الضريبة', 'يغير نسبة الضريبة التي تُخصم من سعر كل طلب جديد.', taxInput,
       button('حفظ', 'btn-primary', confirmed('هل تريد تغيير نسبة الضريبة؟', () => api('POST', '/admin/tax', { percent: Number(taxInput.value) })))),
+    ...consultationTiles,
   ]));
 }

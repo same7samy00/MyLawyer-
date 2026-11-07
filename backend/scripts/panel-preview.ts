@@ -153,5 +153,13 @@ await sql(`UPDATE reviews SET reported_at = NOW(), report_reason = 'التعلي
 await sql(`INSERT INTO lawyer_strikes (lawyer_id, kind) VALUES ($1, 'NO_RESPONSE'), ($1, 'WITHDRAW')`, [lawyer2]);
 await sql(`UPDATE users SET status = 'suspended' WHERE id = $1`, [client4]);
 
+// Quick consultations: one waiting call, one with papers being handled, one done
+const consultDetails = 'اتفقت مع صاحب الشقة على الإيجار لمدة سنة، ودلوقتي عايز يطلعني قبل المدة من غير أي سبب واضح';
+await call('/consultations', c1, { kind: 'CALL', details: consultDetails });
+const handled = await call('/consultations', c2, { kind: 'CALL', details: consultDetails + '، ومعايا عقد موقع' });
+await sql(`UPDATE consultations SET status = 'CONTACTING', contacted_at = NOW() WHERE id = $1`, [handled.data.id]);
+const doneConsult = await call('/consultations', c3, { kind: 'CALL', details: consultDetails });
+await sql(`UPDATE consultations SET status = 'DONE', closed_at = NOW(), admin_note = 'تمت المكالمة ووضحنا له الخطوات' WHERE id = $1`, [doneConsult.data.id]);
+
 await app.listen({ port: 3900, host: '127.0.0.1' });
 console.log('panel ready');

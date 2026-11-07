@@ -4,6 +4,7 @@ const PAGES = {
   tickets: ['تذاكر الدعم الفني', 'complaint', ticketsPage],
   reports: ['بلاغات التقييمات', 'review', reportsPage],
   applications: ['محاميك حالاً', 'apply', applicationsPage],
+  consultations: ['الاستشارة السريعة', 'phone', consultationsPage],
   lawyers: ['حسابات المحامين', 'lawyer', usersPage('lawyer')],
   clients: ['حسابات الموكلين', 'client', usersPage('client')],
   orders: ['إدارة الطلبات', 'orders', ordersPage],
@@ -12,10 +13,10 @@ const PAGES = {
   money: ['إدارة الأموال', 'money', moneyPage],
   prices: ['الأسعار والنسب', 'price', pricesPage],
 };
-const INNER = { user: userPage, order: orderPage, application: applicationPage, ticket: ticketPage, reviewReport: reviewReportPage };
-const INNER_TITLES = { user: 'الملف الشخصي', order: 'تفاصيل الطلب', application: 'طلب تقديم على محاميك حالاً', ticket: 'تذكرة دعم فني', reviewReport: 'بلاغ عن تقييم' };
+const INNER = { user: userPage, order: orderPage, application: applicationPage, ticket: ticketPage, reviewReport: reviewReportPage, consultation: consultationPage };
+const INNER_TITLES = { user: 'الملف الشخصي', order: 'تفاصيل الطلب', application: 'طلب تقديم على محاميك حالاً', ticket: 'تذكرة دعم فني', reviewReport: 'بلاغ عن تقييم', consultation: 'استشارة سريعة' };
 const SUBTITLES = {
-  overview: 'إجمالي إحصائيات التطبيق', tasks: 'ما يحتاج إلى متابعتك الآن', tickets: 'كل ما يرسله الموكلون والمحامون إلى الدعم الفني', reports: 'تعليقات أبلغ عنها المحامون',
+  overview: 'إجمالي إحصائيات التطبيق', consultations: 'استشارات مدفوعة تنتظر اتصال الفريق بالموكل', consultation: 'تفاصيل المشكلة والمستندات والحالة', tasks: 'ما يحتاج إلى متابعتك الآن', tickets: 'كل ما يرسله الموكلون والمحامون إلى الدعم الفني', reports: 'تعليقات أبلغ عنها المحامون',
   reviewReport: 'مراجعة التعليق والقرار', ticket: 'الرسائل والرد والإغلاق', applications: 'طلبات التقديم على الخدمة والمحامون المفعلة لهم', lawyers: 'كل حسابات المحامين',
   clients: 'كل حسابات الموكلين', orders: 'البحث في الطلبات ومتابعة حالتها', reviews: 'تقييمات الموكلين للمحامين',
   decisions: 'من اتخذ كل قرار في اللوحة ومتى', money: 'المدفوعات والأموال المجمدة والحركات', prices: 'أسعار الخدمات ونسبة المنصة والضريبة', application: 'مراجعة بيانات المحامي والقرار', user: 'البيانات والطلبات والتقييمات', order: 'البيانات ودورة حياة الطلب',
@@ -23,7 +24,7 @@ const SUBTITLES = {
 const NAV_GROUPS = [
   [null, ['overview']],
   ['المتابعة', ['tasks', 'tickets', 'reports']],
-  ['الخدمات', ['applications']],
+  ['الخدمات', ['applications', 'consultations']],
   ['الطلبات والحسابات', ['orders', 'lawyers', 'clients', 'reviews', 'decisions']],
   ['الأموال', ['money', 'prices']],
 ];
@@ -31,9 +32,9 @@ const NAV_GROUPS = [
 const NAV_LABELS = { overview: 'الرئيــــــــــسية' };
 const PREFETCH = {
   lawyers: '/admin/users?role=lawyer&q=', clients: '/admin/users?role=client&q=', orders: '/admin/orders?q=&status=', reviews: '/admin/reviews',
-  reports: '/admin/reviews/reported', decisions: '/admin/actions', prices: '/admin/prices', applications: '/admin/urgent-applications',
+  reports: '/admin/reviews/reported', decisions: '/admin/actions', prices: '/admin/prices', applications: '/admin/urgent-applications', consultations: '/admin/consultations',
 };
-const NAV_COUNTS = { tasks: 'all_tasks', tickets: 'waiting_tickets', applications: 'pending_lawyers', reports: 'reported_reviews', money: 'frozen_orders' };
+const NAV_COUNTS = { tasks: 'all_tasks', tickets: 'waiting_tickets', consultations: 'waiting_consultations', applications: 'pending_lawyers', reports: 'reported_reviews', money: 'frozen_orders' };
 let navCounts = {};
 let navCountsAt = 0;
 let renderTurn = 0;
@@ -328,8 +329,10 @@ let liveDirty = false;
 
 // Which pages a change touches: support changes don't reload order pages, and the other way around
 const SUPPORT_PAGES = ['tickets', 'ticket', 'tasks', 'overview'];
+const CONSULTATION_PAGES = ['consultations', 'consultation', 'overview'];
 function touchesPage(kind) {
   if (!kind || kind === 'all') return true;
+  if (kind === 'consultations') return CONSULTATION_PAGES.includes(current.page);
   return kind === 'support' ? SUPPORT_PAGES.includes(current.page) : current.page !== 'tickets' && current.page !== 'ticket';
 }
 
