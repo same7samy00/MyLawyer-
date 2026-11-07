@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
@@ -84,18 +85,59 @@ class ApiService {
     return _client.send(request);
   }
 
+  /// الجلسة محفوظة في الخزنة المشفرة بتاعة الموبايل (Keystore أو Keychain)، مش في المحفوظ العادي (SEC-08)
+  static const FlutterSecureStorage _vault = FlutterSecureStorage();
+
+  /// من الخزنة، والنسخة القديمة اللي متخزنة من غير تشفير بتتنقل للخزنة أول مرة.
+  /// لو الخزنة مش متاحة (زي في الاختبارات) بيرجع للمحفوظ العادي.
+  static Future<String?> _readStored(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final value = await _vault.read(key: key);
+      if (value != null) return value;
+    } catch (_) {
+      return prefs.getString(key);
+    }
+    final old = prefs.getString(key);
+    if (old != null) {
+      try {
+        await _vault.write(key: key, value: old);
+        await prefs.remove(key);
+      } catch (_) {
+        // تفضل في مكانها القديم لحد المرة الجاية
+      }
+    }
+    return old;
+  }
+
+  static Future<void> _writeStored(String key, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      await _vault.write(key: key, value: value);
+      await prefs.remove(key);
+    } catch (_) {
+      await prefs.setString(key, value);
+    }
+  }
+
+  static Future<void> _removeStored(String key) async {
+    try {
+      await _vault.delete(key: key);
+    } catch (_) {
+      // مفيش خزنة، فمفيش حاجة فيها تتمسح
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(key);
+  }
+
   /// الحصول على توكن الوصول المخزن
   static Future<String?> getAccessToken() async {
-    if (_accessToken != null) return _accessToken;
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(prefAccessToken);
+    return _accessToken ??= await _readStored(prefAccessToken);
   }
 
   /// الحصول على توكن التحديث المخزن
   static Future<String?> getRefreshToken() async {
-    if (_refreshToken != null) return _refreshToken;
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(prefRefreshToken);
+    return _refreshToken ??= await _readStored(prefRefreshToken);
   }
 
   /// حفظ الـ Tokens بعد تسجيل الدخول أو التجديد
@@ -108,18 +150,16 @@ class ApiService {
     _accessToken = accessToken;
     _refreshToken = refreshToken;
     if (!persist) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(prefAccessToken, accessToken);
-    await prefs.setString(prefRefreshToken, refreshToken);
+    await _writeStored(prefAccessToken, accessToken);
+    await _writeStored(prefRefreshToken, refreshToken);
   }
 
   /// مسح الـ Tokens عند تسجيل الخروج
   static Future<void> clearTokens() async {
     _accessToken = null;
     _refreshToken = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(prefAccessToken);
-    await prefs.remove(prefRefreshToken);
+    await _removeStored(prefAccessToken);
+    await _removeStored(prefRefreshToken);
   }
 
   /// ترويسات الطلب الموحدة
@@ -366,11 +406,11 @@ class ApiService {
         final newAccess = data['accessToken'] as String?;
         final newRefresh = data['refreshToken'] as String?;
         if (newAccess != null && newRefresh != null) {
-          final prefs = await SharedPreferences.getInstance();
+          // الجلسة اللي ما اتحفظتش («تذكر بياناتي» مقفول) تفضل في الذاكرة بس
           await saveTokens(
             accessToken: newAccess,
             refreshToken: newRefresh,
-            persist: prefs.containsKey(prefRefreshToken),
+            persist: await _readStored(prefRefreshToken) != null,
           );
           return _RefreshOutcome.refreshed;
         }

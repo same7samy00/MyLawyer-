@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/core/services/api_service.dart';
 import 'package:my_lawyer/core/services/auth_service.dart';
@@ -23,6 +24,7 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString(ApiService.prefRefreshToken), isNull);
       expect(await ApiService.getRefreshToken(), 'refresh-token');
+      expect(await const FlutterSecureStorage().read(key: ApiService.prefRefreshToken), isNull);
       expect((await AuthService.currentSession()).status, SessionStatus.lawyerApproved);
     });
 

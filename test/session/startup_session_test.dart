@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/core/config/app_config.dart';
 import 'package:my_lawyer/core/services/api_service.dart';
@@ -146,8 +147,10 @@ void main() {
 
       expect(find.byType(MainNavigationShell), findsOneWidget);
       expect(backend.countOf('POST /auth/refresh'), 1);
+      // The renewed session sits in the encrypted vault, not in plain storage
+      expect(await const FlutterSecureStorage().read(key: ApiService.prefRefreshToken), 'renewed-refresh');
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getString(ApiService.prefRefreshToken), 'renewed-refresh');
+      expect(prefs.getString(ApiService.prefRefreshToken), isNull);
     });
 
     testWidgets('جلسة منتهية فعلياً: مسح بياناتها والعودة للدخول برسالة', (tester) async {
@@ -161,6 +164,7 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString(ApiService.prefRefreshToken), isNull);
       expect(prefs.getString('user_phone'), isNull);
+      expect(await const FlutterSecureStorage().read(key: ApiService.prefRefreshToken), isNull);
     });
 
     testWidgets('انتهاء الجلسة أثناء الاستخدام: إغلاق كل الصفحات والعودة للدخول', (tester) async {
