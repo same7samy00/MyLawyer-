@@ -163,7 +163,7 @@ export async function registerAdminAccounts(fastify: FastifyInstance) {
 
     if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
     if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > 100000) {
-      return reply.status(400).send({ success: false, error: 'أدخل مبلغًا صحيحًا غير الصفر' });
+      return reply.status(400).send({ success: false, error: 'أدخل مبلغًا صحيحًا غير الصفر، والحد الأقصى للعملية الواحدة 100,000 ج.م' });
     }
     if (reason.length < 5) return reply.status(400).send({ success: false, error: 'اكتب سبب الحركة' });
 

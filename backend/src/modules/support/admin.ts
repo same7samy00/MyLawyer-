@@ -111,7 +111,7 @@ export async function registerAdminSupport(fastify: FastifyInstance) {
     const reason = sanitizeText(body.reason || '', 500).trim();
     return handle(reply, () => withTransaction(async (db) => {
       if (body.from !== 'lawyer' && body.from !== 'client') throw new HttpError(400, 'اتجاه التحويل غير صالح');
-      if (!Number.isFinite(amount) || amount <= 0 || amount > 100000) throw new HttpError(400, 'أدخل مبلغًا صحيحًا');
+      if (!Number.isFinite(amount) || amount <= 0 || amount > 100000) throw new HttpError(400, 'أدخل مبلغًا صحيحًا، والحد الأقصى للعملية الواحدة 100,000 ج.م');
       if (reason.length < 5) throw new HttpError(400, 'اكتب سبب الحركة');
 
       const ticket = (await db.query('SELECT * FROM support_tickets WHERE id::text = $1 FOR UPDATE', [id])).rows[0];

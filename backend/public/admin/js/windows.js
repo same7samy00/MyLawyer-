@@ -1,4 +1,4 @@
-const AMOUNT_STEP = { key: 'amount', type: 'number', label: 'كم المبلغ بالجنيه؟' };
+const AMOUNT_STEP = { key: 'amount', type: 'number', label: 'كم المبلغ بالجنيه؟', max: 100000 };
 const REASON_STEP = { key: 'reason', type: 'text', label: 'ما السبب؟', min: 5 };
 
 /// One action at a time: pick it, answer its steps, review, then run it
@@ -100,7 +100,11 @@ function openActionWindow(actions) {
     if (step.type === 'number') { field.type = 'number'; field.min = '0'; }
     // الخطأ بيبان وانت بتكتب، وزرار «التالي» مقفول لحد ما الخانة تبقى صح
     const problemOf = (value) => {
-      if (step.type === 'number') return Number(value) > 0 ? '' : 'أدخل مبلغًا صحيحًا أكبر من صفر';
+      if (step.type === 'number') {
+        if (!(Number(value) > 0)) return 'أدخل مبلغًا صحيحًا أكبر من صفر';
+        if (step.max && Number(value) > step.max) return 'الحد الأقصى للعملية الواحدة ' + step.max.toLocaleString('en-US') + ' ج.م';
+        return '';
+      }
       if (step.optional) return '';
       if (value.length < (step.min || 1)) return step.min ? 'اكتب ' + step.min + ' أحرف على الأقل (' + value.length + ' الآن)' : 'هذه الخانة مطلوبة';
       return '';
