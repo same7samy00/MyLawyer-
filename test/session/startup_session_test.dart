@@ -251,8 +251,10 @@ void main() {
           child: OrdersTab(),
         ),
       ),),);
-      await tester.pump();
-      await tester.pump();
+      // The bar shows once the automatic retries have failed too, not on the first blip
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+      }
 
       expect(find.text('مفيش اتصال بالإنترنت'), findsOneWidget);
 

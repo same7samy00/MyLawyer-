@@ -67,6 +67,8 @@ class ApiService {
   @visibleForTesting
   static void useHttpClient(http.Client client) {
     _client = client;
+    // Tests retry at once, so a flaky answer still gets retried without slowing them down
+    _retryDelays = const [Duration.zero, Duration.zero, Duration.zero];
     _accessToken = null;
     _refreshToken = null;
     _activeRefresh = null;
@@ -194,6 +196,7 @@ class ApiService {
       customToken: customToken,
       timeout: timeout,
       timeoutError: 'انتهت مهلة الاتصال بالخادم، يرجى التحقق من سرعة الإنترنت والمحاولة ثانية',
+      idempotent: true,
     );
   }
 
@@ -283,16 +286,60 @@ class ApiService {
   }
 
   /// تنفيذ الطلب مع تجديد الجلسة مرة واحدة عند استجابة 401
+  /// الانتظار قبل كل إعادة محاولة. الشاشة بتفضل في التحميل، ومن غير رسالة خطأ
+  static List<Duration> _retryDelays = const [Duration(milliseconds: 700), Duration(milliseconds: 1500), Duration(seconds: 3)];
+
+  /// إعادة المحاولة لوحدها زي التطبيقات الكبيرة، من غير ما عملية تتكرر:
+  /// - الخادم قال «زحمة» (503 ومعاه Retry-After، أو 429): الطلب ما اتنفذش، فبيتعاد لأي نوع.
+  /// - القراية (GET) لو النت هنّج أو الخادم بيتحدّث (502 و503 و504): آمنة تتعاد.
+  /// - الكتابة لو النت قطع ما بتتعادش، عشان ما تتكررش (زي دفع أو طلب مرتين).
   static Future<ApiResponse<dynamic>> _send(
     String endpoint,
     Future<http.Response> Function(Map<String, String> headers) request, {
     required String? customToken,
     required Duration timeout,
     required String timeoutError,
+    bool idempotent = false,
+  }) async {
+    for (var attempt = 0;; attempt++) {
+      final canRetry = attempt < _retryDelays.length;
+      final result = await _sendOnce(endpoint, request, customToken: customToken, timeout: timeout, timeoutError: timeoutError);
+      final busy = result.$2 == 429 || (result.$2 == 503 && result.$3);
+      final flaky = idempotent && (result.$1.isConnectivityError || result.$2 == 502 || result.$2 == 503 || result.$2 == 504);
+      if (!canRetry || !(busy || flaky)) return result.$1;
+      await Future<void>.delayed(_retryDelays[attempt]);
+    }
+  }
+
+  /// محاولة واحدة: الرد، وكود الحالة الحقيقي، ولو الخادم طلب إعادة (Retry-After)
+  static Future<(ApiResponse<dynamic>, int, bool)> _sendOnce(
+    String endpoint,
+    Future<http.Response> Function(Map<String, String> headers) request, {
+    required String? customToken,
+    required Duration timeout,
+    required String timeoutError,
+  }) async {
+    int status = 0;
+    bool retryAfter = false;
+    final res = await _attempt(endpoint, request, customToken: customToken, timeout: timeout, timeoutError: timeoutError, onResponse: (r) {
+      status = r.statusCode;
+      retryAfter = r.headers.containsKey('retry-after');
+    },);
+    return (res, status, retryAfter);
+  }
+
+  static Future<ApiResponse<dynamic>> _attempt(
+    String endpoint,
+    Future<http.Response> Function(Map<String, String> headers) request, {
+    required String? customToken,
+    required Duration timeout,
+    required String timeoutError,
+    required void Function(http.Response) onResponse,
   }) async {
     try {
       final headers = await _buildHeaders(customToken: customToken);
       var response = await request(headers).timeout(timeout);
+      onResponse(response);
 
       if (response.statusCode == 401 && await _canRefreshFor(endpoint, customToken, headers)) {
         final outcome = await _refreshSession();
@@ -309,6 +356,7 @@ class ApiService {
         }
         if (outcome == _RefreshOutcome.refreshed) {
           response = await request(await _buildHeaders()).timeout(timeout);
+          onResponse(response);
         }
       }
 

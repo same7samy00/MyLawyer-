@@ -6,6 +6,7 @@ import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import { config } from './config/index.js';
 import { HttpError } from './utils/http.js';
+import { BusyError } from './utils/security.js';
 import { authRoutes } from './modules/auth/routes.js';
 import { userRoutes } from './modules/users/routes.js';
 import { walletRoutes } from './modules/wallet/routes.js';
@@ -35,6 +36,10 @@ export function buildApp() {
   fastify.setErrorHandler((error: Error & { statusCode?: number; code?: string }, request, reply) => {
     if (error instanceof HttpError) {
       return reply.status(error.status).send({ success: false, error: error.message });
+    }
+    // Too many password checks waiting: the app waits a moment and tries again by itself
+    if (error instanceof BusyError) {
+      return reply.status(503).header('Retry-After', '1').send({ success: false, error: 'فيه ضغط دلوقتي، ثانية واحدة وبنكمّل' });
     }
     if (error.code === INVALID_TEXT_FOR_TYPE) {
       return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
