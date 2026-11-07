@@ -9,7 +9,7 @@ import { detectFileType } from '../../utils/files.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { approximateCoordinate } from '../lifecycle/service.js';
 import { LAWYER_CAN_WORK, SEARCH_RADIUS_KM } from '../requests/service.js';
-import { CELL_DEGREES, CellSize, lawyersInCells, MAX_CELLS, SHOWCASE_SECONDS, topInGovernorate } from './showcase.js';
+import { CELL_DEGREES, CellSize, cellsJson, MAX_CELLS, SHOWCASE_SECONDS, topInGovernorate } from './showcase.js';
 import { GOVERNORATES } from './governorates.js';
 
 // The map shows the lawyers the client could ask: within the service's 50 km
@@ -40,9 +40,10 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
     if (wanted.length === 0) return reply.status(400).send({ success: false, error: 'حدد مربعات الخريطة' });
     if (wanted.length > MAX_CELLS) return reply.status(400).send({ success: false, error: 'مربعات كتير في طلب واحد' });
 
-    const data = await lawyersInCells(size, wanted);
+    const cells = await cellsJson(size, wanted);
     reply.header('Cache-Control', `public, max-age=${SHOWCASE_SECONDS}`);
-    return reply.send({ success: true, data: { size, cells: data, seconds: SHOWCASE_SECONDS } });
+    // Ready text from the squares, joined without turning the lawyers into objects again
+    return reply.type('application/json; charset=utf-8').send(`{"success":true,"data":{"size":"${size}","cells":${cells},"seconds":${SHOWCASE_SECONDS}}}`);
   });
 
   // GET /api/v1/lawyers/top?governorate=... - the top rated lawyers of one governorate, for the lawyers map list

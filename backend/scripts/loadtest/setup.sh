@@ -17,6 +17,8 @@ sudo -u postgres createdb -O "$DBUSER" "$DB"
 rm -rf "$LT"
 mkdir -p "$LT/storage/public" "$LT/storage/private"
 cp -a "$PROD/dist" "$PROD/migrations" "$PROD/public" "$PROD/node_modules" "$PROD/package.json" "$LT/"
+# A new build to measure before it ships: /tmp/lt/dist-new replaces the production build in the copy only
+if [ -d /tmp/lt/dist-new ]; then rm -rf "$LT/dist"; cp -a /tmp/lt/dist-new "$LT/dist"; echo "testing the new build"; fi
 SECRET="$(openssl rand -hex 32)"
 cat > "$LT/.env" <<EOF
 PORT=4100

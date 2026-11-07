@@ -53,10 +53,13 @@ export function governorateOf(lat: number, lon: number): string | null {
 
 export const cellKey = (size: CellSize, x: number, y: number) => `${size}:${x}:${y}`;
 
-const cells = new Map<string, { at: number; lawyers: any[] }>();
+/// Each square keeps its answer as ready JSON text, so a busy square is turned into text once per
+/// five minutes instead of once per request (PERF-02, load test 2026-11-07)
+const cells = new Map<string, { at: number; json: string }>();
 
 /// The lawyers in each asked square. A square built less than five minutes ago is answered from memory.
-export async function lawyersInCells(size: CellSize, wanted: [number, number][]): Promise<Record<string, any[]>> {
+/// The asked squares as one JSON object text: {"x_y": [lawyers], ...}
+export async function cellsJson(size: CellSize, wanted: [number, number][]): Promise<string> {
   const now = Date.now();
   const degrees = CELL_DEGREES[size];
   const missing = wanted.filter(([x, y]) => {
@@ -80,11 +83,11 @@ export async function lawyersInCells(size: CellSize, wanted: [number, number][])
       const key = cellKey(size, Math.floor(Number(row.longitude) / degrees), Math.floor(Number(row.latitude) / degrees));
       fresh.get(key)?.push(toCard(row));
     }
-    for (const [key, lawyers] of fresh) cells.set(key, { at: now, lawyers });
+    for (const [key, lawyers] of fresh) cells.set(key, { at: now, json: JSON.stringify(lawyers) });
     forgetOld(now);
   }
 
-  return Object.fromEntries(wanted.map(([x, y]) => [`${x}_${y}`, cells.get(cellKey(size, x, y))?.lawyers ?? []]));
+  return `{${wanted.map(([x, y]) => `"${x}_${y}":${cells.get(cellKey(size, x, y))?.json ?? '[]'}`).join(',')}}`;
 }
 
 function forgetOld(now: number) {

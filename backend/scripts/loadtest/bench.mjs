@@ -132,6 +132,8 @@ const scenarios = {
   me: () => ramp('users/me (signed in)', { url: `${API}/users/me`, requests: [{ setupRequest: rotate(clients) }] }),
   notifications: () => cannon('notifications (signed in)', { url: `${API}/notifications`, connections: 300, requests: [{ setupRequest: rotate(clients) }] }),
   requests: async () => {
+    // The server hides a lawyer silent for 10 minutes, so the test lawyers report in right before the writes
+    await db.query(`UPDATE lawyer_profiles SET last_location_updated_at = NOW(), last_active_at = NOW(), is_available = TRUE, availability_off_reason = NULL`);
     const tokens = clients.slice(0, Number(process.env.REQUESTS || 5000));
     await burst('POST /requests (writes, lawyers notified)', tokens, Number(process.env.WRITE_C || 100), (tok) => post('/requests', tok, {
       problemType: 'محضر في قسم الشرطة', problemDescription: 'اختبار حمل', clientLat: cairo.lat + (Math.random() - 0.5) * 0.5, clientLon: cairo.lon + (Math.random() - 0.5) * 0.5,
@@ -198,7 +200,8 @@ const scenarios = {
   login: async () => {
     const argon2 = require('argon2');
     const hash = await argon2.hash('LoadTest-2026');
-    await db.query(`UPDATE users SET password_hash = $1 WHERE email LIKE 'lt-client-%'`, [hash]);
+    // Passwords live in user_credentials, one row per user
+    await db.query(`INSERT INTO user_credentials (user_id, password_hash) SELECT id, $1 FROM users WHERE email LIKE 'lt-client-%' ON CONFLICT (user_id) DO UPDATE SET password_hash = EXCLUDED.password_hash`, [hash]);
     const phones = (await db.query(`SELECT phone FROM users WHERE email LIKE 'lt-client-%' ORDER BY email LIMIT 3000`)).rows.map((r) => r.phone);
     for (const c of [10, 50, 100, 200]) {
       await burst(`POST /auth/login @${c}`, phones.slice(0, Math.min(phones.length, c * 15)), c, (phone) => fetch(API + '/auth/login', {

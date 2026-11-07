@@ -16,7 +16,7 @@ sudo -u postgres psql -q -d mylawyer_loadtest -f seed-more.sql | tail -1
 ulimit -n 65535
 sar -u -r 5 >"$OUT/sar.txt" 2>&1 &
 SAR=$!
-for s in reads login requests live mix maps routes; do
+for s in ${SCENARIOS:-reads login requests live mix maps routes}; do
   echo "== scenario $s $(date -Is)"
   DUR=${DUR:-20} timeout 2400 node bench.mjs "$s"
   cp -f /tmp/lt/results.json "$OUT/results-$s.json" 2>/dev/null
