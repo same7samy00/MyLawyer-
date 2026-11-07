@@ -26,61 +26,69 @@ export function getEmailTransporter(): ReturnType<typeof nodemailer.createTransp
   return transporter as ReturnType<typeof nodemailer.createTransport>;
 }
 
+/// The app's look for every email: its logo, its font (IBM Plex Sans Arabic) and its colours, right to left and centred.
+/// Everything is inline and in tables, because Gmail and Outlook drop most page styles. Apple Mail and iPhone load
+/// the app font; Gmail never loads outside fonts, so it shows the closest Arabic system font instead.
+const LOGO_URL = 'https://my-lawyer.online/logo.png';
+const FONT = "'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif";
+
+/// A paragraph in the email, centred, in the app's text colour
+export const emailText = (text: string, muted = false) =>
+  `<p dir="rtl" style="margin:0 0 16px;font-family:${FONT};font-size:${muted ? 13 : 15}px;line-height:1.8;color:${muted ? '#64748B' : '#334155'};text-align:center;">${text}</p>`;
+
+export function emailLayout(title: string, body: string): string {
+  return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body dir="rtl" style="margin:0;padding:0;background:#F8FAFC;font-family:${FONT};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="rtl" style="background:#F8FAFC;">
+    <tr><td align="center" style="padding:24px 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="rtl" style="max-width:480px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:14px;">
+        <tr><td align="center" style="padding:28px 24px 8px;">
+          <img src="${LOGO_URL}" width="120" alt="My Lawyer" style="display:block;margin:0 auto;border:0;">
+        </td></tr>
+        <tr><td align="center" dir="rtl" style="padding:8px 24px 0;font-family:${FONT};font-size:19px;font-weight:700;color:#0F172A;text-align:center;">${title}</td></tr>
+        <tr><td align="center" dir="rtl" style="padding:16px 24px 8px;text-align:center;">${body}</td></tr>
+        <tr><td align="center" style="padding:14px 24px 22px;border-top:1px solid #E2E8F0;font-family:${FONT};font-size:12px;color:#64748B;text-align:center;">My Lawyer © ${new Date().getFullYear()}</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+/// The code in a dashed box, the way the app shows codes
+export const emailCode = (code: string) =>
+  `<div style="margin:6px 0 18px;text-align:center;"><span dir="ltr" style="display:inline-block;background:#EFF6FF;border:2px dashed #1D4ED8;border-radius:7px;padding:14px 32px;font-family:${FONT};font-size:30px;font-weight:700;letter-spacing:8px;color:#1D4ED8;">${code}</span></div>`;
+
 export async function sendOtpEmail(toEmail: string, otpCode: string, purpose: 'register' | 'reset_password'): Promise<boolean> {
   const mailer = getEmailTransporter();
 
-  const title = purpose === 'register' ? 'تأكيد الحساب في تطبيق MyLawyer' : 'استعادة كلمة المرور في تطبيق MyLawyer';
-  const subtitle = purpose === 'register' 
-    ? 'شكراً لانضمامك إلى منصة MyLawyer. استخدم رمز التحقق التالي لتفعيل حسابك بأمان:' 
-    : 'تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بحسابك في MyLawyer. استخدم الرمز التالي:';
+  const title = purpose === 'register' ? 'تأكيد حسابك في My Lawyer' : 'تغيير كلمة السر في My Lawyer';
+  const subtitle = purpose === 'register'
+    ? 'أهلًا بيك في My Lawyer. اكتب الكود ده في التطبيق عشان نفعّل حسابك:'
+    : 'وصلنا طلب لتغيير كلمة السر بتاعة حسابك. اكتب الكود ده في التطبيق:';
 
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; text-align: right; }
-        .card { max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .header { text-align: center; margin-bottom: 24px; }
-        .brand { font-size: 28px; font-weight: 800; color: #1D4ED8; letter-spacing: -0.5px; }
-        .title { font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 16px; margin-bottom: 8px; }
-        .text { font-size: 15px; color: #475569; line-height: 1.6; margin-bottom: 24px; }
-        .otp-container { text-align: center; margin: 28px 0; }
-        .otp-box { display: inline-block; background: #eff6ff; border: 2px dashed #3b82f6; border-radius: 8px; padding: 16px 36px; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #1D4ED8; }
-        .footer { text-align: center; font-size: 13px; color: #94a3b8; margin-top: 32px; border-top: 1px solid #e2e8f0; padding-top: 16px; }
-        .badge { background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; display: inline-block; margin-top: 8px; }
-      </style>
-    </head>
-    <body>
-      <div class="card">
-        <div class="header">
-          <div class="brand">MyLawyer</div>
-          <div class="title">${title}</div>
-          <div class="badge">صالح لمدة 10 دقائق فقط</div>
-        </div>
-        <p class="text">${subtitle}</p>
-        <div class="otp-container">
-          <div class="otp-box">${otpCode}</div>
-        </div>
-        <p class="text" style="font-size: 13px; color: #64748b;">
-          تنبيه أمني: لا تشارك هذا الرمز مع أي شخص، فريق MyLawyer لن يطلب منك أبداً رمز التحقق الخاص بك.
-        </p>
-        <div class="footer">
-          © 2026 تطبيق MyLawyer. جميع الحقوق محفوظة.
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+  const htmlContent = emailLayout(
+    title,
+    emailText(subtitle) + emailCode(otpCode) + emailText('الكود شغال 10 دقايق بس', true) + emailText('متدّيش الكود ده لأي حد، وفريق My Lawyer عمره ما هيطلبه منك.', true)
+  );
 
   try {
     const info = await mailer.sendMail({
       from: config.smtp.from,
       to: toEmail,
-      subject: `[MyLawyer] رمز التحقق الخاص بك: ${otpCode}`,
+      subject: `كود التأكيد: ${otpCode} - My Lawyer`,
       html: htmlContent,
-      text: `${title}\n\nرمز التحقق الخاص بك هو: ${otpCode}\n\nصالح لمدة 10 دقائق فقط. لا تشارك هذا الرمز مع أي شخص.`,
+      text: `${title}
+
+الكود: ${otpCode}
+
+الكود شغال 10 دقايق بس، ومتدّيهوش لأي حد.`,
     });
     console.log(`[Email] OTP sent to ${toEmail}. MessageId: ${info.messageId}`);
     return true;

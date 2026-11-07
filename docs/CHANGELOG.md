@@ -2,6 +2,7 @@
 
 ## [Presence Board Removed, Backend on the New Server] - 2026-11-07
 - **Removed** the «أماكن التواجد» board by the owner's decision: `/tawagod/`, the `/presence` routes, its tests and preview, and its tables (migration `036`).
+- **Emails look like the app:** `emailLayout`, `emailText` and `emailCode` in `services/emailService.ts`: the app logo, IBM Plex Sans Arabic (Apple Mail and iPhone load it, Gmail falls back to an Arabic system font), right to left and centred, inline styles in tables, Egyptian wording, sender `noreply@my-lawyer.online`.
 - **Servers:** the backend, panel, site and mail run on the new server (`my-lawyer.online`), the old one serves maps and road times only (`maps.my-lawyer.online`), both on https. Mail goes out from `noreply@my-lawyer.online`, signed with DKIM.
 
 ## [Lawyers Map From Ready Squares] - 2026-11-07
