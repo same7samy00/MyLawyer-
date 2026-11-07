@@ -1,3 +1,4 @@
+import '../../core/widgets/app_loader.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -108,7 +109,7 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
         _orders = res.data ?? const [];
         _errorMessage = null;
       } else if (_orders.isEmpty) {
-        _errorMessage = res.error ?? 'تعذر تحميل الطلبات، يرجى المحاولة مرة أخرى.';
+        _errorMessage = res.error ?? 'تعذر تحميل الطلبات، يرجى المحاولة مرة أخرى';
       }
     });
   }
@@ -175,9 +176,7 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return const Center(child: AppLoader());
     }
 
     if (_errorMessage != null) {
@@ -217,7 +216,7 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
               return const AppStateMessage(
                 icon: Icons.receipt_long_rounded,
                 title: 'لا توجد طلبات حتى الآن',
-                message: 'خليك متاح، والطلبات القريبة منك هتظهر هنا أول بأول.',
+                message: 'خليك متاح، والطلبات القريبة منك هتظهر هنا أول بأول',
               );
             }
             final order = orders[index];

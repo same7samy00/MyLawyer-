@@ -1,3 +1,4 @@
+import 'app_loader.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
@@ -165,16 +166,7 @@ class _AppButtonState extends State<AppButton> {
           ),
         ),
         if (_isLoading)
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isOutlined ? AppColors.primary : Colors.white,
-              ),
-            ),
-          ),
+          AppLoader.inline(size: 20, color: isOutlined ? AppColors.primary : Colors.white),
       ],
     );
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:my_lawyer/core/widgets/app_loader.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/core/theme/app_theme.dart';
@@ -45,7 +46,7 @@ void main() {
         final pressable = find.byType(AppPressable);
         final normalSize = tester.getSize(pressable);
         expect(_isGray(tester, pressable), isFalse);
-        expect(find.byType(CircularProgressIndicator), findsNothing);
+        expect(find.byType(AppLoader), findsNothing);
 
         final gesture = await tester.startGesture(tester.getCenter(pressable));
         await tester.pump();
@@ -124,7 +125,7 @@ void main() {
       await tester.tap(find.byType(AppButton));
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(AppLoader), findsNothing);
     });
 
     testWidgets('Loading يبقى حتى نجاح العملية الحقيقية مع الرمادي وثبات الأبعاد ومنع التكرار', (tester) async {
@@ -144,7 +145,7 @@ void main() {
       await tester.tap(find.byType(AppButton));
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(AppLoader), findsOneWidget);
       expect(_isGray(tester, pressable), isTrue);
       expect(tester.getSize(pressable), normalSize);
 
@@ -157,7 +158,7 @@ void main() {
       await tester.pump();
       await tester.pump(AppPressable.minimumPressedDuration);
 
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(AppLoader), findsNothing);
       expect(_isGray(tester, pressable), isFalse);
 
       await tester.tap(find.byType(AppButton));
@@ -187,12 +188,12 @@ void main() {
 
       await tester.tap(find.byType(AppButton));
       await tester.pump();
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(AppLoader), findsOneWidget);
 
       await tester.pump(const Duration(milliseconds: 60));
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(AppLoader), findsNothing);
       expect(find.text('تعذر إتمام طلبك'), findsOneWidget);
 
       await tester.tap(find.byType(AppButton));

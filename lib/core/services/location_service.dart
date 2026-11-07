@@ -36,7 +36,7 @@ class LocationService {
       if (!serviceEnabled) {
         return const LocationResult(
           status: LocationServiceStatus.serviceDisabled,
-          errorMessage: 'خدمة الموقع مقفولة على جهازك، شغّلها وحاول تاني.',
+          errorMessage: 'خدمة الموقع مقفولة على جهازك، شغّلها وحاول تاني',
         );
       }
 
@@ -46,7 +46,7 @@ class LocationService {
         if (permission == LocationPermission.denied) {
           return const LocationResult(
             status: LocationServiceStatus.permissionDenied,
-            errorMessage: 'لازم تسمح بإذن الموقع عشان نحدد منطقتك.',
+            errorMessage: 'لازم تسمح بإذن الموقع عشان نحدد منطقتك',
           );
         }
       }
@@ -54,7 +54,7 @@ class LocationService {
       if (permission == LocationPermission.deniedForever) {
         return const LocationResult(
           status: LocationServiceStatus.permissionDeniedForever,
-          errorMessage: 'إذن الموقع مرفوض، فعّله من إعدادات التطبيق.',
+          errorMessage: 'إذن الموقع مرفوض، فعّله من إعدادات التطبيق',
         );
       }
 
@@ -76,7 +76,7 @@ class LocationService {
       debugPrint('Location check error: $e');
       return const LocationResult(
         status: LocationServiceStatus.error,
-        errorMessage: 'تعذر تحديد موقعك، حاول تاني.',
+        errorMessage: 'تعذر تحديد موقعك، حاول تاني',
       );
     }
   }

@@ -78,7 +78,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
         const Duration(seconds: 4),
         onTimeout: () => const LocationResult(
           status: LocationServiceStatus.error,
-          errorMessage: 'تحديد الموقع أخد وقت طويل، حاول تاني.',
+          errorMessage: 'تحديد الموقع أخد وقت طويل، حاول تاني',
         ),
       );
       position = result.position;

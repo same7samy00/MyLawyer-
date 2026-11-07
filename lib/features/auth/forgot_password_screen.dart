@@ -87,7 +87,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     if (!_passwordStrength.isValidMin) {
       setState(() {
-        _errorMessage = 'يرجى إدخال كلمة مرور قوية تحقق معايير الأمان قبل المتابعة.';
+        _errorMessage = 'يرجى إدخال كلمة مرور قوية تحقق معايير الأمان قبل المتابعة';
       });
       return;
     }
@@ -198,7 +198,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-            'اكتب البريد الإلكتروني المسجل في حسابك وهنبعتلك رمز لتعيين كلمة مرور جديدة.',
+            'اكتب البريد الإلكتروني المسجل في حسابك وهنبعتلك رمز لتعيين كلمة مرور جديدة',
             style: TextStyle(
               fontFamily: 'AppFont',
               fontFamilyFallback: appFontFallback,

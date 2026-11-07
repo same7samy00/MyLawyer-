@@ -210,12 +210,12 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
   }
 
   Future<void> _openPostpone() async {
-    if (!await _confirm('تأجيل المهمة', 'المهمة هتتأجل وفلوسها هتفضل محجوزة لحد ما تنهيها. وتقدر تستقبل طلبات تانية لحد ما تكملها', 'تأجيل', icon: Icons.schedule_rounded)) return;
+    if (!await _confirm('تأجيل المهمة', 'المهمة هتتأجل وفلوسها هتفضل محجوزة لحد ما تنهيها\nوتقدر تستقبل طلبات تانية لحد ما تكملها', 'تأجيل', icon: Icons.schedule_rounded)) return;
     await _run(() => OrderRepository.postponeOrder(_order.id), 'تم تأجيل المهمة');
   }
 
   Future<void> _withdraw() async {
-    if (!await _confirm('الاعتذار عن المهمة', 'المبلغ هيرجع للموكل وهتتسجل عليك مخالفة. 3 مخالفات خلال 30 يوم بتوقف حسابك أسبوع', 'اعتذار', icon: Icons.policy_rounded, isDanger: true)) return;
+    if (!await _confirm('الاعتذار عن المهمة', 'المبلغ هيرجع للموكل وهتتسجل عليك مخالفة\n3 مخالفات خلال 30 يوم بتوقف حسابك أسبوع', 'اعتذار', icon: Icons.policy_rounded, isDanger: true)) return;
     await _run(() => OrderRepository.withdrawFromOrder(_order.id), 'تم تسجيل الاعتذار');
   }
 
@@ -373,7 +373,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         _primaryAction('ادفع ${order.priceText} ج.م', _openPayment),
       ],
       if (order.canChooseToWait) ...[
-        _statusNote('المحامي اتأخر. تحب تستنى ولا تلغي وترجع فلوسك؟'),
+        _statusNote('المحامي اتأخر\nتحب تستنى ولا تلغي وترجع فلوسك؟'),
         _primaryAction('هستنى', () => _run(() => OrderRepository.keepWaiting(order.id), 'تمام، هنكمل الانتظار')),
       ],
       if (order.isPostponed) PostponedSince(since: order.postponedAt!, note: 'والفلوس محجوزة لحد ما المحامي ينهيها'),

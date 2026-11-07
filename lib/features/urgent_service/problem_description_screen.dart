@@ -136,7 +136,7 @@ class _ProblemDescriptionScreenState extends State<ProblemDescriptionScreen> {
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 8.0),
                       child: Text(
-                        'يساعد هذا الوصف المحامي في الاطلاع على طبيعة الموقف وفهم المشكلة بدقة قبل الاستجابة لطلبك.',
+                        'يساعد هذا الوصف المحامي في الاطلاع على طبيعة الموقف وفهم المشكلة بدقة قبل الاستجابة لطلبك',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'AppFont',

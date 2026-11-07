@@ -138,7 +138,7 @@ class _LawyerUrgentServiceIntroScreenState extends State<LawyerUrgentServiceIntr
 
               // الوصف والتعريف بالخدمة
               const Text(
-                'منظومة المساعدة القانونية الفورية لربط المحامي بالموكلين في نطاقه الجغرافي عند الحاجة العاجلة للاستشارة أو الحضور الميداني.',
+                'منظومة المساعدة القانونية الفورية لربط المحامي بالموكلين في نطاقه الجغرافي عند الحاجة العاجلة للاستشارة أو الحضور الميداني',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'AppFont',
@@ -175,7 +175,7 @@ class _LawyerUrgentServiceIntroScreenState extends State<LawyerUrgentServiceIntr
                     ),
                     SizedBox(height: 10),
                     Text(
-                      'بصفتك محامياً مقيداً ومعتمداً، تتيح لك الخدمة استقبال إشعارات بالحالات القانونية الطارئة القريبة منك، وتقديم الاستشارة العاجلة أو التوجه للحضور القضائي والتمثيل القانوني عند موافقتك على الطلب.',
+                      'بصفتك محامياً مقيداً ومعتمداً، تتيح لك الخدمة استقبال إشعارات بالحالات القانونية الطارئة القريبة منك، وتقديم الاستشارة العاجلة أو التوجه للحضور القضائي والتمثيل القانوني عند موافقتك على الطلب',
                       style: TextStyle(
                         fontFamily: 'AppFont',
                         fontFamilyFallback: appFontFallback,
@@ -216,25 +216,25 @@ class _LawyerUrgentServiceIntroScreenState extends State<LawyerUrgentServiceIntr
                     _buildStepRow(
                       number: '1',
                       title: 'تحديد الجاهزية والاستعداد',
-                      description: 'تفعيل حالة التواجد واستقبال الإشعارات في الأوقات المناسبة لجدول عملك.',
+                      description: 'تفعيل حالة التواجد واستقبال الإشعارات في الأوقات المناسبة لجدول عملك',
                     ),
                     const SizedBox(height: 12),
                     _buildStepRow(
                       number: '2',
                       title: 'استعراض الطلب والموافقة',
-                      description: 'الاطلاع على نوع المشكلة والمسافة الجغرافية قبل اتخاذ قرار قبول الطلب.',
+                      description: 'الاطلاع على نوع المشكلة والمسافة الجغرافية قبل اتخاذ قرار قبول الطلب',
                     ),
                     const SizedBox(height: 12),
                     _buildStepRow(
                       number: '3',
                       title: 'التواصل والتمثيل المباشر',
-                      description: 'الاتصال الفوري بالموكل أو التوجه لمكان الواقعة وفق الضوابط والاتفاق.',
+                      description: 'الاتصال الفوري بالموكل أو التوجه لمكان الواقعة وفق الضوابط والاتفاق',
                     ),
                     const SizedBox(height: 12),
                     _buildStepRow(
                       number: '4',
                       title: 'تسوية الأتعاب القانونية',
-                      description: 'إيداع أتعاب الخدمة مباشرة في محفظتك القانونية داخل التطبيق بأمان وشفافية.',
+                      description: 'إيداع أتعاب الخدمة مباشرة في محفظتك القانونية داخل التطبيق بأمان وشفافية',
                     ),
                   ],
                 ),

@@ -197,7 +197,7 @@ class AuthService {
       final failure = res.data is Map<String, dynamic> ? res.data as Map<String, dynamic> : null;
       return AuthResult(
         success: false,
-        message: res.error ?? 'بيانات الدخول غير صحيحة، يرجى التأكد والمحاولة ثانية.',
+        message: res.error ?? 'بيانات الدخول غير صحيحة، يرجى التأكد والمحاولة ثانية',
         data: failure,
         accountStatus: failure?['status']?.toString(),
       );
@@ -211,7 +211,7 @@ class AuthService {
     if (accessToken == null || refreshToken == null || user == null) {
       return const AuthResult(
         success: false,
-        message: 'تعذر إتمام تسجيل الدخول، يرجى المحاولة مرة أخرى.',
+        message: 'تعذر إتمام تسجيل الدخول، يرجى المحاولة مرة أخرى',
       );
     }
 
@@ -332,13 +332,13 @@ class AuthService {
         await clearLocalSession();
         return const SessionCheck(
           SessionStatus.expired,
-          message: 'انتهت جلستك، يرجى تسجيل الدخول مرة أخرى.',
+          message: 'انتهت جلستك، يرجى تسجيل الدخول مرة أخرى',
         );
       }
 
       return SessionCheck(
         SessionStatus.serverUnreachable,
-        message: res.error ?? 'تعذر الاتصال بالخادم، يرجى التأكد من اتصال الإنترنت.',
+        message: res.error ?? 'تعذر الاتصال بالخادم، يرجى التأكد من اتصال الإنترنت',
       );
     } finally {
       ApiService.muteSessionExpiry = false;
@@ -387,7 +387,7 @@ class AuthService {
 
     return const SessionCheck(
       SessionStatus.accountBlocked,
-      message: 'هذا الحساب غير مدعوم داخل التطبيق.',
+      message: 'هذا الحساب غير مدعوم داخل التطبيق',
     );
   }
 
@@ -417,7 +417,7 @@ class AuthService {
 
     return AuthResult(
       success: false,
-      message: res.error ?? 'فشل إنشاء الحساب، يرجى مراجعة البيانات المدخلة.',
+      message: res.error ?? 'فشل إنشاء الحساب، يرجى مراجعة البيانات المدخلة',
     );
   }
 
@@ -431,7 +431,7 @@ class AuthService {
     if (cleanCode.length != 6) {
       return const AuthResult(
         success: false,
-        message: 'يجب إدخال رمز التحقق كاملاً المكون من 6 أرقام.',
+        message: 'يجب إدخال رمز التحقق كاملاً المكون من 6 أرقام',
       );
     }
 
@@ -443,7 +443,7 @@ class AuthService {
     if (!res.isOk) {
       return AuthResult(
         success: false,
-        message: res.error ?? 'رمز التحقق غير صحيح، يرجى التأكد وإعادة المحاولة.',
+        message: res.error ?? 'رمز التحقق غير صحيح، يرجى التأكد وإعادة المحاولة',
       );
     }
 
@@ -475,7 +475,7 @@ class AuthService {
 
     return AuthResult(
       success: true,
-      message: res.message ?? 'تم التحقق من البريد بنجاح وتفعيل الحساب.',
+      message: res.message ?? 'تم التحقق من البريد بنجاح وتفعيل الحساب',
       data: {'sessionOpened': login.success},
     );
   }
@@ -489,13 +489,13 @@ class AuthService {
     if (res.isOk) {
       return AuthResult(
         success: true,
-        message: res.message ?? 'تم إعادة إرسال رمز التحقق الجديد إلى بريدك.',
+        message: res.message ?? 'تم إعادة إرسال رمز التحقق الجديد إلى بريدك',
       );
     }
 
     return AuthResult(
       success: false,
-      message: res.error ?? 'يرجى الانتظار قليلاً قبل طلب رمز تحقق جديد.',
+      message: res.error ?? 'يرجى الانتظار قليلاً قبل طلب رمز تحقق جديد',
     );
   }
 
@@ -508,8 +508,8 @@ class AuthService {
     return AuthResult(
       success: res.isOk,
       message: res.isOk
-          ? (res.message ?? 'إذا كان البريد الإلكتروني مسجلاً، فقد تم إرسال رمز التحقق إليه.')
-          : (res.error ?? 'تعذر إرسال رمز الاستعادة، يرجى المحاولة مرة أخرى.'),
+          ? (res.message ?? 'إذا كان البريد الإلكتروني مسجلاً، فقد تم إرسال رمز التحقق إليه')
+          : (res.error ?? 'تعذر إرسال رمز الاستعادة، يرجى المحاولة مرة أخرى'),
     );
   }
 
@@ -529,8 +529,8 @@ class AuthService {
     return AuthResult(
       success: res.isOk,
       message: res.isOk
-          ? (res.message ?? 'تم تغيير كلمة المرور بنجاح.')
-          : (res.error ?? 'رمز التحقق غير صحيح أو منتهي.'),
+          ? (res.message ?? 'تم تغيير كلمة المرور بنجاح')
+          : (res.error ?? 'رمز التحقق غير صحيح أو منتهي'),
     );
   }
 

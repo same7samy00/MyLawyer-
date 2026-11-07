@@ -1,3 +1,4 @@
+import 'app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import '../constants/app_colors.dart';
@@ -174,7 +175,7 @@ class SheetLoading extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(width: 26, height: 26, child: CircularProgressIndicator(strokeWidth: 2.6, color: AppColors.primary)),
+          const AppLoader.inline(size: 26),
           const SizedBox(height: 12),
           Text(
             text,

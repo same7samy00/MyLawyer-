@@ -1,3 +1,4 @@
+import '../../core/widgets/app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
@@ -87,7 +88,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
       body: SafeArea(
         child: profile == null
             ? (_error == null
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                ? const Center(child: AppLoader())
                 : ListView(
                     children: [
                       AppStateMessage(
@@ -125,7 +126,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
               ? const SizedBox(
                   width: 110,
                   height: 110,
-                  child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                  child: Center(child: AppLoader.inline(size: 30)),
                 )
               : ProfilePhoto(path: profile['profilePhotoPath']?.toString(), size: 110),
         ),

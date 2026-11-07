@@ -165,7 +165,7 @@ extension _TrackingMapControls on _TrackingScreenState {
       const Duration(seconds: 10),
       onTimeout: () => const LocationResult(
         status: LocationServiceStatus.error,
-        errorMessage: 'تحديد الموقع أخد وقت طويل، حاول تاني.',
+        errorMessage: 'تحديد الموقع أخد وقت طويل، حاول تاني',
       ),
     );
     if (!mounted) return;

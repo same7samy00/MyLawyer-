@@ -27,7 +27,7 @@ class LogoutConfirmationSheet extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.0),
               child: Text(
-                'هل أنت متأكد من رغبتك في تسجيل الخروج من حسابك؟ يمكنك تسجيل الدخول مجدداً في أي وقت.',
+                'هل أنت متأكد من رغبتك في تسجيل الخروج من حسابك؟ يمكنك تسجيل الدخول مجدداً في أي وقت',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'AppFont',

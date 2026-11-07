@@ -279,7 +279,7 @@ class _LawyerAccountTabState extends State<LawyerAccountTab> {
   void _showComingSoon(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('صفحة $feature قيد التجهيز والتطوير.', style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback)),
+        content: Text('صفحة $feature قيد التجهيز والتطوير', style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback)),
         backgroundColor: AppColors.dark,
       ),
     );

@@ -1,3 +1,4 @@
+import '../../core/widgets/app_loader.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
@@ -100,7 +101,7 @@ class _LawyerWalletTabState extends State<LawyerWalletTab> {
         _wallet = walletRes.data ?? _wallet;
         _errorMessage = null;
       } else {
-        _errorMessage = res.error ?? walletRes.error ?? 'تعذر تحميل بيانات المحفظة، يرجى المحاولة مرة أخرى.';
+        _errorMessage = res.error ?? walletRes.error ?? 'تعذر تحميل بيانات المحفظة، يرجى المحاولة مرة أخرى';
       }
     });
   }
@@ -108,9 +109,7 @@ class _LawyerWalletTabState extends State<LawyerWalletTab> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return const Center(child: AppLoader());
     }
 
     // لا تعرض أرقام مالية قديمة كأنها حالية
@@ -191,7 +190,7 @@ class _LawyerWalletTabState extends State<LawyerWalletTab> {
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('خدمة سحب الأتعاب للحساب البنكي أو المحفظة الإلكترونية ستتوفر قريباً.'),
+                          content: Text('خدمة سحب الأتعاب للحساب البنكي أو المحفظة الإلكترونية ستتوفر قريباً'),
                           backgroundColor: AppColors.dark,
                         ),
                       );
@@ -314,7 +313,7 @@ class _LawyerWalletTabState extends State<LawyerWalletTab> {
               const AppStateMessage(
                 icon: Icons.account_balance_wallet_rounded,
                 title: 'لا توجد معاملات حتى الآن',
-                message: 'هتظهر هنا أتعاب الطلبات فور إتمامها.',
+                message: 'هتظهر هنا أتعاب الطلبات فور إتمامها',
               ),
             for (final order in _completedOrders) ...[
               _buildTransactionTile(

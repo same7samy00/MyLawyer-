@@ -114,7 +114,7 @@ class _ClientRegisterScreenState extends State<ClientRegisterScreen> {
     }
     if (!_passwordStrength.isValidMin) {
       setState(() {
-        _errorMessage = 'يرجى إدخال كلمة مرور قوية تحقق معايير الأمان قبل المتابعة.';
+        _errorMessage = 'يرجى إدخال كلمة مرور قوية تحقق معايير الأمان قبل المتابعة';
       });
       return;
     }

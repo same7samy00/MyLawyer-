@@ -139,7 +139,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'تعذر اختيار الصورة، يرجى التحقق من أذونات الكاميرا والصور.';
+        _errorMessage = 'تعذر اختيار الصورة، يرجى التحقق من أذونات الكاميرا والصور';
       });
     }
   }
@@ -240,7 +240,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
     }
     if (!_passwordStrength.isValidMin) {
       setState(() {
-        _errorMessage = 'يرجى إدخال كلمة مرور قوية تحقق معايير الأمان قبل المتابعة.';
+        _errorMessage = 'يرجى إدخال كلمة مرور قوية تحقق معايير الأمان قبل المتابعة';
       });
       return;
     }
@@ -251,13 +251,13 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
     setState(() => _errorMessage = null);
     if (_profilePhotoPath == null) {
       setState(() {
-        _errorMessage = 'يرجى إرفاق صورتك الشخصية للمتابعة.';
+        _errorMessage = 'يرجى إرفاق صورتك الشخصية للمتابعة';
       });
       return;
     }
     if (_syndicateCardPath == null) {
       setState(() {
-        _errorMessage = 'يرجى إرفاق صورة كارنيه نقابة المحامين للمتابعة.';
+        _errorMessage = 'يرجى إرفاق صورة كارنيه نقابة المحامين للمتابعة';
       });
       return;
     }

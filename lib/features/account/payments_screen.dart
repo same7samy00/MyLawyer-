@@ -1,3 +1,4 @@
+import '../../core/widgets/app_loader.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/invoice_pdf_service.dart';
@@ -89,7 +90,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       body: SafeArea(
         child: payments == null
             ? (_error == null
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                ? const Center(child: AppLoader())
                 : AppStateMessage(icon: Icons.wifi_off_rounded, title: 'تعذر تحميل المدفوعات', message: _error, onRetry: _load))
             : RefreshIndicator(
                 onRefresh: _load,
@@ -194,7 +195,7 @@ class _PaymentCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (isDownloading)
-                      const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
+                      const AppLoader.inline(size: 16)
                     else
                       const Icon(Icons.picture_as_pdf_rounded, color: AppColors.primary, size: 18),
                     const SizedBox(width: 6),

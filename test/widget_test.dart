@@ -5,6 +5,7 @@ import 'package:my_lawyer/core/widgets/app_button.dart';
 import 'package:my_lawyer/core/widgets/app_header.dart';
 import 'package:my_lawyer/core/widgets/profile_home_card.dart';
 import 'package:flutter/material.dart';
+import 'package:my_lawyer/core/widgets/app_loader.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -299,7 +300,7 @@ void main() {
       expect(scaffold.backgroundColor, Colors.white);
 
       // Verify no circular progress indicator (no loading)
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(AppLoader), findsNothing);
 
       // Verify no shield icon
       expect(find.byIcon(Icons.shield_rounded), findsNothing);
@@ -404,7 +405,7 @@ void main() {
 
       // Verify initial state
       expect(find.text('تأكيد الطلب'), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(AppLoader), findsNothing);
 
       // Tap button once
       await tester.tap(find.byType(AppButton));
@@ -412,7 +413,7 @@ void main() {
 
       // State is now loading
       expect(tapCount, 1);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(AppLoader), findsOneWidget);
 
       // Attempt second tap while loading (should be locked and ignored)
       await tester.tap(find.byType(AppButton));

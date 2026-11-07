@@ -1,3 +1,4 @@
+import '../../core/widgets/app_loader.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -326,7 +327,7 @@ class _ConsultationEvaluatingScreenState extends State<ConsultationEvaluatingScr
                   style: _text(13, FontWeight.w600, AppColors.textMuted, height: 1.5),
                 ),
                 const SizedBox(height: 22),
-                const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2.8, color: AppColors.primary)),
+                const AppLoader.inline(size: 28),
               ],
             ),
           ),
@@ -371,10 +372,10 @@ class _ConsultationCheckoutScreenState extends State<ConsultationCheckoutScreen>
   @override
   Widget build(BuildContext context) {
     final terms = [
-      'مدة المكالمة ${ConsultationPricing.callMinutes} دقايق.',
-      'فريقنا هيكلمك على رقم تليفونك المسجل خلال دقايق من الدفع.',
-      if (widget.withPapers) 'كل صورة لازم تكون ورقة واحدة، والحد الأقصى ${ConsultationPricing.maxPages} ورقات.',
-      'الاستشارة رأي قانوني مبدئي، ومش توكيل في قضية.',
+      'مدة المكالمة ${ConsultationPricing.callMinutes} دقايق',
+      'فريقنا هيكلمك على رقم تليفونك المسجل خلال دقايق من الدفع',
+      if (widget.withPapers) 'كل صورة لازم تكون ورقة واحدة، والحد الأقصى ${ConsultationPricing.maxPages} ورقات',
+      'الاستشارة رأي قانوني مبدئي، ومش توكيل في قضية',
     ];
     return Scaffold(
       backgroundColor: Colors.white,
@@ -492,7 +493,7 @@ class ConsultationDoneScreen extends StatelessWidget {
               Text('طلبك وصل', textAlign: TextAlign.center, style: _text(20, FontWeight.w900, AppColors.dark)),
               const SizedBox(height: 8),
               Text(
-                'فريقنا القانوني هيكلمك على تليفونك خلال دقايق. خلي تليفونك جنبك',
+                'فريقنا القانوني هيكلمك على تليفونك خلال دقايق\nخلي تليفونك جنبك',
                 textAlign: TextAlign.center,
                 style: _text(14, FontWeight.w600, AppColors.textMuted, height: 1.6),
               ),

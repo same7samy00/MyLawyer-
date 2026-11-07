@@ -96,7 +96,7 @@ class _AccountSuspendedScreenState extends State<AccountSuspendedScreen> {
               const SizedBox(height: 10),
               Text(
                 until == null
-                    ? 'إدارة التطبيق أوقفت حسابك، ومش هتقدر تستخدم التطبيق لحد ما الحساب يتفعل تاني.'
+                    ? 'إدارة التطبيق أوقفت حسابك، ومش هتقدر تستخدم التطبيق لحد ما الحساب يتفعل تاني'
                     : 'حسابك اتوقف مؤقتًا بسبب تكرار الإنذارات، وهيرجع يشتغل لوحده بعد:',
                 textAlign: TextAlign.center,
                 style: const TextStyle(

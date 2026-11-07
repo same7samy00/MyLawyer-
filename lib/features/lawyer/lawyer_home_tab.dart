@@ -130,7 +130,7 @@ class _LawyerHomeTabState extends State<LawyerHomeTab> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'خدمة تتيح لك التقدم للانضمام إلى قائمة مقدمي الخدمة المعتمدين لتقديم المساعدة القانونية العاجلة للموكلين.',
+                          'خدمة تتيح لك التقدم للانضمام إلى قائمة مقدمي الخدمة المعتمدين لتقديم المساعدة القانونية العاجلة للموكلين',
                           style: TextStyle(
                             fontFamily: 'AppFont',
                             fontFamilyFallback: appFontFallback,

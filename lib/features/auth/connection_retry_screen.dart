@@ -62,7 +62,7 @@ class _ConnectionRetryScreenState extends State<ConnectionRetryScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                _message ?? 'تعذر الاتصال بالخادم، يرجى التأكد من اتصال الإنترنت.',
+                _message ?? 'تعذر الاتصال بالخادم، يرجى التأكد من اتصال الإنترنت',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontFamily: 'AppFont',
@@ -75,7 +75,7 @@ class _ConnectionRetryScreenState extends State<ConnectionRetryScreen> {
               ),
               const SizedBox(height: 6),
               const Text(
-                'حسابك آمن ولم يتم تسجيل خروجك.',
+                'حسابك آمن ولم يتم تسجيل خروجك',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'AppFont',

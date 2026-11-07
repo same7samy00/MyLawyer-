@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:my_lawyer/core/widgets/app_loader.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/core/theme/app_theme.dart';
 import 'package:my_lawyer/core/widgets/app_card.dart';
@@ -179,7 +180,7 @@ void main() {
 
       expect(find.byType(PaymentSuccessScreen), findsNothing);
       expect(find.text('لا يمكن تأكيد الدفع في الحالة الحالية'), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(AppLoader), findsNothing);
     });
 
     testWidgets('إنشاء حساب: الرجوع من التحقق لا يعيد لنموذج أُرسل بالفعل', (tester) async {

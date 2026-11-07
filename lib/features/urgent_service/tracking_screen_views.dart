@@ -282,42 +282,42 @@ extension _TrackingScreenViews on _TrackingScreenState {
             const SizedBox(height: 10),
             // وإحنا مستنيين: نقط بتنط من غير عداد. ولو محدش بعت، جملة توضح. المساحة ثابتة في الحالتين عشان الصفحة ما تتحركش
             if (offers.isEmpty)
-              SizedBox(
-                height: 64,
-                child: Center(
-                  child: _noOffers || (_activeRequest?.secondsLeft ?? 120) <= 0
-                      ? const Text(
-                          'محدش من المحامين القريبين بعت عرض لسه. دوس «بحث جديد» ونبعت طلبك لمحامين تانيين',
+              _noOffers || (_activeRequest?.secondsLeft ?? 120) <= 0
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: AppLoader.gap),
+                      child: Text(
+                        'محدش من المحامين القريبين بعت عرض لسه\nدوس «بحث جديد» ونبعت طلبك لمحامين تانيين',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'AppFont',
+                          fontFamilyFallback: appFontFallback,
+                          fontSize: 13,
+                          height: 1.6,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.dark,
+                        ),
+                      ),
+                    )
+                  : const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // فراغ ثابت فوق وتحت التحميل على أي مقاس
+                        AppLoader(),
+                        Text(
+                          'بنبعت طلبك لأقرب المحامين\nوالعروض هتظهر هنا أول ما توصل',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontFamily: 'AppFont',
                             fontFamilyFallback: appFontFallback,
                             fontSize: 13,
-                            height: 1.5,
+                            height: 1.6,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.dark,
+                            color: AppColors.textMuted,
                           ),
-                        )
-                      : const Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            BouncingDots(),
-                            SizedBox(height: 10),
-                            Text(
-                              'بنبعت طلبك لأقرب المحامين، والعروض هتظهر هنا أول ما توصل',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: 'AppFont',
-                                fontFamilyFallback: appFontFallback,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                          ],
                         ),
-                ),
-              ),
+                        SizedBox(height: AppLoader.gap),
+                      ],
+                    ),
             if (offers.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),

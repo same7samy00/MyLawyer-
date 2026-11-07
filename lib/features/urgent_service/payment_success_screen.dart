@@ -1,3 +1,4 @@
+import '../../core/widgets/app_loader.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
@@ -135,14 +136,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.2,
-                        color: AppColors.primary,
-                      ),
-                    ),
+                    const AppLoader.inline(size: 16),
                     const SizedBox(width: 10),
                     Text(
                       'جاري التوجيه إلى صفحة الطلبات خلال ($_secondsLeft) ثوانٍ',

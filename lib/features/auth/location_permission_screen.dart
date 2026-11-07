@@ -32,7 +32,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
-            'إذن الموقع معطل نهائياً من إعدادات الجهاز. يمكنك تفعيله من الإعدادات.',
+            'إذن الموقع معطل نهائياً من إعدادات الجهاز\nيمكنك تفعيله من الإعدادات',
             style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback),
           ),
           action: SnackBarAction(

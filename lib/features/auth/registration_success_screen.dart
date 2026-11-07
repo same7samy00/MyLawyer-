@@ -1,3 +1,4 @@
+import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/line_illustration.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -121,8 +122,8 @@ class _RegistrationSuccessScreenState extends State<RegistrationSuccessScreen> {
                 // رسالة توضيحية خفيفة
                 Text(
                   isLawyer
-                      ? 'تم تسجيل بياناتك المهنية بنجاح، جاري مراجعة الكارنيه وتفعيل الصلاحيات الكاملة.'
-                      : 'أصبح حسابك جاهزاً الآن للاستفادة من كافة الخدمات والاستشارات القانونية.',
+                      ? 'تم تسجيل بياناتك المهنية بنجاح، جاري مراجعة الكارنيه وتفعيل الصلاحيات الكاملة'
+                      : 'أصبح حسابك جاهزاً الآن للاستفادة من كافة الخدمات والاستشارات القانونية',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: 'AppFont',
@@ -142,14 +143,7 @@ class _RegistrationSuccessScreenState extends State<RegistrationSuccessScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                          ),
-                        ),
+                        const AppLoader.inline(size: 16),
                         const SizedBox(width: 10),
                         Text(
                           'سيتم توجيهك تلقائياً خلال $_secondsLeft ثوانٍ',

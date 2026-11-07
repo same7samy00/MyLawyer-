@@ -154,7 +154,7 @@ void main() {
       await launchApp(tester);
 
       expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.text('انتهت جلستك، يرجى تسجيل الدخول مرة أخرى.'), findsOneWidget);
+      expect(find.text('انتهت جلستك، يرجى تسجيل الدخول مرة أخرى'), findsOneWidget);
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString(ApiService.prefRefreshToken), isNull);
       expect(prefs.getString('user_phone'), isNull);

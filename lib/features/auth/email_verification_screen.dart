@@ -1,3 +1,4 @@
+import '../../core/widgets/app_loader.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -128,7 +129,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       _distributePastedCode(clipboardData.text!);
     } else {
       setState(() {
-        _errorMessage = 'الحافظة فارغة أو لا تحتوي على رمز صالح.';
+        _errorMessage = 'الحافظة فارغة أو لا تحتوي على رمز صالح';
       });
     }
   }
@@ -164,7 +165,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     final code = _currentCode.trim();
     if (code.length < _codeLength) {
       setState(() {
-        _errorMessage = 'يرجى إدخال كافة خانات رمز التحقق (6 أرقام).';
+        _errorMessage = 'يرجى إدخال كافة خانات رمز التحقق (6 أرقام)';
       });
       return;
     }
@@ -197,7 +198,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     } else {
       await SessionRouter.toLogin(
         navigator,
-        message: 'تم تفعيل حسابك بنجاح، يرجى تسجيل الدخول للمتابعة.',
+        message: 'تم تفعيل حسابك بنجاح، يرجى تسجيل الدخول للمتابعة',
       );
     }
   }
@@ -480,11 +481,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                               ),
                             ),
                             child: _isResending
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
+                                ? const AppLoader.inline(size: 16)
                                 : const Text(
                                     'إعادة إرسال الرمز الآن',
                                     style: TextStyle(

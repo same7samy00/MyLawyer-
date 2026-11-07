@@ -108,7 +108,7 @@ class SessionRouter {
       await AuthService.clearLocalSession();
       final navigator = navigatorKey.currentState;
       if (navigator != null) {
-        await toLogin(navigator, message: 'انتهت جلستك، يرجى تسجيل الدخول مرة أخرى.');
+        await toLogin(navigator, message: 'انتهت جلستك، يرجى تسجيل الدخول مرة أخرى');
       }
     } finally {
       _isHandlingExpiry = false;

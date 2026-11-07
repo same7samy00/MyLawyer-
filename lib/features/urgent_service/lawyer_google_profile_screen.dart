@@ -1,3 +1,4 @@
+import '../../core/widgets/app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../core/constants/app_colors.dart';
@@ -204,12 +205,7 @@ class _LawyerGoogleProfileScreenState extends State<LawyerGoogleProfileScreen> {
                         children: [
                           WebViewWidget(controller: _controller),
                           if (_loadingProgress < 60)
-                            const Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                              ),
-                            ),
+                            const Center(child: AppLoader()),
                         ],
                       ),
               ),
@@ -245,7 +241,7 @@ class _LawyerGoogleProfileScreenState extends State<LawyerGoogleProfileScreen> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'يرجى التأكد من اتصال الإنترنت ثم المحاولة مرة أخرى.',
+              'يرجى التأكد من اتصال الإنترنت ثم المحاولة مرة أخرى',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'AppFont',

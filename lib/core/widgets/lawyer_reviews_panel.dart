@@ -1,7 +1,7 @@
+import 'app_loader.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/lifecycle_models.dart';
 import '../../data/repositories/lawyer_repository.dart';
-import '../constants/app_colors.dart';
 import 'app_state_message.dart';
 import 'order_action_sheets.dart';
 import 'review_card.dart';
@@ -59,7 +59,7 @@ class _LawyerReviewsPanelState extends State<LawyerReviewsPanel> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const Center(child: AppLoader());
     }
 
     if (_error != null) {

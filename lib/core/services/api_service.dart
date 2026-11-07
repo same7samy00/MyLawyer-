@@ -153,7 +153,7 @@ class ApiService {
       (headers) => _client.get(uri, headers: headers),
       customToken: customToken,
       timeout: timeout,
-      timeoutError: 'انتهت مهلة الاتصال بالخادم، يرجى التحقق من سرعة الإنترنت والمحاولة ثانية.',
+      timeoutError: 'انتهت مهلة الاتصال بالخادم، يرجى التحقق من سرعة الإنترنت والمحاولة ثانية',
     );
   }
 
@@ -218,7 +218,7 @@ class ApiService {
       (headers) => _client.post(uri, headers: headers, body: payload),
       customToken: customToken,
       timeout: timeout,
-      timeoutError: 'انتهت مهلة إرسال البيانات إلى الخادم، يرجى إعادة المحاولة.',
+      timeoutError: 'انتهت مهلة إرسال البيانات إلى الخادم، يرجى إعادة المحاولة',
     );
   }
 
@@ -294,7 +294,7 @@ class ApiService {
       return const ApiResponse(
         success: false,
         statusCode: 500,
-        error: 'حدث خطأ غير متوقع أثناء الاتصال بالخدمة، يرجى المحاولة مرة أخرى.',
+        error: 'حدث خطأ غير متوقع أثناء الاتصال بالخدمة، يرجى المحاولة مرة أخرى',
       );
     }
   }
@@ -320,7 +320,7 @@ class ApiService {
     return const ApiResponse(
       success: false,
       statusCode: 503,
-      error: 'تعذر الاتصال بالخادم، يرجى التأكد من اتصال الإنترنت.',
+      error: 'تعذر الاتصال بالخادم، يرجى التأكد من اتصال الإنترنت',
       isConnectivityError: true,
     );
   }
@@ -446,8 +446,8 @@ class ApiService {
       return serverMessage;
     }
     if (statusCode == 429) {
-      return 'تم إرسال طلبات كثيرة، يرجى الانتظار قليلاً والمحاولة مرة أخرى.';
+      return 'تم إرسال طلبات كثيرة، يرجى الانتظار قليلاً والمحاولة مرة أخرى';
     }
-    return 'تعذر إتمام طلبك حالياً، يرجى المحاولة مرة أخرى.';
+    return 'تعذر إتمام طلبك حالياً، يرجى المحاولة مرة أخرى';
   }
 }

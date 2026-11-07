@@ -101,7 +101,7 @@ class _HomeTabState extends State<HomeTab> {
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          'طلب مساعدة قانونية عاجلة من أقرب محامي متاح لموقعك الآن.',
+                          'طلب مساعدة قانونية عاجلة من أقرب محامي متاح لموقعك الآن',
                           style: TextStyle(
                             fontFamily: 'AppFont',
                             fontFamilyFallback: appFontFallback,
@@ -223,7 +223,7 @@ class _HomeTabState extends State<HomeTab> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '$serviceName ستتوفر للحجز المباشر قريباً جداً.',
+          '$serviceName ستتوفر للحجز المباشر قريباً جداً',
           style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback),
         ),
         backgroundColor: AppColors.dark,

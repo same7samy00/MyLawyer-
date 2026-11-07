@@ -102,7 +102,7 @@ class InvoicePdfService {
             ),
             pw.Spacer(),
             pw.Text(
-              'الفاتورة دي اتعملت من تطبيق My Lawyer، ولأي استفسار كلمنا من «الدعم الفني» في التطبيق.',
+              'الفاتورة دي اتعملت من تطبيق My Lawyer، ولأي استفسار كلمنا من «الدعم الفني» في التطبيق',
               textAlign: pw.TextAlign.center,
               style: const pw.TextStyle(fontSize: 9, color: _muted),
             ),

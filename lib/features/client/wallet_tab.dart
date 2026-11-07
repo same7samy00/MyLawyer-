@@ -1,3 +1,4 @@
+import '../../core/widgets/app_loader.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
@@ -88,7 +89,7 @@ class _WalletTabState extends State<WalletTab> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const Center(child: AppLoader());
     }
 
     if (_error != null) {

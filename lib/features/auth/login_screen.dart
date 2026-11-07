@@ -433,7 +433,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            'بياناتك وموقعك في أمان تام ومحمية\nبأعلى معايير التشفير والخصوصية وفقاً للقانون.',
+                            'بياناتك وموقعك في أمان تام ومحمية\nبأعلى معايير التشفير والخصوصية وفقاً للقانون',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontFamily: 'AppFont',

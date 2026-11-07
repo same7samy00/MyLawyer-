@@ -148,7 +148,7 @@ class _UrgentServiceProblemScreenState extends State<UrgentServiceProblemScreen>
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20.0),
                     child: Text(
-                      'حدد نوع الموقف القانوني العاجل ليتم ربطك فورياً بأقرب محامٍ متاح في نطاقك الجغرافي.',
+                      'حدد نوع الموقف القانوني العاجل ليتم ربطك فورياً بأقرب محامٍ متاح في نطاقك الجغرافي',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'AppFont',

@@ -1,3 +1,4 @@
+import '../../core/widgets/app_loader.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
@@ -82,7 +83,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
       body: SafeArea(
         child: ticket == null
             ? (_error == null
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                ? const Center(child: AppLoader())
                 : AppStateMessage(icon: Icons.wifi_off_rounded, title: 'تعذر تحميل التذكرة', message: _error, onRetry: _load))
             : RefreshIndicator(
                 onRefresh: _load,

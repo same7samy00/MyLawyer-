@@ -56,7 +56,7 @@ extension _TrackingOrderFlow on _TrackingScreenState {
     if (!mounted || (_orderFlowStage != _OrderFlowStage.priceApproval && !_noOffers)) return;
     final position = location.position;
     if (position == null) {
-      _showMessage(location.errorMessage ?? 'تعذر تحديد موقعك، حاول تاني.');
+      _showMessage(location.errorMessage ?? 'تعذر تحديد موقعك، حاول تاني');
       return;
     }
     _currentPosition = position;
@@ -77,7 +77,7 @@ extension _TrackingOrderFlow on _TrackingScreenState {
         _noOffers = false;
         _orderFlowStage = _OrderFlowStage.idle;
       });
-      _showMessage(res.error ?? 'تعذر إرسال طلبك، يرجى المحاولة مرة أخرى.');
+      _showMessage(res.error ?? 'تعذر إرسال طلبك، يرجى المحاولة مرة أخرى');
       return;
     }
 
@@ -134,7 +134,7 @@ extension _TrackingOrderFlow on _TrackingScreenState {
         _orderFlowStage = _OrderFlowStage.idle;
       });
       _showMessage(request.status == 'EXPIRED'
-          ? 'الطلب اتلغى عشان ما اخترتش عرض في الوقت المحدد. تقدر تطلب تاني'
+          ? 'الطلب اتلغى عشان ما اخترتش عرض في الوقت المحدد\nتقدر تطلب تاني'
           : 'مفيش محامي متاح دلوقتي، جرب تاني كمان شوية');
       return;
     }

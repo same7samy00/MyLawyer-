@@ -141,7 +141,7 @@ class _BackgroundLocationSheetState extends State<BackgroundLocationSheet> with 
       title: 'عشان تجيلك طلبات وإنت برّه التطبيق',
       children: [
             const Text(
-              'طول ما أنت متاح، بنحدث مكانك ونبعتلك الطلبات القريبة. لو قفلت التطبيق من قائمة البرامج ممكن تخرج من الخدمة.',
+              'طول ما أنت متاح، بنحدث مكانك ونبعتلك الطلبات القريبة\nلو قفلت التطبيق من قائمة البرامج ممكن تخرج من الخدمة',
               textAlign: TextAlign.center,
               style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12, height: 1.5, color: AppColors.textMuted),
             ),

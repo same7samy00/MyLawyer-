@@ -26,7 +26,7 @@ class _LawyerApprovalStatusScreenState extends State<LawyerApprovalStatusScreen>
     final isUnchanged = check.status == SessionStatus.lawyerPending && !widget.isRejected ||
         check.status == SessionStatus.lawyerRejected && widget.isRejected;
     if (isUnchanged) {
-      setState(() => _notice = 'لم تتغير حالة حسابك بعد، سنراجع بياناتك في أقرب وقت.');
+      setState(() => _notice = 'لم تتغير حالة حسابك بعد، سنراجع بياناتك في أقرب وقت');
       return;
     }
     await SessionRouter.openSession(navigator, check);
@@ -69,8 +69,8 @@ class _LawyerApprovalStatusScreenState extends State<LawyerApprovalStatusScreen>
               const SizedBox(height: 10),
               Text(
                 isRejected
-                    ? 'راجعت إدارة المنصة بياناتك ولم يتم قبولها. يرجى التواصل مع الدعم الفني لمعرفة التفاصيل.'
-                    : 'نراجع بيانات القيد والكارنيه الخاصة بك، وهتقدر تستقبل الطلبات فور اعتماد حسابك.',
+                    ? 'راجعت إدارة المنصة بياناتك ولم يتم قبولها\nيرجى التواصل مع الدعم الفني لمعرفة التفاصيل'
+                    : 'نراجع بيانات القيد والكارنيه الخاصة بك، وهتقدر تستقبل الطلبات فور اعتماد حسابك',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontFamily: 'AppFont',
