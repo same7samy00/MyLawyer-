@@ -34,7 +34,7 @@
 | التقنيات ونسخها | `docs/TECH_STACK.md` |
 | التشغيل والبناء محليًا | `docs/DEVELOPMENT_GUIDE.md` |
 | إيه اللي اتغير ومتى | `docs/CHANGELOG.md` (الأحدث فوق)، والأقدم في `docs/CHANGELOG_ARCHIVE.md` |
-| تقرير الفحوصات | `docs/engineering/VERIFICATION.md` و`docs/PRODUCTION_REPORT.md` |
+| تقرير الفحوصات | `docs/engineering/VERIFICATION.md`، وآخر نتايج في `docs/memory/CURRENT_STATUS.md` |
 
 ## قواعد التوفير
 - ما تقراش `CHANGELOG_ARCHIVE.md` ولا ملفات `docs/engineering/` كلها غير لو المهمة محتاجاها.
