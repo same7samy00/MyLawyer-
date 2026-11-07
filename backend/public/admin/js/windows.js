@@ -24,7 +24,17 @@ function openActionWindow(actions) {
     const foot = el('div', undefined, 'modal-actions');
     foot.append(...footNodes);
     body.classList.add('wizard-swap');
+    // الطول بيتغير بنعومة على قد المحتوى، من غير فراغ ومن غير قفزة
+    const before = opened ? card.offsetHeight : 0;
     card.replaceChildren(head, body, foot);
+    if (opened) {
+      card.style.height = 'auto';
+      const after = card.offsetHeight;
+      card.style.height = before + 'px';
+      card.getBoundingClientRect();
+      card.style.height = after + 'px';
+      card.addEventListener('transitionend', () => { card.style.height = ''; }, { once: true });
+    }
     if (!opened) {
       backdrop.append(card);
       $('dialog').replaceChildren(backdrop);

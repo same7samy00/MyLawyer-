@@ -337,9 +337,9 @@ table, thead, tbody, tr, th, td, svg, path, strong, span, p, h1, h2, h3, h4, lab
 
 /* خلفية النافذة: بلور خفيف بدل اللون الغامق، والخطوات بتتبدل جوه نفس النافذة بحركة هادية */
 .modal-backdrop.wizard-backdrop { background: rgba(15, 23, 42, 0.18) !important; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
-.wizard-card { transition: height 0.2s ease; }
+.wizard-card { transition: height 0.22s ease; }
 .wizard-swap { animation: wizardSwap 0.18s ease-out; }
 @keyframes wizardSwap { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
 /* مقاس واحد ثابت لكل خطوات النافذة، فمفيش إحساس إن الحجم بيتغير */
-.modal-card.wizard-card { width: min(94vw, 600px) !important; max-width: min(94vw, 600px) !important; min-height: min(440px, 88vh); display: flex; flex-direction: column; }
+.modal-card.wizard-card { width: min(94vw, 600px) !important; max-width: min(94vw, 600px) !important; display: flex; flex-direction: column; overflow: hidden; }
 .wizard-card .modal-body { flex: 1 1 auto !important; }
