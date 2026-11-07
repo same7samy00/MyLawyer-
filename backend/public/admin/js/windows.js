@@ -9,9 +9,11 @@ function openActionWindow(actions) {
   const close = () => { $('dialog').hidden = true; $('dialog').replaceChildren(); };
   const stepsNow = () => action.steps.filter((step) => !step.when || step.when(values));
 
+  // نافذة واحدة طول الإجراء: أول مرة بتفتح، وبعدها المحتوى بس اللي بيتبدل جواها من غير ما تقفل وتفتح
   const frame = (title, stepText, bodyNodes, footNodes) => {
-    const backdrop = el('div', undefined, 'modal-backdrop');
-    const card = el('div', undefined, 'modal-card modal-md');
+    const opened = $('dialog').querySelector('.modal-card.wizard-card');
+    const backdrop = opened ? opened.parentElement : el('div', undefined, 'modal-backdrop wizard-backdrop');
+    const card = opened || el('div', undefined, 'modal-card modal-md wizard-card');
     const head = el('div', undefined, 'modal-header');
     const titleBox = el('div', undefined, 'modal-title-box');
     titleBox.append(el('h3', title));
@@ -21,10 +23,13 @@ function openActionWindow(actions) {
     body.append(...bodyNodes);
     const foot = el('div', undefined, 'modal-actions');
     foot.append(...footNodes);
-    card.append(head, body, foot);
-    backdrop.append(card);
-    $('dialog').replaceChildren(backdrop);
-    $('dialog').hidden = false;
+    body.classList.add('wizard-swap');
+    card.replaceChildren(head, body, foot);
+    if (!opened) {
+      backdrop.append(card);
+      $('dialog').replaceChildren(backdrop);
+      $('dialog').hidden = false;
+    }
   };
   const stepLabel = () => 'الخطوة ' + (index + 2) + ' من ' + (stepsNow().length + (action.noReview ? 1 : 2));
   const back = () => {
