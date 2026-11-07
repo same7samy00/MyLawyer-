@@ -65,7 +65,7 @@ function openActionWindow(actions) {
       row.addEventListener('click', () => { action = item; index = 0; values = {}; draw(); });
       list.append(row);
     });
-    frame('اتخاذ إجراء', 'اختر الإجراء', [list], []);
+    frame('اتخاذ إجراء', '', [list], []);
   };
 
   const drawStep = (step) => {
@@ -83,13 +83,22 @@ function openActionWindow(actions) {
     }
     const field = step.type === 'long' ? textarea(values[step.key] || '', step.placeholder || '') : input(values[step.key] || '', step.placeholder || '');
     if (step.type === 'number') { field.type = 'number'; field.min = '0'; }
+    // الخطأ بيبان وانت بتكتب، وزرار «التالي» مقفول لحد ما الخانة تبقى صح
+    const problemOf = (value) => {
+      if (step.type === 'number') return Number(value) > 0 ? '' : 'أدخل مبلغًا صحيحًا أكبر من صفر';
+      if (step.optional) return '';
+      if (value.length < (step.min || 1)) return step.min ? 'اكتب ' + step.min + ' أحرف على الأقل (' + value.length + ' الآن)' : 'هذه الخانة مطلوبة';
+      return '';
+    };
+    const check = (showMessage) => {
+      const problem = problemOf(field.value.trim());
+      nextButton.disabled = Boolean(problem);
+      error.textContent = showMessage ? problem : '';
+      return !problem;
+    };
     const submit = () => {
+      if (!check(true)) return;
       const value = field.value.trim();
-      if (step.type === 'number' && !(Number(value) > 0)) { error.textContent = 'أدخل مبلغًا صحيحًا'; return; }
-      if (!step.optional && step.type !== 'number' && value.length < (step.min || 1)) {
-        error.textContent = step.min ? 'اكتب ' + step.min + ' أحرف على الأقل' : 'هذه الخانة مطلوبة';
-        return;
-      }
       values[step.key] = value;
       if (action.noReview && index === stepsNow().length - 1) { execute(error, nextButton); return; }
       next();
@@ -97,7 +106,9 @@ function openActionWindow(actions) {
     const isLast = action.noReview && index === stepsNow().length - 1;
     const nextButton = link(isLast ? 'حفظ' : 'التالي', submit, 'btn-primary');
     if (step.type !== 'long') field.addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); submit(); } });
+    field.addEventListener('input', () => check(field.value.length > 0));
     frame(action.title, stepLabel(), [el('label', step.label, 'wizard-label'), field, error], [link('رجوع', back), nextButton]);
+    check(false);
     field.focus();
   };
 

@@ -9,6 +9,25 @@ const UNIQUE_VIOLATION = '23505';
 
 /// Creating an account and activating it with the emailed code
 export async function registerSignUp(fastify: FastifyInstance) {
+  // POST /api/v1/auth/check-available - التطبيق بيسأل عن الرقم أو البريد في خطوته، قبل ما الموكل يكمل باقي التسجيل
+  fastify.post('/check-available', async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = (request.body || {}) as { phone?: string; email?: string };
+    const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    if (!phone && !email) return reply.status(400).send({ success: false, error: 'اكتب رقم الهاتف أو البريد الإلكتروني' });
+    const res = await query(
+      'SELECT phone, email FROM users WHERE ($1 <> \'\' AND phone = $1) OR ($2 <> \'\' AND LOWER(email) = $2) LIMIT 2',
+      [phone, email]
+    );
+    return reply.send({
+      success: true,
+      data: {
+        phoneTaken: phone !== '' && res.rows.some((row) => row.phone === phone),
+        emailTaken: email !== '' && res.rows.some((row) => String(row.email ?? '').toLowerCase() === email),
+      },
+    });
+  });
+
   // 1. POST /api/v1/auth/register
   fastify.post('/register', async (request: FastifyRequest, reply: FastifyReply) => {
     const parseResult = registerSchema.safeParse(request.body);

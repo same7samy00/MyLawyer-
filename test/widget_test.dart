@@ -331,7 +331,7 @@ void main() {
       expect(find.byType(AppHeader), findsNothing);
 
       // 2. Verify no "طلب الآن" or emergency order button
-      expect(find.text('طلب الآن'), findsNothing);
+      expect(find.text('اطلب الآن'), findsNothing);
 
       // 3. The fixed sheet shows the list first, with no profile open
       expect(find.text('الأعلى تقييماً حولك'), findsOneWidget);
@@ -649,7 +649,7 @@ void main() {
 
       // Banner exists
       expect(find.text('محاميك حالاً'), findsAtLeastNWidgets(1));
-      expect(find.text('طلب الآن'), findsOneWidget);
+      expect(find.text('اطلب الآن'), findsOneWidget);
 
       // Search bar is strictly removed
       expect(find.textContaining('ابحث عن محامي'), findsNothing);
@@ -710,7 +710,7 @@ void main() {
       expect(find.byIcon(Icons.notifications_none_rounded), findsNothing);
 
       // NO Client Banner and NO "طلب الآن"
-      expect(find.text('طلب الآن'), findsNothing);
+      expect(find.text('اطلب الآن'), findsNothing);
       expect(find.text('طلب مساعدة قانونية عاجلة من أقرب محامي متاح لموقعك الآن.'), findsNothing);
 
       // NO search bar
@@ -743,7 +743,7 @@ void main() {
       expect(find.text('تقديم على الخدمة'), findsOneWidget);
 
       // Strictly NO client actions or maps
-      expect(find.text('طلب الآن'), findsNothing);
+      expect(find.text('اطلب الآن'), findsNothing);
       expect(find.byType(FlutterMap), findsNothing);
 
       // Accepting the terms joins the service

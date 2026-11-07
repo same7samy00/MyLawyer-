@@ -226,14 +226,20 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
     );
   }
 
-  void _validateAndAdvanceStep1() {
+  Future<void> _validateAndAdvanceStep1() async {
     setState(() => _errorMessage = null);
     if (_step1FormKey.currentState!.validate()) {
+      final taken = await AuthService.takenMessage(phone: _phoneController.text);
+      if (!mounted) return;
+      if (taken != null) {
+        setState(() => _errorMessage = taken);
+        return;
+      }
       setState(() => _currentStep = 1);
     }
   }
 
-  void _validateAndAdvanceStep2() {
+  Future<void> _validateAndAdvanceStep2() async {
     setState(() => _errorMessage = null);
     if (!_step2FormKey.currentState!.validate()) {
       return;
@@ -242,6 +248,12 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
       setState(() {
         _errorMessage = 'يرجى إدخال كلمة مرور قوية تحقق معايير الأمان قبل المتابعة';
       });
+      return;
+    }
+    final taken = await AuthService.takenMessage(email: _emailController.text);
+    if (!mounted) return;
+    if (taken != null) {
+      setState(() => _errorMessage = taken);
       return;
     }
     setState(() => _currentStep = 2);

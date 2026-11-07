@@ -1,4 +1,3 @@
-import '../../core/widgets/app_pressable.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,6 +10,7 @@ import '../../core/widgets/profile_home_card.dart';
 import '../urgent_service/urgent_service_problem_screen.dart';
 import '../auth/location_permission_screen.dart';
 import '../consultation/consultation_type_screen.dart';
+import 'home_banners.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -79,70 +79,8 @@ class _HomeTabState extends State<HomeTab> {
             ProfileHomeCard(locationName: _locationName),
             const SizedBox(height: 18),
 
-            // 2. «محاميك حالاً» Banner with Global Team SVG Illustration
-            AppCard(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-              backgroundColor: AppColors.primary,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'محاميك حالاً',
-                          style: TextStyle(
-                            fontFamily: 'AppFont',
-                            fontFamilyFallback: appFontFallback,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'طلب مساعدة قانونية عاجلة من أقرب محامي متاح لموقعك الآن',
-                          style: TextStyle(
-                            fontFamily: 'AppFont',
-                            fontFamilyFallback: appFontFallback,
-                            fontSize: 12,
-                            color: AppColors.primaryLight,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        AppPressable(
-                          child: ElevatedButton(
-                            onPressed: _openUrgentService,
-                            style: ElevatedButton.styleFrom(
-                              overlayColor: Colors.transparent,
-                              backgroundColor: Colors.white,
-                              foregroundColor: AppColors.primary,
-                              minimumSize: const Size(96, 38),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                            ),
-                            child: const Text(
-                              'طلب الآن',
-                              style: TextStyle(
-                                fontFamily: 'AppFont',
-                                fontFamilyFallback: appFontFallback,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  const LawyerPinIllustration(size: 70, onDark: true),
-                ],
-              ),
-            ),
+            // 2. البانرات: «محاميك حالاً» و«استشارة سريعة»، بتتقلب لوحدها
+            HomeBannersCarousel.client(onUrgent: _openUrgentService, onConsultation: _openConsultation),
             const SizedBox(height: 22),
 
             // 4. Services List Title
@@ -171,9 +109,7 @@ class _HomeTabState extends State<HomeTab> {
               title: 'استشارة سريعة',
               desc: 'اكتب مشكلتك وادفع، وفريقنا القانوني يكلمك على تليفونك خلال دقايق',
               icon: Icons.support_agent_rounded,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const QuickConsultationScreen()),
-              ),
+              onTap: _openConsultation,
             ),
             const SizedBox(height: 10),
             _buildServiceListItem(
@@ -207,6 +143,10 @@ class _HomeTabState extends State<HomeTab> {
         ),
       ),
     );
+  }
+
+  void _openConsultation() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuickConsultationScreen()));
   }
 
   Future<void> _openUrgentService() async {

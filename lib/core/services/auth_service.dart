@@ -480,6 +480,20 @@ class AuthService {
     );
   }
 
+  /// بيرجع رسالة لو الرقم أو البريد مسجل قبل كده، عشان الخطأ يبان في خطوته مش في الآخر.
+  /// لو الشبكة وقعت بيرجع null، والتسجيل نفسه هيتأكد تاني
+  static Future<String?> takenMessage({String? phone, String? email}) async {
+    final res = await ApiService.post('/auth/check-available', {
+      if (phone != null) 'phone': phone.trim(),
+      if (email != null) 'email': email.trim().toLowerCase(),
+    });
+    if (!res.isOk || res.data is! Map<String, dynamic>) return null;
+    final data = res.data as Map<String, dynamic>;
+    if (data['phoneTaken'] == true) return 'رقم الهاتف ده مسجل قبل كده\nسجّل دخول أو استخدم رقم تاني';
+    if (data['emailTaken'] == true) return 'البريد ده مسجل قبل كده\nسجّل دخول أو استخدم بريد تاني';
+    return null;
+  }
+
   /// إعادة إرسال رمز التحقق للبريد الإلكتروني
   static Future<AuthResult> resendVerificationCode(String email) async {
     final res = await ApiService.post('/auth/resend-otp', {

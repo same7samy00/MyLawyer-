@@ -161,6 +161,7 @@ const ACTION_ICONS = [
   [/^الموافقة/, 'check', 'tone-green'], [/^رفض/, 'reject', 'tone-red'],
   [/^إبقاء/, 'show', 'tone-green'], [/^إخفاء/, 'hide', 'tone-red'],
   [/^تعديل سعر/, 'price', 'tone-blue'], [/نسبة/, 'percent', 'tone-blue'],
+  [/^بدء التواصل/, 'phone', 'tone-blue'], [/^تمت/, 'check', 'tone-green'], [/استشارة/, 'phone', 'tone-blue'],
 ];
 
 // Icons that share a row because their actions are close to each other

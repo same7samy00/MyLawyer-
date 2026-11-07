@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
 
 /// صورة «محاميك حالاً»: محامي لابس بدلة وساند على دبوس خريطة.
-/// على خلفية زرقا بتتحط جوه دايرة بيضا عشان تبان
+/// [white] نسخة بيضا للخلفيات الزرقا زي البانر، والعادية زرقا للخلفيات الفاتحة
 class LawyerPinIllustration extends StatelessWidget {
   final double size;
-  final bool onDark;
+  final bool white;
 
-  const LawyerPinIllustration({super.key, this.size = 72, this.onDark = false});
+  const LawyerPinIllustration({super.key, this.size = 72, this.white = false});
 
   @override
   Widget build(BuildContext context) {
-    final image = Image.asset('assets/images/lawyer_pin.png', width: size, height: size, fit: BoxFit.contain);
-    if (!onDark) return image;
-    return Container(
-      width: size + 12,
-      height: size + 12,
-      padding: const EdgeInsets.all(6),
-      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-      child: image,
+    return Image.asset(
+      white ? 'assets/images/lawyer_pin_white.png' : 'assets/images/lawyer_pin.png',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      cacheWidth: (size * 3).round(),
     );
   }
 }

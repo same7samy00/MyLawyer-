@@ -60,6 +60,7 @@ extension _ClientRegisterSteps on _ClientRegisterScreenState {
   /// الخطوة الأولى: البيانات الشخصية
   Widget _buildStep1PersonalData() {
     return Form(
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       key: _step1FormKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -127,6 +128,7 @@ extension _ClientRegisterSteps on _ClientRegisterScreenState {
   /// الخطوة الثانية: بيانات الحساب
   Widget _buildStep2AccountData() {
     return Form(
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       key: _step2FormKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
