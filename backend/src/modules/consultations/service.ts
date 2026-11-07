@@ -9,7 +9,6 @@ import { HttpError, UUID_PATTERN } from '../../utils/http.js';
 
 export const CONSULTATION_KINDS = ['CALL', 'PAPERS'] as const;
 export type ConsultationKind = typeof CONSULTATION_KINDS[number];
-export const CONSULTATION_STATUSES = ['PAID', 'CONTACTING', 'DONE', 'REJECTED'] as const;
 const MAX_PAGE_BYTES = 6 * 1024 * 1024;
 const PAGES_DIR = () => path.join(config.privateStoragePath, 'consultations');
 

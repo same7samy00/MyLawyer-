@@ -120,7 +120,10 @@ erDiagram
 | `payments` | كل دفعة موكل برقم `ML-PAY` وطريقتها: `WALLET` من الرصيد، أو `DIRECT` من غير بوابة دفع (migration `018`). |
 | `failed_payments` | محاولة دفع ما تمتش وسببها، عشان تظهر للموكل في صفحة المدفوعات (migration `029`). |
 | `payout_events` | سجل تجميد الأتعاب وفكها وتسويتها، ومن قام بذلك (migration `017`). |
-| `admin_actions` | قرارات الإدارة: الحسابات والأسعار والنسب وطلبات المحامين والتعليقات (migration `019`). |
+| `admin_actions` | قرارات الإدارة: الحسابات والأسعار والنسب وطلبات المحامين والتعليقات وإعدادات الاستشارة (migration `019`). |
+| `consultation_settings` | صف واحد: سعر الاستشارة، وسعر الاطلاع الأساسي، وسعر الورقة، وأقصى عدد ورق، ومدة المكالمة، وأقل طول للتفاصيل، والإتاحة (migration `032`). |
+| `consultations` | كل استشارة سريعة برقم `ML-CNS` ونوعها وتفاصيلها وسعرها وطريقة دفعها وحالتها (`PAID` ثم `CONTACTING` ثم `DONE`، أو `REJECTED` والمبلغ بيرجع للرصيد في `client_credits`) (migration `032`). |
+| `consultation_pages` | صور الورق في التخزين الخاص `consultations/`، لصاحب الاستشارة والإدارة بس (migration `032`). |
 | `order_status_logs` | كل مراحل الطلب، و`changed_by_user_id` فاضي لما النظام هو اللي نفذ (migration `019`). |
 
 عمودا `specialty` و`bio` في `lawyer_profiles` مش مستخدمين في النظام، و`experience_years` بيتكتب عند تسجيل المحامي وقيمته الافتراضية 0 (migration `020`).

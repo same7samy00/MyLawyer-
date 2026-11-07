@@ -1,5 +1,17 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Quick Consultation in Production] - 2026-11-07
+- **Backend module** `backend/src/modules/consultations` (`service.ts`, `routes.ts`, `admin.ts`) and migration `032_consultations.sql`: `consultation_settings` (one row of prices and limits), `consultations` (reference `ML-CNS-…`, kind `CALL` or `PAPERS`, status `PAID` → `CONTACTING` → `DONE`, or `REJECTED`), and `consultation_pages` (paper photos in private storage).
+- **Client routes** under `/api/v1/consultations`: `settings`, `quote` (the price is computed on the server only), `POST /` (pay and create in one multipart call, from the balance or direct), the list, one item, and `pages/:id` for the owner and admins only.
+- **Admin routes:** `/admin/consultations`, `/admin/consultations/:id`, `/admin/consultations/:id/status` (rejecting needs a reason and returns the full amount to the client balance), and `/admin/consultation-settings` (logged as `CONSULTATION_SETTINGS`). The overview counts `waiting_consultations`.
+- **Control panel:** a «الاستشارة السريعة» page under services (tabs, search, dates, details with private paper images, call button, actions window), its menu counter, live refresh on `consultations` changes, and price and limit tiles in «الأسعار والنسب».
+- **App:** one file per step in `lib/features/consultation/` (type, details and papers, price evaluation, summary), `ConsultationRepository` and `data/models/consultation.dart`. Payment reuses the «محاميك حالاً» pages: `PaymentScreen`, `PaymentMethodScreen` and `PaymentSuccessScreen` take an optional `consultation` draft, and the method page sends the consultation with its payment.
+- **Tests:** 5 backend tests (`tests/consultations.test.ts`) and an app journey test (`test/session/consultation_test.dart`). Backend 161 passed, app 129 passed.
+- **Cleanup:** the old single consultation screen file is gone. A sweep found no unused files, classes, methods or exports in the app, backend or panel.
+
+## [Fingerprint, Unified Loader and App Polish] - 2026-11-07
+- Fingerprint login (`BiometricService` with `local_auth` and `flutter_secure_storage`, the setup page, the account switch with a password sheet), one rotating dots loader (`AppLoader`) with space above and below, texts split into lines without trailing periods, a single hidden field for the email code, the promo map for every account, no location page when permission already exists, nearby lawyers as a list and «عرض الملف» on offer cards. Android minimum is now 6.
+
 ## [Where I'll Be Page] - 2026-11-06
 - **New standalone page** `/tawagod/` (`backend/public/site/tawagod`): lawyers post the day, city, courts or places and an optional time, and anyone sees them grouped by day with WhatsApp and call buttons. Works on phone and desktop in the app's colours and fonts.
 - **Own accounts:** name, phone, WhatsApp and a password, apart from the app's users (`presence_accounts`, `presence_sessions`, `presence_entries` in migration 031). Routes under `/api/v1/presence`. An entry disappears after its day.

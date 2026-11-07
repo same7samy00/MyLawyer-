@@ -118,6 +118,16 @@
 | `/notifications/read-all` | `POST` | مصرح | تعليم الكل كمقروء |
 | `/notifications/device-token` و`/device-token/remove` | `POST` | مصرح | تسجيل الجهاز لإشعارات الموبايل أو إلغاؤه |
 
+### هـ2. الاستشارة السريعة (موكل)
+| المسار | الطريقة | الصلاحية | الوظيفة |
+| :--- | :---: | :---: | :--- |
+| `/consultations/settings` | `GET` | مصرح | أقصى عدد ورق، ومدة المكالمة، وأقل طول للتفاصيل، والخدمة متاحة ولا لأ |
+| `/consultations/quote` | `POST` | مصرح | `kind` (`CALL` أو `PAPERS`) و`pages`، ويرجع سطور السعر `lines` و`total`. السعر من السيرفر بس |
+| `/consultations` | `POST` | موكل | الطلب بالدفع مرة واحدة: multipart فيه `kind` و`details` و`method` (`wallet` أو `direct`) وصور الورق |
+| `/consultations` | `GET` | مصرح | استشاراتي، الأحدث الأول |
+| `/consultations/:id` | `GET` | صاحبها | الاستشارة بالتفاصيل ولينكات صور الورق |
+| `/consultations/pages/:id` | `GET` | صاحبها والإدارة | صورة ورقة من التخزين الخاص |
+
 ### و. الإدارة (كل المسارات محتاجة حساب `admin`)
 | المسار | الطريقة | الوظيفة |
 | :--- | :---: | :--- |
@@ -152,6 +162,10 @@
 | `/admin/prices` | `GET`/`PUT` | نطاق السعر ونسبة المنصة لكل مشكلة |
 | `/admin/commission` | `POST` | نسبة واحدة لكل الخدمات للطلبات الجديدة |
 | `/admin/tax` | `GET`/`POST` | نسبة الضريبة للطلبات الجديدة |
+| `/admin/consultations` | `GET` | كل الاستشارات السريعة بالموكل وتليفونه |
+| `/admin/consultations/:id` | `GET` | الاستشارة بالتفاصيل وصور الورق والمتابعة |
+| `/admin/consultations/:id/status` | `POST` | `status`: `CONTACTING` أو `DONE` (ومعاه `note` اختياري) أو `REJECTED` (و`reason` إلزامي، والمبلغ كله يرجع لرصيد الموكل) |
+| `/admin/consultation-settings` | `GET`/`PUT` | أسعار الاستشارة وحدودها وإتاحتها، وبتتطبق على الجديد بس |
 
 ### ز. المهام التلقائية (`sweepLifecycle` كل 3 ثواني)
 - قفل الطلبات اللي ما اتردش عليها، واللي ما اتدفعتش.
