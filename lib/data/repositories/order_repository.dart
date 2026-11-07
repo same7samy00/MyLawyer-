@@ -39,8 +39,11 @@ class OrderRepository {
   }
 
   /// آخر طلبات اتعرضت، لحد ما الطلب الجديد من السيرفر يوصل
-  static Future<List<OrderModel>> savedOrders() async {
-    final saved = await SavedData.read('orders');
+  static Future<List<OrderModel>> savedOrders() async => peekOrders();
+
+  /// المحفوظ فورًا، للصفحة وهي بتترسم أول مرة
+  static List<OrderModel> peekOrders() {
+    final saved = SavedData.peek('orders');
     if (saved is! List) return const [];
     return saved.whereType<Map<String, dynamic>>().map(OrderModel.fromJson).toList();
   }
@@ -206,8 +209,11 @@ class OrderRepository {
     });
   }
 
-  static Future<Map<String, dynamic>?> savedWallet() async {
-    final saved = await SavedData.read('wallet');
+  static Future<Map<String, dynamic>?> savedWallet() async => peekWallet();
+
+  /// المحفظة المحفوظة فورًا، للصفحة وهي بتترسم أول مرة
+  static Map<String, dynamic>? peekWallet() {
+    final saved = SavedData.peek('wallet');
     return saved is Map<String, dynamic> ? saved : null;
   }
 

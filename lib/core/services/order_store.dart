@@ -11,7 +11,8 @@ import 'live_updates.dart';
 class OrderStore {
   OrderStore._();
 
-  static final ValueNotifier<List<OrderModel>> orders = ValueNotifier<List<OrderModel>>(const []);
+  /// بيبدأ بآخر نسخة محفوظة، فالصفحة بتترسم بيها من أول لحظة
+  static final ValueNotifier<List<OrderModel>> orders = ValueNotifier<List<OrderModel>>(OrderRepository.peekOrders());
   static bool isLoaded = false;
   static StreamSubscription<LiveChange>? _subscription;
   static Future<ApiResponse<List<OrderModel>>>? _loading;

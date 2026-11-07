@@ -26,14 +26,15 @@ class OrdersTab extends StatefulWidget {
 }
 
 class _OrdersTabState extends State<OrdersTab> {
-  bool _isLoading = true;
+  // آخر نسخة محفوظة بتظهر من أول لحظة، والتحميل بس لو مفيش حاجة محفوظة خالص
+  late bool _isLoading = OrderStore.orders.value.isEmpty && !OrderStore.isLoaded;
   bool _isFetching = false;
   String? _errorMessage;
-  List<OrderModel> _orders = const [];
+  List<OrderModel> _orders = OrderStore.orders.value;
   bool _showCurrent = true;
 
   /// صفحة الطلبات شاملة كل الخدمات: «محاميك حالاً» والاستشارة السريعة
-  List<Consultation> _consultations = const [];
+  List<Consultation> _consultations = ConsultationRepository.peek();
   StreamSubscription<LiveChange>? _live;
 
   @override

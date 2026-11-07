@@ -21,9 +21,16 @@ class LawyerAccountTab extends StatefulWidget {
 }
 
 class _LawyerAccountTabState extends State<LawyerAccountTab> {
-  String _lawyerName = '';
-  String _syndicateNumber = '';
-  String _userPhone = '';
+  // الاسم والرقم ورقم القيد من بيانات الحساب المحفوظة، فالكارت بيتبني كامل من أول لحظة
+  String _lawyerName = _shortName(ProfileRepository.saved?['fullName']?.toString());
+  String _syndicateNumber = ProfileRepository.saved?['syndicateNumber']?.toString() ?? '';
+  String _userPhone = ProfileRepository.saved?['phone']?.toString() ?? '';
+
+  static String _shortName(String? name) {
+    if (name == null || name.trim().isEmpty) return '';
+    final words = name.trim().split(RegExp(r'\s+'));
+    return 'أ/ ${words.length >= 2 ? '${words[0]} ${words[1]}' : words[0]}';
+  }
   String? _photoPath = ProfileRepository.saved?['profilePhotoPath']?.toString();
 
   @override

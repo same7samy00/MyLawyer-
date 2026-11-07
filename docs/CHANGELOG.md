@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Steady First Frame and Linked Consultation Notifications] - 2026-11-07
+- **No late-appearing parts:** screens are seeded from memory on the first frame (`OrderRepository.peekOrders/peekWallet`, `OrderStore.orders` starts from the saved list, `ConsultationRepository.peek`, the lawyer account card from `ProfileRepository.saved`), the fingerprint state is computed once in `main` (`BiometricService.warmUp`), and the login stores the name and phone in the saved profile. The rule is in `AGENTS.md` (app speed section).
+- **Order cards show their service** (`ServiceTag`): «محاميك حالاً» or «استشارة سريعة».
+- **Consultation notifications open the consultation:** migration `034` adds `notifications.consultation_id`, `notify` and the push carry `consultationId`, and the app opens the consultation sheet. A notification linked to nothing opens the notifications page.
+- **Panel:** «لم نتمكن من الوصول» sends a body, and the amount step shows the 100,000 limit while typing.
+
 ## [Sliding Banners, Cleaner Action Window and Early Checks] - 2026-11-07
 - **Home banners** (`lib/features/client/home_banners.dart`): «محاميك حالاً» with the white picture (`assets/images/lawyer_pin_white.png`, no white circle) and a new «استشارة سريعة» banner, 150 high, sliding to the next every 5 seconds with dots, and a swipe restarts the timer.
 - **Panel action window:** no «اختر الإجراء» line, no repeated borders, solid coloured icon backgrounds, and «التالي» stays disabled with the reason shown while typing until the field is valid.

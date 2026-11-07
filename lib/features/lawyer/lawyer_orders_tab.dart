@@ -31,10 +31,11 @@ class LawyerOrdersTab extends StatefulWidget {
 }
 
 class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
-  bool _isLoading = true;
+  // آخر نسخة محفوظة بتظهر من أول لحظة، والتحميل بس لو مفيش حاجة محفوظة خالص
+  late bool _isLoading = OrderStore.orders.value.isEmpty && !OrderStore.isLoaded;
   bool _isFetching = false;
   String? _errorMessage;
-  List<OrderModel> _orders = const [];
+  List<OrderModel> _orders = OrderStore.orders.value;
   List<IncomingRequest> _requests = const [];
   bool _showCurrent = true;
 

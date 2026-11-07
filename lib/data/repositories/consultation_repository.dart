@@ -1,4 +1,6 @@
+import 'dart:async';
 import '../../core/services/api_service.dart';
+import '../../core/services/saved_data.dart';
 import '../models/consultation.dart';
 
 /// «استشارة سريعة»: الشروط، وتقييم السعر، والطلب بالدفع
@@ -19,10 +21,17 @@ class ConsultationRepository {
     return ApiResponse(success: false, statusCode: res.statusCode, error: res.error ?? 'تعذر تقييم السعر، حاول تاني');
   }
 
+  /// آخر نسخة محفوظة، عشان الاستشارات تظهر مع الطلبات من أول لحظة
+  static List<Consultation> peek() {
+    final saved = SavedData.peek('consultations');
+    return saved is List ? saved.whereType<Map<String, dynamic>>().map(Consultation.fromJson).toList() : const [];
+  }
+
   /// استشاراتي، عشان تظهر في صفحة الطلبات
   static Future<ApiResponse<List<Consultation>>> list() async {
     final res = await ApiService.get('/consultations');
     if (res.isOk && res.data is List) {
+      unawaited(SavedData.write('consultations', res.data));
       final items = (res.data as List).whereType<Map<String, dynamic>>().map(Consultation.fromJson).toList();
       return ApiResponse(success: true, statusCode: res.statusCode, data: items);
     }

@@ -21,9 +21,11 @@ class WalletTab extends StatefulWidget {
 }
 
 class _WalletTabState extends State<WalletTab> {
-  bool _isLoading = true;
+  // الرصيد المحفوظ بيظهر من أول لحظة
+  static num? get _savedBalance => OrderRepository.peekWallet()?['balance'] as num?;
+  bool _isLoading = _savedBalance == null;
   String? _error;
-  double _balance = 0;
+  double _balance = (_savedBalance ?? 0).toDouble();
 
   @override
   void initState() {

@@ -26,12 +26,14 @@ class LawyerWalletTab extends StatefulWidget {
 }
 
 class _LawyerWalletTabState extends State<LawyerWalletTab> {
-  bool _isLoading = true;
+  bool _isLoading = OrderRepository.peekWallet() == null;
   bool _isFetching = false;
   String? _errorMessage;
-  List<OrderModel> _completedOrders = const [];
+  List<OrderModel> _completedOrders = OrderRepository.peekOrders().where((order) => order.isCompleted).toList();
 
-  LawyerWallet _wallet = const LawyerWallet(available: 0, held: 0, frozen: 0);
+  LawyerWallet _wallet = OrderRepository.peekWallet() != null
+      ? LawyerWallet.fromJson(OrderRepository.peekWallet()!)
+      : const LawyerWallet(available: 0, held: 0, frozen: 0);
 
   @override
   void initState() {
