@@ -63,3 +63,6 @@ test-accounts.txt
 .access/
 
 .claude/settings.local.json
+
+# PDF files made for the app owner
+exports/
