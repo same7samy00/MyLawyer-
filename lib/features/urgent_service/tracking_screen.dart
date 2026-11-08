@@ -184,7 +184,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
               // A tap near a pin opens that lawyer in the sheet
               onTap: (_, point) {
                 if (_orderFlowStage != _OrderFlowStage.idle) return;
-                final hit = lawyerAtTap(_mapController.camera, point, _pinLawyers);
+                final hit = lawyerAtTap(_mapController.camera, point, _pinLawyers, selectedId: _selectedLawyer?.id);
                 if (hit != null) _onLawyerTapped(hit);
               },
               onPointerDown: (_, __) => _stopCamera(),

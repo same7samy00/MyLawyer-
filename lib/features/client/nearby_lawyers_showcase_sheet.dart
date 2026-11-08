@@ -10,6 +10,8 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
         },
         child: Container(
         width: double.infinity,
+        // The whole sheet is at most half the screen
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.5),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
@@ -31,8 +33,7 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
                         ? _closeLawyerProfile
                         : null,
               ),
-              ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.5),
+              Flexible(
                 child: _selectedLawyer == null ? _buildTopLawyersList() : _buildLawyerProfile(_selectedLawyer!),
               ),
             ],

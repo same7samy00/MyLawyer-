@@ -33,12 +33,25 @@ class LawyerPinsLayer extends StatelessWidget {
   }
 }
 
+/// المحامي اللي يمثّل كل مكان على الخريطة: لو كذا محامي في نفس المكان دبوس واحد بس،
+/// المختار ليه الأولوية دايمًا، وبعده الأعلى تقييمًا. الرسم واللمس الاتنين بيستخدموها فاللي يتلمس هو اللي مرسوم
+List<MapLawyer> pinSpots(Iterable<MapLawyer> lawyers, String? selectedId) {
+  final spots = <LatLng, MapLawyer>{};
+  for (final lawyer in lawyers) {
+    final there = spots[lawyer.position];
+    if (there == null || (there.id != selectedId && (lawyer.id == selectedId || lawyer.rating > there.rating))) {
+      spots[lawyer.position] = lawyer;
+    }
+  }
+  return spots.values.toList(growable: false);
+}
+
 /// المحامي اللي اتلمس دبوسه (لحد 28 نقطة من الصباع)، أو null
-MapLawyer? lawyerAtTap(MapCamera camera, LatLng tap, Iterable<MapLawyer> lawyers) {
+MapLawyer? lawyerAtTap(MapCamera camera, LatLng tap, Iterable<MapLawyer> lawyers, {String? selectedId}) {
   final at = camera.project(tap);
   MapLawyer? best;
   var bestDistance = 28.0;
-  for (final lawyer in lawyers) {
+  for (final lawyer in pinSpots(lawyers, selectedId)) {
     final p = camera.project(lawyer.position);
     // The pin's head sits above its point
     final d = math.sqrt(math.pow(p.x - at.x, 2) + math.pow(p.y - 12 - at.y, 2));
@@ -95,15 +108,9 @@ class _PinsPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final origin = camera.pixelOrigin;
     final bounds = camera.visibleBounds;
-    // Lawyers on the same (rounded) spot share one pin: the best rated stands for the spot
-    final spots = <LatLng, MapLawyer>{};
-    for (final lawyer in lawyers) {
-      if (!bounds.contains(lawyer.position)) continue;
-      final there = spots[lawyer.position];
-      if (there == null || lawyer.rating > there.rating || lawyer.id == selectedId) spots[lawyer.position] = lawyer;
-    }
+    // Lawyers on the same spot share one pin, the same one a tap picks
     final pins = <(MapLawyer, Offset)>[
-      for (final lawyer in spots.values) (lawyer, () {
+      for (final lawyer in pinSpots(lawyers.where((l) => bounds.contains(l.position)), selectedId)) (lawyer, () {
         final p = camera.project(lawyer.position) - origin;
         return Offset(p.x.toDouble(), p.y.toDouble());
       }()),

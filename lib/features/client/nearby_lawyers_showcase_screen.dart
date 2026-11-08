@@ -320,7 +320,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
               backgroundColor: appMapBackground,
               // A tap near a pin opens that lawyer in the sheet, anywhere else closes the open profile
               onTap: (_, point) {
-                final hit = lawyerAtTap(_mapController.camera, point, _pinLawyers);
+                final hit = lawyerAtTap(_mapController.camera, point, _pinLawyers, selectedId: _selectedLawyer?.id);
                 if (hit != null) {
                   _onLawyerMarkerTapped(hit);
                 } else if (_selectedLawyer != null) {
