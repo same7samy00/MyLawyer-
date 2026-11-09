@@ -237,7 +237,8 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
 
     const updateRes = await query(
       `UPDATE lawyer_profiles
-       SET latitude = $1, longitude = $2, last_location_updated_at = NOW(), last_active_at = NOW(), updated_at = NOW()
+       SET latitude = $1, longitude = $2, last_location_updated_at = NOW(), last_active_at = NOW(), updated_at = NOW(),
+           wake_count = 0, last_wake_at = NULL
        WHERE user_id = $3
        RETURNING id, latitude, longitude, last_location_updated_at, is_available`,
       [lat, lon, userId]

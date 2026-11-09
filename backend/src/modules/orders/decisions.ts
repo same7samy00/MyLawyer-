@@ -63,7 +63,7 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
       if (hasFreshLocation) {
         await client.query(
           `UPDATE lawyer_profiles
-           SET latitude = $1, longitude = $2, last_location_updated_at = NOW(), last_active_at = NOW()
+           SET latitude = $1, longitude = $2, last_location_updated_at = NOW(), last_active_at = NOW(), wake_count = 0, last_wake_at = NULL
            WHERE user_id = $3`,
           [lat, lon, userId]
         );

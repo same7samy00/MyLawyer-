@@ -137,7 +137,7 @@ beforeEach(async () => {
   }
   await sql('DELETE FROM service_orders');
   await sql(`UPDATE problem_prices SET min_price = 350, max_price = 350, commission_percent = 0`);
-  await sql(`UPDATE lawyer_profiles SET is_available = TRUE, urgent_status = 'APPROVED', availability_off_reason = NULL, missed_orders = 0, suspended_until = NULL, last_active_at = NOW(), last_location_updated_at = NOW() WHERE user_id = $1`, [lawyerId]);
+  await sql(`UPDATE lawyer_profiles SET is_available = TRUE, urgent_status = 'APPROVED', availability_off_reason = NULL, missed_orders = 0, suspended_until = NULL, last_active_at = NOW(), last_location_updated_at = NOW(), wake_count = 0, last_wake_at = NULL WHERE user_id = $1`, [lawyerId]);
   await sql(`UPDATE users SET warnings_count = 0, suspended_until = NULL, status = 'active'::user_status WHERE id = ANY($1)`, [[clientId, lawyerId]]);
 });
 

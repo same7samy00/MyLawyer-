@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -6,12 +8,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'api_service.dart';
+import 'background_location_service.dart';
 import 'live_updates.dart';
 import 'notification_center.dart';
 
-/// الإشعارات الخلفية يعرضها النظام مباشرة، والدالة دي مطلوبة لتشغيلها والتطبيق مقفول
+/// الإشعارات الخلفية يعرضها النظام مباشرة. التنبيه الصامت (`type: wake`) بيصحّي موبايل المحامي المتاح
+/// حتى والتطبيق مقفول، وهو بيرد بمكانه عشان يفضل متاح
 @pragma('vm:entry-point')
-Future<void> _onBackgroundMessage(RemoteMessage message) async {}
+Future<void> _onBackgroundMessage(RemoteMessage message) async {
+  if (message.data['type'] != 'wake') return;
+  DartPluginRegistrant.ensureInitialized();
+  await BackgroundLocationService.answerWake();
+}
 
 /// تسجيل جهاز المستخدم لاستقبال إشعارات الطلبات والتطبيق مقفول
 class PushService {
@@ -66,6 +74,10 @@ class PushService {
     });
     // والتطبيق مفتوح مفيش إشعار على الجهاز، صوت واهتزاز والصفحة تتحدث
     FirebaseMessaging.onMessage.listen((message) {
+      if (message.data['type'] == 'wake') {
+        unawaited(BackgroundLocationService.answerWake());
+        return;
+      }
       NotificationCenter.refresh();
       final data = message.data;
       final orderId = data['orderId']?.toString();

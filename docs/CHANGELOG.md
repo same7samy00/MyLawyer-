@@ -1,5 +1,9 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Lawyers Stay Available] - 2026-11-09
+- **Server:** migration `037` adds `wake_count` and `last_wake_at`. A quiet available lawyer gets a silent high-priority push (`sendWake`) at 5 and 7 minutes and is turned off at 8 with no answer; any location resets it.
+- **App:** «still here» every 3 minutes at medium accuracy, the wake push answered with the place even when the app is closed (`answerWake` from the background handler), the trip pace follows the distance to the client (30, 15, 5 seconds) and the client sends every minute. The battery step and the phone maker's «auto start» page are required before «متاح».
+
 ## [Old Map Server Removed] - 2026-11-09
 - The old maps server lost its tile and route containers, its cache, `map-services` and its Nginx site. The app server no longer forwards `/map/v2` or `/osrm`, `OSRM_URL` is gone from `.env`, and the watch script checks the shared map cache instead (`backend/ops/mylawyer-watch.sh`, installed on both servers).
 

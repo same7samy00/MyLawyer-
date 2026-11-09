@@ -28,6 +28,8 @@ class _BackgroundLocationSheetState extends State<BackgroundLocationSheet> with 
   bool _locationReady = false;
   bool _notificationsReady = false;
   bool _batteryReady = false;
+  bool _autostartDone = false;
+  String _maker = '';
 
   @override
   void initState() {
@@ -66,11 +68,16 @@ class _BackgroundLocationSheetState extends State<BackgroundLocationSheet> with 
     } catch (_) {}
     final notifications = await _deviceCheck('notificationsEnabled');
     final battery = await _deviceCheck('batteryExempt');
+    String maker = '';
+    try {
+      maker = await _device.invokeMethod<String>('manufacturer') ?? '';
+    } catch (_) {}
     if (!mounted) return;
     setState(() {
       _locationReady = location;
       _notificationsReady = notifications;
       _batteryReady = battery;
+      _maker = maker;
     });
   }
 
@@ -101,6 +108,18 @@ class _BackgroundLocationSheetState extends State<BackgroundLocationSheet> with 
     } catch (_) {
       await Geolocator.openAppSettings();
     }
+  }
+
+  /// شاومي وأوبو وريلمي وفيفو وهواوي وسامسونج بيقفلوا التطبيقات في الخلفية: صفحة «التشغيل التلقائي» بتاعتهم
+  bool get _needsAutostart => const ['xiaomi', 'redmi', 'poco', 'oppo', 'realme', 'oneplus', 'vivo', 'huawei', 'honor', 'samsung'].any(_maker.contains);
+
+  Future<void> _enableAutostart() async {
+    try {
+      await _device.invokeMethod<bool>('openAutostart');
+    } catch (_) {
+      await Geolocator.openAppSettings();
+    }
+    if (mounted) setState(() => _autostartDone = true);
   }
 
   Widget _step(String text, bool isDone, VoidCallback onEnable, {String? note}) {
@@ -136,7 +155,8 @@ class _BackgroundLocationSheetState extends State<BackgroundLocationSheet> with 
 
   @override
   Widget build(BuildContext context) {
-    final canStart = _locationReady && _notificationsReady;
+    // كله إجباري: من غير البطارية والتشغيل التلقائي الموبايل بيقفل التطبيق والطلبات بتقف
+    final canStart = _locationReady && _notificationsReady && _batteryReady && (!_needsAutostart || _autostartDone);
 
     return AppSheet(
       title: 'عشان تجيلك طلبات وإنت برّه التطبيق',
@@ -149,7 +169,9 @@ class _BackgroundLocationSheetState extends State<BackgroundLocationSheet> with 
             const SizedBox(height: 16),
             _step('اسمح بالموقع طول الوقت', _locationReady, _enableLocation),
             _step('اسمح بالإشعارات', _notificationsReady, _enableNotifications),
-            _step('استثني التطبيق من توفير البطارية', _batteryReady, _enableBattery, note: 'من غيرها الطلبات ممكن تقف'),
+            _step('اسمح للتطبيق يشتغل في الخلفية', _batteryReady, _enableBattery, note: 'دوس «سماح» في الرسالة اللي هتظهر'),
+            if (_needsAutostart)
+              _step('فعّل «التشغيل التلقائي» للتطبيق', _autostartDone, _enableAutostart, note: 'في الصفحة اللي هتفتح، فعّل My Lawyer وارجع'),
             const SizedBox(height: 8),
             ...packSheetActions([
               SheetButton('ابدأ الاستقبال', canStart ? () => Navigator.of(context).pop(true) : null, isPrimary: true),

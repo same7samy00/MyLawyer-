@@ -98,6 +98,35 @@ async function sendToDevice(service: ServiceAccount, bearer: string, token: stri
   }
 }
 
+/// A silent, high-priority push with no text: it wakes the lawyer's phone, even with the screen off or the app
+/// closed, and the phone answers by sending its place. Nothing shows on the screen
+export async function sendWake(userId: string) {
+  const service = loadAccount();
+  if (!service) return;
+  try {
+    const res = await dbPool.query('SELECT token FROM device_tokens WHERE user_id = $1', [userId]);
+    if (res.rows.length === 0) return;
+    const bearer = await getAccessToken(service);
+    await Promise.all(res.rows.map(async (row) => {
+      const sent = await fetch(`https://fcm.googleapis.com/v1/projects/${service.project_id}/messages:send`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: {
+            token: row.token,
+            data: { type: 'wake' },
+            android: { priority: 'high', ttl: '120s' },
+            apns: { headers: { 'apns-priority': '5', 'apns-push-type': 'background' }, payload: { aps: { 'content-available': 1 } } },
+          },
+        }),
+      });
+      if (sent.status === 404) await dbPool.query('DELETE FROM device_tokens WHERE token = $1', [row.token]);
+    }));
+  } catch (err) {
+    console.error('[MyLawyer Backend] Wake error:', err);
+  }
+}
+
 /// Failure here never affects the order, the notification stays inside the app
 export async function sendPush(userId: string, title: string, body: string, link: { orderId?: string; ticketId?: string; requestId?: string; consultationId?: string } = {}) {
   const service = loadAccount();

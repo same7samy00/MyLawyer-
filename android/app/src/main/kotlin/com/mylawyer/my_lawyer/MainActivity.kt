@@ -41,8 +41,35 @@ class MainActivity: FlutterFragmentActivity() {
                     result.success(power.isIgnoringBatteryOptimizations(packageName))
                 }
                 "openBatterySettings" -> {
-                    startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                    // One tap: the system asks «allow this app to run in the background?» for this app only
+                    try {
+                        startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:$packageName")))
+                    } catch (e: Exception) {
+                        startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                    }
                     result.success(null)
+                }
+                "manufacturer" -> result.success(Build.MANUFACTURER.lowercase())
+                // Phone makers that stop background apps have their own "auto start" page
+                "openAutostart" -> {
+                    val pages = listOf(
+                        android.content.ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+                        android.content.ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"),
+                        android.content.ComponentName("com.oplus.safecenter", "com.oplus.safecenter.permission.startup.StartupAppListActivity"),
+                        android.content.ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"),
+                        android.content.ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+                        android.content.ComponentName("com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity"),
+                    )
+                    var opened = false
+                    for (page in pages) {
+                        try {
+                            startActivity(Intent().setComponent(page).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                            opened = true
+                            break
+                        } catch (e: Exception) {}
+                    }
+                    if (!opened) startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:$packageName")))
+                    result.success(opened)
                 }
                 "alert" -> {
                     RingtoneManager.getRingtone(this, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))?.play()

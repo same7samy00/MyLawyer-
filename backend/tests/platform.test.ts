@@ -37,21 +37,35 @@ describe('استقبال المحامي للطلبات', () => {
     assert.equal(await visible(), false);
   });
 
-  it('توقف تحديث الموقع 10 دقايق يخفي المحامي ويبلغه، والتحديث ما يرجعوش', async () => {
+  it('الموبايل الساكت بيوصله تنبيهين صامتين، وبعد 8 دقايق من غير رد المحامي يتقفل ويتبلغ، والتحديث ما يرجعوش', async () => {
     const available = async () =>
-      (await sql('SELECT is_available FROM lawyer_profiles WHERE user_id = $1', [lawyerId]))[0].is_available;
+      (await sql('SELECT is_available, wake_count FROM lawyer_profiles WHERE user_id = $1', [lawyerId]))[0];
+    const quiet = (minutes: number, wokeMinutesAgo: number | null) => sql(
+      `UPDATE lawyer_profiles SET last_location_updated_at = NOW() - make_interval(mins => $2),
+         last_wake_at = CASE WHEN $3::int IS NULL THEN last_wake_at ELSE NOW() - make_interval(mins => $3::int) END WHERE user_id = $1`,
+      [lawyerId, minutes, wokeMinutesAgo]
+    );
 
-    await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '5 minutes' WHERE user_id = $1`, [lawyerId]);
+    await sql('UPDATE lawyer_profiles SET wake_count = 0, last_wake_at = NULL WHERE user_id = $1', [lawyerId]);
+    await quiet(4, null);
     await sweepLifecycle();
-    assert.equal(await available(), true);
+    assert.equal((await available()).wake_count, 0);
 
-    await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '11 minutes' WHERE user_id = $1`, [lawyerId]);
+    await quiet(5, null);
     await sweepLifecycle();
-    assert.equal(await available(), false);
+    assert.deepEqual(await available(), { is_available: true, wake_count: 1 });
+
+    await quiet(7, 2);
+    await sweepLifecycle();
+    assert.deepEqual(await available(), { is_available: true, wake_count: 2 });
+
+    await quiet(8, 1);
+    await sweepLifecycle();
+    assert.equal((await available()).is_available, false);
 
     const update = await call('POST', '/lawyers/me/location', lawyerToken, { latitude: 30.05, longitude: 31.25 });
     assert.equal(update.body.data.isAvailable, false);
-    assert.equal(await available(), false);
+    assert.deepEqual(await available(), { is_available: false, wake_count: 0 });
     const notes = await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'خرجت من الخدمة'`, [lawyerId]);
     assert.equal(notes.length, 1);
   });

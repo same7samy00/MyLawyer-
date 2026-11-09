@@ -2,10 +2,15 @@ import { dbPool, withTransaction } from '../../database/index.js';
 import { ARRIVAL_REMINDER_MINUTES, CLIENT_REPLY_MINUTES, notify, REVIEW_WINDOW_DAYS } from './service.js';
 import { applySettlement, liftUserSuspensions } from './settlement.js';
 import { advanceRequests } from '../requests/service.js';
+import { sendWake } from '../../services/pushService.js';
 import { publishChange } from '../../services/liveUpdates.js';
 
 const MAX_MISSED_ORDERS = 2;
-const LOCATION_SILENCE_MINUTES = 10;
+/// An available lawyer's phone says «still here» every 3 minutes. After 5 quiet minutes the server wakes it with a
+/// silent push, after 7 a second one, and after 8 with no answer the lawyer is turned off (owner decision 2026-11-09)
+const FIRST_WAKE_MINUTES = 5;
+const SECOND_WAKE_MINUTES = 7;
+const LOCATION_SILENCE_MINUTES = 8;
 
 async function closeUnansweredOrders() {
   const res = await dbPool.query(
@@ -67,12 +72,25 @@ async function liftSuspensions() {
   }
 }
 
-/// An available lawyer updates every minute, so ten silent minutes mean the app is closed.
+/// Silent pushes that make a quiet phone send its place, before anyone is turned off
+async function wakeQuietLawyers() {
+  const res = await dbPool.query(
+    `UPDATE lawyer_profiles lp SET wake_count = lp.wake_count + 1, last_wake_at = NOW()
+     WHERE lp.is_available = TRUE
+       AND ((lp.wake_count = 0 AND COALESCE(lp.last_location_updated_at, lp.last_active_at, lp.updated_at) <= NOW() - make_interval(mins => $1))
+         OR (lp.wake_count = 1 AND COALESCE(lp.last_location_updated_at, lp.last_active_at, lp.updated_at) <= NOW() - make_interval(mins => $2)))
+     RETURNING lp.user_id`,
+    [FIRST_WAKE_MINUTES, SECOND_WAKE_MINUTES]
+  );
+  for (const lawyer of res.rows) await sendWake(lawyer.user_id);
+}
+
+/// Eight quiet minutes and two unanswered wakes mean the phone is really off or offline.
 /// A lawyer with an open task is free to close it.
 async function hideSilentLawyers() {
   const res = await dbPool.query(
     `UPDATE lawyer_profiles lp SET is_available = FALSE, availability_off_reason = 'NO_LOCATION'
-     WHERE lp.is_available = TRUE
+     WHERE lp.is_available = TRUE AND lp.wake_count >= 2 AND lp.last_wake_at <= NOW() - INTERVAL '1 minute'
        AND COALESCE(lp.last_location_updated_at, lp.last_active_at, lp.updated_at) <= NOW() - make_interval(mins => $1)
        AND NOT EXISTS (
          SELECT 1 FROM service_orders o
@@ -187,6 +205,7 @@ export async function sweepLifecycle() {
   await closeUnpaidOrders();
   await liftSuspensions();
   await liftUserSuspensions(dbPool);
+  await wakeQuietLawyers();
   await hideSilentLawyers();
   await removeOldNotifications();
   await sendArrivalReminders();

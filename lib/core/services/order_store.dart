@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../data/models/order_model.dart';
 import '../../data/repositories/order_repository.dart';
 import 'api_service.dart';
+import 'auth_service.dart';
 import 'background_location_service.dart';
 import 'live_updates.dart';
 
@@ -36,7 +37,15 @@ class OrderStore {
   /// الطلب المدفوع اللي المحامي لسه ما وصلش فيه: الطرفين بيشاركوا مكانهم لحظيًا لحد «وصلت»
   static void _followMission() {
     final mission = orders.value.where((order) => order.isActive && order.arrivedAt == null).firstOrNull;
-    unawaited(BackgroundLocationService.setMission(mission?.id));
+    unawaited(() async {
+      final isLawyer = await AuthService.currentRole() == 'lawyer';
+      await BackgroundLocationService.setMission(
+        mission?.id,
+        targetLat: mission?.clientLat,
+        targetLon: mission?.clientLon,
+        isLawyer: isLawyer,
+      );
+    }());
   }
 
   static void clear() {
