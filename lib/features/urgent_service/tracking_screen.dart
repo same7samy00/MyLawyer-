@@ -81,7 +81,8 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   /// الشيت طوله ثابت طول الوقت، ومحتواه بيتمرر جواه
   double get _expandedHeight {
     final screen = MediaQuery.sizeOf(context).height;
-    return (screen * 0.48).clamp(360.0, screen * 0.6);
+    // طول ما فيه خريطة، الشيت ما يعديش نص الشاشة
+    return math.min(screen * 0.5, math.max(screen * 0.42, 320.0));
   }
 
   // ارتفاع البوتن شيت منفصل عن حالة الشاشة: سحبه لا يعيد بناء الخريطة مع كل إطار
@@ -117,7 +118,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   bool _showReviews = false;
   /// الموكل لمس كارت محامي وبيتفرج على ملفه
   bool _isViewingLawyer = false;
-  double _mapZoom = appMapMaxZoom;
+  double _mapZoom = appMapStartZoom;
   /// محامين الخريطة من المربعات الجاهزة، وقايمة «القريبين منك» بتتحسب منهم على الموبايل
   late final MapLawyerLoader _mapLawyers = MapLawyerLoader(onChanged: () {
     if (mounted) setState(_refreshNearby);
@@ -175,9 +176,11 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
             mapController: _mapController,
             options: MapOptions(
               initialCenter: currentLatLng,
-              initialZoom: appMapMaxZoom,
+              initialZoom: appMapStartZoom,
               minZoom: appMapMinZoom,
               maxZoom: appMapMaxZoom,
+              // الخريطة ما بتلفش، فكل حاجة عليها ثابتة
+              interactionOptions: const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
               cameraConstraint: appMapBounds,
               backgroundColor: appMapBackground,
               onPositionChanged: _onMapMoved,
@@ -233,7 +236,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                 child: Padding(
                   padding: EdgeInsets.all(4),
                   child: Text(
-                    '© OpenStreetMap',
+                    '© TomTom',
                     textDirection: TextDirection.ltr,
                     style: TextStyle(fontSize: 9, color: AppColors.textMuted),
                   ),
@@ -318,10 +321,10 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                                 : null,
                       ),
                       ConstrainedBox(
-                        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.65),
+                        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.5),
                         child: _showReviews && (_reviewsLawyerId ?? _selectedLawyer?.id) != null
                             ? SizedBox(
-                                height: MediaQuery.sizeOf(context).height * 0.55,
+                                height: MediaQuery.sizeOf(context).height * 0.45,
                                 child: Padding(
                                   padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
                                   child: LawyerReviewsPanel(

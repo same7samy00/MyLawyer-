@@ -5,8 +5,8 @@ import 'package:latlong2/latlong.dart' hide Path;
 import '../../data/models/map_lawyer.dart';
 import '../constants/app_colors.dart';
 
-/// المحامين على الخريطة كدبابيس زي أماكن جوجل ماب: كلهم مرسومين رسمة واحدة مش widget لكل محامي،
-/// فالخريطة بتفضل ناعمة مهما كان العدد. لمس الدبوس بيفتح كارت المحامي في الشيت (`lawyerAtTap`).
+/// المحامين على الخريطة كنقط وفوق كل نقطة تقييمه: كلهم مرسومين رسمة واحدة مش widget لكل محامي،
+/// والنصوص محفوظة جاهزة، فالخريطة بتفضل ناعمة مهما كان العدد. لمس النقطة بيفتح كارت المحامي (`lawyerAtTap`).
 class LawyerPinsLayer extends StatelessWidget {
   final Iterable<MapLawyer> lawyers;
   final String? selectedId;
@@ -53,8 +53,8 @@ MapLawyer? lawyerAtTap(MapCamera camera, LatLng tap, Iterable<MapLawyer> lawyers
   var bestDistance = 28.0;
   for (final lawyer in pinSpots(lawyers, selectedId)) {
     final p = camera.project(lawyer.position);
-    // The pin's head sits above its point
-    final d = math.sqrt(math.pow(p.x - at.x, 2) + math.pow(p.y - 12 - at.y, 2));
+    // The dot sits on its point, its rating just above it
+    final d = math.sqrt(math.pow(p.x - at.x, 2) + math.pow(p.y - 6 - at.y, 2));
     if (d < bestDistance) {
       bestDistance = d;
       best = lawyer;
@@ -74,25 +74,29 @@ class _PinsPainter extends CustomPainter {
     ..color = Colors.white
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2;
-  static final Paint _dot = Paint()..color = Colors.white;
   static final Paint _shade = Paint()..color = const Color(0x2E000000);
   static final Paint _normal = Paint()..color = AppColors.primary;
   static final Paint _picked = Paint()..color = AppColors.success;
-  static final Paint _labelBack = Paint()..color = const Color(0xF2FFFFFF);
-  static final Map<double, Path> _shapes = {};
+  static final Paint _rateBack = Paint()..color = Colors.white;
+  static final Paint _rateEdge = Paint()
+    ..color = const Color(0x1F0F172A)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1;
   /// The names are laid out once and kept, not on every frame while the map moves
   static final Map<String, TextPainter> _names = {};
+  /// One prepared label per rating («★ 4.8»), about 40 in all, shared by every lawyer
+  static final Map<int, TextPainter> _rates = {};
 
-  /// A simple pin, its tip at (0, 0)
-  static Path _shape(double r) => _shapes.putIfAbsent(r, () {
-        final head = Offset(0, -r * 2.1);
-        return Path()
-          ..moveTo(0, 0)
-          ..quadraticBezierTo(head.dx - r * 1.05, head.dy + r * 0.95, head.dx - r, head.dy)
-          ..arcToPoint(Offset(head.dx + r, head.dy), radius: Radius.circular(r))
-          ..quadraticBezierTo(head.dx + r * 1.05, head.dy + r * 0.95, 0, 0)
-          ..close();
-      });
+  static TextPainter _rate(double rating) {
+    final tenths = (rating * 10).round();
+    return _rates.putIfAbsent(tenths, () => TextPainter(
+          text: TextSpan(children: [
+            const TextSpan(text: '★ ', style: TextStyle(fontSize: 10, color: Color(0xFFF59E0B))),
+            TextSpan(text: (tenths / 10).toStringAsFixed(1), style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 10.5, fontWeight: FontWeight.w700, color: AppColors.dark)),
+          ],),
+          textDirection: TextDirection.ltr,
+        )..layout(),);
+  }
 
   static TextPainter _name(String name) {
     if (_names.length > 400) _names.clear();
@@ -117,44 +121,66 @@ class _PinsPainter extends CustomPainter {
     ];
 
     MapEntry<MapLawyer, Offset>? selected;
-    for (final (lawyer, tip) in pins) {
+    for (final (lawyer, point) in pins) {
       if (lawyer.id == selectedId) {
-        selected = MapEntry(lawyer, tip);
+        selected = MapEntry(lawyer, point);
         continue;
       }
-      _pin(canvas, tip, 8, _normal);
+      _dotAt(canvas, point, 6, _normal);
     }
 
-    // Names next to the spots nearest the middle of the screen, never two names on top of each other
-    if (labels > 0) {
-      final c = camera.project(camera.center) - origin;
-      final middle = Offset(c.x.toDouble(), c.y.toDouble());
-      final byCenter = [...pins]..sort((a, b) => (a.$2 - middle).distanceSquared.compareTo((b.$2 - middle).distanceSquared));
-      final taken = <Rect>[];
-      for (final (lawyer, tip) in byCenter) {
-        if (taken.length >= labels) break;
-        final text = _name(lawyer.name);
-        final box = Rect.fromLTWH(tip.dx + 10, tip.dy - 17 - text.height / 2, text.width + 8, text.height + 2);
-        if (taken.any((other) => other.overlaps(box))) continue;
-        taken.add(box);
-        canvas.drawRRect(RRect.fromRectAndRadius(box, const Radius.circular(4)), _labelBack);
-        text.paint(canvas, box.topLeft + const Offset(4, 1));
+    // A label (name, then rating under it) above one lawyer per square of the map. The squares are fixed
+    // on the map itself at whole zoom steps, so moving or pinching the map never swaps labels mid-gesture:
+    // they change only when the zoom crosses a whole level
+    final step = camera.zoom.floorToDouble();
+    final best = <int, (MapLawyer, Offset)>{};
+    for (final entry in pins) {
+      final lawyer = entry.$1;
+      if (lawyer.id == selectedId) continue;
+      final world = camera.crs.latLngToPoint(lawyer.position, step);
+      final cell = (world.x / _cellWidth).floor() * 1000003 + (world.y / _cellHeight).floor();
+      final there = best[cell];
+      if (there == null || lawyer.rating > there.$1.rating || (lawyer.rating == there.$1.rating && lawyer.id.compareTo(there.$1.id) < 0)) {
+        best[cell] = entry;
       }
     }
+    for (final (lawyer, point) in best.values) {
+      _label(canvas, lawyer, point, 6);
+    }
 
-    // The selected lawyer on top and bigger
-    if (selected != null) _pin(canvas, selected.value, 12, _picked);
+    // The selected lawyer on top and bigger, always with its label
+    if (selected != null) {
+      _dotAt(canvas, selected.value, 9, _picked);
+      _label(canvas, selected.key, selected.value, 9);
+    }
   }
 
-  void _pin(Canvas canvas, Offset tip, double r, Paint fill) {
-    final shape = _shape(r);
-    canvas.drawOval(Rect.fromCenter(center: tip, width: r * 1.2, height: r * 0.5), _shade);
+  static const double _cellWidth = 130;
+  static const double _cellHeight = 56;
+
+  /// The name, with the rating under it, upright above the dot
+  void _label(Canvas canvas, MapLawyer lawyer, Offset point, double r) {
+    final name = _name(lawyer.name);
+    final rate = lawyer.rating > 0 ? _rate(lawyer.rating) : null;
+    final width = math.max(name.width, rate?.width ?? 0) + 12;
+    final height = name.height + (rate == null ? 0 : rate.height) + 4;
     canvas.save();
-    canvas.translate(tip.dx, tip.dy);
-    canvas.drawPath(shape, fill);
-    canvas.drawPath(shape, _edge);
-    canvas.drawCircle(Offset(0, -r * 2.1), r * 0.36, _dot);
+    canvas.translate(point.dx, point.dy);
+    // The map may turn, the words stay level
+    canvas.rotate(-camera.rotationRad);
+    final box = Rect.fromLTWH(-width / 2, -r - 5 - height, width, height);
+    final rounded = RRect.fromRectAndRadius(box, const Radius.circular(7));
+    canvas.drawRRect(rounded, _rateBack);
+    canvas.drawRRect(rounded, _rateEdge);
+    name.paint(canvas, Offset(-name.width / 2, box.top + 2));
+    rate?.paint(canvas, Offset(-rate.width / 2, box.top + 2 + name.height));
     canvas.restore();
+  }
+
+  void _dotAt(Canvas canvas, Offset point, double r, Paint fill) {
+    canvas.drawCircle(point.translate(0, 1), r + 1.5, _shade);
+    canvas.drawCircle(point, r, fill);
+    canvas.drawCircle(point, r, _edge);
   }
 
   @override

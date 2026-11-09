@@ -127,7 +127,7 @@ extension _TrackingMapControls on _TrackingScreenState {
     } catch (_) {
       final midLat = (userPos.latitude + lawyerPos.latitude) / 2 - (effectiveSheetHeight / 85000.0);
       final midLng = (userPos.longitude + lawyerPos.longitude) / 2;
-      _animatedMapMove(LatLng(midLat, midLng), 14.2);
+      _animatedMapMove(LatLng(midLat, midLng), 13.4);
     }
   }
 
@@ -177,7 +177,7 @@ extension _TrackingMapControls on _TrackingScreenState {
       centerLatLng = LatLng(result.position!.latitude, result.position!.longitude);
 
       try {
-        _mapController.move(centerLatLng, appMapMaxZoom);
+        _mapController.move(centerLatLng, appMapStartZoom);
       } catch (_) {}
 
       final resolvedName = await GeoNamingService.instance.getCityAndGovernorate(
@@ -304,7 +304,7 @@ extension _TrackingMapControls on _TrackingScreenState {
   }
 
   void _centerMapOnCurrentPosition() {
-    _focusPoint(_searchCenter, appMapMaxZoom);
+    _focusPoint(_searchCenter, appMapStartZoom);
   }
 
   void _showMessage(String message) {

@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import '../constants/map_config.dart';
 
 /// مزود بلاطات متقدم يدعم التخزين المؤقت الدائم على هاتف المستخدم (Persistent Disk Cache)
 /// مع كاش فائق السرعة في الذاكرة العشوائية (RAM Memory Cache) وحماية من البلاطات التالفة
@@ -26,13 +28,13 @@ class AppCachedTileProvider extends TileProvider {
       baseDir = Directory.systemTemp;
     }
     // رقم المجلد يتغير مع شكل الخريطة، فالموبايل ما يعرضش الصور القديمة
-    for (final old in ['my_lawyer_map_tiles', 'my_lawyer_map_tiles_v2']) {
+    for (final old in ['my_lawyer_map_tiles', 'my_lawyer_map_tiles_v2', 'my_lawyer_map_tiles_v3']) {
       final oldCacheDir = Directory('${baseDir.path}/$old');
       if (oldCacheDir.existsSync()) oldCacheDir.deleteSync(recursive: true);
     }
 
-    // v3: خريطة TomTom
-    final cacheDir = Directory('${baseDir.path}/my_lawyer_map_tiles_v3');
+    // v4: خريطة TomTom بمربعات 512
+    final cacheDir = Directory('${baseDir.path}/my_lawyer_map_tiles_v4');
     if (!cacheDir.existsSync()) {
       cacheDir.createSync(recursive: true);
     }
@@ -84,6 +86,37 @@ class AppCachedTileProvider extends TileProvider {
     });
   }
 
+  static final Set<String> _warmed = {};
+
+  /// بيحمّل مربعات الخريطة حوالين مكان على القرص من بدري، فأول ما الخريطة تتفتح تظهر كاملة.
+  /// مربعات قليلة (حوالي 50)، بالتوازي على اتصال واحد، واللي متحفوظ ما بيتطلبش تاني
+  static Future<void> warmAround(double lat, double lon, {List<int> zooms = const [13, 14]}) async {
+    final place = '${lat.toStringAsFixed(2)},${lon.toStringAsFixed(2)}';
+    if (!_warmed.add(place)) return;
+    final dir = await getCacheDirectory();
+    final jobs = <Future<void>>[];
+    for (final z in zooms) {
+      final n = 1 << z;
+      final x = ((lon + 180) / 360 * n).floor();
+      final rad = lat * 3.141592653589793 / 180;
+      final y = ((1 - (math.log(math.tan(rad) + 1 / math.cos(rad)) / 3.141592653589793)) / 2 * n).floor();
+      for (var dx = -2; dx <= 2; dx++) {
+        for (var dy = -3; dy <= 2; dy++) {
+          final file = File('${dir.path}/map_${z}_${x + dx}_${y + dy}.tile');
+          if (file.existsSync()) continue;
+          final url = MapConfig.serverTileUrl.replaceAll('{z}', '$z').replaceAll('{x}', '${x + dx}').replaceAll('{y}', '${y + dy}');
+          jobs.add(() async {
+            try {
+              final res = await AppCachedMapImageProvider._client.get(Uri.parse(url)).timeout(const Duration(seconds: 12));
+              if (res.statusCode == 200 && res.bodyBytes.length > 200) await file.writeAsBytes(res.bodyBytes, flush: false);
+            } catch (_) {}
+          }());
+        }
+      }
+    }
+    await Future.wait(jobs);
+  }
+
   @override
   ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
     final primaryUrl = getTileUrl(coordinates, options);
@@ -101,6 +134,9 @@ class AppCachedTileProvider extends TileProvider {
 /// ImageProvider مخصص لإدارة الكاش الثنائي (RAM + Flash Storage) للبلاطات النقطية
 @immutable
 class AppCachedMapImageProvider extends ImageProvider<AppCachedMapImageProvider> {
+  /// اتصال واحد مفتوح لكل المربعات بدل اتصال جديد لكل مربع، وده أكبر فرق في السرعة
+  static final http.Client _client = http.Client();
+
   final TileCoordinates coordinates;
   final String primaryUrl;
   final String? fallbackUrl;
@@ -159,7 +195,7 @@ class AppCachedMapImageProvider extends ImageProvider<AppCachedMapImageProvider>
     // 2. الجلب من السيرفر الأساسي للتطبيق (VPS Cache)
     Uint8List? downloadedBytes;
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(primaryUrl),
         headers: headers,
       ).timeout(const Duration(seconds: 12));
@@ -172,7 +208,7 @@ class AppCachedMapImageProvider extends ImageProvider<AppCachedMapImageProvider>
     // 3. المحاولة التلقائية مع خادم الـ Fallback إذا تعذر الخادم الأساسي
     if (downloadedBytes == null && fallbackUrl != null && fallbackUrl!.isNotEmpty) {
       try {
-        final fbResponse = await http.get(
+        final fbResponse = await _client.get(
           Uri.parse(fallbackUrl!),
           headers: headers,
         ).timeout(const Duration(milliseconds: 3500));

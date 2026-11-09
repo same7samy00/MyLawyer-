@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/services/app_cached_tile_provider.dart';
 import '../../core/services/device_permission_service.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/widgets/app_card.dart';
@@ -49,6 +51,8 @@ class _HomeTabState extends State<HomeTab> {
       if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
         final pos = await Geolocator.getLastKnownPosition();
         if (pos != null) {
+          // مربعات الخريطة حوالين الموكل تتحمل من دلوقتي، فخريطة «محاميك حالاً» تفتح كاملة
+          unawaited(AppCachedTileProvider.warmAround(pos.latitude, pos.longitude));
           final realAddress = await GeoNamingService.instance.getCityAndGovernorate(
             pos.latitude,
             pos.longitude,

@@ -57,3 +57,35 @@ export async function roadRoute(from: Point, to: Point, withPoints = false): Pro
     return null;
   }
 }
+
+const placeCache = new Map<string, { at: number; name: string }>();
+const PLACE_CACHE_MS = 24 * 60 * 60 * 1000;
+
+/// The street, area and governorate at a point, in Arabic. Points about 200 m apart share one answer for a day
+export async function placeName(at: Point): Promise<string | null> {
+  if (!routingConfigured()) return null;
+  const key = `${snap(at.lat).toFixed(3)},${snap(at.lon).toFixed(3)}`;
+  const hit = placeCache.get(key);
+  if (hit && Date.now() - hit.at < PLACE_CACHE_MS) return hit.name;
+
+  try {
+    const res = await fetch(
+      `https://api.tomtom.com/search/2/reverseGeocode/${at.lat},${at.lon}.json?language=ar&key=${tomtomKey()}`,
+      { signal: AbortSignal.timeout(4000) }
+    );
+    if (!res.ok) return null;
+    const address = ((await res.json()) as any).addresses?.[0]?.address;
+    if (!address) return null;
+    const governorate = address.countrySubdivision ? (String(address.countrySubdivision).startsWith('محافظة') ? address.countrySubdivision : `محافظة ${address.countrySubdivision}`) : null;
+    const parts = [address.streetName, address.municipalitySubdivision || address.municipality, governorate]
+      .filter((part: unknown): part is string => typeof part === 'string' && part.trim().length > 0)
+      .filter((part: string, i: number, all: string[]) => all.indexOf(part) === i);
+    if (parts.length === 0) return null;
+    const name = parts.join('، ');
+    if (placeCache.size >= MAX_CACHE) placeCache.delete(placeCache.keys().next().value as string);
+    placeCache.set(key, { at: Date.now(), name });
+    return name;
+  } catch {
+    return null;
+  }
+}

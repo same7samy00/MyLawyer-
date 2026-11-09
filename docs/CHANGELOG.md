@@ -1,5 +1,12 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Shared Map Cache, Lawyer Dots With Name and Rating, Exact Place Names] - 2026-11-09
+- **One map cache for everyone:** Nginx on the app server fetches each TomTom map picture once and keeps it 30 days (`location ^~ /map/t/`, `/etc/nginx/conf.d/mylawyer-map-cache.conf`), so the cost follows Egypt's squares, not the number of users, and the key never leaves the server. The app reads `https://my-lawyer.online/map/t/{z}/{x}/{y}.png` and draws the 512 pictures in 256 squares, so map text is small and sharp.
+- **Smoother map:** one kept connection for all squares, squares around the screen loaded ahead and kept, the land colour behind loading squares, squares around the person loaded early (`AppCachedTileProvider.warmAround`), no turning the map, and the map opens a little further out (`appMapStartZoom`).
+- **Lawyers as dots** with the name and the rating under it above one lawyer per fixed square of the map, chosen at whole zoom steps, so labels don't jump while moving or pinching.
+- **Sheets over a map** stay within half the screen, and the «N محامي متاح قريب منك» line is gone.
+- **Exact place name:** `GET /routes/place` (TomTom reverse geocoding, shared for a day per 200 m) gives the street, area and governorate for the location card, with the old places file as the fallback.
+
 ## [Map and Road Times From TomTom, Clearer Login Errors] - 2026-11-09
 - **Map:** the app shows TomTom map pictures with Arabic street names (`MapConfig.serverTileUrl`), from the key `TOMTOM_MAP_KEY` given at build time with `--dart-define-from-file=dart_defines.local.json` (not in git). Without a key it falls back to our old map. Saved pictures moved to a new folder (`my_lawyer_map_tiles_v3`). Lawyers are still drawn by us.
 - **Road time with live traffic:** `services/roadRoutes.ts` asks TomTom with `TOMTOM_ROUTING_KEY` (server only), and nearby asks share one answer for 2 minutes. The arrival deadline (`arrivalMinutes`) uses it, and the app asks `GET /api/v1/routes` instead of OSRM, so the hand-made traffic table is gone. Tests never call TomTom.

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -5,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 
 import '../../core/constants/app_colors.dart';
+import '../../core/services/app_cached_tile_provider.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/map_lawyer_loader.dart';
@@ -124,8 +126,9 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
     }
 
     final here = LatLng(position.latitude, position.longitude);
+    unawaited(AppCachedTileProvider.warmAround(here.latitude, here.longitude));
     try {
-      _mapController.move(here, 14.8);
+      _mapController.move(here, appMapStartZoom);
     } catch (_) {}
 
     final locationName = await GeoNamingService.instance.getCityAndGovernorate(position.latitude, position.longitude);
@@ -253,7 +256,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
 
     // حساب إزاحة مركز الكاميرا لتوسيط المحامي تماماً في المساحة المرئية فوق البوتن شيت (390px)
     // الإزاحة تعادل تحريك المركز جنوباً بما يقارب 160 بكسل (~0.0042 درجة) لرفع موقع المحامي في النصف العلوي المرئي
-    const double targetZoom = appMapMaxZoom;
+    const double targetZoom = appMapStartZoom;
     const double latShift = 0.0042;
     final targetCenter = LatLng(lawyer.position.latitude - latShift, lawyer.position.longitude);
 
@@ -305,9 +308,11 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
             mapController: _mapController,
             options: MapOptions(
               initialCenter: centerLatLng,
-              initialZoom: 14.5,
+              initialZoom: appMapStartZoom,
               minZoom: appMapMinZoom,
               maxZoom: appMapMaxZoom,
+              // الخريطة ما بتلفش، فكل حاجة عليها ثابتة
+              interactionOptions: const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
               cameraConstraint: appMapBounds,
               onMapReady: () => _lastCamera = _mapController.camera,
               onPositionChanged: (camera, _) {
@@ -429,7 +434,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
                   icon: Icons.my_location_rounded,
                   color: AppColors.primary,
                   onPressed: () {
-                    _animatedMapMove(centerLatLng, 15.0);
+                    _animatedMapMove(centerLatLng, appMapStartZoom);
                   },
                 ),
                 const SizedBox(height: 8),

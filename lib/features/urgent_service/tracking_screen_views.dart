@@ -27,11 +27,6 @@ extension _TrackingScreenViews on _TrackingScreenState {
       key: const ValueKey('nearby_summary'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          '${lawyers.length} محامي متاح قريب منك',
-          style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.dark),
-        ),
-        const SizedBox(height: 10),
         for (var i = 0; i < lawyers.length && i < _nearbyShown; i++) ...[
           if (i > 0) const Divider(height: 1, color: AppColors.cardBorder),
           _buildNearbyLawyerCard(lawyers[i]),

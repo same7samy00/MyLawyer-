@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'api_service.dart';
 
 /// اسم المنطقة والمحافظة للموقع من ملف مناطق مصر داخل التطبيق
 /// العنوان هنا للتوضيح فقط، والوصول الفعلي يتم بالموقع الدقيق عبر Google Maps
@@ -34,6 +35,18 @@ class GeoNamingService {
     final cacheKey = '${lat.toStringAsFixed(3)},${lng.toStringAsFixed(3)}';
     final cached = _cache[cacheKey];
     if (cached != null) return cached;
+
+    // الاسم الدقيق (الشارع والمنطقة والمحافظة) من سيرفرنا، ولو ما ردش أقرب بلد من الملف اللي في التطبيق
+    final res = await ApiService.get(
+      '/routes/place',
+      queryParams: {'lat': lat.toStringAsFixed(5), 'lon': lng.toStringAsFixed(5)},
+      timeout: const Duration(seconds: 6),
+    );
+    final exact = res.isOk && res.data is Map<String, dynamic> ? (res.data as Map<String, dynamic>)['name']?.toString() : null;
+    if (exact != null && exact.isNotEmpty) {
+      _cache[cacheKey] = exact;
+      return exact;
+    }
 
     final data = await _loadPlaces();
     if (data == null) return _unknownArea;

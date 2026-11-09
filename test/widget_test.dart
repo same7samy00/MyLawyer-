@@ -91,8 +91,8 @@ void main() {
       expect(AppColors.success, const Color(0xFF16A34A));
     });
 
-    test('MapConfig uses TomTom with a key, and our old map without one', () {
-      expect(MapConfig.serverTileUrl, MapConfig.tomtomMapKey.isEmpty ? contains('my-lawyer.online/map/v2/') : contains('api.tomtom.com/map/1/tile/'));
+    test('MapConfig reads the shared TomTom map cache on our server, with no key in the app', () {
+      expect(MapConfig.serverTileUrl, 'https://my-lawyer.online/map/t/{z}/{x}/{y}.png');
       expect(MapConfig.fallbackTileUrl, contains('tile.openstreetmap.org'));
     });
 
