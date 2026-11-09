@@ -11,21 +11,37 @@ const rand = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 21474836
 const first = ['أحمد','محمد','محمود','مصطفى','إبراهيم','علي','حسن','حسين','خالد','عمرو','طارق','وليد','هشام','ياسر','كريم','سامح','عادل','أشرف','شريف','تامر','رامي','مينا','بيتر','جرجس','عبد الرحمن','عبد الله','يوسف','عمر','إسلام','سيد','نهى','منى','سارة','ريهام','دينا','هبة','مروة','إيمان','شيماء','نورهان','ياسمين','آية','ندى','مريم','فاطمة','سلمى','رانيا','أسماء'];
 const last = ['السيد','عبد العزيز','الشربيني','النجار','الجمال','عبد الحميد','الشافعي','البنا','المصري','عبد المنعم','الدسوقي','الطنطاوي','حجازي','شلبي','عوض','زكي','منصور','رزق','الشامي','الخولي','بدوي','عيسى','غنيم','مرسي','حمدي','عطية','نصار','قنديل','الفقي','العشري','بركات','عبد الفتاح','فرج','سليمان','الصعيدي','الأسيوطي','المنياوي','السوهاجي','الإسكندراني'];
 const pick = (list) => list[Math.floor(rand() * list.length)];
+// The father's name is always a man's name
+const men = first.slice(0, first.indexOf('نهى'));
 
-// Where lawyers work: big cities get more, then towns. Cairo, Giza and Alexandria the most
-const heavy = { 'القاهرة': 14, 'الجيزة': 8, 'الإسكندرية': 9 };
+// How many lawyers each governorate gets follows its people (millions, about 2025)
+const people = { 'القاهرة': 10.5, 'الجيزة': 9.3, 'الشرقية': 7.8, 'الدقهلية': 6.9, 'البحيرة': 6.8, 'المنيا': 6.1, 'القليوبية': 6.0,
+  'الإسكندرية': 5.6, 'سوهاج': 5.6, 'الغربية': 5.3, 'أسيوط': 4.9, 'المنوفية': 4.6, 'الفيوم': 4.0, 'كفر الشيخ': 3.7, 'قنا': 3.6,
+  'بنى سويف': 3.6, 'أسوان': 1.6, 'دمياط': 1.6, 'الإسماعيلية': 1.4, 'الأقصر': 1.3, 'بورسعيد': 0.8, 'السويس': 0.8, 'مطروح': 0.5,
+  'شمال سيناء': 0.5, 'البحر الأحمر': 0.4, 'الوادي الجديد': 0.27, 'جنوب سيناء': 0.11 };
+// Inside a governorate, cities get more than towns, and the capital-sized cities spread wider
+const big = new Set(['القاهرة', 'الجيزة', 'الإسكندرية']);
 const spots = [];
 for (const [name, lat, lon, kind, gov] of places.places) {
   if (kind < 2) continue;
-  const weight = heavy[name] ?? (kind === 3 ? 3 : 1);
-  spots.push({ lat, lon, gov: places.governorates[gov], weight, spread: heavy[name] ? 9 : kind === 3 ? 3 : 1.2 });
+  const governorate = places.governorates[gov];
+  if (!(governorate in people)) continue;
+  spots.push({ lat, lon, gov: governorate, weight: big.has(name) ? 12 : kind === 3 ? 4 : 1, spread: big.has(name) ? 9 : kind === 3 ? 3 : 1.2 });
 }
-const total = spots.reduce((sum, s) => sum + s.weight, 0);
+const byGov = {};
+for (const spot of spots) (byGov[spot.gov] ??= []).push(spot);
+const govTotal = Object.keys(byGov).reduce((sum, g) => sum + people[g], 0);
+const pickSpot = () => {
+  let r = rand() * govTotal;
+  const gov = Object.keys(byGov).find((g) => (r -= people[g]) <= 0) ?? 'القاهرة';
+  const list = byGov[gov];
+  let w = rand() * list.reduce((sum, s) => sum + s.weight, 0);
+  return list.find((s) => (w -= s.weight) <= 0) ?? list[0];
+};
 
 const rows = [];
 for (let g = 1; g <= 1000; g++) {
-  let r = rand() * total;
-  const spot = spots.find((s) => (r -= s.weight) <= 0) ?? spots[0];
+  const spot = pickSpot();
   // Somewhere inside the city: up to its spread in km, denser near the middle
   const km = spot.spread * Math.sqrt(rand()) * 0.9;
   const angle = rand() * 2 * Math.PI;
@@ -36,7 +52,7 @@ for (let g = 1; g <= 1000; g++) {
   const reviews = isNew ? 0 : Math.round(3 + rand() ** 2 * 180);
   const rating = isNew ? 0 : Math.min(5, Math.round((3.7 + rand() ** 0.6 * 1.3) * 10) / 10);
   const years = isNew ? 1 + Math.floor(rand() * 3) : 3 + Math.floor(rand() * 27);
-  const name = `${pick(first)} ${pick(first)} ${pick(last)}`;
+  const name = `${pick(first)} ${pick(men)} ${pick(last)}`;
   rows.push(`(${g}, '${name}', ${lat.toFixed(6)}, ${lon.toFixed(6)}, '${spot.gov}', ${rating}, ${reviews}, ${years})`);
 }
 
