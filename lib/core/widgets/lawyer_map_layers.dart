@@ -227,8 +227,18 @@ abstract class _Photos {
       }
       final codec = await ui.instantiateImageCodec(Uint8List.fromList(bytes), targetWidth: 72, targetHeight: 72);
       final frame = await codec.getNextFrame();
+      // Cut round once here, so drawing a card is one image with no clipping each frame
+      final recorder = ui.PictureRecorder();
+      final size = frame.image.width.toDouble();
+      Canvas(recorder)
+        ..clipPath(Path()..addOval(Rect.fromLTWH(0, 0, size, size)))
+        ..drawImage(frame.image, Offset.zero, Paint()..filterQuality = FilterQuality.medium);
+      final picture = recorder.endRecording();
+      final round = await picture.toImage(frame.image.width, frame.image.height);
+      picture.dispose();
+      frame.image.dispose();
       if (_images.length >= 300) _images.remove(_images.keys.first)?.dispose();
-      _images[url] = frame.image;
+      _images[url] = round;
       changed.value++;
     } catch (_) {
       _missing.add(url);
@@ -246,9 +256,8 @@ class _CardsPainter extends CustomPainter {
   _CardsPainter(this.camera, this.lawyers, this.selectedId) : super(repaint: _Photos.changed);
 
   static final Paint _back = Paint()..color = Colors.white;
-  static final Paint _shadow = Paint()
-    ..color = const Color(0x260F172A)
-    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+  // A plain offset shade, no blur: blur on every mark each frame is what makes a map heavy
+  static final Paint _shadow = Paint()..color = const Color(0x1F0F172A);
   static final Paint _edge = Paint()
     ..color = const Color(0x1F0F172A)
     ..style = PaintingStyle.stroke
@@ -295,11 +304,14 @@ class _CardsPainter extends CustomPainter {
 
   void _pin(Canvas canvas, Offset tip, bool picked) {
     final h = picked ? _pinHeight * 1.15 : _pinHeight;
-    final shape = _pinShape(h).shift(tip);
-    canvas.drawPath(shape.shift(const Offset(0, 1)), _shadow);
+    // One prepared shape moved into place, nothing new built per pin
+    canvas.save();
+    canvas.translate(tip.dx, tip.dy);
+    final shape = _pinShape(h);
     canvas.drawPath(shape, picked ? _pickedFill : _avatar);
     canvas.drawPath(shape, _white);
-    canvas.drawCircle(tip.translate(0, -h + h * 0.36), h * 0.13, _back);
+    canvas.drawCircle(Offset(0, -h + h * 0.36), h * 0.13, _back);
+    canvas.restore();
   }
 
   static final Map<int, Path> _cardShapes = {};
@@ -323,7 +335,9 @@ class _CardsPainter extends CustomPainter {
     canvas.scale(scale);
 
     final shape = _cardShape(width);
-    canvas.drawPath(shape.shift(const Offset(0, 1.5)), _shadow);
+    canvas.translate(0, 1.5);
+    canvas.drawPath(shape, _shadow);
+    canvas.translate(0, -1.5);
     canvas.drawPath(shape, _back);
     canvas.drawPath(shape, picked ? _pickedEdge : _edge);
 
@@ -333,10 +347,7 @@ class _CardsPainter extends CustomPainter {
     final image = _Photos.of(lawyer);
     final circle = Rect.fromCircle(center: photoCenter, radius: _photo / 2);
     if (image != null) {
-      canvas.save();
-      canvas.clipPath(Path()..addOval(circle));
       canvas.drawImageRect(image, Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()), circle, _photoPaint);
-      canvas.restore();
     } else {
       canvas.drawCircle(photoCenter, _photo / 2, _avatar);
       final letter = _Texts.letter(lawyer.avatarInitials);

@@ -34,7 +34,7 @@ class AppMapLayer extends StatelessWidget {
       // صورة TomTom الكبيرة بتترسم في مربع عادي، فالكتابة صغيرة وواضحة
       tileSize: 256,
       // مربعات زيادة حوالين الشاشة بتتحمل مقدمًا وبتفضل في الذاكرة، فالسحب ما يبانش فيه فراغ
-      panBuffer: 2,
+      panBuffer: 1,
       keepBuffer: 6,
       tileDisplay: const TileDisplay.instantaneous(),
       tileBuilder: (context, tileWidget, tile) {
