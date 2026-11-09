@@ -853,8 +853,7 @@ void main() {
       expect(find.byType(OrderDetailsSheet), findsOneWidget);
       expect(find.byType(TrackingScreen), findsNothing);
       expect(find.text('ML-ORD-100001'), findsOneWidget);
-      // A paid task: the way to the client, and no accept or decline any more
-      expect(find.text('افتح مكان الموكل في Google Maps'), findsOneWidget);
+      // No accept or decline any more: the lawyer is chosen by the client's payment
       expect(find.text('قبول الطلب'), findsNothing);
 
       await tester.pumpWidget(const SizedBox.shrink());
