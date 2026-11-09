@@ -35,6 +35,7 @@ class AppDialog extends StatelessWidget {
     required String title,
     required String message,
     required String confirmText,
+    String cancelText = 'إلغاء',
     bool isDanger = false,
   }) async {
     final result = await showDialog<bool>(
@@ -44,6 +45,7 @@ class AppDialog extends StatelessWidget {
         title: title,
         message: message,
         confirmText: confirmText,
+        cancelText: cancelText,
         isDanger: isDanger,
         onConfirm: () => Navigator.pop(dialogContext, true),
         onCancel: () => Navigator.pop(dialogContext, false),

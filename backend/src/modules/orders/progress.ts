@@ -6,6 +6,9 @@ import { sanitizeText } from '../../utils/security.js';
 import { HttpError, UUID_PATTERN } from '../../utils/http.js';
 import { addClientCredit, addLawyerStrike, ARRIVAL_RADIUS_KM, HOLD_HOURS, LIVE_POSITION_SECONDS, notify } from '../lifecycle/service.js';
 import { publishPosition } from '../../services/liveUpdates.js';
+
+/// A lawyer can keep at most this many postponed tasks
+const MAX_POSTPONED_TASKS = 2;
 import { distanceKm, lockOrder, AuthenticatedUser } from './shared.js';
 
 /// Arrival, completion, cancellation and withdrawal
@@ -124,12 +127,13 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
       if (!order || order.lawyer_id !== userId) throw new HttpError(404, 'الطلب غير موجود أو غير مسند إليك');
       if (order.status !== 'ACTIVE' || !order.arrived_at) throw new HttpError(400, 'التأجيل بيبقى بعد «وصلت» بس');
       if (order.postponed_at) throw new HttpError(409, 'المهمة مؤجلة بالفعل');
-      // One postponed task at a time: the lawyer finishes the waiting one before postponing another (owner decision 2026-11-06)
+      // Up to 2 postponed tasks: a postponed task frees the lawyer for new work, a third waits for one to end
+      // (owner decision 2026-11-09)
       const otherPostponed = await client.query(
-        `SELECT 1 FROM service_orders WHERE lawyer_id = $1 AND id <> $2 AND status = 'ACTIVE' AND postponed_at IS NOT NULL LIMIT 1`,
+        `SELECT COUNT(*)::int AS total FROM service_orders WHERE lawyer_id = $1 AND id <> $2 AND status = 'ACTIVE' AND postponed_at IS NOT NULL`,
         [userId, order.id]
       );
-      if (otherPostponed.rows.length > 0) throw new HttpError(409, 'عندك مهمة مؤجلة تانية، أنهيها الأول');
+      if (otherPostponed.rows[0].total >= MAX_POSTPONED_TASKS) throw new HttpError(409, 'عندك مهمتين مؤجلين، أنهي واحدة الأول');
 
       const openComplaint = await client.query(`SELECT ${OPEN_ORDER_TICKET('$1')} AS open`, [order.id]);
       if (openComplaint.rows[0].open) throw new HttpError(409, 'الطلب قيد مراجعة تذكرة من الإدارة');

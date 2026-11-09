@@ -175,19 +175,21 @@ describe('تأجيل المهمة', () => {
     await closeOrders();
   });
 
-  it('مهمة مؤجلة واحدة بس للمحامي، والمؤجلة بتتنهي على طول من غير «إلغاء التأجيل»', async () => {
+  it('لحد مهمتين مؤجلين للمحامي، والمؤجلة بتتنهي على طول من غير «إلغاء التأجيل»', async () => {
     const first = await createArrivedOrder();
     assert.equal((await postpone(first.id)).status, 200);
 
-    // The lawyer is free while the first task waits, takes a second one, and can't postpone it too
+    // A postponed task frees the lawyer: he takes a second, postpones it, then takes a third that can't be postponed
     const second = await createArrivedOrder();
-    const refused = await postpone(second.id);
-    assert.equal(refused.status, 409);
-    assert.equal(refused.body.error, 'عندك مهمة مؤجلة تانية، أنهيها الأول');
-
-    // The postponed task finishes straight away, and then the second one may be postponed
-    assert.equal((await call('POST', `/orders/${first.id}/complete`, lawyerToken, {})).status, 200);
     assert.equal((await postpone(second.id)).status, 200);
+    const third = await createArrivedOrder();
+    const refused = await postpone(third.id);
+    assert.equal(refused.status, 409);
+    assert.equal(refused.body.error, 'عندك مهمتين مؤجلين، أنهي واحدة الأول');
+
+    // A postponed task finishes straight away, and then the third may be postponed
+    assert.equal((await call('POST', `/orders/${first.id}/complete`, lawyerToken, {})).status, 200);
+    assert.equal((await postpone(third.id)).status, 200);
 
     assert.equal((await call('POST', `/orders/${second.id}/resume`, lawyerToken, {})).status, 404, 'no resume route');
     await closeOrders();

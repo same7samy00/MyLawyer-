@@ -10,6 +10,7 @@ import '../../data/models/map_lawyer.dart';
 import '../../data/repositories/consultation_repository.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/request_repository.dart';
+import 'lawyer_taken_screen.dart';
 import 'payment_success_screen.dart';
 
 enum PaymentMethod { mobileWallet, card, balance }
@@ -73,10 +74,14 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     final res = await OrderRepository.confirmPayment(widget.orderId, fromBalance: _method == PaymentMethod.balance);
     if (!mounted) return;
 
-    // The lawyer was taken by another client, or the 3 minutes passed: nothing was charged, back to the same offers
+    // The lawyer was taken by another client, or the 10 minutes passed: nothing was charged. A full screen
+    // says so plainly, then the client is back on the same offers (or the closed request)
     if (res.statusCode == 409) {
-      _showError(res.error);
-      RequestRepository.backToOffers.value++;
+      setState(() => _isProcessing = false);
+      final expired = (res.error ?? '').contains('مهلة');
+      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => LawyerTakenScreen(expired: expired)));
+      if (!mounted) return;
+      if (!expired) RequestRepository.backToOffers.value++;
       final navigator = Navigator.of(context);
       navigator.pop();
       if (navigator.canPop()) navigator.pop();

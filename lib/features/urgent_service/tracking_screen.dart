@@ -15,6 +15,7 @@ import '../../core/services/location_service.dart';
 import '../../core/services/map_lawyer_loader.dart';
 import '../../core/services/routing_service.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_dialog.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_map_layer.dart';
@@ -176,8 +177,27 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
     // الرجوع أثناء مراحل الطلب يعود لملف المحامي أولاً قبل مغادرة الخريطة
     return PopScope(
       canPop: _orderFlowStage == _OrderFlowStage.idle,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) _returnToLawyerProfile();
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        // زي التطبيقات الكبيرة: الخروج اللي بيلغي حاجة بيتأكد الأول، ويقول بالظبط هيلغي إيه.
+        // زرار النص أو قفل الشاشة ما بيلغوش حاجة: النداءات بتكمل والإشعارات بتوصل
+        final searching = _orderFlowStage == _OrderFlowStage.waitingOffers;
+        final chosen = _orderFlowStage == _OrderFlowStage.priceReady;
+        if (searching || chosen) {
+          final leave = await AppDialog.confirm(
+            context,
+            icon: Icons.logout_rounded,
+            title: searching ? 'توقف البحث عن محامي؟' : 'تلغي اختيارك للمحامي؟',
+            message: searching
+                ? 'المحامين مش هيقدروا يبعتوا عروض، وطلبك هيتلغي'
+                : 'لسه ما دفعتش، فمش هيتخصم منك حاجة، والطلب هيتلغي',
+            confirmText: searching ? 'وقف البحث' : 'الغي الطلب',
+            cancelText: searching ? 'كمّل البحث' : 'كمّل الدفع',
+            isDanger: true,
+          );
+          if (!leave || !mounted) return;
+        }
+        _returnToLawyerProfile();
       },
       child: Scaffold(
       backgroundColor: AppColors.background,

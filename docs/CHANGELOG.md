@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Leaving Confirmations, «Lawyer Taken» Screen, Two Postponed Tasks] - 2026-11-09
+- Back while searching or after choosing asks first and says exactly what is cancelled; home or screen-off cancels nothing.
+- `LawyerTakenScreen`: a full screen when another client paid for the lawyer first, or when the 10 minutes passed, with nothing charged.
+- A lawyer may keep up to 2 postponed tasks (`MAX_POSTPONED_TASKS`).
+
 ## [Orders Page Shows Every Request, 10 Minutes to Pay, Messages on Top] - 2026-11-09
 - **10 minutes to pay** after choosing; unpaid, the whole request closes. Migration `039` adds `release_reason` (TAKEN, UNPAID) and the orders list sends `releaseReason` and `paySecondsLeft` (instead of the old answer countdown).
 - **Orders page:** `GET /requests` lists the client's requests with no chosen lawyer, shown from the first moment (`RequestOrderCard`), and an open one reopens its offers (`TrackingScreen.resumeRequestId`). Stages read العروض، الاختيار، الدفع، الوصول، الإنهاء, and the old states' texts are gone.

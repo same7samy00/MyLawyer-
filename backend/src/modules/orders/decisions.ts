@@ -49,7 +49,9 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
 
       if (!locked || locked.client_id !== userId) throw new HttpError(404, 'الطلب غير موجود');
       if (locked.status === 'PENDING') throw new HttpError(400, 'لا يمكن الدفع قبل موافقة المحامي على الطلب');
-      if (locked.status !== 'ACCEPTED') throw new HttpError(409, 'الطلب ده اتقفل: المحامي اتشغل أو مهلة الدفع خلصت');
+      if (locked.status !== 'ACCEPTED') {
+        throw new HttpError(409, locked.release_reason === 'TAKEN' ? 'المحامي ده اتشغل، اختار محامي تاني من العروض' : 'مهلة الدفع خلصت والطلب اتقفل');
+      }
       // Someone else paid for this lawyer first: this choice goes, and the client picks again from the same offers
       if (await lawyerHasOpenOrder(client, locked.lawyer_id, locked.id)) {
         await releaseChoice(client, locked, true);
