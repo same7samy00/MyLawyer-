@@ -61,12 +61,18 @@ class LocationService {
       // محاولة استرجاع آخر موقع مسجل فوراً لتسريع الاستجابة دون انتظار
       Position? position = fresh ? null : await Geolocator.getLastKnownPosition();
       // الأجهزة الضعيفة تحتاج وقتاً أطول لأول إشارة GPS
-      position ??= await Geolocator.getCurrentPosition(
-        locationSettings: LocationSettings(
-          accuracy: fresh ? LocationAccuracy.high : LocationAccuracy.medium,
-          timeLimit: const Duration(seconds: 15),
-        ),
-      );
+      try {
+        position ??= await Geolocator.getCurrentPosition(
+          locationSettings: LocationSettings(
+            accuracy: fresh ? LocationAccuracy.high : LocationAccuracy.medium,
+            timeLimit: const Duration(seconds: 15),
+          ),
+        );
+      } catch (e) {
+        // No new fix in time (indoors, or the phone's GPS is slow): the last known place is better than nothing
+        position ??= await Geolocator.getLastKnownPosition();
+        if (position == null) rethrow;
+      }
 
       return LocationResult(
         status: LocationServiceStatus.ready,
