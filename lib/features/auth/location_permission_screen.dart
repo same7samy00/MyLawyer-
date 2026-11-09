@@ -4,9 +4,9 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/device_permission_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_message.dart';
 import '../../core/widgets/app_pressable.dart';
 import '../../core/widgets/line_illustration.dart';
-import '../../core/widgets/top_message.dart';
 import '../client/main_navigation_shell.dart';
 import '../client/nearby_lawyers_showcase_screen.dart';
 import '../lawyer/lawyer_navigation_shell.dart';
@@ -31,7 +31,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
     if (!mounted) return;
 
     if (result.status == LocationServiceStatus.permissionDeniedForever) {
-      showTopMessage(context, 
+      showAppMessage(context, 
         SnackBar(
           content: const Text(
             'إذن الموقع معطل نهائياً من إعدادات الجهاز\nيمكنك تفعيله من الإعدادات',

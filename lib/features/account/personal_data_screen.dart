@@ -7,9 +7,9 @@ import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_loader.dart';
+import '../../core/widgets/app_message.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/profile_photo.dart';
-import '../../core/widgets/top_message.dart';
 import '../../data/repositories/profile_repository.dart';
 
 /// صورة الحساب وبياناته المسجلة للموكل والمحامي
@@ -46,7 +46,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
   }
 
   void _showNotice(String message) {
-    showTopMessage(context, 
+    showAppMessage(context, 
       SnackBar(
         content: Text(
           message,

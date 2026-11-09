@@ -7,10 +7,10 @@ import '../../core/services/live_updates.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_loader.dart';
+import '../../core/widgets/app_message.dart';
 import '../../core/widgets/app_pressable.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/order_action_sheets.dart';
-import '../../core/widgets/top_message.dart';
 import '../../data/models/lifecycle_models.dart';
 import '../../data/models/order_model.dart';
 import '../../data/repositories/order_repository.dart';
@@ -79,7 +79,7 @@ class _LawyerWalletTabState extends State<LawyerWalletTab> {
       onSubmit: OrderRepository.transfer,
     );
     if (!sent || !mounted) return;
-    showTopMessage(context, 
+    showAppMessage(context, 
       const SnackBar(content: Text('تم التحويل'), backgroundColor: AppColors.success),
     );
     await _loadFees();
@@ -192,7 +192,7 @@ class _LawyerWalletTabState extends State<LawyerWalletTab> {
                   AppPressable(
                     child: ElevatedButton.icon(
                     onPressed: () {
-                      showTopMessage(context, 
+                      showAppMessage(context, 
                         const SnackBar(
                           content: Text('خدمة سحب الأتعاب للحساب البنكي أو المحفظة الإلكترونية ستتوفر قريباً'),
                           backgroundColor: AppColors.dark,

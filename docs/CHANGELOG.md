@@ -1,5 +1,8 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Short Messages Back at the Bottom] - 2026-11-09
+- Short messages are back at the bottom (`showAppMessage` in `core/widgets/app_message.dart`), a little smaller, with an X to close them.
+
 ## [Leaving Confirmations, «Lawyer Taken» Screen, Two Postponed Tasks] - 2026-11-09
 - Back while searching or after choosing asks first and says exactly what is cancelled; home or screen-off cancels nothing.
 - `LawyerTakenScreen`: a full screen when another client paid for the lawyer first, or when the 10 minutes passed, with nothing charged.

@@ -6,8 +6,8 @@ import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_loader.dart';
+import '../../core/widgets/app_message.dart';
 import '../../core/widgets/app_state_message.dart';
-import '../../core/widgets/top_message.dart';
 import '../../data/models/support_ticket.dart';
 import '../../data/repositories/support_repository.dart';
 import 'support_widgets.dart';
@@ -69,7 +69,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
       setState(() => _images = const []);
       await _load();
     } else {
-      showTopMessage(context, 
+      showAppMessage(context, 
         SnackBar(content: Text(res.error ?? 'تعذر إرسال ردك'), backgroundColor: AppColors.danger),
       );
       await _load();

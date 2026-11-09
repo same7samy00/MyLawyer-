@@ -9,9 +9,9 @@ import '../../core/services/app_cached_tile_provider.dart';
 import '../../core/services/device_permission_service.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_message.dart';
 import '../../core/widgets/lawyer_pin_illustration.dart';
 import '../../core/widgets/profile_home_card.dart';
-import '../../core/widgets/top_message.dart';
 import '../auth/location_permission_screen.dart';
 import '../consultation/consultation_type_screen.dart';
 import '../urgent_service/urgent_service_problem_screen.dart';
@@ -168,7 +168,7 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   void _showServiceNotice(String serviceName) {
-    showTopMessage(context, 
+    showAppMessage(context, 
       SnackBar(
         content: Text(
           '$serviceName ستتوفر للحجز المباشر قريباً جداً',
