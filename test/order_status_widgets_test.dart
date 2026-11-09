@@ -53,8 +53,8 @@ void main() {
   testWidgets('الشريط يعرض المراحل ونص الحالة', (tester) async {
     await tester.pumpWidget(_wrap(OrderStatusTracker(order: _order('ACCEPTED'))));
 
-    expect(find.text('القبول'), findsOneWidget);
+    expect(find.text('الاختيار'), findsOneWidget);
     expect(find.text('الإنهاء'), findsOneWidget);
-    expect(find.text('تم قبول الطلب • بانتظار السداد'), findsOneWidget);
+    expect(find.text('اخترت المحامي • كمّل الدفع'), findsOneWidget);
   });
 }

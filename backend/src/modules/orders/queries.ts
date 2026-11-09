@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { query } from '../../database/index.js';
 import { REVIEW_WINDOW_DAYS } from '../lifecycle/service.js';
 import { OPEN_ORDER_TICKET } from '../support/service.js';
-import { hideLiveColumns, livePosition, PAID_STATUSES, responseSecondsLeft, visibleLocation, AuthenticatedUser } from './shared.js';
+import { hideLiveColumns, livePosition, PAID_STATUSES, paySecondsLeft, visibleLocation, AuthenticatedUser } from './shared.js';
 
 // Building a date format is slow, and this list is read on every refresh
 const ORDER_DATE = new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -63,16 +63,13 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
     const res = await query(sql, params);
 
     const formattedOrders = res.rows.map((o) => {
-      let statusLabel = 'طلب وارد';
-      if (o.status === 'PENDING') statusLabel = 'قيد انتظار الموافقة';
-      else if (o.status === 'ACCEPTED') statusLabel = 'تم قبول الطلب';
+      let statusLabel = 'طلب';
+      if (o.status === 'ACCEPTED') statusLabel = 'اخترت المحامي';
       else if (o.status === 'ACTIVE') statusLabel = 'جاري التنفيذ';
       else if (o.status === 'COMPLETED') statusLabel = 'مكتمل بنجاح';
       else if (o.status === 'CANCELLED') statusLabel = 'تم الإلغاء';
-      else if (o.status === 'REJECTED') statusLabel = 'تم الاعتذار';
       else if (o.status === 'EXPIRED') statusLabel = 'انتهت المهلة';
-      else if (o.status === 'NO_RESPONSE') statusLabel = 'المحامي ما ردش';
-      else if (o.status === 'PAYMENT_EXPIRED') statusLabel = 'انتهت مهلة الدفع';
+      else if (o.status === 'PAYMENT_EXPIRED') statusLabel = o.release_reason === 'TAKEN' ? 'المحامي اتشغل' : 'ما كمّلتش الدفع';
       else if (o.status === 'REFUNDED') statusLabel = 'تم رد المبلغ';
 
       const formattedDate = ORDER_DATE.format(new Date(o.created_at));
@@ -105,8 +102,9 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
         paidAt: o.paid_at,
         arrivedAt: o.arrived_at,
         paymentDeadline: o.payment_deadline,
-        responseDeadline: o.response_deadline,
-        responseSecondsLeft: responseSecondsLeft(o),
+        // Why a chosen order closed before payment: TAKEN or UNPAID
+        releaseReason: o.release_reason,
+        paySecondsLeft: paySecondsLeft(o),
         expiresAt: o.expires_at,
         arrivalDeadline: o.arrival_deadline,
         delayNotifiedAt: o.delay_notified_at,
@@ -169,7 +167,7 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
       order.lawyer_phone = null;
     }
 
-    order.responseSecondsLeft = responseSecondsLeft(order);
+    order.paySecondsLeft = paySecondsLeft(order);
     Object.assign(order, livePosition(order, userId));
     hideLiveColumns(order);
 

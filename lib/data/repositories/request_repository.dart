@@ -4,6 +4,19 @@ import '../models/service_request.dart';
 
 /// الطلب اللي بيروح لأقرب المحامين وعروض أسعارهم
 class RequestRepository {
+  /// طلبات الموكل اللي لسه ما اتختارش فيها محامي، لصفحة الطلبات
+  static Future<ApiResponse<List<MyRequest>>> mine() async {
+    final res = await ApiService.get('/requests');
+    if (res.isOk && res.data is List) {
+      return ApiResponse(
+        success: true,
+        statusCode: res.statusCode,
+        data: [for (final item in res.data as List) MyRequest.fromJson(item as Map<String, dynamic>)],
+      );
+    }
+    return ApiResponse(success: false, statusCode: res.statusCode, error: res.error);
+  }
+
   /// الدفع رجع إن المحامي اتشغل أو المهلة خلصت: صفحة الطلب ترجع لنفس العروض
   static final ValueNotifier<int> backToOffers = ValueNotifier<int>(0);
 

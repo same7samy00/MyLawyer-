@@ -8,6 +8,7 @@ import '../services/live_updates.dart';
 import '../services/location_service.dart';
 import '../services/notification_center.dart';
 import '../services/saved_data.dart';
+import './top_message.dart';
 import 'app_card.dart';
 import 'background_location_sheet.dart';
 import 'countdown_text.dart';
@@ -71,7 +72,7 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
       if (!mounted) return;
       if (position == null) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTopMessage(context, 
           const SnackBar(content: Text('تعذر تحديد موقعك، حاول تاني')),
         );
         return;
@@ -89,7 +90,7 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
     }
 
     if (!res.isOk) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTopMessage(context, 
         SnackBar(content: Text(res.error ?? 'تعذر تغيير حالتك')),
       );
     }

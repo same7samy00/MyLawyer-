@@ -21,10 +21,10 @@ export function distanceKm(lat1: number, lon1: number, lat2: number, lon2: numbe
   return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Seconds come from the server so a wrong phone clock can't change the countdown
-export function responseSecondsLeft(order: { status: string; response_deadline: string | Date | null }): number {
-  if (order.status !== 'PENDING' || !order.response_deadline) return 0;
-  const left = (new Date(order.response_deadline).getTime() - Date.now()) / 1000;
+// Seconds left to pay a chosen order, from the server so a wrong phone clock can't change them
+export function paySecondsLeft(order: { status: string; payment_deadline: string | Date | null }): number {
+  if (order.status !== 'ACCEPTED' || !order.payment_deadline) return 0;
+  const left = (new Date(order.payment_deadline).getTime() - Date.now()) / 1000;
   return Math.max(0, Math.ceil(left));
 }
 

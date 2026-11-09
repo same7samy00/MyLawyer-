@@ -9,6 +9,7 @@ import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/profile_photo.dart';
+import '../../core/widgets/top_message.dart';
 import '../../data/repositories/profile_repository.dart';
 
 /// صورة الحساب وبياناته المسجلة للموكل والمحامي
@@ -45,7 +46,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
   }
 
   void _showNotice(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    showTopMessage(context, 
       SnackBar(
         content: Text(
           message,

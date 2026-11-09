@@ -27,6 +27,7 @@ import '../../core/widgets/lawyer_profile_summary.dart';
 import '../../core/widgets/lawyer_reviews_panel.dart';
 import '../../core/widgets/line_illustration.dart';
 import '../../core/widgets/map_cards.dart';
+import '../../core/widgets/top_message.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/models/service_request.dart';
 import '../../data/repositories/order_repository.dart';
@@ -43,10 +44,14 @@ class TrackingScreen extends StatefulWidget {
   final String? problemTitle;
   final String? problemDescription;
 
+  /// طلب مفتوح من صفحة الطلبات: الشاشة بتفتح على عروضه على طول
+  final String? resumeRequestId;
+
   const TrackingScreen({
     super.key,
     this.problemTitle,
     this.problemDescription,
+    this.resumeRequestId,
   });
 
   @override
@@ -130,6 +135,11 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
     super.initState();
     _fetchCurrentLocation();
     RequestRepository.backToOffers.addListener(_resumeOffers);
+    final resume = widget.resumeRequestId;
+    if (resume != null) {
+      _chosenFromRequestId = resume;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _resumeOffers());
+    }
   }
 
   @override

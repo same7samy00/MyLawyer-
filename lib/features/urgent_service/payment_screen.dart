@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/services/routing_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/line_illustration.dart';
+import '../../core/widgets/top_message.dart';
 import '../../data/models/consultation.dart';
 import '../../data/models/map_lawyer.dart';
 import 'payment_method_screen.dart';
@@ -44,7 +46,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void _chooseMethod() {
     final orderId = widget.orderId ?? (widget.consultation != null ? '' : null);
     if (orderId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTopMessage(context, 
         const SnackBar(
           content: Text('تعذر العثور على الطلب، ارجع وجرب تاني', style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback)),
           backgroundColor: AppColors.dark,

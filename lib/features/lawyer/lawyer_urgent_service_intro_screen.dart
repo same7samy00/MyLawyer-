@@ -7,6 +7,7 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/line_illustration.dart';
 import '../../core/widgets/terms_accordion.dart';
+import '../../core/widgets/top_message.dart';
 import '../../data/repositories/lawyer_repository.dart';
 
 /// صفحة تعريف خدمة «محاميك حالاً» الخاصة بالمحامي
@@ -87,7 +88,7 @@ class _LawyerUrgentServiceIntroScreenState extends State<LawyerUrgentServiceIntr
     if (!mounted) return;
 
     if (res.isOk) setState(() => _status = 'PENDING');
-    ScaffoldMessenger.of(context).showSnackBar(
+    showTopMessage(context, 
       SnackBar(content: Text(res.isOk ? 'تم إرسال طلبك للإدارة' : (res.error ?? 'تعذر التقديم، حاول تاني'))),
     );
   }

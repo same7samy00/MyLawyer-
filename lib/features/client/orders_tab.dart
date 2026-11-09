@@ -13,9 +13,13 @@ import '../../core/widgets/order_summary_card.dart';
 import '../../core/widgets/orders_filter.dart';
 import '../../data/models/consultation.dart';
 import '../../data/models/order_model.dart';
+import '../../data/models/service_request.dart';
 import '../../data/repositories/consultation_repository.dart';
+import '../../data/repositories/request_repository.dart';
 import '../consultation/consultation_order_card.dart';
 import '../urgent_service/order_details_sheet.dart';
+import '../urgent_service/tracking_screen.dart';
+import 'request_order_card.dart';
 
 class OrdersTab extends StatefulWidget {
   /// إشارة من الحاوية لتحديث القائمة عند العودة لهذا التبويب
@@ -49,9 +53,25 @@ class _OrdersTabState extends State<OrdersTab> {
     _showSaved();
     _loadOrders();
     _loadConsultations();
+    _loadRequests();
     _live = LiveUpdates.stream.listen((change) {
+      if (change.kind == 'requests' || change.kind == 'orders' || change.isEverything || change.kind == 'notifications') _loadRequests();
       if (change.kind == 'consultations' || change.isEverything || change.kind == 'notifications') _loadConsultations();
     });
+  }
+
+  List<MyRequest> _requests = const [];
+
+  Future<void> _loadRequests() async {
+    final res = await RequestRepository.mine();
+    if (!mounted || !res.isOk) return;
+    setState(() => _requests = res.data ?? const []);
+  }
+
+  /// طلب مفتوح: الشاشة بتفتح على عروضه
+  Future<void> _openRequest(MyRequest request) async {
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => TrackingScreen(problemTitle: request.problemType, resumeRequestId: request.id)));
+    _loadRequests();
   }
 
   Future<void> _loadConsultations() async {
@@ -151,6 +171,12 @@ class _OrdersTabState extends State<OrdersTab> {
           key: 'order-${order.id}',
           card: OrderSummaryCard(order: order, onOpen: () { _openDetails(order); }),
         ),
+      for (final request in _requests.where((request) => request.isOpen == _showCurrent))
+        (
+          date: request.createdAt ?? DateTime(2000),
+          key: 'request-${request.id}',
+          card: RequestOrderCard(request: request, onOpen: () { _openRequest(request); }),
+        ),
       for (final item in _consultations.where((item) => item.isOngoing == _showCurrent))
         (
           date: item.createdAt ?? DateTime(2000),
@@ -158,12 +184,12 @@ class _OrdersTabState extends State<OrdersTab> {
           card: ConsultationOrderCard(item: item, onOpen: () { _openConsultation(item); }),
         ),
     ]..sort((a, b) => b.date.compareTo(a.date));
-    final currentCount = _orders.where((order) => order.isOngoing).length + _consultations.where((item) => item.isOngoing).length;
+    final currentCount = _orders.where((order) => order.isOngoing).length + _consultations.where((item) => item.isOngoing).length + _requests.where((request) => request.isOpen).length;
 
     return SafeArea(
       child: RefreshIndicator(
         color: AppColors.primary,
-        onRefresh: () => Future.wait([_loadOrders(), _loadConsultations()]),
+        onRefresh: () => Future.wait([_loadOrders(), _loadConsultations(), _loadRequests()]),
         child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 16.0),

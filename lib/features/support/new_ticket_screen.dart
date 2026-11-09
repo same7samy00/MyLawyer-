@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/top_message.dart';
 import '../../data/models/order_model.dart';
 import '../../data/models/support_ticket.dart';
 import '../../data/repositories/order_repository.dart';
@@ -76,7 +78,7 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
     if (!mounted) return;
 
     if (res.isOk) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      showTopMessage(context, 
         SnackBar(content: Text(res.message ?? 'استلمنا تذكرتك'), backgroundColor: AppColors.success),
       );
       Navigator.of(context).pop(true);

@@ -277,7 +277,7 @@ describe('الطلب وعروض الأسعار', () => {
     assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'الطلب اتقفل'`, [lawyerId])).length, 0);
   });
 
-  it('اختيار العرض ما بيحجزش المحامي ومفيش مهلة دفع: اللي يدفع الأول ياخده، والتاني يرجع لنفس العروض من غير ما يتخصم منه حاجة', async () => {
+  it('اختيار العرض ما بيحجزش المحامي: اللي يدفع الأول ياخده، والتاني يرجع لنفس العروض من غير ما يتخصم منه حاجة', async () => {
     const other = await otherLawyer();
     const firstId = await createRequest();
     await offer(firstId, 1000);
@@ -296,7 +296,6 @@ describe('الطلب وعروض الأسعار', () => {
     };
     const firstOrder = await pick(firstId, clientToken);
     const secondOrder = await pick(secondId, secondToken);
-    assert.ok((await sql(`SELECT payment_deadline > NOW() + INTERVAL '23 hours' AS far FROM service_orders WHERE id = $1`, [firstOrder]))[0].far, 'no short time to pay');
 
     // The second client pays first and gets the lawyer; the first goes back to the same offers, minus that lawyer
     assert.equal((await call('POST', `/orders/${secondOrder}/confirm-payment`, secondToken, {})).status, 200);
@@ -308,6 +307,33 @@ describe('الطلب وعروض الأسعار', () => {
     assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'المحامي اتشغل'`, [clientId])).length, 1);
     assert.equal((await sql('SELECT 1 FROM payments WHERE order_id = $1', [firstOrder])).length, 0, 'nothing charged');
     await removeLawyer(other.id);
+  });
+
+  it('صفحة الطلبات بتعرض الطلب من أول لحظة بحالته، ولما يتختار محامي يظهر كطلب بدلها', async () => {
+    const id = await createRequest();
+    let mine = (await call('GET', '/requests', clientToken)).body.data;
+    assert.equal(mine[0].id, id);
+    assert.equal(mine[0].status, 'OPEN');
+    assert.equal(mine[0].offers, 0);
+    await offer(id, 1000);
+    assert.equal((await call('GET', '/requests', clientToken)).body.data[0].offers, 1);
+    assert.deepEqual((await call('GET', '/requests', lawyerToken)).body.data, []);
+
+    const chosen = (await follow(id)).offers[0];
+    const orderId = (await call('POST', `/requests/${id}/offers/${chosen.id}/select`, clientToken, {})).body.data.orderId;
+    assert.deepEqual((await call('GET', '/requests', clientToken)).body.data, []);
+    const order = (await call('GET', '/orders', clientToken)).body.data.find((o: any) => o.orderId === orderId);
+    assert.equal(order.statusLabel, 'اخترت المحامي');
+    assert.ok(order.paySecondsLeft > 590 && order.paySecondsLeft <= 600);
+
+    // 10 minutes without paying: the request closes, and the order says why
+    await sql(`UPDATE service_orders SET payment_deadline = NOW() - INTERVAL '1 second' WHERE id = $1`, [orderId]);
+    await sweepLifecycle();
+    const closed = (await call('GET', '/orders', clientToken)).body.data.find((o: any) => o.orderId === orderId);
+    assert.equal(closed.statusLabel, 'ما كمّلتش الدفع');
+    assert.equal(closed.releaseReason, 'UNPAID');
+    assert.equal((await follow(id)).status, 'EXPIRED');
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'الطلب اتلغى'`, [clientId])).length, 1);
   });
 
   it('الإلغاء يقفل الطلب، وغير صاحبه ما يشوفوش', async () => {

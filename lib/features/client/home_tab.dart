@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +11,7 @@ import '../../core/services/geo_naming_service.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/lawyer_pin_illustration.dart';
 import '../../core/widgets/profile_home_card.dart';
+import '../../core/widgets/top_message.dart';
 import '../auth/location_permission_screen.dart';
 import '../consultation/consultation_type_screen.dart';
 import '../urgent_service/urgent_service_problem_screen.dart';
@@ -166,7 +168,7 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   void _showServiceNotice(String serviceName) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    showTopMessage(context, 
       SnackBar(
         content: Text(
           '$serviceName ستتوفر للحجز المباشر قريباً جداً',

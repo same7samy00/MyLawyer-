@@ -8,6 +8,7 @@ import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/line_illustration.dart';
 import '../../core/widgets/status_badge.dart';
+import '../../core/widgets/top_message.dart';
 import '../../data/models/payment_record.dart';
 import '../../data/repositories/order_repository.dart';
 
@@ -73,7 +74,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       await InvoicePdfService.share(payment);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        showTopMessage(context, 
           const SnackBar(content: Text('تعذر تجهيز الفاتورة، جرب تاني'), backgroundColor: AppColors.dark),
         );
       }

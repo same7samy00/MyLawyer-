@@ -149,3 +149,49 @@ class SelectedOffer {
 
   const SelectedOffer({required this.orderId, required this.orderNumber, required this.price, required this.lawyerId});
 }
+
+/// طلب الموكل اللي لسه ما اتختارش فيه محامي، لصفحة الطلبات
+class MyRequest {
+  final String id;
+  final String status;
+  final String problemType;
+  final String serviceTitle;
+  final int minPrice;
+  final int maxPrice;
+  final int offers;
+  final int secondsLeft;
+  final DateTime? createdAt;
+
+  const MyRequest({required this.id, required this.status, required this.problemType, required this.serviceTitle, required this.minPrice, required this.maxPrice, required this.offers, required this.secondsLeft, this.createdAt});
+
+  factory MyRequest.fromJson(Map<String, dynamic> json) => MyRequest(
+        id: json['id'].toString(),
+        status: json['status']?.toString() ?? 'OPEN',
+        problemType: json['problemType']?.toString() ?? 'محاميك حالاً',
+        serviceTitle: json['serviceTitle']?.toString() ?? 'محاميك حالاً',
+        minPrice: _number(json['minPrice']).round(),
+        maxPrice: _number(json['maxPrice']).round(),
+        offers: _number(json['offers']).toInt(),
+        secondsLeft: _number(json['secondsLeft']).toInt(),
+        createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '')?.toLocal(),
+      );
+
+  bool get isOpen => status == 'OPEN';
+
+  /// الحالة بكلام بسيط
+  String get statusLabel {
+    switch (status) {
+      case 'OPEN':
+        if (offers > 0) return 'وصلك $offers ${offers == 1 ? 'عرض' : 'عروض'} • اختار واحد';
+        return 'بندوّر على محامين قريبين';
+      case 'NO_OFFERS':
+        return 'محدش بعت عرض';
+      case 'EXPIRED':
+        return 'الطلب اتلغى • ما اخترتش عرض';
+      case 'CANCELLED':
+        return 'لغيت الطلب';
+      default:
+        return 'الطلب اتقفل';
+    }
+  }
+}

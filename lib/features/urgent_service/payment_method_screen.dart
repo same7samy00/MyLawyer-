@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_pressable.dart';
 import '../../core/widgets/auth_hero_header.dart';
+import '../../core/widgets/top_message.dart';
 import '../../data/models/consultation.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/repositories/consultation_repository.dart';
@@ -87,7 +89,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
   void _showError(String? error) {
     setState(() => _isProcessing = false);
-    ScaffoldMessenger.of(context).showSnackBar(
+    showTopMessage(context, 
       SnackBar(
         content: Text(
           error ?? 'الدفع ما تمش، جرب تاني',

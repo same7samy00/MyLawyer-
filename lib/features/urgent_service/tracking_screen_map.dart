@@ -286,7 +286,7 @@ extension _TrackingMapControls on _TrackingScreenState {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    showTopMessage(context, 
       SnackBar(content: Text(message, style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback))),
     );
   }

@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Orders Page Shows Every Request, 10 Minutes to Pay, Messages on Top] - 2026-11-09
+- **10 minutes to pay** after choosing; unpaid, the whole request closes. Migration `039` adds `release_reason` (TAKEN, UNPAID) and the orders list sends `releaseReason` and `paySecondsLeft` (instead of the old answer countdown).
+- **Orders page:** `GET /requests` lists the client's requests with no chosen lawyer, shown from the first moment (`RequestOrderCard`), and an open one reopens its offers (`TrackingScreen.resumeRequestId`). Stages read العروض، الاختيار، الدفع، الوصول، الإنهاء, and the old states' texts are gone.
+- **Short messages** keep their look but show under the header, centered (`showTopMessage`), so they never cover a button.
+
 ## [«محاميك حالاً» Closed and Documented] - 2026-11-09
 - **One task per lawyer** (`MAX_LAWYER_TASKS = 1`); choosing an offer never holds the lawyer and there is no time to pay.
 - **Removed the named-lawyer path:** `POST /orders`, `/orders/quote`, `/orders/:id/accept` and `/reject`, the 2-minute answer window and «فاتك طلب» counter, `resolveClientQuote`, and migration `038` drops `client_problem_prices` and `missed_orders`. The app lost its accept/decline buttons and the answer countdown. Test helpers now make orders the real way (request, offer, choice).

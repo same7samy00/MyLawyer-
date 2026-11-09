@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/services/auth_service.dart';
 import '../../core/services/notification_center.dart';
+import '../../core/widgets/top_message.dart';
 import '../../data/models/service_request.dart';
 import '../../data/repositories/consultation_repository.dart';
 import '../../data/repositories/order_repository.dart';
@@ -45,7 +46,7 @@ class NotificationRouter {
       final request = (res.data ?? const <IncomingRequest>[]).where((item) => item.id == requestId).firstOrNull;
       if (!context.mounted) return false;
       if (request == null || request.isChosen) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('الطلب ده اتقفل')));
+        showTopMessage(context, const SnackBar(content: Text('الطلب ده اتقفل')));
         return true;
       }
       await RequestOfferSheet.open(context, request);

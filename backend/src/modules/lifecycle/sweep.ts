@@ -10,7 +10,7 @@ const FIRST_WAKE_MINUTES = 5;
 const SECOND_WAKE_MINUTES = 7;
 const LOCATION_SILENCE_MINUTES = 8;
 
-/// A choice left a whole day unpaid goes away, and the client is back on the same offers
+/// 10 minutes without paying: the choice and the whole request close
 async function closeUnpaidOrders() {
   const due = await dbPool.query(`SELECT id FROM service_orders WHERE status = 'ACCEPTED' AND payment_deadline <= NOW()`);
   for (const { id } of due.rows) {

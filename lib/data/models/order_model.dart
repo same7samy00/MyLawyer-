@@ -18,6 +18,10 @@ class OrderModel {
   final String? cancellationReason;
   final String? rejectionReason;
   final String createdAt;
+  /// ثواني الدفع الباقية بعد اختيار المحامي (10 دقايق)
+  final int paySecondsLeft;
+  /// ليه الاختيار اتقفل قبل الدفع: TAKEN (المحامي اتشغل) أو UNPAID (ما كمّلش الدفع)
+  final String? releaseReason;
   final String? lawyerName;
   final String? lawyerPhone;
   final String? lawyerAvatar;
@@ -64,6 +68,8 @@ class OrderModel {
     this.cancellationReason,
     this.rejectionReason,
     required this.createdAt,
+    this.paySecondsLeft = 0,
+    this.releaseReason,
     this.lawyerName,
     this.lawyerPhone,
     this.lawyerAvatar,
@@ -124,6 +130,8 @@ class OrderModel {
       cancellationReason: json['cancellationReason']?.toString() ?? json['cancellation_reason']?.toString(),
       rejectionReason: json['rejectionReason']?.toString() ?? json['rejection_reason']?.toString(),
       createdAt: json['createdAt']?.toString() ?? json['created_at']?.toString() ?? DateTime.now().toIso8601String(),
+      paySecondsLeft: _toDouble(json['paySecondsLeft'])?.toInt() ?? 0,
+      releaseReason: json['releaseReason']?.toString(),
       lawyerName: lawyerObj?['name']?.toString() ?? json['lawyerName']?.toString() ?? json['lawyer_name']?.toString(),
       lawyerPhone: lawyerObj?['phone']?.toString() ?? json['lawyerPhone']?.toString() ?? json['lawyer_phone']?.toString(),
       lawyerAvatar: lawyerObj?['avatar']?.toString() ?? json['lawyerAvatar']?.toString() ?? json['lawyer_avatar']?.toString(),
@@ -259,10 +267,8 @@ class OrderModel {
 
   String get statusLabel {
     switch (status) {
-      case 'PENDING':
-        return 'بانتظار موافقة المحامي';
       case 'ACCEPTED':
-        return 'تم قبول الطلب • بانتظار السداد';
+        return paySecondsLeft > 0 ? 'اخترت المحامي • كمّل الدفع خلال ${(paySecondsLeft / 60).ceil()} دقيقة' : 'اخترت المحامي • كمّل الدفع';
       case 'ACTIVE':
         if (postponedAt != null) return 'مؤجل • الفلوس محجوزة';
         return arrivedAt == null ? 'قيد التنفيذ • المحامي في الطريق' : 'قيد التنفيذ • المحامي وصل';
@@ -270,29 +276,24 @@ class OrderModel {
         return 'مكتمل ومغلق';
       case 'CANCELLED':
         return 'تم الإلغاء';
-      case 'NO_RESPONSE':
-        return 'المحامي ما ردش';
       case 'PAYMENT_EXPIRED':
-        return 'انتهت مهلة الدفع';
+        return releaseReason == 'TAKEN' ? 'المحامي اتشغل • اختار غيره' : 'الطلب اتلغى • ما كمّلتش الدفع';
       case 'EXPIRED':
         return 'انتهت المهلة';
       case 'REFUNDED':
         return 'تم رد المبلغ';
-      case 'REJECTED':
-        return 'تم الاعتذار';
       default:
-        return 'طلب وارد';
+        return 'طلب قديم';
     }
   }
 
   /// نص الحالة من ناحية المحامي لما يختلف عن نص الموكل
   String? get lawyerStatusLabel {
-    if (isPending) return 'طلب جديد';
     if (isAccepted) return 'الموكل اختار عرضك • مستنيين الدفع';
     if (isPostponed) return 'مؤجل • الفلوس محجوزة';
     if (isActive && arrivedAt == null) return 'الموكل دفع • روح لمكانه ودوس «وصلت»';
     if (isActive) return 'وصلت • كمل الشغل ودوس «إنهاء» أو «مؤجل»';
-    if (isNoResponse) return 'انتهى وقت الرد';
+    if (status == 'PAYMENT_EXPIRED') return releaseReason == 'TAKEN' ? 'اتدفعلك في طلب تاني' : 'الموكل ما دفعش';
     return null;
   }
 

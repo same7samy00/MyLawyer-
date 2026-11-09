@@ -169,28 +169,36 @@ export async function advanceRequests() {
   }
 }
 
-/// A chosen order that was not paid goes away and the client is back on the same offers for 5 minutes.
-/// [taken]: the lawyer was paid for by someone else first, so their offer leaves the list too
+/// A chosen order that was not paid goes away.
+/// [taken]: the lawyer was paid for by someone else first; the client is back on the same offers for 5 minutes,
+/// minus that lawyer. Otherwise the 10 minutes to pay passed: the whole request closes
 export async function releaseChoice(db: Db, order: { id: string; client_id: string; lawyer_id: string }, taken: boolean) {
-  const note = taken ? 'المحامي اتشغل في طلب تاني قبل الدفع' : 'انتهت مهلة الدفع دون دفع';
-  await db.query(`UPDATE service_orders SET status = 'PAYMENT_EXPIRED', updated_at = NOW() WHERE id = $1 AND status = 'ACCEPTED'`, [order.id]);
+  const note = taken ? 'المحامي اتشغل في طلب تاني قبل الدفع' : 'الموكل ما كمّلش الدفع في 10 دقايق';
+  await db.query(
+    `UPDATE service_orders SET status = 'PAYMENT_EXPIRED', release_reason = $2, updated_at = NOW() WHERE id = $1 AND status = 'ACCEPTED'`,
+    [order.id, taken ? 'TAKEN' : 'UNPAID']
+  );
   await db.query(
     `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note) VALUES ($1, NULL, 'ACCEPTED', 'PAYMENT_EXPIRED', $2)`,
     [order.id, note]
   );
+  if (!taken) {
+    await db.query(`UPDATE service_requests SET status = 'EXPIRED' WHERE order_id = $1`, [order.id]);
+    await notify(db, order.client_id, 'الطلب اتلغى', 'ما كمّلتش الدفع، تقدر تطلب تاني', order.id);
+    await publishChange(db, order.lawyer_id, false, 'orders', order.id);
+    return undefined;
+  }
   const reopened = await db.query(
     `UPDATE service_requests SET status = 'OPEN', order_id = NULL, round = $2, round_deadline = NOW()
      WHERE order_id = $1 RETURNING id`,
     [order.id, AUTO_ROUNDS]
   );
   const requestId = reopened.rows[0]?.id as string | undefined;
-  if (requestId && taken) {
-    await db.query('UPDATE request_offers SET withdrawn_at = NOW() WHERE request_id = $1 AND lawyer_id = $2', [requestId, order.lawyer_id]);
-  }
   if (requestId) {
-    await notify(db, order.client_id, taken ? 'المحامي اتشغل' : 'انتهت مهلة الدفع', 'اختار محامي تاني من العروض اللي قدامك', { requestId });
+    await db.query('UPDATE request_offers SET withdrawn_at = NOW() WHERE request_id = $1 AND lawyer_id = $2', [requestId, order.lawyer_id]);
+    await notify(db, order.client_id, 'المحامي اتشغل', 'اختار محامي تاني من العروض اللي قدامك', { requestId });
   } else {
-    await notify(db, order.client_id, 'انتهت مهلة الدفع', 'الطلب اتلغى، وتقدر تبدأ طلب جديد', order.id);
+    await notify(db, order.client_id, 'المحامي اتشغل', 'الطلب اتلغى، وتقدر تبدأ طلب جديد', order.id);
   }
   await publishChange(db, order.lawyer_id, false, 'orders', order.id);
   return requestId;

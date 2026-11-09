@@ -9,6 +9,7 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/order_action_sheets.dart';
+import '../../core/widgets/top_message.dart';
 import '../../data/repositories/order_repository.dart';
 
 /// محفظة الموكل: المبالغ المرتجعة والتحويلات، ومنها التحويل لأي حساب
@@ -83,7 +84,7 @@ class _WalletTabState extends State<WalletTab> {
       onSubmit: OrderRepository.transfer,
     );
     if (!sent || !mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    showTopMessage(context, 
       const SnackBar(content: Text('تم التحويل'), backgroundColor: AppColors.success),
     );
     await _load();

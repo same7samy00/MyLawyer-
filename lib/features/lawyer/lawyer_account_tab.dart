@@ -7,6 +7,7 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/biometric_toggle_tile.dart';
 import '../../core/widgets/logout_confirmation_sheet.dart';
 import '../../core/widgets/profile_photo.dart';
+import '../../core/widgets/top_message.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../account/personal_data_screen.dart';
 import '../auth/session_router.dart';
@@ -288,7 +289,7 @@ class _LawyerAccountTabState extends State<LawyerAccountTab> {
   }
 
   void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    showTopMessage(context, 
       SnackBar(
         content: Text('صفحة $feature قيد التجهيز والتطوير', style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback)),
         backgroundColor: AppColors.dark,

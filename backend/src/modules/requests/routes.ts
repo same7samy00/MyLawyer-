@@ -77,6 +77,37 @@ export async function requestRoutes(fastify: FastifyInstance) {
     return reply.status(201).send({ success: true, message: 'طلبك اتبعت لأقرب المحامين', data: { id: created.id } });
   });
 
+  // The client's requests that have no chosen lawyer yet, for the orders page: the open one, and the ones that
+  // closed without a choice in the last 30 days. A request with a chosen lawyer shows as its order instead
+  fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId, role } = request.user as AuthenticatedUser;
+    if (role !== 'client') return reply.send({ success: true, data: [] });
+    const res = await query(
+      `SELECT r.*, (SELECT COUNT(*)::int ${LIVE_OFFERS} AND ro.request_id = r.id) AS offers
+       FROM service_requests r
+       WHERE r.client_id = $1 AND r.order_id IS NULL
+         AND (r.status = 'OPEN' OR (r.status IN ('NO_OFFERS', 'EXPIRED', 'CANCELLED') AND r.created_at > NOW() - INTERVAL '30 days'))
+       ORDER BY r.created_at DESC LIMIT 50`,
+      [userId]
+    );
+    return reply.send({
+      success: true,
+      data: res.rows.map((row) => ({
+        id: row.id,
+        status: row.status,
+        problemType: row.problem_type || row.service_title,
+        serviceTitle: row.service_title,
+        problemDescription: row.problem_description,
+        minPrice: Number(row.min_price),
+        maxPrice: Number(row.max_price),
+        offers: row.status === 'OPEN' ? row.offers : 0,
+        secondsLeft: row.status === 'OPEN' ? secondsUntil(callsEnd(row)) : 0,
+        chooseSecondsLeft: row.status === 'OPEN' ? secondsUntil(chooseEnd(row)) : 0,
+        createdAt: row.created_at,
+      })),
+    });
+  });
+
   // The requests waiting for this lawyer's price
   fastify.get('/incoming', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId, role } = request.user as AuthenticatedUser;
@@ -322,7 +353,7 @@ export async function requestRoutes(fastify: FastifyInstance) {
         [newOrder.id, userId, `اختار الموكل عرض المحامي بسعر ${Number(offer.price)} ج.م`]
       );
 
-      await notify(client, lawyerId, 'الموكل اختار عرضك', 'مستنيين الموكل يدفع، واللي بيدفع الأول بياخدك', newOrder.id);
+      await notify(client, lawyerId, 'الموكل اختار عرضك', 'مستنيين الموكل يدفع خلال 10 دقايق', newOrder.id);
       const others = await client.query(
         'SELECT lawyer_id FROM request_offers WHERE request_id = $1 AND lawyer_id <> $2 AND withdrawn_at IS NULL',
         [id, lawyerId]

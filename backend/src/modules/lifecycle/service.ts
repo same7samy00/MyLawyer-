@@ -7,9 +7,9 @@ export const HOLD_HOURS = 24;
 export const ORDER_DEADLINE_HOURS = 24;
 export const REVIEW_WINDOW_DAYS = 7;
 export const LAWYER_RESPONSE_SECONDS = 120;
-/// Choosing an offer does not hold the lawyer and there is no time to pay: whoever pays first gets them
-/// (owner decision 2026-11-09). A choice left a whole day unpaid is cleaned away so nothing stays open forever
-export const PAYMENT_MINUTES = 24 * 60;
+/// Choosing an offer does not hold the lawyer: whoever pays first gets them. The client has 10 minutes to pay,
+/// then the request closes so nothing stays open on the server (owner decision 2026-11-09)
+export const PAYMENT_MINUTES = 10;
 
 /// A lawyer has one task at a time (paid, or waiting for their answer) and gets no requests until it ends or is
 /// postponed (owner decision 2026-11-09)

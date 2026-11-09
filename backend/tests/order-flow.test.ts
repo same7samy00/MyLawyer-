@@ -215,13 +215,13 @@ describe('تأجيل المهمة', () => {
 });
 
 describe('المهل والمخالفات', () => {
-  it('مفيش مهلة دفع، والاختيار اللي يفضل يوم من غير دفع بيتشال والموكل يرجع لعروضه', async () => {
+  it('مهلة الدفع 10 دقايق، وبعدها الطلب كله يتقفل', async () => {
     const order = await createOrder();
-    assert.ok((await sql(`SELECT payment_deadline > NOW() + INTERVAL '23 hours' AS far FROM service_orders WHERE id = $1`, [order.id]))[0].far);
+    assert.ok((await sql(`SELECT payment_deadline - accepted_at <= INTERVAL '10 minutes' AS ok FROM service_orders WHERE id = $1`, [order.id]))[0].ok);
     await sql(`UPDATE service_orders SET payment_deadline = NOW() - INTERVAL '1 second' WHERE id = $1`, [order.id]);
     await sweepLifecycle();
-    assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'PAYMENT_EXPIRED');
-    assert.equal((await sql('SELECT status FROM service_requests WHERE order_id IS NULL ORDER BY created_at DESC LIMIT 1'))[0].status, 'OPEN');
+    assert.equal((await sql('SELECT status, release_reason FROM service_orders WHERE id = $1', [order.id]))[0].release_reason, 'UNPAID');
+    assert.equal((await sql('SELECT status FROM service_requests ORDER BY created_at DESC LIMIT 1'))[0].status, 'EXPIRED');
   });
 
   it('طلب مفتوح واحد للموكل، ومهمة واحدة للمحامي', async () => {

@@ -12,8 +12,8 @@ class OrderStatusTracker extends StatelessWidget {
   const OrderStatusTracker({super.key, required this.order, this.statusText});
 
   static const _steps = [
-    (icon: Icons.receipt_long_rounded, label: 'الطلب'),
-    (icon: Icons.verified_user_rounded, label: 'القبول'),
+    (icon: Icons.receipt_long_rounded, label: 'العروض'),
+    (icon: Icons.verified_user_rounded, label: 'الاختيار'),
     (icon: Icons.payments_rounded, label: 'الدفع'),
     (icon: Icons.location_on_rounded, label: 'الوصول'),
     (icon: Icons.shield_rounded, label: 'الإنهاء'),
