@@ -1,16 +1,14 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
-import '../constants/map_config.dart';
+import 'api_service.dart';
 
-/// تقدير المسار وزمن الوصول ونقاط الرسم المحسوبة عبر محرك OSRM على خادم My Lawyer
+/// المسار وزمن الوصول مع الزحمة الحقيقية، بيحسبه سيرفرنا من TomTom
 class RouteEstimate {
   final double distanceMeters;
   final double durationSeconds;
   final List<LatLng> geometryPoints;
   final bool isSuccess;
 
-  /// معامل الزحمة المتوقعة، لأن محرك المسارات يحسب الوقت على طريق فاضي
+  /// الوقت جاي بالزحمة الحقيقية، فالمعامل 1 إلا لو حد عايز يزوّد هامش
   final double trafficFactor;
 
   const RouteEstimate({
@@ -66,87 +64,47 @@ class RouteEstimate {
   }
 }
 
-/// تقدير الزحمة حسب الساعة والمنطقة، لحد ما تتظبط الأرقام من رحلات المحامين الفعلية
-double trafficFactorFor(DateTime time, LatLng point) {
-  final isBigCity = (point.latitude >= 29.75 && point.latitude <= 30.35 && point.longitude >= 30.85 && point.longitude <= 31.75) ||
-      (point.latitude >= 30.95 && point.latitude <= 31.35 && point.longitude >= 29.7 && point.longitude <= 30.15);
-  final hour = time.hour;
-  final isNight = hour < 6;
-  final isPeak = (hour >= 8 && hour < 11) || (hour >= 14 && hour < 20);
-
-  if (isNight) return isBigCity ? 1.15 : 1.05;
-  if (isPeak) return isBigCity ? 1.8 : 1.4;
-  return isBigCity ? 1.35 : 1.2;
-}
-
-/// خدمة حساب المسافات والملاحة القانونية عبر خادم OSRM الذاتي
+/// حساب الطريق من سيرفرنا، والمفتاح فاضل على السيرفر بس
 class RoutingService {
-  final http.Client _client;
+  RoutingService();
 
-  RoutingService({http.Client? client}) : _client = client ?? http.Client();
-
-  /// حساب المسافة والزمن التقريبي ومسار الطريق بين نقطتين بالسيارة عبر شبكة طرق مصر المحملة على السيرفر
+  /// المسافة والوقت مع الزحمة، ونقاط الطريق لو مطلوبة
   Future<RouteEstimate> calculateDrivingRoute({
     required LatLng start,
     required LatLng destination,
     bool fetchGeometry = false,
   }) async {
-    final String queryParams = fetchGeometry
-        ? '?overview=full&geometries=geojson'
-        : '?overview=false';
-
-    final uri = Uri.parse(
-      '${MapConfig.osrmBaseUrl}/route/v1/driving/'
-      '${start.longitude},${start.latitude};'
-      '${destination.longitude},${destination.latitude}'
-      '$queryParams',
-    );
-
     try {
-      final response = await _client.get(uri).timeout(
-        const Duration(seconds: 4),
+      final res = await ApiService.get(
+        '/routes',
+        queryParams: {
+          'fromLat': start.latitude.toStringAsFixed(6),
+          'fromLon': start.longitude.toStringAsFixed(6),
+          'toLat': destination.latitude.toStringAsFixed(6),
+          'toLon': destination.longitude.toStringAsFixed(6),
+          if (fetchGeometry) 'points': '1',
+        },
+        timeout: const Duration(seconds: 8),
       );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        if (data['code'] == 'Ok' &&
-            data['routes'] != null &&
-            (data['routes'] as List).isNotEmpty) {
-          final firstRoute = data['routes'][0];
-          final double distance = (firstRoute['distance'] as num).toDouble();
-          final double duration = (firstRoute['duration'] as num).toDouble();
-
-          final List<LatLng> points = [];
-          if (fetchGeometry &&
-              firstRoute['geometry'] != null &&
-              firstRoute['geometry']['coordinates'] != null) {
-            final coords = firstRoute['geometry']['coordinates'] as List;
-            for (final coord in coords) {
-              if (coord is List && coord.length >= 2) {
-                final double lng = (coord[0] as num).toDouble();
-                final double lat = (coord[1] as num).toDouble();
-                points.add(LatLng(lat, lng));
-              }
-            }
-          }
-
-          if (fetchGeometry && points.isEmpty) {
-            points.addAll([start, destination]);
-          }
-
-          return RouteEstimate(
-            distanceMeters: distance,
-            durationSeconds: duration,
-            geometryPoints: points,
-            trafficFactor: trafficFactorFor(DateTime.now(), start),
-          );
-        }
+      if (res.isOk && res.data is Map<String, dynamic>) {
+        final data = res.data as Map<String, dynamic>;
+        final points = <LatLng>[
+          for (final p in (data['points'] as List? ?? const []))
+            if (p is List && p.length >= 2) LatLng((p[0] as num).toDouble(), (p[1] as num).toDouble()),
+        ];
+        if (fetchGeometry && points.isEmpty) points.addAll([start, destination]);
+        return RouteEstimate(
+          distanceMeters: (data['distanceMeters'] as num).toDouble(),
+          durationSeconds: (data['durationSeconds'] as num).toDouble(),
+          geometryPoints: points,
+        );
       }
     } catch (_) {
-      // التعامل الآمن مع انقطاع الشبكة دون إيقاف التطبيق
+      // انقطاع الشبكة ما يوقفش التطبيق
     }
 
-    // بديل احتياطي برسم خط مستقيم مباشر إذا تعذر جلب المسار من الخادم
+    // خط مستقيم لو السيرفر ما ردش
     if (fetchGeometry) {
       return RouteEstimate(
         distanceMeters: const Distance().as(LengthUnit.Meter, start, destination),

@@ -26,10 +26,13 @@ class AppCachedTileProvider extends TileProvider {
       baseDir = Directory.systemTemp;
     }
     // رقم المجلد يتغير مع شكل الخريطة، فالموبايل ما يعرضش الصور القديمة
-    final oldCacheDir = Directory('${baseDir.path}/my_lawyer_map_tiles');
-    if (oldCacheDir.existsSync()) oldCacheDir.deleteSync(recursive: true);
+    for (final old in ['my_lawyer_map_tiles', 'my_lawyer_map_tiles_v2']) {
+      final oldCacheDir = Directory('${baseDir.path}/$old');
+      if (oldCacheDir.existsSync()) oldCacheDir.deleteSync(recursive: true);
+    }
 
-    final cacheDir = Directory('${baseDir.path}/my_lawyer_map_tiles_v2');
+    // v3: خريطة TomTom
+    final cacheDir = Directory('${baseDir.path}/my_lawyer_map_tiles_v3');
     if (!cacheDir.existsSync()) {
       cacheDir.createSync(recursive: true);
     }

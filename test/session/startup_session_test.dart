@@ -160,7 +160,9 @@ void main() {
       await launchApp(tester);
 
       expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.text('انتهت جلستك، يرجى تسجيل الدخول مرة أخرى'), findsOneWidget);
+      // The banner shows it on two lines: the title, then the details
+      expect(find.text('انتهت جلستك'), findsOneWidget);
+      expect(find.text('يرجى تسجيل الدخول مرة أخرى'), findsOneWidget);
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString(ApiService.prefRefreshToken), isNull);
       expect(prefs.getString('user_phone'), isNull);

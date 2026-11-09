@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:my_lawyer/core/services/external_navigation.dart';
 import 'package:my_lawyer/core/services/routing_service.dart';
 import 'package:my_lawyer/core/widgets/order_status_tracker.dart';
@@ -38,9 +37,7 @@ void main() {
     });
   });
 
-  test('الوقت يزيد في الذروة ويظهر كمدى', () {
-    const cairo = LatLng(30.05, 31.24);
-    expect(trafficFactorFor(DateTime(2026, 11, 1, 9), cairo), greaterThan(trafficFactorFor(DateTime(2026, 11, 1, 3), cairo)));
+  test('الوقت يظهر كمدى', () {
 
     const estimate = RouteEstimate(distanceMeters: 9000, durationSeconds: 900, trafficFactor: 1.8);
     expect(estimate.arrivalRangeText, 'حوالي 20 إلى 35 دقيقة');

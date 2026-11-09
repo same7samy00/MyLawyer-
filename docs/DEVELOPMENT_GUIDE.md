@@ -73,6 +73,7 @@ Set-Location "D:\KAREM"
 
 - التشغيل الافتراضي يستخدم خادم الإنتاج. لاستخدام خادم تطوير:
   `flutter run --dart-define=APP_ENV=development --dart-define=API_BASE_URL=http://HOST/api/v1`
+- **مفتاح الخريطة:** أي تشغيل أو بناء يزوّد `--dart-define-from-file=dart_defines.local.json` (فيه `TOMTOM_MAP_KEY`، ومش في git). والسيرفر محتاج `TOMTOM_ROUTING_KEY` في `.env`.
 - إصدار Release يتجاهل هذه القيم ويبقى مقيداً بخادم الإنتاج.
 - `flutter test` يعمل بالكامل على خادم وهمي محلي (`test/helpers/fake_backend.dart`) ولا يتصل بالإنتاج.
 - اختبارات الاتصال بالخادم الحي اختيارية وللقراءة فقط:

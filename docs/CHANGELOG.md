@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Map and Road Times From TomTom, Clearer Login Errors] - 2026-11-09
+- **Map:** the app shows TomTom map pictures with Arabic street names (`MapConfig.serverTileUrl`), from the key `TOMTOM_MAP_KEY` given at build time with `--dart-define-from-file=dart_defines.local.json` (not in git). Without a key it falls back to our old map. Saved pictures moved to a new folder (`my_lawyer_map_tiles_v3`). Lawyers are still drawn by us.
+- **Road time with live traffic:** `services/roadRoutes.ts` asks TomTom with `TOMTOM_ROUTING_KEY` (server only), and nearby asks share one answer for 2 minutes. The arrival deadline (`arrivalMinutes`) uses it, and the app asks `GET /api/v1/routes` instead of OSRM, so the hand-made traffic table is gone. Tests never call TomTom.
+- **Login errors:** `AuthErrorBanner` shows an icon that fits the problem (password, account not found, connection, suspended, too many tries) and splits a long message into a title and a second line.
+
 ## [Three One-Minute Calls for «محاميك حالاً»] - 2026-11-09
 - **Server only, the app is unchanged:** a request goes out in 3 calls of one minute each, every call to at most 10 new lawyers: up to 10 km, then 25, then 50 (`ROUND_RADII_KM` and `sendNextCall` in `modules/requests/service.ts`). At most 30 lawyers per request, and nobody is asked twice. The calls continue even when offers came, and a call with nobody new inside its distance is skipped at once.
 - Any lawyer the request reached can send a price while it is open, also in the 5 minutes to choose. `GET /requests/:id` gives `secondsLeft` until all calls end (`callsEnd`) and `chooseSecondsLeft` 5 minutes after that (`chooseEnd`). The lawyer card counts to the calls end, or to the choosing end when offers wait.

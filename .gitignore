@@ -66,3 +66,6 @@ test-accounts.txt
 
 # PDF files made for the app owner
 exports/
+
+# Map keys, never in git
+dart_defines.local.json

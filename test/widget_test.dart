@@ -91,9 +91,8 @@ void main() {
       expect(AppColors.success, const Color(0xFF16A34A));
     });
 
-    test('MapConfig defines self-hosted VPS server endpoints as primary', () {
-      expect(MapConfig.serverTileUrl, contains('my-lawyer.online/map/v2/'));
-      expect(MapConfig.osrmBaseUrl, 'https://my-lawyer.online/osrm');
+    test('MapConfig uses TomTom with a key, and our old map without one', () {
+      expect(MapConfig.serverTileUrl, MapConfig.tomtomMapKey.isEmpty ? contains('my-lawyer.online/map/v2/') : contains('api.tomtom.com/map/1/tile/'));
       expect(MapConfig.fallbackTileUrl, contains('tile.openstreetmap.org'));
     });
 

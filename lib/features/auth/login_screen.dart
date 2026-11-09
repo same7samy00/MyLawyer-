@@ -6,6 +6,7 @@ import '../../core/services/biometric_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_pressable.dart';
+import '../../core/widgets/auth_error_banner.dart';
 import '../../core/widgets/line_illustration.dart';
 import 'account_suspended_screen.dart';
 import 'biometric_setup_screen.dart';
@@ -231,27 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Error Message Banner (if any)
                   if (_errorMessage != null) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline_rounded, color: AppColors.danger, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _errorMessage!,
-                              style: const TextStyle(
-                                fontFamily: 'AppFont',
-                                fontFamilyFallback: appFontFallback,
-                                color: AppColors.danger,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    AuthErrorBanner(message: _errorMessage!),
                     const SizedBox(height: 14),
                   ],
 

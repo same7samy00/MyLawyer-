@@ -294,3 +294,13 @@ describe('الطلب وعروض الأسعار', () => {
     assert.equal((await call('GET', '/requests/incoming', lawyerToken)).body.data.length, 0);
   });
 });
+
+describe('الطريق ووقت الوصول', () => {
+  it('محتاج تسجيل دخول، والمكان لازم يكون في مصر، ومن غير TomTom يرد إن الحساب مش متاح', async () => {
+    const q = 'fromLat=30.05&fromLon=31.25&toLat=29.96&toLon=31.26';
+    assert.equal((await app.inject({ method: 'GET', url: `/api/v1/routes?${q}` })).statusCode, 401);
+    assert.equal((await call('GET', '/routes?fromLat=10&fromLon=31.25&toLat=29.96&toLon=31.26', clientToken)).status, 400);
+    // Tests never call TomTom
+    assert.equal((await call('GET', `/routes?${q}`, clientToken)).status, 503);
+  });
+});
