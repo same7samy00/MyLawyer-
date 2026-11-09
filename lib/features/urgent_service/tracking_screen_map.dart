@@ -100,37 +100,6 @@ extension _TrackingMapControls on _TrackingScreenState {
     }
   }
 
-  /// ضبط كاميرا الخريطة لعرض المسار كاملاً بين موقعي وموقع المحامي المختار مهما كانت المسافة مع مراعاة البوتن شيت
-  void _zoomFitRouteAndLawyer(LatLng userPos, LatLng lawyerPos, {double? sheetHeight}) {
-    if (!mounted) return;
-    final effectiveSheetHeight = sheetHeight ?? _sheetHeight;
-    try {
-      final List<LatLng> fitCoordinates = [userPos, lawyerPos];
-      if (_routePoints.isNotEmpty) {
-        fitCoordinates.addAll(_routePoints);
-      }
-
-      final fit = CameraFit.coordinates(
-        coordinates: fitCoordinates,
-        padding: EdgeInsets.only(
-          bottom: effectiveSheetHeight + 45.0, // مساحة البوتن شيت الفعلية + هامش مريح لعدم حجب أي جزء من المسار
-          top: 80.0,                           // هامش أسفل الهيدر العلوي الثابت
-          left: 55.0,
-          right: 55.0,
-        ),
-        maxZoom: appMapMaxZoom,
-        minZoom: appMapMinZoom,
-      );
-
-      final fittedCamera = fit.fit(_mapController.camera);
-      _animatedMapMove(fittedCamera.center, fittedCamera.zoom);
-    } catch (_) {
-      final midLat = (userPos.latitude + lawyerPos.latitude) / 2 - (effectiveSheetHeight / 85000.0);
-      final midLng = (userPos.longitude + lawyerPos.longitude) / 2;
-      _animatedMapMove(LatLng(midLat, midLng), 13.4);
-    }
-  }
-
   /// التفاعل عند الضغط على محامٍ من الخريطة: تحديث بيانات البوتن شيت المثبت وفتحه إذا كان مغلقاً
   void _onLawyerTapped(MapLawyer lawyer) {
     // الخريطة للعرض، وأثناء الطلب اللمس ما يغيرش حاجة
@@ -220,7 +189,9 @@ extension _TrackingMapControls on _TrackingScreenState {
     if (lawyers.isNotEmpty) {
       _currentLawyerIndex = 0;
       _calculateRouteToLawyer(lawyers.first);
-      _zoomFitRouteAndLawyer(centerLatLng, lawyers.first.position);
+      // At least the nearest 5 show on the map, above the sheet
+      final fitted = cameraShowingNearest(_mapController.camera, centerLatLng, lawyers.map((l) => l.position), sheetHeight: _sheetHeight);
+      _animatedMapMove(fitted.center, fitted.zoom);
     }
   }
 

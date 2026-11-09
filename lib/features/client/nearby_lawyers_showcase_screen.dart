@@ -163,6 +163,21 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
       _topHasMore = (res.data?.length ?? 0) >= 20;
       _isInitialLoading = false;
     });
+    await _showNearestFive(here);
+  }
+
+  /// الخريطة تفتح على مكان الموكل، ولو أقرب 5 محامين مش ظاهرين تبعد لحد ما يبانوا
+  Future<void> _showNearestFive(LatLng here) async {
+    await _mapLawyers.loadAround(here, radiusKm: 50);
+    if (!mounted) return;
+    var nearest = _mapLawyers.nearest(here, count: 5).map((l) => l.position).toList();
+    if (nearest.length < 5) {
+      // Nobody close by: the nearest of the governorate list
+      final sorted = [..._nearbyLawyers]..sort((a, b) => a.distanceMeters.compareTo(b.distanceMeters));
+      nearest = {...nearest, ...sorted.take(5).map((l) => l.position)}.take(5).toList();
+    }
+    final fitted = cameraShowingNearest(_mapController.camera, here, nearest, sheetHeight: _sheetHeight);
+    _animatedMapMove(fitted.center, fitted.zoom);
   }
 
   /// «المزيد»: 20 كمان من أعلى المحافظة

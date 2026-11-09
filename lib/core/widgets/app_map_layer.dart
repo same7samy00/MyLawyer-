@@ -46,3 +46,17 @@ class AppMapLayer extends StatelessWidget {
     );
   }
 }
+
+/// أول ما الخريطة تفتح، المستخدم لازم يشوف 5 محامين على الأقل: لو أقرب 5 ظاهرين في الزوم العادي الخريطة
+/// تفضل زي ما هي، ولو أبعد تبعد لحد ما يبانوا كلهم فوق الشيت. ما بتقربش أكتر من زوم البداية أبدًا
+MapCamera cameraShowingNearest(MapCamera camera, LatLng here, Iterable<LatLng> nearest, {required double sheetHeight}) {
+  final points = [here, ...nearest.take(5)];
+  if (points.length < 2) return camera;
+  final fitted = CameraFit.coordinates(
+    coordinates: points,
+    padding: EdgeInsets.only(top: 90, left: 50, right: 50, bottom: sheetHeight + 40),
+    maxZoom: appMapStartZoom,
+    minZoom: appMapMinZoom,
+  ).fit(camera);
+  return fitted;
+}
