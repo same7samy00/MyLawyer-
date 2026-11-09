@@ -1,7 +1,7 @@
 # 📝 CHANGELOG - My Lawyer
 
 ## [Lawyer Cards on the Map, App Colours, Realistic Demo Lawyers, Old Map Removed] - 2026-11-09
-- **Map marks:** small pins for every lawyer when zoomed out, and from zoom 14 compact cards shaped like a pin (photo, name, rating; card and pointer one piece) for the top rated in each small area, the rest stay pins. Areas are fixed at whole zoom steps, so nothing flickers. Photos are small server copies (`/thumb/...`) loaded only for shown cards.
+- **Map marks:** small pins for every lawyer when zoomed out, and from zoom 14 compact cards shaped like a pin (first letter, name, rating; card and pointer one piece) for the top rated in each small area, the rest stay pins. Areas are fixed at whole zoom steps, so nothing flickers. Cards show the first letter of the name; the photo shows only in the lawyer's opened card, so the map loads no images.
 - **Map colours** close to the app's (cool grey-blue), applied once per square when it loads, never per frame.
 - **Public lawyer spot:** the real place moved 150 to 450 m in a fixed direction per lawyer (`publicPoint`), instead of snapping to a 1 km grid where lawyers stacked.
 - **Demo lawyers:** `build-demo-lawyers.mjs` writes 1000 lawyers inside real cities and towns across Egypt, with governorates and believable ratings.

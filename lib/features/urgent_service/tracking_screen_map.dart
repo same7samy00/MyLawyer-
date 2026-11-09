@@ -142,7 +142,10 @@ extension _TrackingMapControls on _TrackingScreenState {
     _calculateRouteToLawyer(lawyer);
     _update(() => _isViewingLawyer = true);
 
-    _zoomFitRouteAndLawyer(_searchCenter, lawyer.position);
+    // الكاميرا بتتحرك بس من غير زوم، والمحامي يبقى في نص الجزء الظاهر فوق الشيت
+    final camera = _mapController.camera;
+    final point = camera.project(lawyer.position);
+    _animatedMapMove(camera.unproject(math.Point(point.x, point.y + _sheetHeight / 2)), camera.zoom);
   }
 
   void _closeLawyerProfile() {

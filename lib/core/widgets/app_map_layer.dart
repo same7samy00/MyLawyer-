@@ -7,8 +7,9 @@ import '../services/app_cached_tile_provider.dart';
 /// لون أرض الخريطة نفسه، فالمربع اللي لسه بيتحمل ما يبانش كمربع رمادي
 const Color appMapBackground = Color(0xFFECEDF0);
 
-/// حدود الزوم تخفف عدد المربعات المطلوبة من الخادم
-const double appMapMaxZoom = 15.0;
+/// أقصى زوم: الصور بتيجي لحد 15 وبتتكبّر بعدها، فتقدر تقرّب لحد 17 عشان الكروت اللي جنب بعض تتفرد
+const double appMapMaxZoom = 17.0;
+const int _tilesMaxZoom = 15;
 const double appMapMinZoom = 8.0;
 
 /// الزوم اللي الخريطة بتفتح عليه وبترجع له، أبعد شوية من الأقصى عشان المنطقة تبان
@@ -30,7 +31,7 @@ class AppMapLayer extends StatelessWidget {
       fallbackUrl: MapConfig.fallbackTileUrl,
       userAgentPackageName: MapConfig.userAgentPackage,
       tileProvider: AppCachedTileProvider.instance,
-      maxNativeZoom: appMapMaxZoom.toInt(),
+      maxNativeZoom: _tilesMaxZoom,
       // صورة TomTom الكبيرة بتترسم في مربع عادي، فالكتابة صغيرة وواضحة
       tileSize: 256,
       // مربعات زيادة حوالين الشاشة بتتحمل مقدمًا وبتفضل في الذاكرة، فالسحب ما يبانش فيه فراغ

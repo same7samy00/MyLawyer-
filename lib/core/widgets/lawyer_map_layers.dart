@@ -1,20 +1,14 @@
-import 'dart:collection';
-import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart' hide Path;
-import 'package:path_provider/path_provider.dart';
 import '../../data/models/map_lawyer.dart';
 import '../constants/app_colors.dart';
 
 /// المحامين على الخريطة: بعيد دبابيس صغيرة لكل المحامين (عادي تتراكب)، ومن زوم [cardsFromZoom] كروت صغيرة
-/// على شكل دبوس (الصورة والاسم والتقييم، والكارت ومثلثه قطعة واحدة) للأعلى تقييمًا في كل منطقة صغيرة،
+/// على شكل دبوس (أول حرف والاسم والتقييم، والكارت ومثلثه قطعة واحدة) للأعلى تقييمًا في كل منطقة صغيرة،
 /// والباقي دبابيس تحتهم. المناطق ثابتة على الخريطة وبتتغير بس مع كل درجة زوم كاملة، فمفيش رعشة.
-/// كله رسمة واحدة مش widget لكل محامي، والصور صغيرة ومحفوظة، فالخريطة ناعمة مهما كان العدد.
+/// كله رسمة واحدة مش widget لكل محامي، ومفيش صور على الخريطة، فالخريطة ناعمة مهما كان العدد.
 /// لمس الكارت أو الدبوس بيفتح المحامي (`lawyerAtTap`).
 class LawyerPinsLayer extends StatelessWidget {
   final Iterable<MapLawyer> lawyers;
@@ -43,8 +37,6 @@ typedef MapCard = ({MapLawyer lawyer, Offset point, bool card});
 
 /// من الزوم ده الكروت بتظهر، وقبله دبابيس بس
 const double cardsFromZoom = 14;
-const double _cellWidth = 124;
-const double _cellHeight = 58;
 const double _cardHeight = 34;
 const double _pointer = 6;
 const double _photo = 24;
@@ -86,19 +78,17 @@ Set<String> _carded = const {};
 Set<String> _cardedAt(MapCamera camera, Iterable<MapLawyer> lawyers, int step) {
   final list = lawyers is List<MapLawyer> ? lawyers : lawyers.toList(growable: false);
   if (identical(list, _cardedFor) && step == _cardedStep) return _carded;
-  // The higher rated first; a card goes where it touches no card already placed, one per small area
+  // The higher rated first; every lawyer gets a card unless it would sit on a card already placed,
+  // then it stays a pin under it until you zoom in more
   final order = [...list]
     ..sort((a, b) {
       final byRating = b.rating.compareTo(a.rating);
       return byRating != 0 ? byRating : a.id.compareTo(b.id);
     });
-  final taken = <int>{};
   final grid = <int, List<Rect>>{};
   final carded = <String>{};
   for (final lawyer in order) {
     final w = camera.crs.latLngToPoint(lawyer.position, step.toDouble());
-    final cell = (w.x / _cellWidth).floor() * 1000003 + (w.y / _cellHeight).floor();
-    if (taken.contains(cell)) continue;
     final rect = _cardRect(lawyer, Offset(w.x.toDouble(), w.y.toDouble()), 1).inflate(2);
     // Only nearby areas can touch, so only they are checked
     final gx = (w.x / 200).floor();
@@ -110,7 +100,6 @@ Set<String> _cardedAt(MapCamera camera, Iterable<MapLawyer> lawyers, int step) {
       }
     }
     if (clash) continue;
-    taken.add(cell);
     grid.putIfAbsent(gx * 1000003 + gy, () => []).add(rect);
     carded.add(lawyer.id);
   }
@@ -180,80 +169,11 @@ abstract class _Texts {
       )..layout(),);
 }
 
-/// صور المحامين الصغيرة: نسخة مصغرة من السيرفر (حوالي 3 كيلو)، بتتحمل للكروت الظاهرة بس،
-/// وبتتحفظ على الموبايل وفي الذاكرة (آخر 300)، ولحد ما توصل الكارت بيظهر بالحرف الأول
-abstract class _Photos {
-  static final http.Client _client = http.Client();
-  static final LinkedHashMap<String, ui.Image> _images = LinkedHashMap();
-  static final Set<String> _busy = {};
-  static final Set<String> _missing = {};
-  static final ValueNotifier<int> changed = ValueNotifier<int>(0);
-  static Directory? _dir;
-  static int _running = 0;
-
-  static ui.Image? of(MapLawyer lawyer) {
-    final url = _thumbUrl(lawyer.imageUrl);
-    if (url == null) return null;
-    final image = _images[url];
-    if (image != null) return image;
-    if (!_missing.contains(url) && !_busy.contains(url) && _running < 6) _load(url);
-    return null;
-  }
-
-  /// `/uploads/...` بيبقى `/thumb/uploads/...`: نفس الصورة مصغرة ومحفوظة على السيرفر للكل
-  static String? _thumbUrl(String imageUrl) {
-    if (imageUrl.isEmpty) return null;
-    final uri = Uri.tryParse(imageUrl);
-    if (uri == null || !uri.hasScheme) return null;
-    return uri.replace(path: '/thumb${uri.path}').toString();
-  }
-
-  static Future<void> _load(String url) async {
-    _busy.add(url);
-    _running++;
-    try {
-      _dir ??= Directory('${(await getTemporaryDirectory()).path}/my_lawyer_map_photos')..createSync(recursive: true);
-      final file = File('${_dir!.path}/${url.hashCode.toUnsigned(32)}.img');
-      List<int>? bytes;
-      if (file.existsSync()) bytes = await file.readAsBytes();
-      if (bytes == null) {
-        final res = await _client.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
-        if (res.statusCode != 200 || res.bodyBytes.length < 100) {
-          _missing.add(url);
-          return;
-        }
-        bytes = res.bodyBytes;
-        await file.writeAsBytes(bytes, flush: false);
-      }
-      final codec = await ui.instantiateImageCodec(Uint8List.fromList(bytes), targetWidth: 72, targetHeight: 72);
-      final frame = await codec.getNextFrame();
-      // Cut round once here, so drawing a card is one image with no clipping each frame
-      final recorder = ui.PictureRecorder();
-      final size = frame.image.width.toDouble();
-      Canvas(recorder)
-        ..clipPath(Path()..addOval(Rect.fromLTWH(0, 0, size, size)))
-        ..drawImage(frame.image, Offset.zero, Paint()..filterQuality = FilterQuality.medium);
-      final picture = recorder.endRecording();
-      final round = await picture.toImage(frame.image.width, frame.image.height);
-      picture.dispose();
-      frame.image.dispose();
-      if (_images.length >= 300) _images.remove(_images.keys.first)?.dispose();
-      _images[url] = round;
-      changed.value++;
-    } catch (_) {
-      _missing.add(url);
-    } finally {
-      _busy.remove(url);
-      _running--;
-    }
-  }
-}
-
 class _CardsPainter extends CustomPainter {
   final MapCamera camera;
   final List<MapLawyer> lawyers;
   final String? selectedId;
-  _CardsPainter(this.camera, this.lawyers, this.selectedId) : super(repaint: _Photos.changed);
+  _CardsPainter(this.camera, this.lawyers, this.selectedId);
 
   static final Paint _back = Paint()..color = Colors.white;
   // A plain offset shade, no blur: blur on every mark each frame is what makes a map heavy
@@ -272,7 +192,6 @@ class _CardsPainter extends CustomPainter {
     ..color = Colors.white
     ..style = PaintingStyle.stroke
     ..strokeWidth = 1.5;
-  static final Paint _photoPaint = Paint()..filterQuality = FilterQuality.medium;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -318,7 +237,7 @@ class _CardsPainter extends CustomPainter {
 
   /// The card and its pointer as one piece, with one outline
   static Path _cardShape(double width) => _cardShapes.putIfAbsent(width.round(), () {
-        final box = Path()..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(-width / 2, -_pointer - _cardHeight, width, _cardHeight), const Radius.circular(10)));
+        final box = Path()..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(-width / 2, -_pointer - _cardHeight, width, _cardHeight), const Radius.circular(5)));
         final pointer = Path()
           ..moveTo(-_pointer, -_pointer - 1)
           ..quadraticBezierTo(-1.5, -2, 0, 0)
@@ -341,18 +260,12 @@ class _CardsPainter extends CustomPainter {
     canvas.drawPath(shape, _back);
     canvas.drawPath(shape, picked ? _pickedEdge : _edge);
 
-    // The photo on the right, or the first letter of the name until it arrives
+    // The first letter of the name on the right. The photo shows in the lawyer's card, not on the map
     final box = Rect.fromLTWH(-width / 2, -_pointer - _cardHeight, width, _cardHeight);
     final photoCenter = Offset(box.right - 5 - _photo / 2, box.center.dy);
-    final image = _Photos.of(lawyer);
-    final circle = Rect.fromCircle(center: photoCenter, radius: _photo / 2);
-    if (image != null) {
-      canvas.drawImageRect(image, Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()), circle, _photoPaint);
-    } else {
-      canvas.drawCircle(photoCenter, _photo / 2, _avatar);
-      final letter = _Texts.letter(lawyer.avatarInitials);
-      letter.paint(canvas, photoCenter - Offset(letter.width / 2, letter.height / 2));
-    }
+    canvas.drawCircle(photoCenter, _photo / 2, _avatar);
+    final letter = _Texts.letter(lawyer.avatarInitials);
+    letter.paint(canvas, photoCenter - Offset(letter.width / 2, letter.height / 2));
 
     // The name, and the rating under it
     final name = _Texts.name(lawyer.name);

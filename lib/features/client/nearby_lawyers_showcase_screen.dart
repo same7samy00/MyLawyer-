@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -256,13 +257,11 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
       _selectedLawyer = here == null ? lawyer : lawyer.withDistance(const Distance().as(LengthUnit.Meter, here, lawyer.position));
     });
 
-    // حساب إزاحة مركز الكاميرا لتوسيط المحامي تماماً في المساحة المرئية فوق البوتن شيت (390px)
-    // الإزاحة تعادل تحريك المركز جنوباً بما يقارب 160 بكسل (~0.0042 درجة) لرفع موقع المحامي في النصف العلوي المرئي
-    const double targetZoom = appMapStartZoom;
-    const double latShift = 0.0042;
-    final targetCenter = LatLng(lawyer.position.latitude - latShift, lawyer.position.longitude);
-
-    _animatedMapMove(targetCenter, targetZoom);
+    // الكاميرا بتتحرك بس من غير زوم، والمحامي يبقى في نص الجزء الظاهر فوق الشيت
+    final camera = _mapController.camera;
+    final point = camera.project(lawyer.position);
+    final center = camera.unproject(math.Point(point.x, point.y + _sheetHeight / 2));
+    _animatedMapMove(center, camera.zoom);
   }
 
   void _closeLawyerProfile() {
