@@ -38,7 +38,7 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
       return reply.status(409).send({ success: false, error: 'انتهت مهلة الرد على الطلب' });
     }
     if (await lawyerHasOpenOrder(dbPool, userId, order.id)) {
-      return reply.status(409).send({ success: false, error: 'عندك مهمة مفتوحة، خلصها الأول' });
+      return reply.status(409).send({ success: false, error: 'عندك 3 مهمات شغالة، خلّص واحدة الأول' });
     }
 
     // Lawyers move around, so the place stored on the map may be old by now
@@ -76,7 +76,7 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
         [order.id, userId]
       );
 
-      await notify(client, order.client_id, 'المحامي وافق', 'ادفع خلال 3 دقايق عشان يبدأ', order.id);
+      await notify(client, order.client_id, 'المحامي وافق', 'ادفع عشان يبدأ، واللي بيدفع الأول بياخد المحامي', order.id);
     });
 
     return reply.send({
@@ -220,8 +220,9 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
       );
 
       await notify(client, locked.lawyer_id, 'الموكل دفع', 'ابدأ المهمة، ودوس «وصلت» عند الموكل', locked.id);
-      // Other clients who chose this lawyer and did not pay yet go back to their offers
-      const others = await client.query(
+      // With their 3 places now taken, other clients who chose this lawyer and did not pay go back to their offers
+      const full = await lawyerHasOpenOrder(client, locked.lawyer_id);
+      const others = !full ? { rows: [] as any[] } : await client.query(
         `SELECT id, client_id, lawyer_id FROM service_orders WHERE lawyer_id = $1 AND status = 'ACCEPTED' AND id <> $2 FOR UPDATE`,
         [locked.lawyer_id, locked.id]
       );

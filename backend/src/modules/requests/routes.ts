@@ -145,7 +145,7 @@ export async function requestRoutes(fastify: FastifyInstance) {
         `SELECT 1 FROM users u JOIN lawyer_profiles lp ON lp.user_id = u.id WHERE u.id = $1 AND ${LAWYER_CAN_WORK('lp', 'u')}`,
         [userId]
       );
-      if (eligible.rows.length === 0) throw new HttpError(409, 'لازم تكون متاح ومعندكش مهمة مفتوحة');
+      if (eligible.rows.length === 0) throw new HttpError(409, 'لازم تكون متاح، ومعندكش 3 مهمات شغالة');
 
       const saved = await client.query(
         `INSERT INTO request_offers (request_id, lawyer_id, price, lawyer_amount) VALUES ($1, $2, $3, $4)
@@ -322,7 +322,7 @@ export async function requestRoutes(fastify: FastifyInstance) {
         [newOrder.id, userId, `اختار الموكل عرض المحامي بسعر ${Number(offer.price)} ج.م`]
       );
 
-      await notify(client, lawyerId, 'الموكل اختار عرضك', 'مستنيين الموكل يدفع خلال 3 دقايق، ولو جالك شغل تاني الأول خده', newOrder.id);
+      await notify(client, lawyerId, 'الموكل اختار عرضك', 'مستنيين الموكل يدفع، واللي بيدفع الأول بياخدك', newOrder.id);
       const others = await client.query(
         'SELECT lawyer_id FROM request_offers WHERE request_id = $1 AND lawyer_id <> $2 AND withdrawn_at IS NULL',
         [id, lawyerId]

@@ -1,5 +1,8 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [No Time to Pay, Up to 3 Tasks per Lawyer] - 2026-11-09
+- No payment window: whoever pays first gets the lawyer (`PAYMENT_MINUTES` is a one-day cleanup only). A lawyer holds up to 3 tasks at once (`MAX_LAWYER_TASKS`, paid or waiting for their answer, postponed ones excluded); `HAS_OPEN_ORDER('lawyer_id')` and `lawyerHasOpenOrder` now mean «no place left». When the third place fills, the clients who chose the lawyer and did not pay go back to their offers.
+
 ## [Lawyer Held Only After Payment, Shorter Arrival Window] - 2026-11-09
 - **Payment:** choosing an offer no longer holds the lawyer (`HOLDS_LAWYER` counts paid and waiting-for-answer orders only). 3 minutes to pay. Paying takes the lawyer from every other client who chose them, and a client whose lawyer was taken, or whose 3 minutes passed, is back on the same offers for 5 minutes (`releaseChoice`); the app returns to the offers by itself (`RequestRepository.backToOffers`).
 - **Arrival window:** road time with traffic plus 10, 15 or 20 minutes by road length (`arrivalMargin`), and the reminder 5 minutes before the end.

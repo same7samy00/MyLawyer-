@@ -239,7 +239,13 @@ describe('الصلاحيات والمدخلات', () => {
 });
 
 describe('تزامن الطلبات', () => {
-  it('موكلين في نفس اللحظة: محامي واحد ياخد طلب واحد بس', async () => {
+  it('موكلين في نفس اللحظة على آخر مكان عند المحامي: واحد بس ياخده', async () => {
+    // Two of the lawyer's 3 places are taken first
+    for (let i = 0; i < 2; i++) {
+      const id = await createUser(newPhone(), 'client');
+      const res = await call('POST', '/orders', app.jwt.sign({ userId: id, role: 'client' }), { lawyerId, problemDescription: 'وصف المشكلة', clientLat: 30.05, clientLon: 31.25 });
+      assert.equal(res.status, 201);
+    }
     const secondId = await createUser(newPhone(), 'client');
     const secondToken = app.jwt.sign({ userId: secondId, role: 'client' });
     const body = { lawyerId, problemDescription: 'وصف المشكلة', clientLat: 30.05, clientLon: 31.25 };

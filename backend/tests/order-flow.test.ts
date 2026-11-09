@@ -275,20 +275,21 @@ describe('المهل والمخالفات', () => {
     await createOrder();
   });
 
-  it('طلب مفتوح واحد للموكل، ومهمة واحدة للمحامي', async () => {
+  it('طلب مفتوح واحد للموكل، ولحد 3 مهمات للمحامي', async () => {
     await createOrder();
     const second = await call('POST', '/orders', clientToken, {
       lawyerId, problemType: PROBLEM, problemDescription: 'وصف', clientLat: 30.05, clientLon: 31.25,
     });
     assert.equal(second.status, 409);
 
-    const otherClient = await createUser('01000000021', 'client');
-    const busy = await call('POST', '/orders', app.jwt.sign({ userId: otherClient, role: 'client' }), {
+    const order = (phone: string) => createUser(phone, 'client').then((id) => call('POST', '/orders', app.jwt.sign({ userId: id, role: 'client' }), {
       lawyerId, problemType: PROBLEM, problemDescription: 'وصف', clientLat: 30.05, clientLon: 31.25,
-    });
-    assert.equal(busy.status, 409);
-
+    }));
+    assert.equal((await order('01000000021')).status, 201);
+    assert.equal(await canWork(lawyerId), true, 'two tasks leave a place');
+    assert.equal((await order('01000000022')).status, 201);
     assert.equal(await canWork(lawyerId), false);
+    assert.equal((await order('01000000023')).status, 409);
   });
 
   it('اعتذار المحامي بعد الدفع يرجع المبلغ، و3 اعتذارات توقفه أسبوع', async () => {

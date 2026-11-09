@@ -8,9 +8,12 @@ export const HOLD_HOURS = 24;
 export const ORDER_DEADLINE_HOURS = 24;
 export const REVIEW_WINDOW_DAYS = 7;
 export const LAWYER_RESPONSE_SECONDS = 120;
-/// Choosing an offer does not hold the lawyer: whoever finishes first gets them. The client has 3 minutes to pay
-/// (owner decision 2026-11-09)
-export const PAYMENT_MINUTES = 3;
+/// Choosing an offer does not hold the lawyer and there is no time to pay: whoever pays first gets them
+/// (owner decision 2026-11-09). A choice left a whole day unpaid is cleaned away so nothing stays open forever
+export const PAYMENT_MINUTES = 24 * 60;
+
+/// A lawyer can have up to 3 tasks going at once (paid, or waiting for their answer); a postponed task doesn't count
+export const MAX_LAWYER_TASKS = 3;
 /// The lawyer and the client must really meet, so arrival is accepted within 50 meters only
 export const ARRIVAL_RADIUS_KM = 0.05;
 /// Each side shares its newest point at most this often on the way to the meeting
@@ -182,24 +185,29 @@ export async function arrivalMinutes(from: { lat: number; lon: number } | null, 
 export const IS_OPEN_ORDER = (order: string) =>
   `${order}.status IN ('PENDING', 'ACCEPTED', 'ACTIVE') AND ${order}.postponed_at IS NULL`;
 
-/// SQL condition on one order row: the lawyer is taken by it. A chosen but unpaid order does not hold the lawyer
+/// SQL condition on one order row: it takes one of the lawyer's places. A chosen but unpaid order does not
 export const HOLDS_LAWYER = (order: string) =>
   `${order}.status IN ('PENDING', 'ACTIVE') AND ${order}.postponed_at IS NULL`;
 
-/// SQL condition: this person has an open order, as the lawyer (paid or waiting for their answer) or as the client
-export const HAS_OPEN_ORDER = (side: 'lawyer_id' | 'client_id', person: string) =>
-  `EXISTS (SELECT 1 FROM service_orders busy WHERE busy.${side} = ${person} AND ${side === 'lawyer_id' ? HOLDS_LAWYER('busy') : IS_OPEN_ORDER('busy')})`;
+/// SQL condition: the lawyer already has their 3 tasks going
+const LAWYER_FULL = (person: string) =>
+  `(SELECT COUNT(*) FROM service_orders busy WHERE busy.lawyer_id = ${person} AND ${HOLDS_LAWYER('busy')}) >= ${MAX_LAWYER_TASKS}`;
 
-/// True while the lawyer has an open order, other than the one given
+/// SQL condition: the client has an open order, or the lawyer has no place left for another task
+export const HAS_OPEN_ORDER = (side: 'lawyer_id' | 'client_id', person: string) =>
+  side === 'lawyer_id'
+    ? LAWYER_FULL(person)
+    : `EXISTS (SELECT 1 FROM service_orders busy WHERE busy.client_id = ${person} AND ${IS_OPEN_ORDER('busy')})`;
+
+/// True when the lawyer has no place left for another task, not counting the one given
 export async function lawyerHasOpenOrder(db: Db, lawyerId: string, exceptOrderId?: string): Promise<boolean> {
   const res = await db.query(
-    `SELECT 1 FROM service_orders o
+    `SELECT COUNT(*)::int AS taken FROM service_orders o
      WHERE o.lawyer_id = $1 AND ${HOLDS_LAWYER('o')}
-       AND ($2::uuid IS NULL OR o.id <> $2::uuid)
-     LIMIT 1`,
+       AND ($2::uuid IS NULL OR o.id <> $2::uuid)`,
     [lawyerId, exceptOrderId ?? null]
   );
-  return res.rows.length > 0;
+  return res.rows[0].taken >= MAX_LAWYER_TASKS;
 }
 
 const STRIKE_LABELS: Record<string, string> = { WITHDRAWAL: 'اعتذار بعد الدفع', COMPLAINT: 'شكوى' };

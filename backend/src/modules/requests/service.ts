@@ -188,7 +188,7 @@ export async function releaseChoice(db: Db, order: { id: string; client_id: stri
     await db.query('UPDATE request_offers SET withdrawn_at = NOW() WHERE request_id = $1 AND lawyer_id = $2', [requestId, order.lawyer_id]);
   }
   if (requestId) {
-    await notify(db, order.client_id, taken ? 'المحامي اتشغل' : 'انتهت مهلة الدفع', 'اختار محامي تاني من العروض اللي قدامك خلال 5 دقايق', { requestId });
+    await notify(db, order.client_id, taken ? 'المحامي اتشغل' : 'انتهت مهلة الدفع', 'اختار محامي تاني من العروض اللي قدامك', { requestId });
   } else {
     await notify(db, order.client_id, 'انتهت مهلة الدفع', 'الطلب اتلغى، وتقدر تبدأ طلب جديد', order.id);
   }
