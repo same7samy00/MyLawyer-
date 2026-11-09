@@ -189,8 +189,9 @@ extension _TrackingMapControls on _TrackingScreenState {
     if (lawyers.isNotEmpty) {
       _currentLawyerIndex = 0;
       _calculateRouteToLawyer(lawyers.first);
-      // At least the nearest 5 show on the map, above the sheet
-      final fitted = cameraShowingNearest(_mapController.camera, centerLatLng, lawyers.map((l) => l.position), sheetHeight: _sheetHeight);
+      // The line to the nearest lawyer, with both ends whole above the sheet (the sheet's full height, even
+      // while it is still loading)
+      final fitted = cameraShowingNearest(_mapController.camera, centerLatLng, [lawyers.first.position, ..._routePoints], sheetHeight: math.max(_sheetHeight, _expandedHeight));
       _animatedMapMove(fitted.center, fitted.zoom);
     }
   }

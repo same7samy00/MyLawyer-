@@ -38,14 +38,11 @@ ram_ok() { [ "$(free | awk '/Mem:/ {printf "%d", ($3/$2)*100}')" -lt 90 ]; }
 if [ "$ROLE" = "api" ]; then
   check "الخادم وقاعدة البيانات" http_ok http://127.0.0.1:4000/api/v1/health '"database":"CONNECTED"'
   check "الموقع من بره" http_ok https://my-lawyer.online/api/v1/health '"status":"UP"'
-  check "صور الخريطة" http_ok https://maps.my-lawyer.online/map/v2/12/2449/1701.webp
-  check "حساب الطرق" http_ok 'https://maps.my-lawyer.online/osrm/route/v1/driving/31.23,30.04;31.25,30.0?overview=false' '"code":"Ok"'
+  check "خزنة الخريطة" http_ok https://my-lawyer.online/map/t/12/2405/1712.png
   check "شهادة my-lawyer.online" test "$(cert_days my-lawyer.online)" -ge 14
-  check "شهادة maps.my-lawyer.online" test "$(cert_days maps.my-lawyer.online)" -ge 14
   check "النسخة الاحتياطية اليومية" test -n "$(find /root/mylawyer-backups -name 'daily-*.sql.gz' -mmin -1560 2>/dev/null)"
 else
   check "سيرفر الباك إند من بره" http_ok https://my-lawyer.online/api/v1/health '"status":"UP"'
-  check "الخرايط على السيرفر ده" http_ok http://127.0.0.1:3000/health
 fi
 check "المساحة (أقل من 80%)" disk_ok
 check "الذاكرة (أقل من 90%)" ram_ok

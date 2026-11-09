@@ -36,7 +36,7 @@ flowchart LR
 | الإيميل | من `noreply@my-lawyer.online`، موقّع DKIM بالمفتاح `mail`، وسجلات SPF وDMARC وMX في Hostinger، والـ PTR في Contabo |
 
 ## 3. السيرفر القديم `mylawyer-vps`
-سيرفر الخرايط القديم (`maps.my-lawyer.online`) لسه شغال بس عشان نسخ التطبيق القديمة، وهيتقفل بعد ما الكل يحدّث. التطبيق الحالي ما بيستخدموش. بيخدم `/map/v2` و`/osrm/` على `maps.my-lawyer.online` بس. الخريطة الحالية في `docs/GPS_SYSTEM.md`.
+سيرفر الخرايط القديم اتمسح منه كل حاجة تخص الخريطة (2026-11-09)، وفاضل عليه التنبيهات بس. الخريطة الحالية في `docs/GPS_SYSTEM.md`.
 
 ## 4. الدومين
 DNS في Hostinger. `@` و`www` للجديد، و`maps` للقديم. التفاصيل والقيم في `docs/ACCESS.md`.

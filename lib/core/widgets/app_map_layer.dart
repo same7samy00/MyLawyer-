@@ -50,7 +50,9 @@ class AppMapLayer extends StatelessWidget {
 /// أول ما الخريطة تفتح، المستخدم لازم يشوف 5 محامين على الأقل: لو أقرب 5 ظاهرين في الزوم العادي الخريطة
 /// تفضل زي ما هي، ولو أبعد تبعد لحد ما يبانوا كلهم فوق الشيت. ما بتقربش أكتر من زوم البداية أبدًا
 MapCamera cameraShowingNearest(MapCamera camera, LatLng here, Iterable<LatLng> nearest, {required double sheetHeight}) {
-  final points = [here, ...nearest.take(5)];
+  // Up to 5 lawyers, plus any extra points that must show too (like the curve of a line)
+  final list = nearest.toList();
+  final points = [here, ...list.take(5), ...list.skip(5).where((_) => list.length > 5 && list.length != 5)];
   if (points.length < 2) return camera;
   final fitted = CameraFit.coordinates(
     coordinates: points,

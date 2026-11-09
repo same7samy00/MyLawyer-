@@ -1,5 +1,8 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Old Map Server Removed] - 2026-11-09
+- The old maps server lost its tile and route containers, its cache, `map-services` and its Nginx site. The app server no longer forwards `/map/v2` or `/osrm`, `OSRM_URL` is gone from `.env`, and the watch script checks the shared map cache instead (`backend/ops/mylawyer-watch.sh`, installed on both servers).
+
 ## [Lawyer Cards on the Map, App Colours, Realistic Demo Lawyers, Old Map Removed] - 2026-11-09
 - **Map marks:** small pins for every lawyer when zoomed out, and from zoom 14 compact cards shaped like a pin (first letter, name, rating; card and pointer one piece) for the top rated in each small area, the rest stay pins. Areas are fixed at whole zoom steps, so nothing flickers. Cards show the first letter of the name; the photo shows only in the lawyer's opened card, so the map loads no images.
 - **Map colours** close to the app's (cool grey-blue), applied once per square when it loads, never per frame.
