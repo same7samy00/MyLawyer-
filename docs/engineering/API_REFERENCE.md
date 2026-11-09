@@ -56,7 +56,7 @@
 | `GET /requests/range` | دخول | App |
 | `POST /requests` | client | App |
 | `GET /requests/incoming` | lawyer | App |
-| `POST /requests/:id/offer` | lawyer مستلم الجولة | App |
+| `POST /requests/:id/offer` | lawyer وصله الطلب، طول ما الطلب مفتوح | App |
 | `POST /requests/:id/offer/withdraw` | صاحب العرض | App |
 | `GET /requests/:id` | صاحب الطلب | App |
 | `POST /requests/:id/cancel` | صاحب الطلب | App |

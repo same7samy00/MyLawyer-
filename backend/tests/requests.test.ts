@@ -92,7 +92,8 @@ describe('الطلب وعروض الأسعار', () => {
     assert.equal(incoming[0].area, 'المعادي، محافظة القاهرة');
     assert.equal(incoming[0].service, 'محاميك حالاً');
     assert.equal(incoming[0].client_latitude, undefined);
-    assert.ok(incoming[0].secondsLeft > 110);
+    // Three one-minute calls: the lawyer has until all of them end
+    assert.ok(incoming[0].secondsLeft > 170 && incoming[0].secondsLeft <= 180);
     assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'طلب جديد'`, [lawyerId])).length, 1);
   });
 
@@ -166,34 +167,53 @@ describe('الطلب وعروض الأسعار', () => {
     assert.equal((await sql('SELECT 1 FROM service_requests')).length, 0);
   });
 
-  it('أقرب 10، ولو محدش بعت عرض يروح للـ 10 اللي بعدهم، وبعد الجولتين يتقفل', async () => {
+  it('3 نداءات كل دقيقة لـ 10 محامين، وبتكمل حتى لو فيه عروض، وبعدها من غير عروض يتقفل', async () => {
     const others = [];
-    for (let i = 1; i <= 11; i++) others.push(await otherLawyer(30.05 + i * 0.01));
+    for (let i = 1; i <= 11; i++) others.push(await otherLawyer(30.05 + i * 0.005));
+    const far = await otherLawyer(30.05 + 0.15); // about 17 km: outside the first call, inside the second
     const id = await createRequest();
 
     const firstRound = await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [id]);
     assert.equal(firstRound.length, 10);
-    const farthest = others[10];
-    assert.equal(firstRound.some((row: any) => row.lawyer_id === farthest.id), false);
+    assert.equal(firstRound.some((row: any) => row.lawyer_id === others[10].id || row.lawyer_id === far.id), false);
+    const client = await follow(id);
+    assert.ok(client.secondsLeft > 170 && client.secondsLeft <= 180, 'the app keeps searching for all three calls');
 
+    // An offer does not stop the next call
+    assert.equal((await offer(id, 1000)).status, 201);
     await endRound(id);
     await sweepLifecycle();
     assert.equal((await follow(id)).round, 2);
-    assert.equal((await sql('SELECT round FROM request_recipients WHERE request_id = $1 AND lawyer_id = $2', [id, farthest.id]))[0].round, 2);
+    const second = (await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1 AND round = 2', [id])).map((r: any) => r.lawyer_id);
+    assert.equal(second.includes(others[10].id) && second.includes(far.id), true);
+    assert.equal(second.some((lawyer: string) => firstRound.some((row: any) => row.lawyer_id === lawyer)), false, 'nobody is asked twice');
+    // A lawyer from the first call can still send a price after his minute
+    assert.equal((await offer(id, 900, others[0].token)).status, 201);
 
-    // After the two rounds the request closes right away, nothing stays waiting on the server
+    // Nobody new is left inside 50 km: the calls end and the client chooses within 5 minutes
     await endRound(id);
     await sweepLifecycle();
+    const open = await follow(id);
+    assert.equal(open.status, 'OPEN');
+    assert.equal(open.secondsLeft, 0);
+    assert.ok(open.chooseSecondsLeft > 290 && open.chooseSecondsLeft <= 300);
+    assert.equal((await sql('SELECT 1 FROM request_recipients WHERE request_id = $1', [id])).length, 10 + second.length);
+    for (const lawyer of [...others, far]) await removeLawyer(lawyer.id);
+  });
+
+  it('من غير ولا عرض بعد النداءات الطلب يتقفل', async () => {
+    const id = await createRequest();
+    for (let i = 0; i < 3 && (await follow(id)).status === 'OPEN'; i++) {
+      await endRound(id);
+      await sweepLifecycle();
+    }
     assert.equal((await follow(id)).status, 'NO_OFFERS');
     assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'محدش بعت عرض'`, [clientId])).length, 1);
-    for (const lawyer of others) await removeLawyer(lawyer.id);
   });
 
   it('بعد ما الطلب يتقفل من غير عروض، «بحث جديد» في التطبيق بيبعت طلب جديد للأقرب', async () => {
     const id = await createRequest();
-    await endRound(id);
-    await sweepLifecycle();
-    if ((await follow(id)).status === 'OPEN') {
+    for (let i = 0; i < 3 && (await follow(id)).status === 'OPEN'; i++) {
       await endRound(id);
       await sweepLifecycle();
     }
@@ -206,9 +226,9 @@ describe('الطلب وعروض الأسعار', () => {
     await call('POST', `/requests/${again.body.data.id}/cancel`, clientToken, {});
   });
 
-  it('«بحث جديد» بيبعت للـ 10 اللي بعد الأولانيين، وبعدها يرجع للأقرب 10، والعروض اللي وصلت بتفضل', async () => {
+  it('«بحث جديد» بيبعت للـ 10 اللي ما وصلهمش، ولو مفيش حد جديد يرجع للأقرب، والعروض اللي وصلت بتفضل', async () => {
     const others = [];
-    for (let i = 1; i <= 11; i++) others.push(await otherLawyer(30.05 + i * 0.01));
+    for (let i = 1; i <= 11; i++) others.push(await otherLawyer(30.05 + i * 0.005));
     const id = await createRequest();
     const nearest = (await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1 AND round = 1', [id])).map((r: any) => r.lawyer_id);
     assert.equal(nearest.length, 10);
@@ -221,6 +241,7 @@ describe('الطلب وعروض الأسعار', () => {
     assert.equal(second.includes(others[10].id), true);
     assert.equal(second.includes(lawyerId), false);
 
+    // Nobody new is left, so the nearest who did not send a price are asked again
     assert.equal((await search()).body.data.round, 3);
     const third = (await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1 AND round = 3', [id])).map((r: any) => r.lawyer_id);
     assert.equal(third.includes(others[0].id), true, 'back to the nearest');
@@ -240,11 +261,13 @@ describe('الطلب وعروض الأسعار', () => {
     await removeLawyer(far.id);
   });
 
-  it('لو فيه عرض الجولة ما تتغيرش، وبعد 5 دقايق من غير اختيار الطلب يتلغي ويتبلغ الطرفين', async () => {
+  it('لو فيه عرض بعد النداءات، وبعد 5 دقايق من غير اختيار الطلب يتلغي ويتبلغ الطرفين', async () => {
     const id = await createRequest();
     await offer(id, 1000);
-    await endRound(id);
-    await sweepLifecycle();
+    for (let i = 0; i < 3 && (await follow(id)).secondsLeft > 0; i++) {
+      await endRound(id);
+      await sweepLifecycle();
+    }
     const open = await follow(id);
     assert.equal(open.status, 'OPEN');
     assert.equal(open.offers.length, 1);

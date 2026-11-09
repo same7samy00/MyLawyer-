@@ -1,5 +1,10 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Three One-Minute Calls for «محاميك حالاً»] - 2026-11-09
+- **Server only, the app is unchanged:** a request goes out in 3 calls of one minute each, every call to at most 10 new lawyers: up to 10 km, then 25, then 50 (`ROUND_RADII_KM` and `sendNextCall` in `modules/requests/service.ts`). At most 30 lawyers per request, and nobody is asked twice. The calls continue even when offers came, and a call with nobody new inside its distance is skipped at once.
+- Any lawyer the request reached can send a price while it is open, also in the 5 minutes to choose. `GET /requests/:id` gives `secondsLeft` until all calls end (`callsEnd`) and `chooseSecondsLeft` 5 minutes after that (`chooseEnd`). The lawyer card counts to the calls end, or to the choosing end when offers wait.
+- «بحث جديد» asks the nearest 10 not reached yet, and with nobody new, the nearest 10 who did not send a price.
+
 ## [Presence Board Removed, Backend on the New Server] - 2026-11-07
 - **Removed** the «أماكن التواجد» board by the owner's decision: `/tawagod/`, the `/presence` routes, its tests and preview, and its tables (migration `036`).
 - **Emails look like the app:** `emailLayout`, `emailText` and `emailCode` in `services/emailService.ts`: the app logo, IBM Plex Sans Arabic (Apple Mail and iPhone load it, Gmail falls back to an Arabic system font), right to left and centred, inline styles in tables, Egyptian wording, sender `noreply@my-lawyer.online`.

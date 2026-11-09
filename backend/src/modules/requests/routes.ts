@@ -4,7 +4,7 @@ import { sanitizeText } from '../../utils/security.js';
 import { publishChange } from '../../services/liveUpdates.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { HAS_OPEN_ORDER, lawyerHasOpenOrder, lawyerShare, LAWYER_RESPONSE_SECONDS, notify, PAYMENT_MINUTES } from '../lifecycle/service.js';
-import { CHOOSE_MINUTES, LAWYER_CAN_WORK, LIVE_OFFERS, priceRangeFor, ROUND_SECONDS, sendRound } from './service.js';
+import { callsEnd, chooseEnd, LAWYER_CAN_WORK, LIVE_OFFERS, priceRangeFor, ROUND_SECONDS, sendNextCall, sendRound } from './service.js';
 
 const ROAD_FACTOR = 1.4;
 const CITY_SPEED_KMH = 30;
@@ -67,8 +67,10 @@ export async function requestRoutes(fastify: FastifyInstance) {
           range.minPrice, range.maxPrice, range.commissionPercent, range.taxPercent, ROUND_SECONDS,
         ]
       );
-      const sent = await sendRound(client, res.rows[0], 1);
-      if (sent === 0) throw new HttpError(409, 'مفيش محامي متاح دلوقتي، جرب تاني كمان شوية');
+      // The first call goes to the nearest 10 inside 10 km. With nobody there it moves straight to 25, then 50 km
+      const round = await sendNextCall(client, res.rows[0], 1);
+      if (round === 0) throw new HttpError(409, 'مفيش محامي قريب منك دلوقتي، جرب تاني بعد شوية');
+      if (round > 1) await client.query('UPDATE service_requests SET round = $1 WHERE id = $2', [round, res.rows[0].id]);
       return res.rows[0];
     });
 
@@ -81,12 +83,14 @@ export async function requestRoutes(fastify: FastifyInstance) {
     if (role !== 'lawyer') throw new HttpError(403, 'الصفحة دي للمحامين');
 
     const res = await query(
-      `SELECT r.*, rr.distance_km, rr.round AS my_round, ro.price AS my_price, ro.withdrawn_at AS my_withdrawn_at
+      `SELECT r.*, rr.distance_km, ro.price AS my_price, ro.withdrawn_at AS my_withdrawn_at,
+         EXISTS (SELECT 1 ${LIVE_OFFERS} AND ro.request_id = r.id) AS has_offers
        FROM request_recipients rr
        JOIN service_requests r ON r.id = rr.request_id
        LEFT JOIN request_offers ro ON ro.request_id = r.id AND ro.lawyer_id = rr.lawyer_id
        WHERE rr.lawyer_id = $1
-         AND ((r.status = 'OPEN' AND ((rr.round = r.round AND r.round_deadline > NOW()) OR (ro.id IS NOT NULL AND ro.withdrawn_at IS NULL)))
+         -- Every lawyer the request reached can send a price while it is open
+         AND (r.status = 'OPEN'
               -- A chosen offer stays here until the client pays, then it lives in the orders history
               OR EXISTS (SELECT 1 FROM service_orders o WHERE o.id = r.order_id AND o.lawyer_id = rr.lawyer_id AND o.status = 'ACCEPTED'))
        ORDER BY r.created_at DESC`,
@@ -107,7 +111,8 @@ export async function requestRoutes(fastify: FastifyInstance) {
         maxPrice: Number(row.max_price),
         // What the lawyer keeps from every pound, so the phone shows the net while typing
         netRate: lawyerShare(1000, Number(row.commission_percent), Number(row.tax_percent)) / 1000,
-        secondsLeft: row.my_round === row.round ? secondsUntil(row.round_deadline) : 0,
+        // Prices are taken until the calls end, and while offers wait, until the client must choose
+        secondsLeft: row.status === 'OPEN' ? secondsUntil(row.has_offers ? chooseEnd(row) : callsEnd(row)) : 0,
         myPrice: row.my_price != null && !row.my_withdrawn_at ? Number(row.my_price) : null,
         state: row.status === 'OPEN' ? 'OPEN' : 'CHOSEN',
         orderId: row.order_id,
@@ -126,9 +131,9 @@ export async function requestRoutes(fastify: FastifyInstance) {
     await withTransaction(async (client) => {
       const locked = await client.query(`SELECT * FROM service_requests WHERE id = $1 FOR UPDATE`, [id]);
       const target = locked.rows[0];
-      const recipient = await client.query('SELECT round FROM request_recipients WHERE request_id = $1 AND lawyer_id = $2', [id, userId]);
+      const recipient = await client.query('SELECT 1 FROM request_recipients WHERE request_id = $1 AND lawyer_id = $2', [id, userId]);
       if (!target || recipient.rows.length === 0) throw new HttpError(404, 'الطلب غير موجود');
-      if (target.status !== 'OPEN' || recipient.rows[0].round !== target.round || new Date(target.round_deadline).getTime() <= Date.now()) {
+      if (target.status !== 'OPEN') {
         throw new HttpError(409, 'وقت إرسال العروض على الطلب ده خلص');
       }
 
@@ -203,8 +208,9 @@ export async function requestRoutes(fastify: FastifyInstance) {
         id: target.id,
         status: target.status,
         round: target.round,
-        secondsLeft: secondsUntil(target.round_deadline),
-        chooseSecondsLeft: secondsUntil(new Date(new Date(target.round_deadline).getTime() + CHOOSE_MINUTES * 60000)),
+        // The app keeps searching until all the calls end, then shows the offers or «بحث جديد»
+        secondsLeft: secondsUntil(callsEnd(target)),
+        chooseSecondsLeft: secondsUntil(chooseEnd(target)),
         minPrice: Number(target.min_price),
         maxPrice: Number(target.max_price),
         orderId: target.order_id,
@@ -238,8 +244,8 @@ export async function requestRoutes(fastify: FastifyInstance) {
     return reply.send({ success: true, message: 'تم إلغاء الطلب' });
   });
 
-  // «بحث جديد»: the next group right away. After the nearest 10 come the 10 after them, then the nearest 10 again.
-  // The offers already sent stay for the client to choose from.
+  // «بحث جديد»: the next call right away, to the nearest 10 not asked yet (up to 50 km after the third call).
+  // With nobody new left, the nearest 10 who did not send a price are asked again. The offers already sent stay.
   fastify.post('/:id/search', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = request.user as AuthenticatedUser;
     const { id } = request.params as { id: string };
@@ -252,9 +258,8 @@ export async function requestRoutes(fastify: FastifyInstance) {
       if (target.status !== 'OPEN') throw new HttpError(409, 'الطلب اتقفل، ابعت طلب جديد');
 
       // With fewer than 10 lawyers around, the next group is empty, so the search goes straight back to the nearest
-      let next = target.round + 1;
-      let sent = await sendRound(client, target, next);
-      if (sent === 0) sent = await sendRound(client, target, ++next);
+      const next = target.round + 1;
+      const sent = await sendRound(client, target, next, true);
       if (sent === 0) throw new HttpError(409, 'مفيش محامين تانيين متاحين قريب منك دلوقتي');
       await client.query(
         `UPDATE service_requests SET round = $1, round_deadline = NOW() + make_interval(secs => $2) WHERE id = $3`,
