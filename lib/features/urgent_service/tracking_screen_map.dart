@@ -54,7 +54,7 @@ extension _TrackingMapControls on _TrackingScreenState {
         : const LatLng(30.0444, 31.2357);
 
     _update(() {
-      _selectedLawyer = lawyer;
+      _selectedLawyer = lawyer.withDistance(const Distance().as(LengthUnit.Meter, userPos, lawyer.position));
     });
 
     await _drawRoute(userPos, lawyer.position);

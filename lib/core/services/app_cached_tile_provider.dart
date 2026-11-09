@@ -28,6 +28,7 @@ class AppCachedTileProvider extends TileProvider {
       baseDir = Directory.systemTemp;
     }
     // رقم المجلد يتغير مع شكل الخريطة، فالموبايل ما يعرضش الصور القديمة
+    // Folders of earlier maps are removed from the phone once
     for (final old in ['my_lawyer_map_tiles', 'my_lawyer_map_tiles_v2', 'my_lawyer_map_tiles_v3']) {
       final oldCacheDir = Directory('${baseDir.path}/$old');
       if (oldCacheDir.existsSync()) oldCacheDir.deleteSync(recursive: true);
@@ -154,15 +155,38 @@ class AppCachedMapImageProvider extends ImageProvider<AppCachedMapImageProvider>
     AppCachedMapImageProvider key,
     ImageDecoderCallback decode,
   ) {
-    return MultiFrameImageStreamCompleter(
-      codec: _loadAsync(key, decode),
-      scale: 1.0,
-      debugLabel: primaryUrl,
+    return OneFrameImageStreamCompleter(
+      _loadTinted(key, decode),
       informationCollector: () => [
         DiagnosticsProperty('Coordinates', coordinates),
         DiagnosticsProperty('Primary URL', primaryUrl),
       ],
     );
+  }
+
+  /// ألوان الخريطة أقرب لهوية التطبيق (رمادي مزرق هادي بدل البيج). اللون بيتطبق مرة واحدة لما المربع
+  /// يتحمل، مش في كل إطار، فمفيش أي تقل وقت تحريك الخريطة
+  static const List<double> _brandTint = [
+    0.35 + 0.6175 * 0.2126, 0.6175 * 0.7152, 0.6175 * 0.0722, 0, 0,
+    0.6305 * 0.2126, 0.35 + 0.6305 * 0.7152, 0.6305 * 0.0722, 0, 0,
+    0.6695 * 0.2126, 0.6695 * 0.7152, 0.35 + 0.6695 * 0.0722, 0, 0,
+    0, 0, 0, 1, 0,
+  ];
+  static final Paint _tintPaint = Paint()
+    ..colorFilter = const ColorFilter.matrix(_brandTint)
+    ..filterQuality = FilterQuality.none;
+
+  Future<ImageInfo> _loadTinted(AppCachedMapImageProvider key, ImageDecoderCallback decode) async {
+    final codec = await _loadAsync(key, decode);
+    final frame = await codec.getNextFrame();
+    final raw = frame.image;
+    final recorder = ui.PictureRecorder();
+    Canvas(recorder).drawImage(raw, Offset.zero, _tintPaint);
+    final picture = recorder.endRecording();
+    final tinted = await picture.toImage(raw.width, raw.height);
+    picture.dispose();
+    raw.dispose();
+    return ImageInfo(image: tinted, debugLabel: primaryUrl);
   }
 
   Future<ui.Codec> _loadAsync(

@@ -7,19 +7,15 @@
 flowchart LR
   Phone[التطبيق] -- HTTPS --> API
   Admin[متصفح الإدارة] -- HTTPS --> API
-  Phone -- صور الخريطة --> MAPS
+  Phone -- صور الخريطة /map/t --> API
   subgraph API[السيرفر الجديد: my-lawyer.online]
     N1[Nginx :443] --> B[mylawyer-backend: 5 workers]
     B --> PG[(PostgreSQL 16)]
     B --> PF[Postfix + OpenDKIM]
     R[GitHub runner]
   end
-  subgraph MAPS[السيرفر القديم: maps.my-lawyer.online]
-    N2[Nginx :443 + كاش الصور] --> T[tileserver :3000]
-    N2 --> O[OSRM :5000]
-  end
-  B -- وقت الطريق --> N2
-  N1 -- /map/v2 و /osrm للنسخ القديمة --> N2
+  N1 -- مربع مش محفوظ، مرة واحدة --> TT[TomTom]
+  B -- وقت الطريق واسم المكان --> TT
   B -- إشعارات --> FCM[Firebase]
   PF -- إيميل --> Mail[صناديق البريد]
 ```
@@ -39,16 +35,8 @@ flowchart LR
 | الشهادة | Let's Encrypt لـ `my-lawyer.online` و`www`، وبتتجدد لوحدها (`certbot.timer`) بالتحقق من `/var/www/letsencrypt` |
 | الإيميل | من `noreply@my-lawyer.online`، موقّع DKIM بالمفتاح `mail`، وسجلات SPF وDMARC وMX في Hostinger، والـ PTR في Contabo |
 
-## 3. السيرفر القديم `mylawyer-vps` (الخرايط)
-| البند | القيمة |
-|---|---|
-| الموارد | 4 معالجات، و7.8 جيجا رام، و72 جيجا |
-| الخدمات اللي ليها لازمة | Nginx، وDocker فيه `mylawyer-tileserver` (رسم الخريطة) و`mylawyer-osrm` (الطرق) |
-| العنوان | `maps.my-lawyer.online`: `/map/v2/{z}/{x}/{y}.webp` و`/osrm/`، وأي حاجة تانية 404 (`/etc/nginx/sites-available/maps`) |
-| الكاش | `/var/cache/nginx/map_render` بحد 20 جيجا. خريطة مصر كلها اترسمت مرة (زوم 8 لـ 15، حوالي 1.6 مليون مربع) بـ `backend/map-services/seed-map-cache.py all` |
-| حدود الطلبات | 100 صورة/ثانية و10 طرق/ثانية لكل عنوان، والسيرفر الجديد مستثنى (`mylawyer-map.conf` و`mylawyer-routes.conf`) |
-| مستخدم الحاوية | `mylawyer-maps` (رقم 999) |
-| **اتنضف 2026-11-07** | اتشال: الباك إند، وPostgreSQL وبياناته (آخر نسخة على الجديد)، وOpenDKIM، والنسخة اليومية القديمة، وrunner الرفع القديم، وشهادة `my-lawyer.online`، وموقع Nginx القديم. Postfix فاضل للتنبيهات بس (محلي، IPv4، من `maps.my-lawyer.online`). نسخة إعدادات Nginx القديمة `/root/config-backup-20261107-074306` |
+## 3. السيرفر القديم `mylawyer-vps`
+سيرفر الخرايط القديم (`maps.my-lawyer.online`) لسه شغال بس عشان نسخ التطبيق القديمة، وهيتقفل بعد ما الكل يحدّث. التطبيق الحالي ما بيستخدموش. بيخدم `/map/v2` و`/osrm/` على `maps.my-lawyer.online` بس. الخريطة الحالية في `docs/GPS_SYSTEM.md`.
 
 ## 4. الدومين
 DNS في Hostinger. `@` و`www` للجديد، و`maps` للقديم. التفاصيل والقيم في `docs/ACCESS.md`.

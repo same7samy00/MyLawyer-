@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { PROBLEM, app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createOrder, closeOrders, createArrivedOrder, createCompletedOrder, createUser, wallet, clientBalance } from './harness.js';
+import { LAWYER_CAN_WORK } from '../src/modules/requests/service.js';
+const canWork = async (id: string) => (await sql(`SELECT 1 FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id WHERE lp.user_id = $1 AND ${LAWYER_CAN_WORK('lp', 'u')}`, [id])).length > 0;
 
 describe('السعر', () => {
   it('الخادم يحدد السعر ويتجاهل ما يرسله التطبيق', async () => {
@@ -89,7 +91,7 @@ describe('السعر قبل الطلب والنسبة', () => {
 
   it('المحامي يظهر بعد موافقة الإدارة فقط، ويوصله إشعار', async () => {
     await sql(`UPDATE lawyer_profiles SET urgent_status = 'NONE' WHERE user_id = $1`, [lawyerId]);
-    const visible = async () => (await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25', null)).body.data.some((l: any) => l.id === lawyerId);
+    const visible = () => canWork(lawyerId);
 
     assert.equal((await call('POST', '/lawyers/me/availability', lawyerToken, { isAvailable: true })).status, 403);
 

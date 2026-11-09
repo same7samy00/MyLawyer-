@@ -39,7 +39,7 @@ void main() {
 
   test('الوقت يظهر كمدى', () {
 
-    const estimate = RouteEstimate(distanceMeters: 9000, durationSeconds: 900, trafficFactor: 1.8);
+    const estimate = RouteEstimate(distanceMeters: 9000, durationSeconds: 1620);
     expect(estimate.arrivalRangeText, 'حوالي 20 إلى 35 دقيقة');
     expect(const RouteEstimate(distanceMeters: 300, durationSeconds: 120).arrivalRangeText, 'أقل من 5 دقايق');
   });

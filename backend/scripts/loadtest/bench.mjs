@@ -126,8 +126,6 @@ const ramp = async (name, opts, levels = RAMP) => {
 
 const scenarios = {
   health: () => ramp('health', { url: `${API}/health` }),
-  nearby50: () => ramp('nearby limit=50 (new apps)', { url: `${API}/lawyers/nearby?lat=${cairo.lat}&lon=${cairo.lon}&limit=50` }),
-  nearby1000: () => cannon('nearby limit=1000 (old apps)', { url: `${API}/lawyers/nearby?lat=${cairo.lat}&lon=${cairo.lon}`, connections: 50 }),
   orders: () => ramp('orders list (signed in)', { url: `${API}/orders`, requests: [{ setupRequest: rotate(clients) }] }),
   me: () => ramp('users/me (signed in)', { url: `${API}/users/me`, requests: [{ setupRequest: rotate(clients) }] }),
   notifications: () => cannon('notifications (signed in)', { url: `${API}/notifications`, connections: 300, requests: [{ setupRequest: rotate(clients) }] }),
@@ -182,7 +180,6 @@ const scenarios = {
       'GET /lawyers/map (36 small squares)': { url: `${API}/lawyers/map?size=s&cells=${cells.join(',')}` },
       'GET /lawyers/map (big squares)': { url: `${API}/lawyers/map?size=l&cells=62_59,62_60,63_59,63_60` },
       'GET /lawyers/top': { url: `${API}/lawyers/top?governorate=${encodeURIComponent('القاهرة')}` },
-      'GET /lawyers/nearby (old apps)': { url: `${API}/lawyers/nearby?lat=${cairo.lat}&lon=${cairo.lon}&limit=50` },
       'GET /lawyers/me': L('/lawyers/me'), 'GET /requests/incoming': L('/requests/incoming'),
       'GET /admin/overview': A('/admin/overview'), 'GET /admin/users': A('/admin/users'), 'GET /admin/orders': A('/admin/orders'),
       'GET /admin/money': A('/admin/money'), 'GET /admin/support': A('/admin/support'), 'GET /admin/consultations': A('/admin/consultations'),
@@ -209,24 +206,18 @@ const scenarios = {
       }));
     }
   },
-  // The maps server over the internet (Nginx, https, cache), the way phones reach it
-  maps: () => ramp('maps tiles over https (cached)', {
-    url: 'https://maps.my-lawyer.online',
+  // The shared TomTom map cache on our server, the way phones reach it. Squares not yet cached are fetched
+  // from TomTom once, so a first run around Cairo also fills the cache
+  maps: () => ramp('map squares over https (shared cache)', {
+    url: 'https://my-lawyer.online',
     requests: [{ setupRequest: (req) => {
       const zz = [12, 13, 14, 15][Math.floor(Math.random() * 4)]; const n = 2 ** zz;
       const lat = cairo.lat + (Math.random() - 0.5) * 0.4; const lon = cairo.lon + (Math.random() - 0.5) * 0.4;
       const x = Math.floor(((lon + 180) / 360) * n); const r = (lat * Math.PI) / 180;
       const y = Math.floor(((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n);
-      return { ...req, path: `/map/v2/${zz}/${x}/${y}.webp` };
+      return { ...req, path: `/map/t/${zz}/${x}/${y}.png` };
     } }],
   }, [10, 50, 100, 250, 500]),
-  routes: () => ramp('road time over https (OSRM)', {
-    url: 'https://maps.my-lawyer.online',
-    requests: [{ setupRequest: (req) => {
-      const p = () => `${(cairo.lon + (Math.random() - 0.5) * 0.4).toFixed(5)},${(cairo.lat + (Math.random() - 0.5) * 0.4).toFixed(5)}`;
-      return { ...req, path: `/osrm/route/v1/driving/${p()};${p()}?overview=false` };
-    } }],
-  }, [10, 50, 100, 250]),
   // A real crowd at the same time, by share of calls (assumed, there is no real usage data yet):
   // opening the app 20%, orders 20%, unread count 15%, map squares 15%, notifications 10%,
   // lawyer incoming requests 10%, governorate list 5%, wallet 5%

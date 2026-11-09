@@ -8,7 +8,7 @@
 | الخادم | `backend/src/` | Fastify وTypeScript وPostgreSQL |
 | لوحة التحكم | `backend/public/admin/` | HTML وJavaScript، على `/api/v1/admin-panel` |
 | الموقع العام | `backend/public/site/` | HTML، وNginx بيعرضه |
-| الخرائط | `backend/map-services/` | TileServer GL وOSRM |
+| الخرائط | `docs/GPS_SYSTEM.md` | TomTom عن طريق سيرفرنا |
 
 ## التوثيق
 | الملف | المحتوى |

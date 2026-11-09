@@ -51,10 +51,10 @@
 
 ## 3. الخادم
 - **الموقع:** `https://my-lawyer.online` بشهادة تتجدد تلقائياً، والدومين من Hostinger.
-- **السيرفرين (2026-11-07):** الجديد للباك إند واللوحة والموقع والإيميل والرفع (`my-lawyer.online`)، والقديم للخرايط والطرق بس (`maps.my-lawyer.online`). التفاصيل في `docs/SERVER_ARCHITECTURE.md`، والدخول بالمفاتيح اللي في `.access/` (`docs/ACCESS.md`).
+- **السيرفرين (2026-11-07):** الجديد للباك إند واللوحة والموقع والإيميل والرفع (`my-lawyer.online`)، والخريطة من TomTom عن طريق خزنة على الجديد. سيرفر الخرايط القديم (`maps.my-lawyer.online`) لسه شغال بس عشان نسخ التطبيق القديمة، وهيتقفل بعد ما الكل يحدّث. التطبيق الحالي ما بيستخدموش. التفاصيل في `docs/SERVER_ARCHITECTURE.md`، والدخول بالمفاتيح اللي في `.access/` (`docs/ACCESS.md`).
 - **توكن GitHub:** محفوظ في Windows Credential Manager على جهاز صاحب المشروع باسم `x-access-token`، والريبو مضبوط عليه (`credential.https://github.com.username`). يعني `git push` بيشتغل لوحده من غير ما حد يكتب التوكن، وممنوع يتكتب في أي ملف (2026-11-06).
 - **الرفع:** أي push على `main` يغيّر `backend` يرفع الخادم تلقائياً عبر GitHub Actions، **ومحتاج موافقة صاحب المشروع قبله**، والتفاصيل في `docs/DEVELOPMENT_GUIDE.md`، والنسخ الاحتياطية في `/root/mylawyer-backups`.
-- **الخدمات:** `mylawyer-backend` عبر systemd على الجديد، و`mylawyer-osrm` و`mylawyer-tileserver` عبر Docker على القديم.
+- **الخدمات:** `mylawyer-backend` عبر systemd على الجديد.
 - **الموقع العام:** `https://my-lawyer.online` (وصف التطبيق والعنوان والسياسات المؤقتة لبوابة الدفع)، ملفاته في `backend/public/site` وبيترفع مع السيرفر.
 - **لوحة التحكم:** `https://my-lawyer.online/api/v1/admin-panel`، وشرحها في `docs/ARCHITECTURE.md` (4.1)، وبيانات الإدارة في `admin-credentials.txt` على الجهاز.
 - **Nginx:** الإعداد في `/etc/nginx/sites-available/mylawyer`، وتغيير مفتاح `limit_req_zone` يتطلب اسم منطقة جديداً.
@@ -85,7 +85,7 @@
 - نسبة المنصة 30% لكل الخدمات، والضريبة 0% لحين تحديدها من لوحة التحكم.
 - الجديد فيه: `mylawyer-backend` وPostgreSQL وNginx وPostfix/OpenDKIM والـ runner. والقديم فيه الخرايط (وبقايا الباك إند لحد ما تتشال بموافقة).
 - جذر الدومين صفحة بسيطة في `/var/www/mylawyer/site`، والسجلات في `/var/log/nginx`.
-- صور الخريطة على `/map/v2`، وشكلها محفوظ في `backend/map-services/styles/mylawyer.json`.
+- الخريطة والكروت والمواقع: `docs/GPS_SYSTEM.md`.
 - النسخ الاحتياطية: `deploy.sh` بيعمل نسخة مع كل رفع على الجديد، ومفيش نسخة يومية ولا بره السيرفر لسه (`docs/BACKUP_AND_RECOVERY.md`).
 
 **لم يُجرب فعلياً بعد:** طلب كامل بين جهازين بالقواعد الجديدة، والدعم الفني بالصور والتسوية من موبايل حقيقي، والإشعار والتطبيق مقفول، والتحديث في الخلفية على أجهزة مختلفة، وتسجيل محامٍ جديد بالصورة والكارنيه، والآيفون بالكامل.

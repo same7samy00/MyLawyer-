@@ -1,5 +1,12 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Lawyer Cards on the Map, App Colours, Realistic Demo Lawyers, Old Map Removed] - 2026-11-09
+- **Map marks:** small pins for every lawyer when zoomed out, and from zoom 14 compact cards shaped like a pin (photo, name, rating; card and pointer one piece) for the top rated in each small area, the rest stay pins. Areas are fixed at whole zoom steps, so nothing flickers. Photos are small server copies (`/thumb/...`) loaded only for shown cards.
+- **Map colours** close to the app's (cool grey-blue), applied once per square when it loads, never per frame.
+- **Public lawyer spot:** the real place moved 150 to 450 m in a fixed direction per lawyer (`publicPoint`), instead of snapping to a 1 km grid where lawyers stacked.
+- **Demo lawyers:** `build-demo-lawyers.mjs` writes 1000 lawyers inside real cities and towns across Egypt, with governorates and believable ratings.
+- **Removed:** `GET /lawyers/nearby` and its tests, `backend/map-services`, the OSRM and old-map load tests, the hand-made traffic factor, and every old map description in the docs. `docs/GPS_SYSTEM.md` is the one map reference.
+
 ## [Shared Map Cache, Lawyer Dots With Name and Rating, Exact Place Names] - 2026-11-09
 - **One map cache for everyone:** Nginx on the app server fetches each TomTom map picture once and keeps it 30 days (`location ^~ /map/t/`, `/etc/nginx/conf.d/mylawyer-map-cache.conf`), so the cost follows Egypt's squares, not the number of users, and the key never leaves the server. The app reads `https://my-lawyer.online/map/t/{z}/{x}/{y}.png` and draws the 512 pictures in 256 squares, so map text is small and sharp.
 - **Smoother map:** one kept connection for all squares, squares around the screen loaded ahead and kept, the land colour behind loading squares, squares around the person loaded early (`AppCachedTileProvider.warmAround`), no turning the map, and the map opens a little further out (`appMapStartZoom`).

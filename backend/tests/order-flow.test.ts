@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { PROBLEM, app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createUser, createOrder, closeOrders, createPaidOrder, createArrivedOrder, openTicket, wallet, clientBalance } from './harness.js';
+import { LAWYER_CAN_WORK } from '../src/modules/requests/service.js';
+const canWork = async (id: string) => (await sql(`SELECT 1 FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id WHERE lp.user_id = $1 AND ${LAWYER_CAN_WORK('lp', 'u')}`, [id])).length > 0;
 
 describe('مهلة رد المحامي', () => {
   it('الخادم يرسل الثواني الباقية للطرفين', async () => {
@@ -235,8 +237,8 @@ describe('تأجيل المهمة', () => {
     await sweepLifecycle();
     assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'ACTIVE');
 
-    const nearby = await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25', null);
-    assert.equal(nearby.body.data.some((l: any) => l.id === lawyerId), true);
+    // A postponed task leaves the lawyer free for new requests
+    assert.equal(await canWork(lawyerId), true);
 
     assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, {})).status, 200);
     assert.equal((await wallet()).heldBalance, 350);
@@ -283,8 +285,7 @@ describe('المهل والمخالفات', () => {
     });
     assert.equal(busy.status, 409);
 
-    const nearby = await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25', null);
-    assert.equal(nearby.body.data.some((l: any) => l.id === lawyerId), false);
+    assert.equal(await canWork(lawyerId), false);
   });
 
   it('اعتذار المحامي بعد الدفع يرجع المبلغ، و3 اعتذارات توقفه أسبوع', async () => {
@@ -374,13 +375,6 @@ describe('خصوصية الموقع قبل الدفع', () => {
     assert.equal((await orderOf(clientToken, order.id)).lawyerLatitude, 30.04321);
   });
 
-  it('موقع المحامي على الخريطة تقريبي للموكل', async () => {
-    await sql(`UPDATE lawyer_profiles SET latitude = 30.05678, longitude = 31.25678 WHERE user_id = $1`, [lawyerId]);
-    const res = await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25', null);
-    const lawyer = res.body.data.find((l: any) => l.id === lawyerId);
-    assert.notEqual(lawyer.coordinates[0], 30.05678);
-    await sql(`UPDATE lawyer_profiles SET latitude = 30.05, longitude = 31.25 WHERE user_id = $1`, [lawyerId]);
-  });
 });
 
 describe('ترقيم ML الموحد', () => {

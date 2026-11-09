@@ -13,8 +13,7 @@
 |---|---|---|
 | الخادم والقاعدة | `https://my-lawyer.online/api/v1/health` | `{"status":"UP","database":"CONNECTED","release":"<commit>"}` |
 | اللوحة | `https://my-lawyer.online/api/v1/admin-panel` | 200 |
-| الخرايط | `https://maps.my-lawyer.online/map/v2/12/2449/1701.webp` | 200، و`X-Cache-Status: HIT` |
-| الطرق | `https://maps.my-lawyer.online/osrm/route/v1/driving/31.23,30.04;31.25,30.0?overview=false` | `"code":"Ok"` |
+| الخرايط | `https://my-lawyer.online/map/t/12/2405/1712.png` | 200، و`X-Map-Cache: HIT` |
 
 ## 2. السجلات
 | السجل | فين | الأمر |

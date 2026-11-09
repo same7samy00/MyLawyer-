@@ -5,7 +5,7 @@ import '../constants/map_config.dart';
 import '../services/app_cached_tile_provider.dart';
 
 /// لون أرض الخريطة نفسه، فالمربع اللي لسه بيتحمل ما يبانش كمربع رمادي
-const Color appMapBackground = Color(0xFFF6F1E0);
+const Color appMapBackground = Color(0xFFECEDF0);
 
 /// حدود الزوم تخفف عدد المربعات المطلوبة من الخادم
 const double appMapMaxZoom = 15.0;

@@ -251,13 +251,11 @@ describe('الطلب وعروض الأسعار', () => {
     for (const lawyer of others) await removeLawyer(lawyer.id);
   });
 
-  it('المحامي اللي على بعد أكتر من 50 كم ما يوصلوش الطلب، والخريطة ما تعرضوش', async () => {
+  it('المحامي اللي على بعد أكتر من 50 كم ما يوصلوش الطلب', async () => {
     const far = await otherLawyer(30.05 + 0.6);
     const id = await createRequest();
     const sent = (await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [id])).map((r: any) => r.lawyer_id);
     assert.equal(sent.includes(far.id), false);
-    const map = (await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25', clientToken)).body.data as any[];
-    assert.equal(map.some((lawyer) => lawyer.id === far.id), false);
     await removeLawyer(far.id);
   });
 

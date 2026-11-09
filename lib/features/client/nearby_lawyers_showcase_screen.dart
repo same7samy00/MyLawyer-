@@ -250,8 +250,10 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
   void _onLawyerMarkerTapped(MapLawyer lawyer) {
     if (_selectedLawyer?.id == lawyer.id) return;
 
+    // المسافة من مكان الموكل، لأن المحامين على الخريطة جايين من غير مسافة
+    final here = _here;
     setState(() {
-      _selectedLawyer = lawyer;
+      _selectedLawyer = here == null ? lawyer : lawyer.withDistance(const Distance().as(LengthUnit.Meter, here, lawyer.position));
     });
 
     // حساب إزاحة مركز الكاميرا لتوسيط المحامي تماماً في المساحة المرئية فوق البوتن شيت (390px)

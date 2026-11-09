@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { call, createUser, lawyerId, sql } from './harness.js';
-import { forgetShowcase, governorateOf } from '../src/modules/lawyers/showcase.js';
+import { forgetShowcase, governorateOf, publicPoint } from '../src/modules/lawyers/showcase.js';
 
 const extra: string[] = [];
 
@@ -46,9 +46,12 @@ describe('خريطة المحامين للعرض', () => {
     assert.ok(ids.includes(lawyerId) && ids.includes(off));
     assert.ok(!extra.slice(1).some((id) => ids.includes(id)));
 
-    // المكان تقريبي وثابت، ومفيش بيانات إتاحة
+    // المكان تقريبي (150 لـ 450 متر من الحقيقي) وثابت لنفس المحامي، ومفيش بيانات إتاحة
     const card = res.body.data.cells[cell].find((lawyer: any) => lawyer.id === off);
-    assert.deepEqual(card.coordinates, [30.05, 31.25]);
+    const real = (await sql('SELECT latitude, longitude FROM lawyer_profiles WHERE user_id = $1', [off]))[0];
+    const km = Math.hypot((card.coordinates[0] - Number(real.latitude)) * 111.32, (card.coordinates[1] - Number(real.longitude)) * 111.32 * Math.cos((Number(real.latitude) * Math.PI) / 180));
+    assert.ok(km > 0.14 && km < 0.46, String(km));
+    assert.deepEqual(card.coordinates, publicPoint(off, Number(real.latitude), Number(real.longitude)));
     assert.equal(card.isOnline, undefined);
   });
 

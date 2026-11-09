@@ -1,5 +1,5 @@
 import { query } from '../../database/index.js';
-import { approximateCoordinate } from '../lifecycle/service.js';
+import crypto from 'crypto';
 import { GOVERNORATES, GOVERNORATE_POINTS } from './governorates.js';
 
 /// The lawyers map is for looking only: every approved lawyer, available or not, in squares that are the same
@@ -22,7 +22,17 @@ const SHOWN = `
 
 const COLUMNS = `u.id, lp.full_name, lp.profile_photo_path, lp.rating, lp.reviews_count, lp.experience_years, lp.latitude, lp.longitude`;
 
-/// The same lawyer always lands on the same rounded point, so the card never jumps between visits
+/// The public spot: the real place moved 150 to 450 m in a direction fixed for each lawyer. Never the exact
+/// place (that shows after payment), always the same spot, and lawyers of one street don't stack on a grid point
+export function publicPoint(id: string, lat: number, lon: number): [number, number] {
+  const hash = crypto.createHash('sha256').update(`map:${id}`).digest();
+  const angle = (hash.readUInt16BE(0) / 65536) * 2 * Math.PI;
+  const meters = 150 + (hash.readUInt16BE(2) / 65536) * 300;
+  const dLat = (meters * Math.cos(angle)) / 111_320;
+  const dLon = (meters * Math.sin(angle)) / (111_320 * Math.cos((lat * Math.PI) / 180));
+  return [Number((lat + dLat).toFixed(5)), Number((lon + dLon).toFixed(5))];
+}
+
 const toCard = (row: any) => ({
   id: row.id,
   name: row.full_name,
@@ -30,7 +40,7 @@ const toCard = (row: any) => ({
   reviewsCount: Number(row.reviews_count) || 0,
   experienceYears: Number(row.experience_years) || 0,
   avatar: row.profile_photo_path || null,
-  coordinates: [approximateCoordinate(Number(row.latitude)), approximateCoordinate(Number(row.longitude))],
+  coordinates: publicPoint(row.id, Number(row.latitude), Number(row.longitude)),
 });
 
 /// The governorate of the nearest city or big town, the same rule the phone uses

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { PROBLEM, app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createUser, createOrder } from './harness.js';
+import { LAWYER_CAN_WORK } from '../src/modules/requests/service.js';
+const canWork = async (id: string) => (await sql(`SELECT 1 FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id WHERE lp.user_id = $1 AND ${LAWYER_CAN_WORK('lp', 'u')}`, [id])).length > 0;
 
 describe('أجهزة الإشعارات', () => {
   it('الجهاز يتسجل لصاحبه ويتشال عند الخروج', async () => {
@@ -23,9 +25,9 @@ describe('أجهزة الإشعارات', () => {
   });
 });
 
-describe('ظهور المحامي على الخريطة', () => {
-  it('المحامي المتاح يفضل ظاهر لو مكانه حديث، و«غير متاح» يخفيه', async () => {
-    const visible = async () => (await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25', null)).body.data.some((l: any) => l.id === lawyerId);
+describe('استقبال المحامي للطلبات', () => {
+  it('المحامي المتاح يفضل بيستقبل طلبات لو مكانه حديث، و«غير متاح» يوقفه', async () => {
+    const visible = () => canWork(lawyerId);
 
     await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '5 minutes' WHERE user_id = $1`, [lawyerId]);
     await sweepLifecycle();
@@ -60,28 +62,6 @@ describe('ظهور المحامي على الخريطة', () => {
     assert.equal(update.body.data.isAvailable, false);
   });
 
-  it('المحامي بدون موقع حقيقي لا يظهر على الخريطة', async () => {
-    await sql(`UPDATE lawyer_profiles SET latitude = NULL, longitude = NULL WHERE user_id = $1`, [lawyerId]);
-    const res = await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25&radius_km=1500', null);
-    await sql(`UPDATE lawyer_profiles SET latitude = 30.05, longitude = 31.25 WHERE user_id = $1`, [lawyerId]);
-    assert.equal(res.body.data.some((l: any) => l.id === lawyerId), false);
-  });
-
-  it('الخريطة بتجيب محامي المنطقة الظاهرة بس، وبحد للعدد', async () => {
-    const inArea = await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25&north=30.2&south=29.9&east=31.4&west=31.1&limit=5', null);
-    assert.equal(inArea.body.data.some((l: any) => l.id === lawyerId), true);
-    assert.ok(inArea.body.data.length <= 5);
-    const away = await call('GET', '/lawyers/nearby?lat=30.05&lon=31.25&north=25&south=24&east=33&west=32', null);
-    assert.equal(away.body.data.some((l: any) => l.id === lawyerId), false);
-    const bad = await call('GET', "/lawyers/nearby?lat=30.05&lon=31.25&limit=1;DROP&sort=x", null);
-    assert.equal(bad.status, 200);
-  });
-
-  it('الخريطة بتعرض المحامين جوه 50 كم بس، حتى لو التطبيق طلب أبعد (قرار 2026-11-06)', async () => {
-    const res = await call('GET', '/lawyers/nearby?lat=23.9&lon=32.9&radius_km=1500', null);
-    assert.equal(res.body.data.some((l: any) => l.id === lawyerId), false);
-  });
-
   it('القبول يحدث مكان المحامي في الطلب', async () => {
     const order = await createOrder();
     const accepted = await call('POST', `/orders/${order.id}/accept`, lawyerToken, { latitude: 30.79, longitude: 31.0 });
@@ -92,36 +72,9 @@ describe('ظهور المحامي على الخريطة', () => {
     await sql(`UPDATE lawyer_profiles SET latitude = 30.05, longitude = 31.25 WHERE user_id = $1`, [lawyerId]);
   });
 
-  it('المحامي على بعد حوالي 77 كم ما يظهرش، وعلى بعد 40 كم يظهر', async () => {
-    const far = await call('GET', '/lawyers/nearby?lat=30.05&lon=30.45&radius_km=100', null);
-    assert.equal(far.body.data.some((l: any) => l.id === lawyerId), false);
-    const near = await call('GET', '/lawyers/nearby?lat=30.05&lon=30.836', null);
-    assert.equal(near.body.data.some((l: any) => l.id === lawyerId), true);
-  });
 });
 
 describe('الترتيب والإشعارات والصلاحيات', () => {
-  it('كل المحامين بالترتيب من الأقرب للأبعد', async () => {
-    const near = await createUser('01000000011', 'lawyer');
-    const nearTop = await createUser('01000000012', 'lawyer');
-    const far = await createUser('01000000013', 'lawyer');
-    const rows: [string, number, number, number][] = [
-      [near, 28.0, 33.001, 3.0],
-      [nearTop, 28.0, 33.002, 4.9],
-      [far, 28.0, 33.1, 5.0],
-    ];
-    for (const [id, lat, lon, rating] of rows) {
-      await sql(
-        `INSERT INTO lawyer_profiles (user_id, full_name, syndicate_number, approval_status, is_available, latitude, longitude, rating, last_active_at, urgent_status)
-         VALUES ($1, 'ترتيب', $2, 'approved'::lawyer_approval_status, TRUE, $3, $4, $5, NOW(), 'APPROVED')`,
-        [id, id.slice(0, 8), lat, lon, rating]
-      );
-    }
-
-    const res = await call('GET', '/lawyers/nearby?lat=28.0&lon=33.0&radius_km=50', null);
-    assert.deepEqual(res.body.data.map((l: any) => l.id), [near, nearTop, far]);
-  });
-
   it('عداد الطلبات للمحامي وقراءة الإشعارات', async () => {
     await createOrder();
 

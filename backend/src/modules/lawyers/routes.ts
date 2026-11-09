@@ -7,14 +7,8 @@ import { config } from '../../config/index.js';
 import { sanitizeText, shortName } from '../../utils/security.js';
 import { detectFileType } from '../../utils/files.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
-import { approximateCoordinate } from '../lifecycle/service.js';
-import { LAWYER_CAN_WORK, SEARCH_RADIUS_KM } from '../requests/service.js';
 import { CELL_DEGREES, CellSize, cellsJson, lightCellsJson, MAX_CELLS, SHOWCASE_SECONDS, topInGovernorate } from './showcase.js';
 import { GOVERNORATES } from './governorates.js';
-
-// The map shows the lawyers the client could ask: within the service's 50 km
-const MAX_MAP_RADIUS_KM = SEARCH_RADIUS_KM;
-const MAX_NEARBY_RESULTS = 1000;
 
 export async function lawyerRoutes(fastify: FastifyInstance) {
   // Helper authentication hook for protected lawyer routes
@@ -62,119 +56,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
     return reply.send({ success: true, data });
   });
 
-  // 1. GET /api/v1/lawyers/nearby (Open to clients & visitors for real nearby search)
-  fastify.get('/nearby', async (request: FastifyRequest, reply: FastifyReply) => {
-    const queryParams = request.query as {
-      lat?: string;
-      lon?: string;
-      radius_km?: string;
-      north?: string;
-      south?: string;
-      east?: string;
-      west?: string;
-      limit?: string;
-      sort?: string;
-    };
-
-    const userLat = parseFloat(queryParams.lat || '');
-    const userLon = parseFloat(queryParams.lon || '');
-    const radiusKm = Math.min(Math.max(parseFloat(queryParams.radius_km || String(MAX_MAP_RADIUS_KM)) || MAX_MAP_RADIUS_KM, 1), MAX_MAP_RADIUS_KM);
-
-    // New apps ask for the visible map area and a small list, older apps get the previous answer
-    const area = ['north', 'south', 'east', 'west'].map((key) => parseFloat(queryParams[key as 'north'] || ''));
-    const hasArea = area.every((value) => Number.isFinite(value));
-    const limit = Math.min(Math.max(parseInt(queryParams.limit || '', 10) || MAX_NEARBY_RESULTS, 1), MAX_NEARBY_RESULTS);
-    const order = queryParams.sort === 'rating' ? 'lp.rating DESC, distance_km ASC' : 'distance_km ASC, lp.rating DESC';
-
-    // If client coordinates are missing or invalid
-    if (isNaN(userLat) || isNaN(userLon)) {
-      return reply.status(400).send({
-        success: false,
-        error: 'يجب توفير إحداثيات صالحة للبحث (lat و lon)',
-      });
-    }
-
-    // Egypt geographic boundary sanity check (22.0 to 31.8 N, 24.5 to 37.0 E)
-    if (userLat < 21.0 || userLat > 32.5 || userLon < 24.0 || userLon > 37.5) {
-      return reply.send({
-        success: true,
-        data: [],
-        message: 'الإحداثيات خارج نطاق تغطية جمهورية مصر العربية',
-      });
-    }
-
-    // Query ONLY approved, active, online lawyers with valid Egyptian coordinates
-    // Haversine formula calculation directly in PostgreSQL with explicit float8 casts
-    // Every available lawyer in Egypt, the nearest first
-    const sql = `
-      SELECT * FROM (
-      SELECT
-        u.id as user_id,
-        lp.id as profile_id,
-        lp.full_name,
-        lp.profile_photo_path,
-        lp.rating,
-        lp.reviews_count,
-        lp.experience_years,
-        lp.latitude,
-        lp.longitude,
-        lp.is_available,
-        (
-          6371.0 * acos(
-            least(1.0::float8, greatest(-1.0::float8,
-              cos(radians($1::float8)) * cos(radians(lp.latitude::float8)) *
-              cos(radians(lp.longitude::float8) - radians($2::float8)) +
-              sin(radians($1::float8)) * sin(radians(lp.latitude::float8))
-            ))
-          )
-        ) AS distance_km
-      FROM lawyer_profiles lp
-      JOIN users u ON lp.user_id = u.id
-      WHERE ${LAWYER_CAN_WORK('lp', 'u')}
-        AND lp.latitude IS NOT NULL
-        AND lp.longitude IS NOT NULL
-        AND lp.latitude BETWEEN 22.0 AND 31.8
-        AND lp.longitude BETWEEN 24.5 AND 37.0
-        ${hasArea ? 'AND lp.latitude BETWEEN $5::float8 AND $4::float8 AND lp.longitude BETWEEN $7::float8 AND $6::float8' : ''}
-      ) lp
-      WHERE distance_km <= $3::float8
-      ORDER BY ${order}
-      LIMIT ${limit};
-    `;
-
-    try {
-      const res = await query(sql, hasArea ? [userLat, userLon, radiusKm, ...area] : [userLat, userLon, radiusKm]);
-
-      const nearbyLawyers = res.rows
-        .map((lawyer) => ({
-          id: lawyer.user_id,
-          profileId: lawyer.profile_id,
-          userId: lawyer.user_id,
-          name: lawyer.full_name,
-          rating: Number(lawyer.rating) || 0,
-          reviewsCount: Number(lawyer.reviews_count) || 0,
-          experienceYears: Number(lawyer.experience_years) || 0,
-          isOnline: lawyer.is_available === true,
-          avatar: lawyer.profile_photo_path || null,
-          // The exact place is shared with the client only after payment
-          coordinates: [approximateCoordinate(Number(lawyer.latitude)), approximateCoordinate(Number(lawyer.longitude))],
-          distanceKm: Number(Number(lawyer.distance_km).toFixed(1)),
-        }));
-
-      return reply.send({
-        success: true,
-        data: nearbyLawyers,
-      });
-    } catch (err: any) {
-      fastify.log.error(err, 'Error fetching nearby lawyers');
-      return reply.status(500).send({
-        success: false,
-        error: 'حدث خطأ أثناء البحث عن المحامين المتاحين',
-      });
-    }
-  });
-
-  // GET /api/v1/lawyers/:id/reviews - Published reviews, open like the nearby search
+  // GET /api/v1/lawyers/:id/reviews - Published reviews, open to everyone
   fastify.get('/:id/reviews', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     if (!UUID_PATTERN.test(id)) {

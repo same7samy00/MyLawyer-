@@ -9,7 +9,7 @@
 | قاعدة البيانات | PostgreSQL، ومن الخادم `pg` | 16 |
 | اختبارات الخادم | `node --test` وPGlite | |
 | لوحة التحكم والموقع | HTML وCSS وJS من غير مكتبات | |
-| الخرايط | tileserver-gl وخريطة PMTiles لمصر، وOSRM للطرق، و`flutter_map` في التطبيق | |
+| الخرايط | TomTom (الخريطة والطريق بالزحمة واسم المكان) عن طريق سيرفرنا، و`flutter_map` في التطبيق | `docs/GPS_SYSTEM.md` |
 | الإشعارات | Firebase Cloud Messaging | |
 | الإيميل | Postfix وOpenDKIM على السيرفر، و`nodemailer` | |
 | السيرفرات | Contabo، وUbuntu 24.04، وNginx 1.24، وLet's Encrypt | |

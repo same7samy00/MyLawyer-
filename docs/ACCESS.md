@@ -53,7 +53,7 @@ git -c credential.helper= -c "credential.helper=store --file=D:/KAREM/.access/gi
 ## السيرفر
 - **الاسم المختصر:** `ssh mylawyer-vps` (الإعداد في `~/.ssh/config` على جهاز صاحب المشروع، بالمفتاح `~/.ssh/mylawyer_deploy`).
 - **الدور:** إنتاج بس، ومفيش سيرفر تجريبي.
-- **النظام:** Ubuntu 24.04، والخدمات: `mylawyer-backend` (systemd، على `127.0.0.1:4000`)، وPostgreSQL 16 (محلي)، وNginx 1.24، وDocker للخرائط (`mylawyer-osrm` و`mylawyer-tileserver`، محليين)، وPostfix وOpenDKIM.
+- **النظام:** Ubuntu 24.04، والخدمات: `mylawyer-backend` (systemd، على `127.0.0.1:4000`)، وPostgreSQL 16 (محلي)، وNginx 1.24، وPostfix وOpenDKIM.
 - **المسارات:** التطبيق في `/var/www/mylawyer` (`current` و`backend` و`site` و`storage`)، وإعداد Nginx في `/etc/nginx/sites-available/mylawyer`، والنسخ الاحتياطية في `/root/mylawyer-backups`.
 - **السجلات:** `journalctl -u mylawyer-backend` و`/var/log/nginx`.
 - **الجدار الناري:** UFW مفتوح فيه 22 و80 و443 بس.
@@ -65,8 +65,8 @@ git -c credential.helper= -c "credential.helper=store --file=D:/KAREM/.access/gi
 - **الحماية:** Ubuntu 24.04 متحدّث، وUFW مفتوح فيه 22 و80 و443 بس، وfail2ban على SSH، والتحديثات الأمنية تلقائية.
 - **الموارد:** 6 معالجات، و12 جيجا رام، و100 جيجا.
 - **المتسطّب (نفس نسخ القديم):** Node 20.20 وnpm 10.8، وPostgreSQL 16.15 (محلي بس)، وNginx 1.24، وcertbot 2.9، وSwap 4 جيجا، والتوقيت Europe/Berlin زي القديم.
-- **الباك إند شغال هنا من 2026-11-07:** الكود من `origin/main` في `/var/www/mylawyer/backend` (`.env` وملف Firebase جنبه)، وخدمة `mylawyer-backend` بـ 5 workers، وقاعدة `mylawyer_prod` المحلية (اتنقلت من القديم كاملة)، والصور والملفات والموقع في `/var/www/mylawyer`. الطرق من `OSRM_URL=https://maps.my-lawyer.online/osrm`.
-- **Nginx:** `/etc/nginx/sites-available/mylawyer` زي القديم، و`/map/v2` و`/osrm` بيتحوّلوا لـ `maps.my-lawyer.online` عشان نسخ التطبيق القديمة.
+- **الباك إند شغال هنا من 2026-11-07:** الكود من `origin/main` في `/var/www/mylawyer/backend` (`.env` وملف Firebase جنبه)، وخدمة `mylawyer-backend` بـ 5 workers، وقاعدة `mylawyer_prod` المحلية (اتنقلت من القديم كاملة)، والصور والملفات والموقع في `/var/www/mylawyer`. الخريطة ووقت الطريق واسم المكان من TomTom (`docs/GPS_SYSTEM.md`): خزنة الخريطة في Nginx على `/map/t/`، و`TOMTOM_ROUTING_KEY` في `.env`.
+- **Nginx:** `/etc/nginx/sites-available/mylawyer`، وفيه خزنة الخريطة `/map/t/` (مفتاحها في `/etc/nginx/tomtom_map_key.conf`). `/map/v2` و`/osrm` بيتحوّلوا للسيرفر القديم لحد ما نسخ التطبيق القديمة تتشال.
 - **الإيميل:** Postfix محلي بس (`loopback-only`) وOpenDKIM بالمفتاح `mail` لـ `my-lawyer.online`، والإرسال من `noreply@my-lawyer.online`. سجلات MX وSPF وDKIM وDMARC في Hostinger، والـ PTR في Contabo.
 - **https:** شهادات Let's Encrypt للعنوانين (2026-11-07) بالتحقق من `/var/www/letsencrypt`، وبتتجدد لوحدها (`certbot.timer`). قاعدة صلاحية محلية في `.claude/settings.local.json` بتسمح لـ Claude Code يشغّل certbot على السيرفرين بس.
 - **الرفع التلقائي (2026-11-07):** runner اسمه `vps-mylawyer-api` على السيرفر الجديد في `/actions-runner-mylawyer` (خدمة `actions.runner.same7samy00-MyLawyer-.vps-mylawyer-api`)، والقديم `vps-mylawyer` اتشال من GitHub. يعني **push على `main` = رفع على السيرفر الجديد**. أول رفع عليه نجح (`95f0a80`).
@@ -77,7 +77,7 @@ git -c credential.helper= -c "credential.helper=store --file=D:/KAREM/.access/gi
 | العنوان | السيرفر | الشغل |
 |---|---|---|
 | `my-lawyer.online` و`www` | الجديد `45.13.232.30` | الباك إند واللوحة والموقع والإيميل |
-| `maps.my-lawyer.online` | القديم `13.140.141.32` | صور الخريطة والطرق بس. الباك إند على القديم اتقفل |
+| `maps.my-lawyer.online` | القديم `13.140.141.32` | خريطة النسخ القديمة بس، وهيتقفل بعد ما الكل يحدّث |
 
 الـ DNS في Hostinger (`dns-parking.com`)، والـ PTR في Contabo.
 

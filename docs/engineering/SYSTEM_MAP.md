@@ -1,6 +1,6 @@
 # خريطة النظام
 
-> **تحديث 2026-11-07:** الخادم والقاعدة والإيميل والرفع اتنقلوا لسيرفر جديد (`my-lawyer.online`)، والخرايط والطرق بقت على القديم لوحدها (`maps.my-lawyer.online`). الرسمة في القسم 2 والسيرفر في القسم 9 بيوصفوا الوضع قبل النقل، والحالي في `docs/SERVER_ARCHITECTURE.md`. الخادم بقى 5 workers. ومسارات الخريطة الجديدة `GET /lawyers/map` و`/lawyers/top`.
+> **تحديث 2026-11-07:** الخادم والقاعدة والإيميل والرفع اتنقلوا لسيرفر جديد (`my-lawyer.online`)، والخريطة ووقت الطريق واسم المكان من TomTom عن طريق السيرفر (`docs/GPS_SYSTEM.md`). الرسمة في القسم 2 والسيرفر في القسم 9 بيوصفوا الوضع قبل النقل، والحالي في `docs/SERVER_ARCHITECTURE.md`. الخادم بقى 5 workers. ومسارات الخريطة الجديدة `GET /lawyers/map` و`/lawyers/top`.
 
 **الغرض:** إيه الموجود فعلًا، وإزاي الأجزاء بتكلم بعض. **آخر تحقق:** 2026-11-06. **الحالة:** VERIFIED من الكود، والسيرفر RUNTIME VERIFIED بالقراءة.
 
@@ -13,7 +13,7 @@
 | لوحة التحكم | `backend/public/admin` | JS عادي من غير مكتبات، والخادم بيقدمها | `GET /api/v1/admin-panel` (`modules/admin/panel.ts`) |
 | الموقع العام والسياسات | `backend/public/site` | HTML ثابت | Nginx على `/` |
 | قاعدة البيانات | `backend/migrations` (30 ملف) | PostgreSQL 16 | `src/database/migrate.ts` بيشتغل مع كل تشغيل |
-| الخرائط والطرق | `backend/map-services` | Docker: tileserver وOSRM | Nginx على `/map/v2` و`/osrm/` |
+| الخرائط والطرق | `services/roadRoutes.ts` وخزنة Nginx | TomTom | Nginx على `/map/t/`، و`/routes` |
 | الرفع التلقائي | `.github/workflows/deploy.yml` و`backend/deploy.sh` | GitHub Actions، والـ runner على السيرفر الجديد | push على `main` يغيّر `backend/**` |
 | الاختبارات | `test/` (Flutter) و`backend/tests` | `flutter test`، و`node --test` مع PGlite | - |
 
@@ -36,8 +36,7 @@ flowchart LR
       W3[worker 3]
     end
     PG[(PostgreSQL 16)]
-    OSRM[OSRM :5000]
-    Tiles[tileserver :3000]
+    MapCache[(خزنة الخريطة)]
     Mail[Postfix + OpenDKIM]
     Files[(storage/public و storage/private_docs)]
   end
@@ -46,12 +45,12 @@ flowchart LR
   App -- HTTPS REST + SSE --> Nginx
   Admin -- HTTPS --> Nginx
   Nginx -- /api --> W1 & W2 & W3
-  Nginx -- /map/v2 --> Tiles
-  Nginx -- /osrm --> OSRM
+  Nginx -- /map/t --> MapCache
+  MapCache -- مرة لكل مربع --> TomTom[TomTom]
   Nginx -- /uploads --> Files
   W1 & W2 & W3 --> PG
   Primary --> PG
-  W1 -- وقت الطريق --> OSRM
+  W1 -- وقت الطريق واسم المكان --> TomTom
   W1 -- push --> FCM
   W1 -- OTP --> Mail
   PG -- LISTEN/NOTIFY --> W1 & W2 & W3
@@ -132,7 +131,7 @@ stateDiagram-v2
 
 | البند | الوضع |
 |---|---|
-| المنافذ المفتوحة للخارج | 22 و80 و443 (UFW). الخادم على `127.0.0.1:4000`، وPostgreSQL وOSRM وtileserver محليين بس |
+| المنافذ المفتوحة للخارج | 22 و80 و443 (UFW). الخادم على `127.0.0.1:4000`، وPostgreSQL محلي بس |
 | العمليات | `WEB_WORKERS=3`، و`DB_POOL_MAX=15` لكل worker (يعني 60 اتصال كحد أقصى من 120 مسموحين) |
 | الذاكرة والقرص | 7.8 جيجا رام منها 3.3 مستخدمة، وSwap 4 جيجا، والقرص 25% |
 | Nginx | gzip شغال، وHSTS شغال، وحدود طلبات للدخول والخرائط والطرق |

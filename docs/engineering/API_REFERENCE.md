@@ -40,7 +40,7 @@
 |---|---|---|---|
 | `GET /lawyers/map` | **عام** | App | مربعات الخريطة، كل المحامين المعتمدين، كاش 5 دقايق في الذاكرة |
 | `GET /lawyers/top` | **عام** | App | أعلى 20 في المحافظة، كاش 5 دقايق |
-| `GET /lawyers/nearby` | **عام** | نسخ قديمة | لحد 1000 نتيجة، والتطبيق الحالي ما بيستخدموش |
+| `GET /routes` و`/routes/place` | مسجل | App | الطريق بالزحمة واسم المكان من TomTom، بإجابة مشتركة للأماكن القريبة |
 | `GET /lawyers/:id/reviews` | عام | App | الاسم المختصر بس |
 | `GET /lawyers/me` | lawyer, admin | App | |
 | `POST /lawyers/me/urgent-terms` | lawyer, admin | App | |

@@ -71,7 +71,7 @@ erDiagram
 1. **فهارس البحث الجغرافي السريع (Geo Query Indices):**
    - `idx_lawyer_profiles_availability` على الأعمدة `(approval_status, is_available, last_active_at)`.
    - `idx_lawyer_profiles_coords` على الأعمدة `(latitude, longitude)`.
-   - تضمن هذه الفهارس استجابة استعلام `/lawyers/nearby` في أقل من 15ms ضمن دائرة البحث.
+   - الفهارس دي بتخدم توزيع الطلب على أقرب المحامين ومربعات الخريطة.
 
 2. **فهارس الطلبات ومتابعة الحالات:**
    - `idx_orders_client_id`: استرجاع طلبات العميل مرتبة زمنياً.

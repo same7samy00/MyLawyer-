@@ -8,23 +8,19 @@ class RouteEstimate {
   final List<LatLng> geometryPoints;
   final bool isSuccess;
 
-  /// الوقت جاي بالزحمة الحقيقية، فالمعامل 1 إلا لو حد عايز يزوّد هامش
-  final double trafficFactor;
 
   const RouteEstimate({
     required this.distanceMeters,
     required this.durationSeconds,
     this.geometryPoints = const [],
     this.isSuccess = true,
-    this.trafficFactor = 1.0,
   });
 
   const RouteEstimate.failed()
       : distanceMeters = 0.0,
         durationSeconds = 0.0,
         geometryPoints = const [],
-        isSuccess = false,
-        trafficFactor = 1.0;
+        isSuccess = false;
 
   /// المسافة بالكيلومتر
   double get distanceKm => distanceMeters / 1000.0;
@@ -40,9 +36,9 @@ class RouteEstimate {
     return '${distanceKm.toStringAsFixed(1)} كم';
   }
 
-  /// مدى زمن الوصول بعد الزحمة المتوقعة، بأقرب 5 دقايق (مثال: حوالي 15 إلى 20 دقيقة)
+  /// مدى زمن الوصول بالزحمة الحقيقية، بأقرب 5 دقايق (مثال: حوالي 15 إلى 20 دقيقة)
   String get arrivalRangeText {
-    final minutes = durationSeconds * trafficFactor / 60.0;
+    final minutes = durationSeconds / 60.0;
     final low = (minutes * 0.9 / 5).floor() * 5;
     final high = (minutes * 1.2 / 5).ceil() * 5;
     if (high <= 5) return 'أقل من 5 دقايق';

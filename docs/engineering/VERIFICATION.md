@@ -19,7 +19,6 @@
 | `ss -tlnp` | المفتوح للخارج 22 و25 و80 و443. و25 مقفول من UFW |
 | `ufw status` | مسموح 22 و80 و443 بس |
 | `systemctl is-active` | `mylawyer-backend` و`nginx` و`postgresql` شغالين |
-| `docker ps` | `mylawyer-osrm` و`mylawyer-tileserver` على `127.0.0.1` |
 | `journalctl -u mylawyer-backend -p err` آخر ساعة | مفيش أخطاء |
 | الذاكرة والقرص | 3.3 من 7.8 جيجا، وSwap 4 جيجا مش مستخدم، والقرص 25% |
 | إعدادات PostgreSQL | `shared_buffers=1GB` و`max_connections=120` و`work_mem=8MB` |
@@ -29,5 +28,4 @@
 | المسار | متوسط الرد | الحجم |
 |---|---|---|
 | `GET /api/v1/health` (5 مرات) | اتصال 0.107 ث، TLS 0.199 ث، أول بايت 0.269 ث، يعني الخادم حوالي 70 ملي ثانية | صغير |
-| `GET /api/v1/lawyers/nearby` (3 مرات) | 0.24 ث | 46 بايت (مفيش محامين متاحين ساعتها، فالرقم ده مش بيقيس الحمل) |
 | `GET /api/v1/admin-panel/script` (3 مرات) | 0.34 ث | 36 كيلوبايت مضغوطة gzip، ومتخزنة سنة |
