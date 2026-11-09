@@ -27,15 +27,18 @@ extension _TrackingScreenViews on _TrackingScreenState {
       key: const ValueKey('nearby_summary'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < lawyers.length && i < _nearbyShown; i++) ...[
-          if (i > 0) const Divider(height: 1, color: AppColors.cardBorder),
-          _buildNearbyLawyerCard(lawyers[i]),
-        ],
-        if (lawyers.length > _nearbyShown)
-          TextButton(
-            onPressed: () => _update(() => _nearbyShown += 20),
-            child: const Text('المزيد', style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontWeight: FontWeight.w800)),
+        // Five show, the rest by scrolling this list, and the request button stays under it
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 5 * 66),
+          child: ListView.separated(
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            physics: const BouncingScrollPhysics(),
+            itemCount: lawyers.length,
+            separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.cardBorder),
+            itemBuilder: (context, index) => _buildNearbyLawyerCard(lawyers[index]),
           ),
+        ),
         const SizedBox(height: 14),
         AppButton.primary(
           text: 'اطلب عروض أسعار',

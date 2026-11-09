@@ -1,5 +1,8 @@
 part of 'nearby_lawyers_showcase_screen.dart';
 
+/// طول كارت المحامي في القايمة مع المسافة اللي بعده، عشان القايمة تعرض 5 بالظبط
+const double _lawyerRowHeight = 74;
+
 extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
   Widget _buildFixedSheet() {
     return Align(
@@ -62,7 +65,10 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
         child: AppStateMessage(icon: Icons.location_on_rounded, title: 'لا يوجد محامون في محافظتك حالياً'),
       );
     }
-    return ListView.separated(
+    // Five lawyers show, the rest by scrolling, and more load by themselves at the end of the list
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 5 * _lawyerRowHeight + 24),
+      child: ListView.separated(
       shrinkWrap: true,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       physics: const BouncingScrollPhysics(),
@@ -70,12 +76,8 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
       separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         if (index == _nearbyLawyers.length) {
-          return _topLoadingMore
-              ? const Padding(padding: EdgeInsets.all(8), child: Center(child: AppLoader(size: 28)))
-              : TextButton(
-                  onPressed: _loadMoreTop,
-                  child: const Text('المزيد', style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontWeight: FontWeight.w800)),
-                );
+          if (!_topLoadingMore) WidgetsBinding.instance.addPostFrameCallback((_) => _loadMoreTop());
+          return const Padding(padding: EdgeInsets.all(8), child: Center(child: AppLoader(size: 28)));
         }
         final lawyer = _nearbyLawyers[index];
         return Material(
@@ -148,6 +150,7 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
           ),
         );
       },
+      ),
     );
   }
 

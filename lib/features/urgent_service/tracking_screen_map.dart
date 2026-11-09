@@ -142,10 +142,13 @@ extension _TrackingMapControls on _TrackingScreenState {
     _calculateRouteToLawyer(lawyer);
     _update(() => _isViewingLawyer = true);
 
-    // الكاميرا بتتحرك بس من غير زوم، والمحامي يبقى في نص الجزء الظاهر فوق الشيت
+    // Tapping moves the camera so the lawyer sits in the middle above the sheet. A pin far out zooms in just
+    // enough for its card to show; otherwise the zoom stays as it is
     final camera = _mapController.camera;
-    final point = camera.project(lawyer.position);
-    _animatedMapMove(camera.unproject(math.Point(point.x, point.y + _sheetHeight / 2)), camera.zoom);
+    final zoom = math.max(camera.zoom, cardsFromZoom);
+    final point = camera.crs.latLngToPoint(lawyer.position, zoom);
+    final center = camera.crs.pointToLatLng(math.Point(point.x, point.y + _sheetHeight / 2), zoom);
+    _animatedMapMove(center, zoom);
   }
 
   void _closeLawyerProfile() {

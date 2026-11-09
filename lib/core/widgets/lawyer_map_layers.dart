@@ -37,6 +37,9 @@ typedef MapCard = ({MapLawyer lawyer, Offset point, bool card});
 
 /// من الزوم ده الكروت بتظهر، وقبله دبابيس بس
 const double cardsFromZoom = 14;
+
+/// من الزوم ده كل محامي ليه كارت حتى لو الكروت لمست بعض
+const double allCardsFromZoom = 16;
 const double _cardHeight = 34;
 const double _pointer = 6;
 const double _photo = 24;
@@ -89,11 +92,17 @@ Set<String> _cardedAt(MapCamera camera, Iterable<MapLawyer> lawyers, int step) {
   final carded = <String>{};
   for (final lawyer in order) {
     final w = camera.crs.latLngToPoint(lawyer.position, step.toDouble());
-    final rect = _cardRect(lawyer, Offset(w.x.toDouble(), w.y.toDouble()), 1).inflate(2);
+    // Cards may touch a little: only the inner part of each card has to stay clear, so two lawyers next to each
+    // other both get cards. From zoom [allCardsFromZoom] every lawyer gets a card
+    final rect = _cardRect(lawyer, Offset(w.x.toDouble(), w.y.toDouble()), 1).deflate(_cardHeight * 0.3);
     // Only nearby areas can touch, so only they are checked
     final gx = (w.x / 200).floor();
     final gy = (w.y / 100).floor();
     var clash = false;
+    if (step >= allCardsFromZoom) {
+      carded.add(lawyer.id);
+      continue;
+    }
     for (var dx = -1; dx <= 1 && !clash; dx++) {
       for (var dy = -1; dy <= 1 && !clash; dy++) {
         clash = (grid[(gx + dx) * 1000003 + gy + dy] ?? const []).any((other) => other.overlaps(rect));

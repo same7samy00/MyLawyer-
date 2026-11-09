@@ -176,21 +176,32 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
     final more = res.data ?? const <LawyerModel>[];
     _update(() {
       final known = {for (final l in _nearbyLawyers) l.id};
-      _nearbyLawyers = [..._nearbyLawyers, ..._rankTop(more, here).where((l) => !known.contains(l.id))];
+      // The whole list ranked again, so the new ones take their place by rating and distance
+      _nearbyLawyers = [..._nearbyLawyers, ..._rankTop(more, here).where((l) => !known.contains(l.id))]
+        ..sort((a, b) => _score(b).compareTo(_score(a)));
       _topHasMore = res.isOk && more.length >= 20;
       _topLoadingMore = false;
     });
   }
 
-  /// الأعلى تقييمًا الأول، ولو التقييم متساوي الأقرب، والمسافة بتتحسب على الموبايل
+  /// «الأعلى تقييمًا حولك»: التقييم والقرب مع بعض. التقييم بيتوزن بعدد المراجعات (5 نجوم من مراجعتين
+  /// مش زي 4.9 من 200)، وكل كيلو بعيد بيخصم 0.05 نجمة، يعني 10 كم = نص نجمة. فمحامي 4.9 على بعد 10 كم
+  /// بييجي قبل محامي 5 على بعد 33 كم. والمسافة بتتحسب على الموبايل
+  static double _score(MapLawyer lawyer) {
+    const prior = 4.0;
+    const weight = 5;
+    final trusted = (lawyer.rating * lawyer.reviewsCount + prior * weight) / (lawyer.reviewsCount + weight);
+    return trusted - lawyer.distanceMeters / 1000 * 0.05;
+  }
+
   List<MapLawyer> _rankTop(List<LawyerModel> lawyers, LatLng from) {
     const distance = Distance();
     return [
       for (final model in lawyers)
         MapLawyer.fromModel(model).withDistance(distance(from, LatLng(model.latitude, model.longitude))),
     ]..sort((a, b) {
-        final byRating = b.rating.compareTo(a.rating);
-        return byRating != 0 ? byRating : a.distanceMeters.compareTo(b.distanceMeters);
+        final byScore = _score(b).compareTo(_score(a));
+        return byScore != 0 ? byScore : a.distanceMeters.compareTo(b.distanceMeters);
       });
   }
 
@@ -257,11 +268,13 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
       _selectedLawyer = here == null ? lawyer : lawyer.withDistance(const Distance().as(LengthUnit.Meter, here, lawyer.position));
     });
 
-    // الكاميرا بتتحرك بس من غير زوم، والمحامي يبقى في نص الجزء الظاهر فوق الشيت
+    // Tapping moves the camera so the lawyer sits in the middle above the sheet. A pin far out zooms in just
+    // enough for its card to show; otherwise the zoom stays as it is
     final camera = _mapController.camera;
-    final point = camera.project(lawyer.position);
-    final center = camera.unproject(math.Point(point.x, point.y + _sheetHeight / 2));
-    _animatedMapMove(center, camera.zoom);
+    final zoom = math.max(camera.zoom, cardsFromZoom);
+    final point = camera.crs.latLngToPoint(lawyer.position, zoom);
+    final center = camera.crs.pointToLatLng(math.Point(point.x, point.y + _sheetHeight / 2), zoom);
+    _animatedMapMove(center, zoom);
   }
 
   void _closeLawyerProfile() {

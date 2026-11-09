@@ -75,7 +75,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   static const int _nearbyCount = 100;
 
   /// قايمة القريبين بتظهر 20 بس، و«المزيد» بيزوّد 20
-  int _nearbyShown = 20;
   String? _lawyersError;
 
   /// الشيت طوله ثابت طول الوقت، ومحتواه بيتمرر جواه
