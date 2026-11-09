@@ -21,8 +21,6 @@
 ## 3. اتساب عن قصد
 | العنصر | التصنيف | السبب |
 |---|---|---|
-| `POST /orders` و`POST /orders/quote` و`resolveClientQuote` وجدول `client_problem_prices` | DEPRECATED، مطلوب | النسخ القديمة من التطبيق لسه بتستخدمها. تتشال بعد ما كل الأجهزة تتحدث (قرار في `HANDOFF.md`) |
-| `POST /orders/:id/accept` و`/reject` | REQUIRED | التطبيق بيستخدمهم مع طلبات `PENDING` القديمة |
 | `PATCH /users/me` و`POST /users/me/change-password` و`GET /wallet/limits` | POTENTIALLY UNUSED | التطبيق ما بيستخدمهمش دلوقتي، لكن تغيير كلمة المرور ممكن يتضاف كشاشة. محتاج قرار |
 | أعمدة `completion_code` و`degree` و`specialty` | POTENTIALLY UNUSED | بيانات قديمة في الإنتاج. ممنوع نشيل عمود من غير موافقة ومن غير migration فيها طريقة رجوع |
 | خطوط اللوحة `IBMPlexSansArabic-Thin...woff2` | REQUIRED | ملفات منفصلة للوحة، و`panel.ts` بيقدمها كلها |
@@ -39,7 +37,6 @@
 | 6 | `lib/core/widgets` فيه 34 ملف في مجلد واحد. يتقسموا (sheets، وcards، وbuttons، وmap) | قليلة، نقل بس | لسه |
 | 7 | الشاشات اللي فوق 450 سطر (`auth_service.dart` و`email_verification_screen.dart` و`order_details_sheet.dart` و`client_register_steps.dart` و`login_screen.dart`) تتقسم لما حد يشتغل عليها | قليلة | لسه |
 | 8 | عمليات الإدارة على الفلوس جوه معاملة واحدة (BUG-06) | فلوس | **محتاج موافقة** |
-| 9 | شيل المسار القديم (`POST /orders`) بعد إجبار التحديث | محتاج قرار | **محتاج قرار** |
 
 **ليه ما اتعملتش الخطوات كلها مرة واحدة:** التوجيه نفسه بيقول «مفيش refactor كبير مرة واحدة». الخطوات 2 لـ 7 بتلمس عشرات الملفات، وكل واحدة محتاجة الفحوصات كاملة لوحدها. والخطوتين 8 و9 محتاجين موافقة صاحب المشروع.
 

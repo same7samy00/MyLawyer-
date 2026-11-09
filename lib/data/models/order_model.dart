@@ -39,7 +39,6 @@ class OrderModel {
   final DateTime? paymentDeadline;
   final DateTime? acceptedAt;
   final DateTime? paidAt;
-  final int responseSecondsLeft;
   final int clientCompletedOrders;
   final DateTime? arrivalDeadline;
   final DateTime? delayNotifiedAt;
@@ -85,7 +84,6 @@ class OrderModel {
     this.paymentDeadline,
     this.acceptedAt,
     this.paidAt,
-    this.responseSecondsLeft = 0,
     this.clientCompletedOrders = 0,
     this.arrivalDeadline,
     this.delayNotifiedAt,
@@ -146,7 +144,6 @@ class OrderModel {
       paymentDeadline: _toDate(json['paymentDeadline'] ?? json['payment_deadline']),
       acceptedAt: _toDate(json['acceptedAt'] ?? json['accepted_at']),
       paidAt: _toDate(json['paidAt'] ?? json['paid_at']),
-      responseSecondsLeft: _toDouble(json['responseSecondsLeft'])?.toInt() ?? 0,
       clientCompletedOrders: _toDouble(json['clientCompletedOrders'])?.toInt() ?? 0,
       arrivalDeadline: _toDate(json['arrivalDeadline'] ?? json['arrival_deadline']),
       delayNotifiedAt: _toDate(json['delayNotifiedAt'] ?? json['delay_notified_at']),

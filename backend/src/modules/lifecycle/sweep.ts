@@ -4,46 +4,13 @@ import { applySettlement, liftUserSuspensions } from './settlement.js';
 import { advanceRequests, releaseChoice } from '../requests/service.js';
 import { sendWake } from '../../services/pushService.js';
 
-const MAX_MISSED_ORDERS = 2;
 /// An available lawyer's phone says «still here» every 3 minutes. After 5 quiet minutes the server wakes it with a
 /// silent push, after 7 a second one, and after 8 with no answer the lawyer is turned off (owner decision 2026-11-09)
 const FIRST_WAKE_MINUTES = 5;
 const SECOND_WAKE_MINUTES = 7;
 const LOCATION_SILENCE_MINUTES = 8;
 
-async function closeUnansweredOrders() {
-  const res = await dbPool.query(
-    `UPDATE service_orders SET status = 'NO_RESPONSE'
-     WHERE status = 'PENDING' AND response_deadline <= NOW()
-     RETURNING id, client_id, lawyer_id`
-  );
-
-  for (const order of res.rows) {
-    await dbPool.query(
-      `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note) VALUES ($1, NULL, 'PENDING', 'NO_RESPONSE', 'انتهت مهلة رد المحامي دون رد')`,
-      [order.id]
-    );
-    await notify(dbPool, order.client_id, 'المحامي ما ردش', 'اختار محامي تاني', order.id);
-
-    const missed = await dbPool.query(
-      `UPDATE lawyer_profiles SET missed_orders = missed_orders + 1
-       WHERE user_id = $1 RETURNING missed_orders`,
-      [order.lawyer_id]
-    );
-
-    if (missed.rows[0]?.missed_orders >= MAX_MISSED_ORDERS) {
-      await dbPool.query(
-        `UPDATE lawyer_profiles SET is_available = FALSE, availability_off_reason = 'MISSED', missed_orders = 0 WHERE user_id = $1`,
-        [order.lawyer_id]
-      );
-      await notify(dbPool, order.lawyer_id, 'اتحولت لغير متاح', 'ما رديتش على طلبين. فعّل حالتك لما تكون جاهز', order.id);
-    } else {
-      await notify(dbPool, order.lawyer_id, 'فاتك طلب', 'لو فاتك طلب كمان هتتحول لغير متاح', order.id);
-    }
-  }
-}
-
-/// 3 minutes without paying: the choice goes and the client is back on the same offers
+/// A choice left a whole day unpaid goes away, and the client is back on the same offers
 async function closeUnpaidOrders() {
   const due = await dbPool.query(`SELECT id FROM service_orders WHERE status = 'ACCEPTED' AND payment_deadline <= NOW()`);
   for (const { id } of due.rows) {
@@ -193,7 +160,6 @@ async function releaseHeldPayouts() {
 
 /// Time-based steps of the order lifecycle. Each step is safe to run repeatedly.
 export async function sweepLifecycle() {
-  await closeUnansweredOrders();
   await advanceRequests();
   await closeUnpaidOrders();
   await liftSuspensions();

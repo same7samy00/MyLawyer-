@@ -5,43 +5,9 @@ import { arrivalMargin } from '../src/modules/lifecycle/service.js';
 import { LAWYER_CAN_WORK } from '../src/modules/requests/service.js';
 const canWork = async (id: string) => (await sql(`SELECT 1 FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id WHERE lp.user_id = $1 AND ${LAWYER_CAN_WORK('lp', 'u')}`, [id])).length > 0;
 
-describe('مهلة رد المحامي', () => {
-  it('الخادم يرسل الثواني الباقية للطرفين', async () => {
-    const order = await createOrder() as { id: string; responseSecondsLeft?: number };
-    assert.ok(order.responseSecondsLeft! > 110 && order.responseSecondsLeft! <= 120);
-
-    const list = await call('GET', '/orders', lawyerToken);
-    const left = list.body.data.find((o: any) => o.orderId === order.id).responseSecondsLeft;
-    assert.ok(left > 110 && left <= 120);
-
-    const single = await call('GET', `/orders/${order.id}`, clientToken);
-    assert.ok(single.body.data.order.responseSecondsLeft > 110);
-  });
-
-  it('انتهاء المهلة يقفل الطلب ويبلغ الموكل', async () => {
-    const order = await createOrder();
-    await sql(`UPDATE service_orders SET response_deadline = NOW() - INTERVAL '1 second' WHERE id = $1`, [order.id]);
-    await sweepLifecycle();
-
-    const single = await call('GET', `/orders/${order.id}`, clientToken);
-    assert.equal(single.body.data.order.status, 'NO_RESPONSE');
-    assert.equal(single.body.data.order.responseSecondsLeft, 0);
-
-    const notes = await sql('SELECT 1 FROM notifications WHERE user_id = $1', [clientId]);
-    assert.equal(notes.length, 1);
-  });
-});
-
 describe('الدفع والإنهاء بعد الالتقاء', () => {
-  it('لا دفع قبل موافقة المحامي', async () => {
-    const order = await createOrder();
-    const res = await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, {});
-    assert.equal(res.status, 400);
-  });
-
   it('لا إنهاء لطلب لم يُدفع', async () => {
     const order = await createOrder();
-    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
     assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, {})).status, 400);
   });
 
@@ -249,47 +215,21 @@ describe('تأجيل المهمة', () => {
 });
 
 describe('المهل والمخالفات', () => {
-  it('المحامي عنده دقيقتين، وبعد طلبين يتحول لغير متاح', async () => {
-    for (let i = 0; i < 2; i++) {
-      await sql(`UPDATE lawyer_profiles SET is_available = TRUE WHERE user_id = $1`, [lawyerId]);
-      const order = await createOrder();
-      await sql(`UPDATE service_orders SET response_deadline = NOW() - INTERVAL '1 second' WHERE id = $1`, [order.id]);
-      await sweepLifecycle();
-      assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'NO_RESPONSE');
-    }
-
-    assert.equal((await sql('SELECT is_available FROM lawyer_profiles WHERE user_id = $1', [lawyerId]))[0].is_available, false);
-    const notes = await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'اتحولت لغير متاح'`, [lawyerId]);
-    assert.equal(notes.length, 1);
-  });
-
-  it('مهلة الدفع 3 دقايق وبعدها الاختيار يتلغي', async () => {
+  it('مفيش مهلة دفع، والاختيار اللي يفضل يوم من غير دفع بيتشال والموكل يرجع لعروضه', async () => {
     const order = await createOrder();
-    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
+    assert.ok((await sql(`SELECT payment_deadline > NOW() + INTERVAL '23 hours' AS far FROM service_orders WHERE id = $1`, [order.id]))[0].far);
     await sql(`UPDATE service_orders SET payment_deadline = NOW() - INTERVAL '1 second' WHERE id = $1`, [order.id]);
-
-    assert.equal((await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, {})).status, 409);
     await sweepLifecycle();
-
     assert.equal((await sql('SELECT status FROM service_orders WHERE id = $1', [order.id]))[0].status, 'PAYMENT_EXPIRED');
-    await createOrder();
+    assert.equal((await sql('SELECT status FROM service_requests WHERE order_id IS NULL ORDER BY created_at DESC LIMIT 1'))[0].status, 'OPEN');
   });
 
-  it('طلب مفتوح واحد للموكل، ولحد 3 مهمات للمحامي', async () => {
-    await createOrder();
-    const second = await call('POST', '/orders', clientToken, {
-      lawyerId, problemType: PROBLEM, problemDescription: 'وصف', clientLat: 30.05, clientLon: 31.25,
-    });
-    assert.equal(second.status, 409);
-
-    const order = (phone: string) => createUser(phone, 'client').then((id) => call('POST', '/orders', app.jwt.sign({ userId: id, role: 'client' }), {
-      lawyerId, problemType: PROBLEM, problemDescription: 'وصف', clientLat: 30.05, clientLon: 31.25,
-    }));
-    assert.equal((await order('01000000021')).status, 201);
-    assert.equal(await canWork(lawyerId), true, 'two tasks leave a place');
-    assert.equal((await order('01000000022')).status, 201);
-    assert.equal(await canWork(lawyerId), false);
-    assert.equal((await order('01000000023')).status, 409);
+  it('طلب مفتوح واحد للموكل، ومهمة واحدة للمحامي', async () => {
+    const order = await createOrder();
+    assert.equal(await canWork(lawyerId), true, 'choosing does not hold the lawyer');
+    assert.equal((await call('POST', '/requests', clientToken, { problemType: PROBLEM, problemDescription: 'وصف', clientLat: 30.05, clientLon: 31.25 })).status, 409);
+    assert.equal((await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, {})).status, 200);
+    assert.equal(await canWork(lawyerId), false, 'one paid task holds the lawyer');
   });
 
   it('اعتذار المحامي بعد الدفع يرجع المبلغ، و3 اعتذارات توقفه أسبوع', async () => {
@@ -307,7 +247,6 @@ describe('المهل والمخالفات', () => {
   it('الموكل يدفع من رصيده لو كفاية', async () => {
     await sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, 350, 'اختبار')`, [clientId]);
     const order = await createOrder();
-    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
 
     assert.equal((await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, { method: 'wallet' })).status, 200);
     assert.equal(await clientBalance(), 0);
@@ -315,13 +254,11 @@ describe('المهل والمخالفات', () => {
 
   it('الرصيد غير الكافي يرفض الدفع', async () => {
     const order = await createOrder();
-    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
     assert.equal((await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, { method: 'wallet' })).status, 400);
   });
 
   it('رقم كل طرف يظهر بعد الدفع بس', async () => {
     const order = await createOrder();
-    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
     assert.equal((await call('GET', '/orders', lawyerToken)).body.data[0].clientPhone, null);
     assert.equal((await call('GET', '/orders', clientToken)).body.data[0].lawyerPhone, null);
 
@@ -368,8 +305,6 @@ describe('خصوصية الموقع قبل الدفع', () => {
     const single = await call('GET', `/orders/${order.id}`, lawyerToken);
     assert.notEqual(Number(single.body.data.order.client_latitude), 30.05678);
     assert.equal(single.body.data.order.client_address, 'محافظة الغربية');
-
-    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
     assert.equal((await orderOf(lawyerToken, order.id)).clientAddress, 'محافظة الغربية');
 
     await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, {});
@@ -383,9 +318,10 @@ describe('خصوصية الموقع قبل الدفع', () => {
 
 describe('ترقيم ML الموحد', () => {
   it('الطلب والتذكرة والتحويل ياخدوا أرقام ML متسلسلة', async () => {
-    const first: any = await createOrder();
+    const first = await createOrder();
+    const number = (await sql('SELECT order_number FROM service_orders WHERE id = $1', [first.id]))[0].order_number;
     await closeOrders();
-    assert.match(first.order_number ?? first.orderNumber, /^ML-ORD-\d{6}$/);
+    assert.match(number, /^ML-ORD-\d{6}$/);
 
     const order = await createArrivedOrder();
     const ticket = await openTicket(clientToken, order.id, 'ORDER');

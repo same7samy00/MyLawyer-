@@ -5,7 +5,6 @@ import '../constants/app_colors.dart';
 import 'app_button.dart';
 import 'app_card.dart';
 import 'order_status_tracker.dart';
-import 'response_countdown.dart';
 import 'service_tag.dart';
 
 /// ملخص الطلب في صفحة الطلبات، والإجراءات كلها في صفحة التفاصيل
@@ -32,10 +31,6 @@ class OrderSummaryCard extends StatelessWidget {
         children: [
           ServiceTag(name: order.serviceTitle, icon: Icons.location_on_rounded),
           const SizedBox(height: 10),
-          if (order.isPending) ...[
-            ResponseCountdown(secondsLeft: order.responseSecondsLeft),
-            const SizedBox(height: 12),
-          ],
           Row(
             children: [
               Expanded(child: Text('طلب رقم ${order.orderNumber}', style: _numberStyle)),

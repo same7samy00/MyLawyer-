@@ -66,18 +66,14 @@
 ## الطلبات (`modules/orders/*`)
 | المسار | الصلاحية | المستخدم | ملاحظة |
 |---|---|---|---|
-| `POST /orders/quote` | دخول | **—** | DEPRECATED، للنسخ القديمة |
-| `POST /orders` | دخول | **—** | DEPRECATED، للنسخ القديمة |
 | `GET /orders` و`GET /orders?id=` | دخول (طلباته بس) | App | admin بيشوف كل الطلبات |
 | `GET /orders/:id` | طرف في الطلب | App | |
 | `GET /orders/wallet/me` | دخول | App | ملخص محفظة المحامي |
-| `POST /orders/:id/accept` و`/reject` | المحامي | App | ليهم لازمة مع طلبات `PENDING` من المسار القديم بس، لأن الطلبات الجديدة بتبدأ `ACCEPTED` |
 | `POST /orders/:id/confirm-payment` | الموكل | App | `method: 'wallet'` أو من غيره = `DIRECT`. انظر SEC-01 |
 | `POST /orders/:id/arrive` | المحامي | App | 50 متر من مكان الطلب أو من آخر نقطة للموكل |
 | `POST /orders/:id/position` | طرف في الطلب | App | التتبع اللحظي من الدفع لحد الوصول |
 | `POST /orders/:id/keep-waiting` | الموكل | App | |
 | `POST /orders/:id/postpone` | المحامي بعد الوصول | App | من غير سبب ولا ميعاد |
-| `POST /orders/:id/resume` | المحامي | App | إلغاء التأجيل |
 | `POST /orders/:id/complete` | المحامي بعد الوصول | App | |
 | `POST /orders/:id/cancel` | طرف أو admin | App | |
 | `POST /orders/:id/withdraw` | المحامي بعد الدفع | App | مخالفة على المحامي |

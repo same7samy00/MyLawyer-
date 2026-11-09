@@ -198,7 +198,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
     const updateRes = await query(
       `UPDATE lawyer_profiles
        SET is_available = $1, availability_off_reason = CASE WHEN $1 THEN NULL ELSE 'MANUAL' END,
-           missed_orders = 0, last_active_at = NOW(), updated_at = NOW()
+           last_active_at = NOW(), updated_at = NOW()
        WHERE user_id = $2
        RETURNING id, is_available, last_active_at`,
       [isAvailable, userId]

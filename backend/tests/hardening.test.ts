@@ -173,18 +173,14 @@ describe('الصلاحيات والمدخلات', () => {
     assert.equal(res.body.data.status, 'suspended');
   });
 
-  it('الاعتذار والإلغاء من غير جسم للطلب مش خطأ خادم', async () => {
-    const order = await createOrder();
-    const rejected = await app.inject({ method: 'POST', url: `/api/v1/orders/${order.id}/reject`, headers: { authorization: `Bearer ${lawyerToken}` } });
-    assert.equal(rejected.statusCode, 200, rejected.body);
+  it('الإلغاء من غير جسم للطلب مش خطأ خادم', async () => {
     const next = await createOrder();
     const cancelled = await app.inject({ method: 'POST', url: `/api/v1/orders/${next.id}/cancel`, headers: { authorization: `Bearer ${clientToken}` } });
     assert.equal(cancelled.statusCode, 200, cancelled.body);
   });
 
   it('معرف غير صالح يرجع 400 من غير تفاصيل قاعدة البيانات', async () => {
-    const res = await call('POST', '/orders', clientToken, { lawyerId: 'not-a-uuid', problemDescription: 'وصف', clientLat: 30, clientLon: 31 });
-    assert.equal(res.status, 400);
+    assert.equal((await call('POST', '/requests/not-a-uuid/offer', lawyerToken, { price: 500 })).status, 404);
     assert.equal((await call('GET', '/lawyers/documents/not-a-uuid', lawyerToken)).status, 400);
     // A route without its own check: the error handler answers, and no database wording leaves
     const unchecked = await call('POST', '/admin/urgent-applications/not-a-uuid/decision', adminToken, { approve: true });
@@ -195,7 +191,7 @@ describe('الصلاحيات والمدخلات', () => {
   });
 
   it('وصف الطلب لازم يكون نص', async () => {
-    assert.equal((await call('POST', '/orders', clientToken, { lawyerId, problemDescription: 123, clientLat: 30, clientLon: 31 })).status, 400);
+    assert.equal((await call('POST', '/requests', clientToken, { problemDescription: 123, clientLat: 30.05, clientLon: 31.25 })).status, 400);
   });
 
   it('قائمة الطلبات بحساب الإدارة شغالة', async () => {
@@ -203,7 +199,7 @@ describe('الصلاحيات والمدخلات', () => {
     const all = await call('GET', '/orders', adminToken);
     assert.equal(all.status, 200, JSON.stringify(all.body));
     assert.equal(all.body.data.length, 1);
-    const pending = await call('GET', '/orders?status=PENDING', adminToken);
+    const pending = await call('GET', '/orders?status=ACCEPTED', adminToken);
     assert.equal(pending.status, 200, JSON.stringify(pending.body));
     assert.equal((await call('GET', '/orders?status=COMPLETED', adminToken)).body.data.length, 0);
   });
@@ -239,34 +235,27 @@ describe('الصلاحيات والمدخلات', () => {
 });
 
 describe('تزامن الطلبات', () => {
-  it('موكلين في نفس اللحظة على آخر مكان عند المحامي: واحد بس ياخده', async () => {
-    // Two of the lawyer's 3 places are taken first
-    for (let i = 0; i < 2; i++) {
-      const id = await createUser(newPhone(), 'client');
-      const res = await call('POST', '/orders', app.jwt.sign({ userId: id, role: 'client' }), { lawyerId, problemDescription: 'وصف المشكلة', clientLat: 30.05, clientLon: 31.25 });
-      assert.equal(res.status, 201);
-    }
+  it('موكلين دفعوا لنفس المحامي في نفس اللحظة: واحد بس ياخده، والتاني يرجع لعروضه', async () => {
+    const first = await createOrder();
     const secondId = await createUser(newPhone(), 'client');
-    const secondToken = app.jwt.sign({ userId: secondId, role: 'client' });
-    const body = { lawyerId, problemDescription: 'وصف المشكلة', clientLat: 30.05, clientLon: 31.25 };
-    const results = await Promise.all([call('POST', '/orders', clientToken, body), call('POST', '/orders', secondToken, body)]);
-    assert.deepEqual(results.map((res) => res.status).sort(), [201, 409]);
+    const secondToken = app.jwt.sign({ userId: secondId, role: 'client' }) as string;
+    const sent = await call('POST', '/requests', secondToken, { problemType: 'محضر في قسم الشرطة', problemDescription: 'وصف', clientLat: 30.05, clientLon: 31.25 });
+    const requestId = sent.body.data.id;
+    await call('POST', `/requests/${requestId}/offer`, lawyerToken, { price: 350 });
+    const offerId = (await call('GET', `/requests/${requestId}`, secondToken)).body.data.offers[0].id;
+    const second = (await call('POST', `/requests/${requestId}/offers/${offerId}/select`, secondToken, {})).body.data.orderId;
+    const results = await Promise.all([
+      call('POST', `/orders/${first.id}/confirm-payment`, clientToken, {}),
+      call('POST', `/orders/${second}/confirm-payment`, secondToken, {}),
+    ]);
+    assert.deepEqual(results.map((res) => res.status).sort(), [200, 409]);
     await closeOrders();
   });
 
   it('موكل واحد ضغط مرتين في نفس اللحظة: طلب واحد بس', async () => {
-    const body = { lawyerId, problemDescription: 'وصف المشكلة', clientLat: 30.05, clientLon: 31.25 };
-    const results = await Promise.all([call('POST', '/orders', clientToken, body), call('POST', '/orders', clientToken, body)]);
-    assert.deepEqual(results.map((res) => res.status).sort(), [201, 409]);
-  });
-
-  it('القبول والاعتذار في نفس اللحظة: واحد بس يتنفذ', async () => {
-    const order = await createOrder();
-    const results = await Promise.all([
-      call('POST', `/orders/${order.id}/accept`, lawyerToken, {}),
-      call('POST', `/orders/${order.id}/reject`, lawyerToken, {}),
-    ]);
-    assert.equal(results.filter((res) => res.status === 200).length, 1, JSON.stringify(results.map((res) => res.status)));
+    const body = { problemType: 'محضر في قسم الشرطة', problemDescription: 'وصف المشكلة', clientLat: 30.05, clientLon: 31.25 };
+    const results = await Promise.all([call('POST', '/requests', clientToken, body), call('POST', '/requests', clientToken, body)]);
+    assert.equal(results[0].body.data.id, results[1].body.data.id);
   });
 });
 
@@ -276,7 +265,6 @@ describe('الفلوس لما عمليتين ييجوا في نفس اللحظة
   it('الدفع من الرصيد مرتين بيخصم مرة واحدة', async () => {
     await sql(`INSERT INTO client_credits (client_id, amount, reason) VALUES ($1, 700, 'رصيد')`, [clientId]);
     const order = await createOrder();
-    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
     const pay = () => call('POST', `/orders/${order.id}/confirm-payment`, clientToken, { method: 'wallet' });
     const results = await Promise.all([pay(), pay()]);
     assert.equal(statuses(results), 1, JSON.stringify(results.map((res) => res.status)));
@@ -289,7 +277,6 @@ describe('الفلوس لما عمليتين ييجوا في نفس اللحظة
     const recipientPhone = newPhone();
     await createUser(recipientPhone, 'client');
     const order = await createOrder();
-    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
     await Promise.all([
       call('POST', `/orders/${order.id}/confirm-payment`, clientToken, { method: 'wallet' }),
       call('POST', '/wallet/transfer', clientToken, { phone: recipientPhone, amount: 350 }),

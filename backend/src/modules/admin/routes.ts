@@ -55,8 +55,6 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ success: false, error: 'نوع المشكلة غير موجود' });
     }
 
-    // Saved client prices follow the new range from the next quote
-    await query('DELETE FROM client_problem_prices WHERE problem_type = $1', [body.problemType]);
     const old = before.rows[0];
     await logAdminAction(adminId, 'PRICE_UPDATE', body.problemType ?? null,
       `من ${Number(old.min_price)}-${Number(old.max_price)} ج.م ونسبة ${Number(old.commission_percent)}% إلى ${minPrice}-${maxPrice} ج.م ونسبة ${commission}%`);

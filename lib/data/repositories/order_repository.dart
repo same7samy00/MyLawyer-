@@ -86,49 +86,6 @@ class OrderRepository {
     return ApiResponse<OrderModel?>(success: false, statusCode: res.statusCode, error: res.error);
   }
 
-  /// قبول الطلب من قبل المحامي
-  static Future<ApiResponse<OrderModel>> acceptOrder(String orderId, {double? lat, double? lon}) async {
-    final res = await ApiService.post('/orders/$orderId/accept', {
-      if (lat != null && lon != null) ...{'latitude': lat, 'longitude': lon},
-    });
-    if (res.isOk && res.data is Map<String, dynamic>) {
-      final order = OrderModel.fromJson(res.data as Map<String, dynamic>);
-      return ApiResponse<OrderModel>(
-        success: true,
-        statusCode: res.statusCode,
-        message: res.message,
-        data: order,
-      );
-    }
-    return ApiResponse<OrderModel>(
-      success: false,
-      statusCode: res.statusCode,
-      error: res.error ?? 'تعذر قبول الطلب',
-    );
-  }
-
-  /// رفض الطلب أو الاعتذار عنه
-  static Future<ApiResponse<OrderModel>> rejectOrder(String orderId, {String? reason}) async {
-    final res = await ApiService.post('/orders/$orderId/reject', {
-      'reason': reason ?? 'المحامي غير متاح حالياً للمهمة',
-    });
-    if (res.isOk && res.data is Map<String, dynamic>) {
-      final order = OrderModel.fromJson(res.data as Map<String, dynamic>);
-      return ApiResponse<OrderModel>(
-        success: true,
-        statusCode: res.statusCode,
-        message: res.message,
-        data: order,
-      );
-    }
-    return ApiResponse<OrderModel>(
-      success: false,
-      statusCode: res.statusCode,
-      error: res.error ?? 'تعذر رفض الطلب',
-    );
-  }
-
-  /// تأكيد سداد قيمة الطلب
   static Future<ApiResponse<OrderModel>> confirmPayment(String orderId, {bool fromBalance = false}) async {
     final res = await ApiService.post('/orders/$orderId/confirm-payment', {
       if (fromBalance) 'method': 'wallet',

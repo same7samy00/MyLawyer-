@@ -30,16 +30,6 @@ describe('السعر', () => {
     assert.equal((await createOrder()).price, 500);
   });
 
-  it('تعديل السعر من لوحة التحكم يلغي الأسعار المحفوظة للموكلين', async () => {
-    await sql(`UPDATE problem_prices SET min_price = 300, max_price = 900 WHERE problem_type = $1`, [PROBLEM]);
-    await createOrder();
-    await closeOrders();
-    assert.equal((await sql('SELECT 1 FROM client_problem_prices')).length, 1);
-
-    const res = await call('PUT', '/admin/prices', adminToken, { problemType: PROBLEM, minPrice: 300, maxPrice: 900 });
-    assert.equal(res.status, 200, JSON.stringify(res.body));
-    assert.equal((await sql('SELECT 1 FROM client_problem_prices')).length, 0);
-  });
 });
 
 describe('المحفظة', () => {
@@ -61,11 +51,11 @@ describe('المحفظة', () => {
 });
 
 describe('السعر قبل الطلب والنسبة', () => {
-  it('الموكل يشوف السعر قبل الطلب، وهو نفس سعر الطلب', async () => {
+  it('الموكل يشوف حدود السعر قبل الطلب، والطلب بسعر المحامي اللي اختاره', async () => {
     await sql(`UPDATE problem_prices SET min_price = 1000, max_price = 1200 WHERE problem_type = $1`, [PROBLEM]);
-    const quote = await call('POST', '/orders/quote', clientToken, { problemType: PROBLEM });
-    assert.ok(quote.body.data.price >= 1000 && quote.body.data.price <= 1200);
-    assert.equal((await createOrder()).price, quote.body.data.price);
+    const range = await call('GET', `/requests/range?problemType=${encodeURIComponent(PROBLEM)}`, clientToken);
+    assert.deepEqual(range.body.data, { minPrice: 1000, maxPrice: 1200 });
+    assert.equal((await createOrder()).price, 1000);
   });
 
   it('المحامي يشوف الصافي بس والموكل يشوف السعر الكامل', async () => {
@@ -225,7 +215,6 @@ describe('صفحة المدفوعات', () => {
 
   it('الدفعة الناجحة والمرتجعة والفاشلة بتظهر للموكل بس', async () => {
     const order = await createOrder();
-    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
     const noBalance = await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, { method: 'wallet' });
     assert.equal(noBalance.status, 400);
 

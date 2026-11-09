@@ -1,5 +1,11 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [«محاميك حالاً» Closed and Documented] - 2026-11-09
+- **One task per lawyer** (`MAX_LAWYER_TASKS = 1`); choosing an offer never holds the lawyer and there is no time to pay.
+- **Removed the named-lawyer path:** `POST /orders`, `/orders/quote`, `/orders/:id/accept` and `/reject`, the 2-minute answer window and «فاتك طلب» counter, `resolveClientQuote`, and migration `038` drops `client_problem_prices` and `missed_orders`. The app lost its accept/decline buttons and the answer countdown. Test helpers now make orders the real way (request, offer, choice).
+- **Lawyer orders badge** counts the lawyer's active task.
+- `docs/URGENT_SERVICE.md` is the one reference for the service; old service and map decisions left `DECISIONS.md`.
+
 ## [No Time to Pay, Up to 3 Tasks per Lawyer] - 2026-11-09
 - No payment window: whoever pays first gets the lawyer (`PAYMENT_MINUTES` is a one-day cleanup only). A lawyer holds up to 3 tasks at once (`MAX_LAWYER_TASKS`, paid or waiting for their answer, postponed ones excluded); `HAS_OPEN_ORDER('lawyer_id')` and `lawyerHasOpenOrder` now mean «no place left». When the third place fills, the clients who chose the lawyer and did not pay go back to their offers.
 

@@ -800,7 +800,7 @@ void main() {
     });
 
     testWidgets('LawyerOrdersTab displays a summary card without actions instead of client contact/complaint', (WidgetTester tester) async {
-      backend.orders = [sampleOrder(status: 'PENDING')];
+      backend.orders = [sampleOrder(status: 'ACTIVE')];
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.lightTheme,
@@ -853,8 +853,9 @@ void main() {
       expect(find.byType(OrderDetailsSheet), findsOneWidget);
       expect(find.byType(TrackingScreen), findsNothing);
       expect(find.text('ML-ORD-100001'), findsOneWidget);
-      expect(find.text('قبول الطلب'), findsOneWidget);
-      expect(find.text('اعتذار'), findsOneWidget);
+      // A paid task: the way to the client, and no accept or decline any more
+      expect(find.text('افتح مكان الموكل في Google Maps'), findsOneWidget);
+      expect(find.text('قبول الطلب'), findsNothing);
 
       await tester.pumpWidget(const SizedBox.shrink());
     });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createUser, createOrder, createPaidOrder, createCompletedOrder, openTicket, wallet, clientBalance } from './harness.js';
+import { app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createUser, createOrder, createPaidOrder, createCompletedOrder, openTicket, wallet, clientBalance, closeOrders } from './harness.js';
 
 describe('الدعم الفني', () => {
   it('تحت المراجعة، ثم مفتوحة بعد رد الإدارة، وتفضل مفتوحة لحد ما الإدارة تقفلها', async () => {
@@ -157,7 +157,6 @@ describe('الدعم الفني', () => {
   it('الدفع من الرصيد بيتسجل بطريقة الرصيد', async () => {
     await call('POST', `/admin/users/${clientId}/balance`, adminToken, { amount: 1000, reason: 'رصيد للتجربة' });
     const order = await createOrder();
-    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
     assert.equal((await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, { method: 'wallet' })).status, 200);
     assert.equal((await sql('SELECT method FROM payments WHERE order_id = $1', [order.id]))[0].method, 'WALLET');
   });
@@ -181,12 +180,10 @@ describe('الدعم الفني', () => {
   it('إشعارات الطلب القديمة بتختفي لما الطلب يتقدم، والضغط على إشعار بيقراه', async () => {
     const titles = async (user: string) => (await sql('SELECT title FROM notifications WHERE user_id = $1', [user])).map((row: any) => row.title);
     const order = await createOrder();
-    assert.ok((await titles(lawyerId)).includes('طلب جديد'));
-    await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
-    assert.equal((await titles(lawyerId)).includes('طلب جديد'), false);
-    assert.ok((await titles(clientId)).includes('المحامي وافق'));
+    assert.ok((await titles(lawyerId)).includes('الموكل اختار عرضك'));
     await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, {});
-    assert.equal((await titles(clientId)).includes('المحامي وافق'), false);
+    // The order's newest line replaces the older one
+    assert.equal((await titles(lawyerId)).includes('الموكل اختار عرضك'), false);
 
     const note = (await sql(`SELECT id FROM notifications WHERE user_id = $1 AND title = 'الموكل دفع'`, [lawyerId]))[0];
     assert.equal((await call('POST', '/notifications/read', lawyerToken, { id: note.id })).status, 200);
@@ -229,12 +226,13 @@ describe('الدعم الفني', () => {
   });
 
   it('انتهاء المهل والتذاكر والتجميد بيتسجلوا في مراحل الطلب', async () => {
-    const unanswered = await createOrder();
-    await sql(`UPDATE service_orders SET response_deadline = NOW() - INTERVAL '1 minute' WHERE id = $1`, [unanswered.id]);
+    const unpaid = await createOrder();
+    await sql(`UPDATE service_orders SET payment_deadline = NOW() - INTERVAL '1 minute' WHERE id = $1`, [unpaid.id]);
     await sweepLifecycle();
-    const logs = (await call('GET', `/admin/orders/${unanswered.id}`, adminToken)).body.data.logs;
-    assert.equal(logs.at(-1).new_status, 'NO_RESPONSE');
+    const logs = (await call('GET', `/admin/orders/${unpaid.id}`, adminToken)).body.data.logs;
+    assert.equal(logs.at(-1).new_status, 'PAYMENT_EXPIRED');
     assert.equal(logs.at(-1).actor_role, null);
+    await closeOrders();
 
     const done = await createCompletedOrder();
     await openTicket(clientToken, done.id);

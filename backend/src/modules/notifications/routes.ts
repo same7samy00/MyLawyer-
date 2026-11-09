@@ -68,7 +68,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
     );
     const ordersRes = await query(
       `SELECT COUNT(*)::int AS total FROM service_orders
-       WHERE ${role === 'lawyer' ? "lawyer_id = $1 AND status = 'PENDING'" : "client_id = $1 AND status IN ('ACCEPTED', 'ACTIVE')"}`,
+       WHERE ${role === 'lawyer' ? "lawyer_id = $1 AND status = 'ACTIVE' AND postponed_at IS NULL" : "client_id = $1 AND status IN ('ACCEPTED', 'ACTIVE')"}`,
       [userId]
     );
 

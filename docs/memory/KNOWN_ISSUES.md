@@ -121,7 +121,6 @@
 - **SEC-09:** في Nginx، `location ^~ /uploads/` فيه `add_header` خاص بيه، وده بيلغي رؤوس الأمان العامة (`nosniff` وغيره) للملفات دي. الخطر قليل، لأن الخادم بيتأكد إن الملف صورة.
 
 ## ARCH-02 وARCH-03 وDOC-01
-- **ARCH-02:** `POST /orders` و`/orders/quote` و`client_problem_prices`: تتشال بعد ما كل الأجهزة تتحدث.
 - **ARCH-03:** `022_lawyer_map_index.sql` و`022_scaling_indexes.sql`. الترتيب بالاسم ثابت، فمش مشكلة، بس الأرقام الجاية تبدأ من `030`.
 - **DOC-01:** `PENDING_TASKS.md` كان بيقول «إضافة Swap»، والسيرفر عليه 4 جيجا Swap بالفعل. و`HANDOFF.md` القسم 1 الخطوات 2 و3 قديمة (موضح جواه إنها اتلغت). اتصلح في `PENDING_TASKS.md`.
 

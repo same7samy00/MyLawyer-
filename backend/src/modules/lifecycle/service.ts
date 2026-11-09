@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import { Db } from '../../database/index.js';
 import { sendPush } from '../../services/pushService.js';
 import { publishChange } from '../../services/liveUpdates.js';
@@ -12,8 +11,9 @@ export const LAWYER_RESPONSE_SECONDS = 120;
 /// (owner decision 2026-11-09). A choice left a whole day unpaid is cleaned away so nothing stays open forever
 export const PAYMENT_MINUTES = 24 * 60;
 
-/// A lawyer can have up to 3 tasks going at once (paid, or waiting for their answer); a postponed task doesn't count
-export const MAX_LAWYER_TASKS = 3;
+/// A lawyer has one task at a time (paid, or waiting for their answer) and gets no requests until it ends or is
+/// postponed (owner decision 2026-11-09)
+export const MAX_LAWYER_TASKS = 1;
 /// The lawyer and the client must really meet, so arrival is accepted within 50 meters only
 export const ARRIVAL_RADIUS_KM = 0.05;
 /// Each side shares its newest point at most this often on the way to the meeting
@@ -33,7 +33,6 @@ const APPROXIMATE_GRID_DEGREES = 0.01;
 const STRIKE_LIMIT = 3;
 const STRIKE_WINDOW_DAYS = 30;
 const SUSPENSION_DAYS = 7;
-const FALLBACK_PROBLEM = 'مشكلة قانونية أخرى';
 
 /// Exact places stay private until payment, so public positions move to a coarse grid
 export function approximateCoordinate(value: number): number {
@@ -102,67 +101,10 @@ export async function addClientCredit(db: Db, clientId: string, orderId: string,
   );
 }
 
-export interface ClientQuote {
-  price: number;
-  commissionPercent: number;
-  taxPercent: number;
-  lawyerAmount: number;
-}
-
 /// The price includes tax, and the platform share comes from what remains after it
 export function lawyerShare(amount: number, commissionPercent: number, taxPercent = 0): number {
   const afterTax = amount * (100 - taxPercent) / 100;
   return Math.round(afterTax * (100 - commissionPercent)) / 100;
-}
-
-/// Picks a random whole price inside the problem's range and keeps it for this client.
-/// A stored price stays while it is inside the range, otherwise a new one is picked.
-export async function resolveClientQuote(db: Db, clientId: string, problemType: string | null): Promise<ClientQuote> {
-  const rangeRes = await db.query(
-    `SELECT problem_type, min_price, max_price, commission_percent FROM problem_prices
-     WHERE problem_type = $1 OR problem_type = $2
-     ORDER BY problem_type = $1 DESC LIMIT 1`,
-    [problemType ?? FALLBACK_PROBLEM, FALLBACK_PROBLEM]
-  );
-
-  if (rangeRes.rows.length === 0) {
-    throw new Error('No price range is configured');
-  }
-
-  const range = rangeRes.rows[0];
-  const min = Number(range.min_price);
-  const max = Number(range.max_price);
-  const commissionPercent = Number(range.commission_percent);
-  const settingsRes = await db.query('SELECT tax_percent FROM platform_settings LIMIT 1');
-  const taxPercent = Number(settingsRes.rows[0]?.tax_percent ?? 0);
-  const quote = (price: number) => ({
-    price,
-    commissionPercent,
-    taxPercent,
-    lawyerAmount: lawyerShare(price, commissionPercent, taxPercent),
-  });
-
-  const storedRes = await db.query(
-    'SELECT price FROM client_problem_prices WHERE client_id = $1 AND problem_type = $2',
-    [clientId, range.problem_type]
-  );
-
-  if (storedRes.rows.length > 0) {
-    const stored = Number(storedRes.rows[0].price);
-    if (stored >= min && stored <= max) return quote(stored);
-  }
-
-  const low = Math.ceil(min);
-  const high = Math.floor(max);
-  const price = high >= low ? crypto.randomInt(low, high + 1) : min;
-
-  await db.query(
-    `INSERT INTO client_problem_prices (client_id, problem_type, price) VALUES ($1, $2, $3)
-     ON CONFLICT (client_id, problem_type) DO UPDATE SET price = EXCLUDED.price, created_at = NOW()`,
-    [clientId, range.problem_type, price]
-  );
-
-  return quote(price);
 }
 
 /// Road time with live traffic plus the margin. A routing failure must never stop a payment, so it falls back to an estimate.

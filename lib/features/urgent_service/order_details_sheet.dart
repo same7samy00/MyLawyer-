@@ -15,7 +15,6 @@ import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/order_action_sheets.dart';
 import '../../core/widgets/order_status_tracker.dart';
 import '../../core/widgets/postponed_since.dart';
-import '../../core/widgets/response_countdown.dart';
 import '../../core/widgets/sheet_actions.dart';
 import '../../data/models/order_model.dart';
 import '../../data/repositories/order_repository.dart';
@@ -170,26 +169,6 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
 
   // إجراءات المحامي
 
-  Future<void> _acceptOrder() async {
-    // تعذر الموقع لا يمنع القبول، والموكل يشوف وقت آخر مكان معروف
-    final location = await LocationService.instance.checkAndRequestPermission(fresh: true);
-    if (!mounted) return;
-
-    await _run(
-      () => OrderRepository.acceptOrder(
-        _order.id,
-        lat: location.position?.latitude,
-        lon: location.position?.longitude,
-      ),
-      'تم قبول الطلب',
-    );
-  }
-
-  Future<void> _rejectOrder() async {
-    if (!await _confirm('الاعتذار عن الطلب', 'هتعتذر عن قبول الطلب ده؟', 'اعتذار', icon: Icons.cancel_outlined, isDanger: true)) return;
-    await _run(() => OrderRepository.rejectOrder(_order.id), 'تم الاعتذار عن الطلب');
-  }
-
   Future<void> _markArrived() async {
     // The arrival proves the meeting, so it needs the lawyer's real location
     final location = await LocationService.instance.checkAndRequestPermission(fresh: true);
@@ -240,10 +219,6 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
               style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 13, color: Colors.white),
             ),
           ),
-        if (order.isPending) ...[
-          ResponseCountdown(secondsLeft: order.responseSecondsLeft, onFinished: _load),
-          const SizedBox(height: 12),
-        ],
         _buildNumberCard(order),
         const SizedBox(height: 12),
         AppCard(
@@ -398,10 +373,6 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
 
   List<Widget> _buildLawyerActions(OrderModel order) {
     return [
-      if (order.isPending) ...[
-        _primaryAction('قبول الطلب', _acceptOrder, icon: Icons.check_circle_rounded),
-        _action('اعتذار', _rejectOrder, isDanger: true),
-      ],
       if (order.isActive) ...[
         if (order.hasOpenComplaint) _statusNote('الطلب قيد المراجعة، والأتعاب متوقفة لحد قرار الإدارة'),
         if (order.clientPhone != null)

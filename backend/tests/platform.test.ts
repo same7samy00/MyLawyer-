@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { PROBLEM, app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createUser, createOrder } from './harness.js';
+import { PROBLEM, app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createUser, createOrder, createPaidOrder } from './harness.js';
 import { LAWYER_CAN_WORK } from '../src/modules/requests/service.js';
 const canWork = async (id: string) => (await sql(`SELECT 1 FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id WHERE lp.user_id = $1 AND ${LAWYER_CAN_WORK('lp', 'u')}`, [id])).length > 0;
 
@@ -75,26 +75,15 @@ describe('استقبال المحامي للطلبات', () => {
     const update = await call('POST', '/lawyers/me/location', lawyerToken, { latitude: 30.05, longitude: 31.25 });
     assert.equal(update.body.data.isAvailable, false);
   });
-
-  it('القبول يحدث مكان المحامي في الطلب', async () => {
-    const order = await createOrder();
-    const accepted = await call('POST', `/orders/${order.id}/accept`, lawyerToken, { latitude: 30.79, longitude: 31.0 });
-    assert.equal(accepted.status, 200);
-
-    const row = (await sql('SELECT lawyer_latitude FROM service_orders WHERE id = $1', [order.id]))[0];
-    assert.equal(Number(row.lawyer_latitude), 30.79);
-    await sql(`UPDATE lawyer_profiles SET latitude = 30.05, longitude = 31.25 WHERE user_id = $1`, [lawyerId]);
-  });
-
 });
 
 describe('الترتيب والإشعارات والصلاحيات', () => {
-  it('عداد الطلبات للمحامي وقراءة الإشعارات', async () => {
-    await createOrder();
+  it('عداد مهمة المحامي الشغالة وقراءة الإشعارات', async () => {
+    await createPaidOrder();
 
     const summary = await call('GET', '/notifications/summary', lawyerToken);
     assert.equal(summary.body.data.pendingOrders, 1);
-    assert.equal(summary.body.data.unread, 1);
+    assert.ok(summary.body.data.unread >= 1);
 
     await call('POST', '/notifications/read-all', lawyerToken, {});
     assert.equal((await call('GET', '/notifications/summary', lawyerToken)).body.data.unread, 0);

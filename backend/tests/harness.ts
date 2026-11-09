@@ -49,26 +49,35 @@ export async function createUser(phone: string, role: string) {
   return rows[0].id as string;
 }
 
+/// An order the way the app makes one: the client sends a request, the lawyer prices it at the range's lowest,
+/// and the client chooses it. The order then waits for payment
 export async function createOrder(overrides: object = {}) {
-  const res = await call('POST', '/orders', clientToken, {
-    lawyerId,
+  const sent = await call('POST', '/requests', clientToken, {
     problemType: PROBLEM,
     problemDescription: 'وصف المشكلة',
     clientLat: 30.05,
     clientLon: 31.25,
     ...overrides,
   });
-  assert.equal(res.status, 201, JSON.stringify(res.body));
-  return res.body.data as { id: string; price: number };
+  assert.equal(sent.status, 201, JSON.stringify(sent.body));
+  const requestId = sent.body.data.id as string;
+  const range = (await sql('SELECT min_price FROM service_requests WHERE id = $1', [requestId]))[0];
+  const priced = await call('POST', `/requests/${requestId}/offer`, lawyerToken, { price: Number(range.min_price) });
+  assert.equal(priced.status, 201, JSON.stringify(priced.body));
+  const offers = (await call('GET', `/requests/${requestId}`, clientToken)).body.data.offers;
+  const mine = offers.find((offer: any) => offer.lawyerId === lawyerId);
+  const chosen = await call('POST', `/requests/${requestId}/offers/${mine.id}/select`, clientToken, {});
+  assert.equal(chosen.status, 200, JSON.stringify(chosen.body));
+  return { id: chosen.body.data.orderId as string, price: chosen.body.data.price as number };
 }
 
 export async function closeOrders() {
   await sql(`UPDATE service_orders SET status = 'CANCELLED' WHERE status IN ('PENDING', 'ACCEPTED', 'ACTIVE')`);
+  await sql(`UPDATE service_requests SET status = 'CANCELLED' WHERE status = 'OPEN'`);
 }
 
 export async function createPaidOrder() {
   const order = await createOrder();
-  await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
   const paid = await call('POST', `/orders/${order.id}/confirm-payment`, clientToken, {});
   assert.equal(paid.status, 200);
   return order;
@@ -132,12 +141,12 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  for (const table of ['change_log', 'service_requests', 'ticket_attachments', 'ticket_messages', 'support_tickets', 'consultation_pages', 'consultations', 'wallet_transfers', 'reviews', 'lawyer_strikes', 'client_credits', 'account_warnings', 'lawyer_adjustments', 'notifications', 'client_problem_prices', 'order_status_logs']) {
+  for (const table of ['change_log', 'service_requests', 'ticket_attachments', 'ticket_messages', 'support_tickets', 'consultation_pages', 'consultations', 'wallet_transfers', 'reviews', 'lawyer_strikes', 'client_credits', 'account_warnings', 'lawyer_adjustments', 'notifications', 'order_status_logs']) {
     await sql(`DELETE FROM ${table}`);
   }
   await sql('DELETE FROM service_orders');
   await sql(`UPDATE problem_prices SET min_price = 350, max_price = 350, commission_percent = 0`);
-  await sql(`UPDATE lawyer_profiles SET is_available = TRUE, urgent_status = 'APPROVED', availability_off_reason = NULL, missed_orders = 0, suspended_until = NULL, last_active_at = NOW(), last_location_updated_at = NOW(), wake_count = 0, last_wake_at = NULL WHERE user_id = $1`, [lawyerId]);
+  await sql(`UPDATE lawyer_profiles SET is_available = TRUE, urgent_status = 'APPROVED', availability_off_reason = NULL, suspended_until = NULL, last_active_at = NOW(), last_location_updated_at = NOW(), wake_count = 0, last_wake_at = NULL WHERE user_id = $1`, [lawyerId]);
   await sql(`UPDATE users SET warnings_count = 0, suspended_until = NULL, status = 'active'::user_status WHERE id = ANY($1)`, [[clientId, lawyerId]]);
 });
 
