@@ -322,7 +322,7 @@ export async function requestRoutes(fastify: FastifyInstance) {
         [newOrder.id, userId, `اختار الموكل عرض المحامي بسعر ${Number(offer.price)} ج.م`]
       );
 
-      await notify(client, lawyerId, 'الموكل اختار عرضك', 'مستنيين الموكل يدفع خلال 10 دقايق', newOrder.id);
+      await notify(client, lawyerId, 'الموكل اختار عرضك', 'مستنيين الموكل يدفع خلال 3 دقايق، ولو جالك شغل تاني الأول خده', newOrder.id);
       const others = await client.query(
         'SELECT lawyer_id FROM request_offers WHERE request_id = $1 AND lawyer_id <> $2 AND withdrawn_at IS NULL',
         [id, lawyerId]

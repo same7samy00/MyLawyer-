@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart';
 import '../../core/services/api_service.dart';
 import '../models/service_request.dart';
 
 /// الطلب اللي بيروح لأقرب المحامين وعروض أسعارهم
 class RequestRepository {
+  /// الدفع رجع إن المحامي اتشغل أو المهلة خلصت: صفحة الطلب ترجع لنفس العروض
+  static final ValueNotifier<int> backToOffers = ValueNotifier<int>(0);
+
   static Future<ApiResponse<(int, int)>> getRange(String? problemType) async {
     final res = await ApiService.get('/requests/range', queryParams: {if (problemType != null) 'problemType': problemType});
     if (res.isOk && res.data is Map<String, dynamic>) {

@@ -168,3 +168,30 @@ export async function advanceRequests() {
     });
   }
 }
+
+/// A chosen order that was not paid goes away and the client is back on the same offers for 5 minutes.
+/// [taken]: the lawyer was paid for by someone else first, so their offer leaves the list too
+export async function releaseChoice(db: Db, order: { id: string; client_id: string; lawyer_id: string }, taken: boolean) {
+  const note = taken ? 'المحامي اتشغل في طلب تاني قبل الدفع' : 'انتهت مهلة الدفع دون دفع';
+  await db.query(`UPDATE service_orders SET status = 'PAYMENT_EXPIRED', updated_at = NOW() WHERE id = $1 AND status = 'ACCEPTED'`, [order.id]);
+  await db.query(
+    `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note) VALUES ($1, NULL, 'ACCEPTED', 'PAYMENT_EXPIRED', $2)`,
+    [order.id, note]
+  );
+  const reopened = await db.query(
+    `UPDATE service_requests SET status = 'OPEN', order_id = NULL, round = $2, round_deadline = NOW()
+     WHERE order_id = $1 RETURNING id`,
+    [order.id, AUTO_ROUNDS]
+  );
+  const requestId = reopened.rows[0]?.id as string | undefined;
+  if (requestId && taken) {
+    await db.query('UPDATE request_offers SET withdrawn_at = NOW() WHERE request_id = $1 AND lawyer_id = $2', [requestId, order.lawyer_id]);
+  }
+  if (requestId) {
+    await notify(db, order.client_id, taken ? 'المحامي اتشغل' : 'انتهت مهلة الدفع', 'اختار محامي تاني من العروض اللي قدامك خلال 5 دقايق', { requestId });
+  } else {
+    await notify(db, order.client_id, 'انتهت مهلة الدفع', 'الطلب اتلغى، وتقدر تبدأ طلب جديد', order.id);
+  }
+  await publishChange(db, order.lawyer_id, false, 'orders', order.id);
+  return requestId;
+}

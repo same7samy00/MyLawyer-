@@ -107,6 +107,8 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   int _minPrice = 0;
   int _maxPrice = 0;
   String? _activeRequestId;
+  /// الطلب اللي الموكل اختار منه العرض، عشان يرجعله لو المحامي اتشغل قبل الدفع
+  String? _chosenFromRequestId;
   ClientRequest? _activeRequest;
   String? _reviewsLawyerId;
   bool _isChoosingOffer = false;
@@ -127,6 +129,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   void initState() {
     super.initState();
     _fetchCurrentLocation();
+    RequestRepository.backToOffers.addListener(_resumeOffers);
   }
 
   @override
@@ -137,6 +140,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
 
   @override
   void dispose() {
+    RequestRepository.backToOffers.removeListener(_resumeOffers);
     _orderPollTimer?.cancel();
     _roundEndTimer?.cancel();
     _followedRequestId = null;

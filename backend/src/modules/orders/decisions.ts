@@ -3,6 +3,7 @@ import { dbPool, query, withTransaction } from '../../database/index.js';
 import { sanitizeText } from '../../utils/security.js';
 import { HttpError } from '../../utils/http.js';
 import { addClientCredit, arrivalMinutes, lawyerHasOpenOrder, notify, ORDER_DEADLINE_HOURS, PAYMENT_MINUTES } from '../lifecycle/service.js';
+import { releaseChoice } from '../requests/service.js';
 import { AuthenticatedUser, lockOrder } from './shared.js';
 
 /// The lawyer answer and the client payment
@@ -75,7 +76,7 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
         [order.id, userId]
       );
 
-      await notify(client, order.client_id, 'المحامي وافق', 'ادفع خلال 10 دقايق عشان يبدأ', order.id);
+      await notify(client, order.client_id, 'المحامي وافق', 'ادفع خلال 3 دقايق عشان يبدأ', order.id);
     });
 
     return reply.send({
@@ -170,13 +171,24 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
       return new HttpError(status, reason);
     };
 
+    let taken = false;
     const order = await withTransaction(async (client) => {
-      // The balance is shared with wallet transfers, which take the same account lock
-      await client.query('SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);
+      // The balance is shared with wallet transfers, which take the same account lock. The lawyer's account is locked
+      // too, so two clients paying for the same lawyer at once are served one after the other
+      const owner = await client.query('SELECT lawyer_id FROM service_orders WHERE (id::text = $1 OR order_number = $1) AND client_id = $2', [id, userId]);
+      const people = [userId, owner.rows[0]?.lawyer_id].filter(Boolean).sort();
+      await client.query('SELECT id FROM users WHERE id = ANY($1::uuid[]) ORDER BY id FOR NO KEY UPDATE', [people]);
       const locked = await lockOrder(client, id);
 
       if (!locked || locked.client_id !== userId) throw new HttpError(404, 'الطلب غير موجود');
-      if (locked.status !== 'ACCEPTED') throw new HttpError(400, 'لا يمكن الدفع قبل موافقة المحامي على الطلب');
+      if (locked.status === 'PENDING') throw new HttpError(400, 'لا يمكن الدفع قبل موافقة المحامي على الطلب');
+      if (locked.status !== 'ACCEPTED') throw new HttpError(409, 'المحامي ده اتشغل أو المهلة خلصت، اختار محامي تاني من العروض');
+      // Someone else paid for this lawyer first: this choice goes, and the client picks again from the same offers
+      if (await lawyerHasOpenOrder(client, locked.lawyer_id, locked.id)) {
+        await releaseChoice(client, locked, true);
+        taken = true;
+        return locked;
+      }
       if (new Date(locked.payment_deadline).getTime() <= Date.now()) throw failPayment(locked, 'انتهت مهلة الدفع لهذا الطلب', 409);
 
       if (body.method === 'wallet') {
@@ -208,6 +220,12 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
       );
 
       await notify(client, locked.lawyer_id, 'الموكل دفع', 'ابدأ المهمة، ودوس «وصلت» عند الموكل', locked.id);
+      // Other clients who chose this lawyer and did not pay yet go back to their offers
+      const others = await client.query(
+        `SELECT id, client_id, lawyer_id FROM service_orders WHERE lawyer_id = $1 AND status = 'ACCEPTED' AND id <> $2 FOR UPDATE`,
+        [locked.lawyer_id, locked.id]
+      );
+      for (const other of others.rows) await releaseChoice(client, other, true);
       return locked;
     }).catch(async (error) => {
       const attempt = failed as { orderId: string; amount: number; reason: string } | null;
@@ -219,6 +237,9 @@ export async function registerOrderDecisions(fastify: FastifyInstance) {
       }
       throw error;
     });
+
+    // Nothing was charged: the client is back on the offers
+    if (taken) throw new HttpError(409, 'المحامي ده اتشغل، اختار محامي تاني من العروض');
 
     return reply.send({
       success: true,

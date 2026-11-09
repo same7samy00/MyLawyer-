@@ -1,5 +1,9 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [Lawyer Held Only After Payment, Shorter Arrival Window] - 2026-11-09
+- **Payment:** choosing an offer no longer holds the lawyer (`HOLDS_LAWYER` counts paid and waiting-for-answer orders only). 3 minutes to pay. Paying takes the lawyer from every other client who chose them, and a client whose lawyer was taken, or whose 3 minutes passed, is back on the same offers for 5 minutes (`releaseChoice`); the app returns to the offers by itself (`RequestRepository.backToOffers`).
+- **Arrival window:** road time with traffic plus 10, 15 or 20 minutes by road length (`arrivalMargin`), and the reminder 5 minutes before the end.
+
 ## [Lawyers Stay Available] - 2026-11-09
 - **Server:** migration `037` adds `wake_count` and `last_wake_at`. A quiet available lawyer gets a silent high-priority push (`sendWake`) at 5 and 7 minutes and is turned off at 8 with no answer; any location resets it.
 - **App:** «still here» every 3 minutes at medium accuracy, the wake push answered with the place even when the app is closed (`answerWake` from the background handler), the trip pace follows the distance to the client (30, 15, 5 seconds) and the client sends every minute. The battery step and the phone maker's «auto start» page are required before «متاح».

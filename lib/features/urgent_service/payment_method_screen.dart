@@ -7,6 +7,7 @@ import '../../data/models/consultation.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/repositories/consultation_repository.dart';
 import '../../data/repositories/order_repository.dart';
+import '../../data/repositories/request_repository.dart';
 import 'payment_success_screen.dart';
 
 enum PaymentMethod { mobileWallet, card, balance }
@@ -70,6 +71,15 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     final res = await OrderRepository.confirmPayment(widget.orderId, fromBalance: _method == PaymentMethod.balance);
     if (!mounted) return;
 
+    // The lawyer was taken by another client, or the 3 minutes passed: nothing was charged, back to the same offers
+    if (res.statusCode == 409) {
+      _showError(res.error);
+      RequestRepository.backToOffers.value++;
+      final navigator = Navigator.of(context);
+      navigator.pop();
+      if (navigator.canPop()) navigator.pop();
+      return;
+    }
     if (!res.isOk) return _showError(res.error);
 
     _openSuccess();

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { PROBLEM, app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createUser, createOrder, closeOrders, createPaidOrder, createArrivedOrder, openTicket, wallet, clientBalance } from './harness.js';
+import { arrivalMargin } from '../src/modules/lifecycle/service.js';
 import { LAWYER_CAN_WORK } from '../src/modules/requests/service.js';
 const canWork = async (id: string) => (await sql(`SELECT 1 FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id WHERE lp.user_id = $1 AND ${LAWYER_CAN_WORK('lp', 'u')}`, [id])).length > 0;
 
@@ -117,15 +118,17 @@ describe('تأخر المحامي عن الوصول', () => {
   const passDeadline = (id: string) =>
     sql(`UPDATE service_orders SET arrival_deadline = NOW() - INTERVAL '1 minute', paid_at = NOW() - INTERVAL '1 hour' WHERE id = $1`, [id]);
 
-  it('مهلة الوصول بتتحسب عند الدفع', async () => {
+  it('مهلة الوصول بتتحسب عند الدفع: وقت الطريق وهامش على قده', async () => {
     const order = await createPaidOrder();
-    const rows = await sql(`SELECT arrival_deadline > NOW() + INTERVAL '29 minutes' AS ok FROM service_orders WHERE id = $1`, [order.id]);
+    // Same spot in the test, so the road is about zero and the margin is the short one
+    const rows = await sql(`SELECT arrival_deadline > NOW() + INTERVAL '9 minutes' AND arrival_deadline < NOW() + INTERVAL '12 minutes' AS ok FROM service_orders WHERE id = $1`, [order.id]);
     assert.equal(rows[0].ok, true);
+    assert.deepEqual([10, 20, 21, 60, 61, 90].map(arrivalMargin), [10, 10, 15, 15, 20, 20]);
   });
 
-  it('المحامي يوصله تذكير قبل نهاية المهلة بـ 10 دقايق مرة واحدة', async () => {
+  it('المحامي يوصله تذكير قبل نهاية المهلة بـ 5 دقايق مرة واحدة', async () => {
     const order = await createPaidOrder();
-    await sql(`UPDATE service_orders SET arrival_deadline = NOW() + INTERVAL '5 minutes' WHERE id = $1`, [order.id]);
+    await sql(`UPDATE service_orders SET arrival_deadline = NOW() + INTERVAL '4 minutes' WHERE id = $1`, [order.id]);
     await sweepLifecycle();
     await sweepLifecycle();
     assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'مهلة الوصول قربت تخلص'`, [lawyerId])).length, 1);
@@ -260,7 +263,7 @@ describe('المهل والمخالفات', () => {
     assert.equal(notes.length, 1);
   });
 
-  it('مهلة الدفع 10 دقايق وبعدها المحامي يتحرر', async () => {
+  it('مهلة الدفع 3 دقايق وبعدها الاختيار يتلغي', async () => {
     const order = await createOrder();
     await call('POST', `/orders/${order.id}/accept`, lawyerToken, {});
     await sql(`UPDATE service_orders SET payment_deadline = NOW() - INTERVAL '1 second' WHERE id = $1`, [order.id]);

@@ -190,6 +190,7 @@ extension _TrackingOrderFlow on _TrackingScreenState {
     }
 
     _stopFollowingRequest();
+    _chosenFromRequestId = requestId;
     _activeRequestId = null;
     _activeOrderId = selected.orderId;
     _activeOrderNumber = selected.orderNumber;
@@ -223,6 +224,22 @@ extension _TrackingOrderFlow on _TrackingScreenState {
 
     if (pendingRequestId != null) RequestRepository.cancel(pendingRequestId);
     if (pendingOrderId != null) OrderRepository.cancelOrder(pendingOrderId);
+  }
+
+  /// المحامي اتشغل أو مهلة الدفع خلصت: نفس الطلب بنفس العروض اللي كانت قدامه
+  void _resumeOffers() {
+    final requestId = _chosenFromRequestId;
+    if (requestId == null || !mounted) return;
+    _chosenFromRequestId = null;
+    _activeOrderId = null;
+    _activeOrderNumber = null;
+    _activeRequestId = requestId;
+    _update(() {
+      _activeRequest = null;
+      _noOffers = false;
+      _orderFlowStage = _OrderFlowStage.waitingOffers;
+    });
+    _followRequest(requestId);
   }
 
   void _openPayment() {

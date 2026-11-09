@@ -279,6 +279,51 @@ describe('الطلب وعروض الأسعار', () => {
     assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'الطلب اتقفل'`, [lawyerId])).length, 0);
   });
 
+  it('اختيار العرض ما بيحجزش المحامي: اللي يدفع الأول ياخده، والتاني يرجع لنفس العروض', async () => {
+    const other = await otherLawyer();
+    const firstId = await createRequest();
+    await offer(firstId, 1000);
+    await offer(firstId, 900, other.token);
+
+    const secondClient = await createUser('01000000888', 'client');
+    const secondToken = app.jwt.sign({ userId: secondClient, role: 'client' }) as string;
+    const secondId = (await send(secondToken)).body.data.id;
+    // The lawyer chosen by the first client still receives and prices other requests
+    assert.equal((await offer(secondId, 1100)).status, 201);
+
+    const pick = async (requestId: string, token: string) => {
+      const offers = (await call('GET', `/requests/${requestId}`, token)).body.data.offers;
+      const mine = offers.find((item: any) => item.lawyerId === lawyerId);
+      return (await call('POST', `/requests/${requestId}/offers/${mine.id}/select`, token, {})).body.data.orderId as string;
+    };
+    const firstOrder = await pick(firstId, clientToken);
+    const secondOrder = await pick(secondId, secondToken);
+
+    // The second client pays first and gets the lawyer
+    assert.equal((await call('POST', `/orders/${secondOrder}/confirm-payment`, secondToken, {})).status, 200);
+    const back = await follow(firstId);
+    assert.equal(back.status, 'OPEN');
+    assert.deepEqual(back.offers.map((item: any) => item.lawyerId), [other.id]);
+    assert.ok(back.chooseSecondsLeft > 280);
+    assert.equal((await call('POST', `/orders/${firstOrder}/confirm-payment`, clientToken, {})).status, 409);
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'المحامي اتشغل'`, [clientId])).length, 1);
+    await removeLawyer(other.id);
+  });
+
+  it('3 دقايق من غير دفع: الاختيار يتلغي والموكل يرجع لنفس العروض', async () => {
+    const id = await createRequest();
+    await offer(id, 1000);
+    const mine = (await follow(id)).offers[0];
+    const orderId = (await call('POST', `/requests/${id}/offers/${mine.id}/select`, clientToken, {})).body.data.orderId;
+    const deadline = (await sql('SELECT payment_deadline - accepted_at AS wait FROM service_orders WHERE id = $1', [orderId]))[0].wait;
+    assert.equal(deadline.minutes, 3);
+    await sql(`UPDATE service_orders SET payment_deadline = NOW() - INTERVAL '1 second' WHERE id = $1`, [orderId]);
+    await sweepLifecycle();
+    const back = await follow(id);
+    assert.equal(back.status, 'OPEN');
+    assert.equal(back.offers.length, 1, 'the same offers stay');
+  });
+
   it('الإلغاء يقفل الطلب، وغير صاحبه ما يشوفوش', async () => {
     const id = await createRequest();
     const stranger = app.jwt.sign({ userId: await createUser('01000000777', 'client'), role: 'client' });

@@ -1,9 +1,8 @@
 import { dbPool, withTransaction } from '../../database/index.js';
 import { ARRIVAL_REMINDER_MINUTES, CLIENT_REPLY_MINUTES, notify, REVIEW_WINDOW_DAYS } from './service.js';
 import { applySettlement, liftUserSuspensions } from './settlement.js';
-import { advanceRequests } from '../requests/service.js';
+import { advanceRequests, releaseChoice } from '../requests/service.js';
 import { sendWake } from '../../services/pushService.js';
-import { publishChange } from '../../services/liveUpdates.js';
 
 const MAX_MISSED_ORDERS = 2;
 /// An available lawyer's phone says «still here» every 3 minutes. After 5 quiet minutes the server wakes it with a
@@ -44,20 +43,14 @@ async function closeUnansweredOrders() {
   }
 }
 
+/// 3 minutes without paying: the choice goes and the client is back on the same offers
 async function closeUnpaidOrders() {
-  const res = await dbPool.query(
-    `UPDATE service_orders SET status = 'PAYMENT_EXPIRED'
-     WHERE status = 'ACCEPTED' AND payment_deadline <= NOW()
-     RETURNING id, client_id, lawyer_id`
-  );
-
-  for (const order of res.rows) {
-    await dbPool.query(
-      `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note) VALUES ($1, NULL, 'ACCEPTED', 'PAYMENT_EXPIRED', 'انتهت مهلة الدفع دون دفع')`,
-      [order.id]
-    );
-    await notify(dbPool, order.client_id, 'انتهت مهلة الدفع', 'الطلب اتلغى، وتقدر تبدأ طلب جديد', order.id);
-    await publishChange(dbPool, order.lawyer_id, false, 'orders', order.id);
+  const due = await dbPool.query(`SELECT id FROM service_orders WHERE status = 'ACCEPTED' AND payment_deadline <= NOW()`);
+  for (const { id } of due.rows) {
+    await withTransaction(async (client) => {
+      const locked = await client.query(`SELECT id, client_id, lawyer_id FROM service_orders WHERE id = $1 AND status = 'ACCEPTED' AND payment_deadline <= NOW() FOR UPDATE`, [id]);
+      if (locked.rows[0]) await releaseChoice(client, locked.rows[0], false);
+    });
   }
 }
 

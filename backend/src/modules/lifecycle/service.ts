@@ -8,15 +8,21 @@ export const HOLD_HOURS = 24;
 export const ORDER_DEADLINE_HOURS = 24;
 export const REVIEW_WINDOW_DAYS = 7;
 export const LAWYER_RESPONSE_SECONDS = 120;
-export const PAYMENT_MINUTES = 10;
+/// Choosing an offer does not hold the lawyer: whoever finishes first gets them. The client has 3 minutes to pay
+/// (owner decision 2026-11-09)
+export const PAYMENT_MINUTES = 3;
 /// The lawyer and the client must really meet, so arrival is accepted within 50 meters only
 export const ARRIVAL_RADIUS_KM = 0.05;
 /// Each side shares its newest point at most this often on the way to the meeting
 export const LIVE_POSITION_SECONDS = 4;
-export const ARRIVAL_REMINDER_MINUTES = 10;
+export const ARRIVAL_REMINDER_MINUTES = 5;
 /// A client who does not answer «wait or cancel» gets the money back after this (owner decision 2026-11-06)
 export const CLIENT_REPLY_MINUTES = 5;
-const ARRIVAL_MARGIN_MINUTES = 30;
+/// The margin on top of the road time grows with the trip: 10 minutes up to a 20 minute road, 15 up to an hour,
+/// 20 beyond. The road time already has live traffic, so the margin is for parking and finding the door (2026-11-09)
+export function arrivalMargin(roadMinutes: number): number {
+  return roadMinutes <= 20 ? 10 : roadMinutes <= 60 ? 15 : 20;
+}
 const FALLBACK_TRAVEL_MINUTES = 60;
 const ROAD_FACTOR = 1.4;
 const FALLBACK_SPEED_KMH = 30;
@@ -158,13 +164,17 @@ export async function resolveClientQuote(db: Db, clientId: string, problemType: 
 
 /// Road time with live traffic plus the margin. A routing failure must never stop a payment, so it falls back to an estimate.
 export async function arrivalMinutes(from: { lat: number; lon: number } | null, to: { lat: number; lon: number }): Promise<number> {
-  if (!from) return FALLBACK_TRAVEL_MINUTES + ARRIVAL_MARGIN_MINUTES;
+  if (!from) return FALLBACK_TRAVEL_MINUTES + arrivalMargin(FALLBACK_TRAVEL_MINUTES);
   const road = await roadRoute(from, to);
-  if (road) return Math.ceil(road.durationSeconds / 60) + ARRIVAL_MARGIN_MINUTES;
+  if (road) {
+    const minutes = Math.ceil(road.durationSeconds / 60);
+    return minutes + arrivalMargin(minutes);
+  }
   const latKm = (to.lat - from.lat) * 111;
   const lonKm = (to.lon - from.lon) * 111 * Math.cos((from.lat * Math.PI) / 180);
   const roadKm = Math.hypot(latKm, lonKm) * ROAD_FACTOR;
-  return Math.ceil((roadKm / FALLBACK_SPEED_KMH) * 60) + ARRIVAL_MARGIN_MINUTES;
+  const minutes = Math.ceil((roadKm / FALLBACK_SPEED_KMH) * 60);
+  return minutes + arrivalMargin(minutes);
 }
 
 /// SQL condition on one order row: waiting, unpaid, or in progress. A postponed task leaves both sides free.
@@ -172,15 +182,19 @@ export async function arrivalMinutes(from: { lat: number; lon: number } | null, 
 export const IS_OPEN_ORDER = (order: string) =>
   `${order}.status IN ('PENDING', 'ACCEPTED', 'ACTIVE') AND ${order}.postponed_at IS NULL`;
 
-/// SQL condition: this person has an open order, as the lawyer or as the client
+/// SQL condition on one order row: the lawyer is taken by it. A chosen but unpaid order does not hold the lawyer
+export const HOLDS_LAWYER = (order: string) =>
+  `${order}.status IN ('PENDING', 'ACTIVE') AND ${order}.postponed_at IS NULL`;
+
+/// SQL condition: this person has an open order, as the lawyer (paid or waiting for their answer) or as the client
 export const HAS_OPEN_ORDER = (side: 'lawyer_id' | 'client_id', person: string) =>
-  `EXISTS (SELECT 1 FROM service_orders busy WHERE busy.${side} = ${person} AND ${IS_OPEN_ORDER('busy')})`;
+  `EXISTS (SELECT 1 FROM service_orders busy WHERE busy.${side} = ${person} AND ${side === 'lawyer_id' ? HOLDS_LAWYER('busy') : IS_OPEN_ORDER('busy')})`;
 
 /// True while the lawyer has an open order, other than the one given
 export async function lawyerHasOpenOrder(db: Db, lawyerId: string, exceptOrderId?: string): Promise<boolean> {
   const res = await db.query(
     `SELECT 1 FROM service_orders o
-     WHERE o.lawyer_id = $1 AND ${IS_OPEN_ORDER('o')}
+     WHERE o.lawyer_id = $1 AND ${HOLDS_LAWYER('o')}
        AND ($2::uuid IS NULL OR o.id <> $2::uuid)
      LIMIT 1`,
     [lawyerId, exceptOrderId ?? null]
