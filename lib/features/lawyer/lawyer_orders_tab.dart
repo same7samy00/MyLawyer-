@@ -200,6 +200,8 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
                 message: _showCurrent ? 'فعّل «متاح» من الرئيسية، والطلبات القريبة منك هتظهر هنا أول بأول' : 'الطلبات اللي خلصت أو اتلغت\nبتتجمع هنا',
               );
             }
+            // آخر كارت في السجل ظهر: الصفحة اللي بعدها تتحمل لوحدها
+            if (!_showCurrent && index == orders.length - 1) unawaited(OrderStore.loadMore());
             final order = orders[index];
             return Padding(
               key: ValueKey(order.id),

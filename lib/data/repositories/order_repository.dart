@@ -50,13 +50,18 @@ class OrderRepository {
   }
 
   /// جلب قائمة طلبات المستخدم الحالي (عميل أو محامٍ)
-  static Future<ApiResponse<List<OrderModel>>> getOrders({String? status}) async {
-    final queryParams = status != null ? {'status': status} : null;
-    final res = await ApiService.get('/orders', queryParams: queryParams);
+  /// [limit] و[offset]: صفحة من القائمة، والطلبات المفتوحة دايمًا في أول صفحة
+  static Future<ApiResponse<List<OrderModel>>> getOrders({String? status, int? limit, int offset = 0}) async {
+    final queryParams = {
+      if (status != null) 'status': status,
+      if (limit != null) 'limit': '$limit',
+      if (offset > 0) 'offset': '$offset',
+    };
+    final res = await ApiService.get('/orders', queryParams: queryParams.isEmpty ? null : queryParams);
 
     if (res.isOk && res.data is List) {
       final list = res.data as List;
-      if (status == null) unawaited(SavedData.write('orders', list.map(_withoutPrivate).toList()));
+      if (status == null && offset == 0) unawaited(SavedData.write('orders', list.map(_withoutPrivate).toList()));
       return ApiResponse<List<OrderModel>>(
         success: true,
         statusCode: res.statusCode,

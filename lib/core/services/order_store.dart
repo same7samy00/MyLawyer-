@@ -18,6 +18,11 @@ class OrderStore {
   static StreamSubscription<LiveChange>? _subscription;
   static Future<ApiResponse<List<OrderModel>>>? _loading;
 
+  /// الطلبات بتتحمل صفحة صفحة: المفتوحة وأحدث السجل الأول، والباقي لما المستخدم ينزل في السجل
+  static const int _pageSize = 30;
+  static bool _hasMore = false;
+  static bool _loadingMore = false;
+
   static void start() {
     if (_subscription == null) {
       orders.addListener(_followMission);
@@ -53,6 +58,7 @@ class OrderStore {
     unawaited(_subscription?.cancel());
     _subscription = null;
     orders.value = const [];
+    _hasMore = false;
     isLoaded = false;
   }
 
@@ -65,13 +71,28 @@ class OrderStore {
 
   /// كل الطلبات مرة واحدة، والطلبات المتزامنة بتستنى نفس الرد
   static Future<ApiResponse<List<OrderModel>>> load() {
-    return _loading ??= OrderRepository.getOrders().then((res) {
+    return _loading ??= OrderRepository.getOrders(limit: _pageSize).then((res) {
       if (res.isOk) {
         orders.value = res.data ?? const [];
+        _hasMore = orders.value.length >= _pageSize;
         isLoaded = true;
       }
       return res;
     }).whenComplete(() => _loading = null);
+  }
+
+  /// الصفحة اللي بعدها من السجل، لما المستخدم يوصل لآخر اللي ظاهر
+  static Future<void> loadMore() async {
+    if (!_hasMore || _loadingMore || _loading != null) return;
+    _loadingMore = true;
+    final res = await OrderRepository.getOrders(limit: _pageSize, offset: orders.value.length);
+    _loadingMore = false;
+    final more = res.data;
+    if (!res.isOk || more == null) return;
+    _hasMore = more.length >= _pageSize;
+    final known = orders.value.map((order) => order.id).toSet();
+    final fresh = more.where((order) => !known.contains(order.id)).toList();
+    if (fresh.isNotEmpty) orders.value = [...orders.value, ...fresh];
   }
 
   /// طلب واحد اتغير: يتجاب لوحده ويتحط مكانه

@@ -215,6 +215,8 @@ class _OrdersTabState extends State<OrdersTab> {
                     : 'الطلبات اللي خلصت أو اتلغت من كل الخدمات\nبتتجمع هنا',
               );
             }
+            // آخر كارت في السجل ظهر: الصفحة اللي بعدها تتحمل لوحدها
+            if (!_showCurrent && index == entries.length - 1) unawaited(OrderStore.loadMore());
             final entry = entries[index];
             return Padding(
               key: ValueKey(entry.key),

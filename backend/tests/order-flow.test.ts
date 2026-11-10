@@ -360,3 +360,29 @@ describe('مخالفات المحامي', () => {
     await sql('DELETE FROM lawyer_strikes');
   });
 });
+
+describe('قائمة الطلبات على دفعات', () => {
+  it('الطلب المفتوح دايمًا في أول صفحة، والباقي بييجي صفحة صفحة من غير تكرار', async () => {
+    await closeOrders();
+    // An open order older than the whole history
+    const open = await createPaidOrder();
+    await sql(`UPDATE service_orders SET created_at = NOW() - INTERVAL '90 days' WHERE id = $1`, [open.id]);
+    for (let day = 1; day <= 5; day++) {
+      await sql(
+        `INSERT INTO service_orders (client_id, lawyer_id, service_type, service_title, problem_description, client_latitude, client_longitude,
+           price, commission_percent, tax_percent, lawyer_amount, response_deadline, status, created_at)
+         VALUES ($1, $2, 'lawyer_now', 'محاميك حالاً', 'قديم', 30.05, 31.25, 350, 0, 0, 350, NOW(), 'CANCELLED', NOW() - make_interval(days => $3))`,
+        [clientId, lawyerId, day]
+      );
+    }
+    const page = async (offset: number) => ((await call('GET', `/orders?limit=3&offset=${offset}`, clientToken)).body.data as any[]).map((o) => o.orderId);
+    const first = await page(0);
+    const second = await page(3);
+    assert.equal(first.length, 3);
+    assert.equal(first[0], open.id, 'the open order leads, however old');
+    assert.equal(second.length, 3);
+    assert.equal(new Set([...first, ...second]).size, 6, 'no order twice');
+    // An older app asks with no page and still gets the list
+    assert.equal(((await call('GET', '/orders', clientToken)).body.data as any[]).length, 6);
+  });
+});

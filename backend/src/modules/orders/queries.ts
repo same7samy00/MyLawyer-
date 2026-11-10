@@ -12,7 +12,10 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
   // 2. GET /api/v1/orders - List orders for current user (client or lawyer)
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId, role } = request.user as AuthenticatedUser;
-    const queryParams = request.query as { status?: string; id?: string };
+    const queryParams = request.query as { status?: string; id?: string; limit?: string; offset?: string };
+    // The app reads the list a page at a time. Open orders come first, so the first page always has them
+    const limit = Math.max(1, Math.min(100, Number(queryParams.limit) || 100));
+    const offset = Math.max(0, Math.min(100000, Number(queryParams.offset) || 0));
     const statusFilter = queryParams.status ? queryParams.status.toUpperCase() : 'ALL';
 
     let sql = `
@@ -61,7 +64,7 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
       sql += ` AND o.id::text = $${params.length}`;
     }
 
-    sql += ` ORDER BY o.created_at DESC LIMIT 100`;
+    sql += ` ORDER BY (o.status IN ('PENDING', 'ACCEPTED', 'ACTIVE')) DESC, o.created_at DESC LIMIT ${limit} OFFSET ${offset}`;
 
     const res = await query(sql, params);
 
