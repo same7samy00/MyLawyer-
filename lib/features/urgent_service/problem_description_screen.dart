@@ -199,7 +199,6 @@ class _ProblemDescriptionScreenState extends State<ProblemDescriptionScreen> {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
               child: AppButton.primary(
                 text: 'المتابعة إلى خريطة المحامين',
-                icon: Icons.arrow_forward_rounded,
                 onPressed: _onContinue,
                 height: 50,
               ),

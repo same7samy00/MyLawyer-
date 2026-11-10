@@ -228,7 +228,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               child: AppButton.primary(
                 text: 'اختار طريقة الدفع',
-                icon: Icons.arrow_forward_rounded,
                 onPressed: _chooseMethod,
               ),
             ),

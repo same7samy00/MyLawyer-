@@ -3,7 +3,9 @@
 > **أول ملف يتقري في أي جلسة.** قصير ومقصود يفضل قصير: آخر حالة **مؤكدة** للمشروع. اللي جاي في [`NEXT_STEPS.md`](NEXT_STEPS.md)، والمهام في [`PENDING_TASKS.md`](PENDING_TASKS.md)، والسجل في [`DEVELOPMENT_LOG.md`](DEVELOPMENT_LOG.md).
 > أي نموذج يخلّص شغل يحدّث الملف ده، ويضيف سطر في `DEVELOPMENT_LOG.md`. القواعد في [`IMPORTANT_RULES.md`](IMPORTANT_RULES.md) و`AGENTS.md` القسم 7.
 
-**آخر تحديث:** 2026-11-07، Claude Code (Opus 5.5)، الفرع `claude/tawagod-page`.
+**آخر تحديث:** 2026-11-10، Claude Code (Fable 5.2)، الفرع `claude/tawagod-page`.
+
+**آخر شغل (2026-11-10):** كارت واحد لكل الطلبات (`OrderCard`) للموكل والمحامي، وتصليح زرار الإلغاء اللي كان أبيض على أبيض، وشيل الأسهم من الأزرار. `flutter analyze` نضيف، و`flutter test` 129 نجحوا و3 متخطين. شغل 2026-11-09 (الطلبات من أول لحظة، و10 دقايق للدفع، والتأجيل) تفاصيله في `docs/CHANGELOG.md`، والأقسام اللي تحت لسه بتاريخ 2026-11-07.
 
 ## 1. Git
 | البند | القيمة |

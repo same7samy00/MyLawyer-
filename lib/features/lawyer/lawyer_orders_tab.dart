@@ -7,14 +7,12 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/live_updates.dart';
 import '../../core/services/order_store.dart';
-import '../../core/widgets/app_button.dart';
-import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/lawyer_availability_card.dart';
+import '../../core/widgets/order_card.dart';
 import '../../core/widgets/order_summary_card.dart';
 import '../../core/widgets/orders_filter.dart';
-import '../../core/widgets/request_parts.dart';
 import '../../data/models/order_model.dart';
 import '../../data/models/service_request.dart';
 import '../../data/repositories/request_repository.dart';
@@ -131,47 +129,19 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
     return Padding(
       key: ValueKey('request-${request.id}'),
       padding: const EdgeInsets.only(bottom: 12),
-      child: AppCard(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    request.problemType,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.dark),
-                  ),
-                ),
-                if (sent == null) RequestTimeBadge(secondsLeft: request.secondsLeft),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                const Icon(Icons.location_on_rounded, size: 15, color: AppColors.textMuted),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    '${request.area ?? 'مكان الموكل'} • ${request.distanceKm} كم',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            RequestPriceBox(minPrice: request.minPrice, maxPrice: request.maxPrice, sentPrice: sent),
-            const SizedBox(height: 12),
-            RequestSteps(priceSent: sent != null),
-            const SizedBox(height: 12),
-            AppButton.primary(text: 'تفاصيل الطلب', height: 42, fontSize: 13, onPressed: () { _openRequest(request); }),
-          ],
-        ),
+      child: OrderCard(
+        service: request.service,
+        serviceIcon: Icons.location_on_rounded,
+        title: request.problemType,
+        details: '${request.area ?? 'مكان الموكل'} • ${request.distanceKm} كم • ${sent == null ? 'من ${request.minPrice} لـ ${request.maxPrice} ج.م' : 'عرضك $sent ج.م'}',
+        status: sent == null ? 'ابعت سعرك' : 'عرضك اتبعت • مستنيين الموكل يختار',
+        statusIcon: sent == null ? Icons.timer_outlined : Icons.hourglass_top_rounded,
+        tone: sent == null ? OrderCardTone.urgent : OrderCardTone.progress,
+        countdownSeconds: sent == null ? request.secondsLeft : null,
+        stages: urgentOrderStages,
+        stagesDone: 0,
+        reference: 'طلب جديد',
+        onOpen: () { _openRequest(request); },
       ),
     );
   }
@@ -211,15 +181,17 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
           itemBuilder: (context, position) {
             if (position == 0) return const LawyerAvailabilityCard();
             if (position == 1) {
-              return OrdersFilter(currentCount: _requests.length + _orders.where((order) => order.isOngoing).length, showCurrent: _showCurrent, onChanged: (value) => setState(() => _showCurrent = value));
+              // العدد على قد الكروت اللي ظاهرة: طلب وقته خلص من غير سعر ما بيتحسبش
+              final openRequests = _requests.where((item) => item.myPrice != null || item.secondsLeftNow > 0).length;
+              return OrdersFilter(currentCount: openRequests + _orders.where((order) => order.isOngoing).length, showCurrent: _showCurrent, onChanged: (value) => setState(() => _showCurrent = value));
             }
             if (position - 2 < requests.length) return _requestCard(requests[position - 2]);
             final index = position - requests.length - 2;
             if (orders.isEmpty) {
-              return const AppStateMessage(
+              return AppStateMessage(
                 icon: Icons.receipt_long_rounded,
-                title: 'لا توجد طلبات حتى الآن',
-                message: 'خليك متاح، والطلبات القريبة منك هتظهر هنا أول بأول',
+                title: _showCurrent ? 'مفيش طلبات حالية' : 'السجل فاضي',
+                message: _showCurrent ? 'خليك متاح، والطلبات القريبة منك هتظهر هنا أول بأول' : 'الطلبات اللي خلصت أو اتلغت\nبتتجمع هنا',
               );
             }
             final order = orders[index];

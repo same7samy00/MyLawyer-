@@ -400,8 +400,8 @@ void main() {
       await tester.pumpWidget(testApp(const Scaffold(body: LawyerOrdersTab())));
       await settleAsync(tester);
 
-      expect(find.text('الطلب وصل'), findsOneWidget);
-      await tester.tap(find.text('تفاصيل الطلب'));
+      expect(find.textContaining('ابعت سعرك • باقي'), findsOneWidget);
+      await tester.tap(find.text('عرض التفاصيل'));
       await settleAsync(tester);
       expect(find.text('ابعت عرضك'), findsOneWidget);
       expect(find.text('العنوان'), findsOneWidget);

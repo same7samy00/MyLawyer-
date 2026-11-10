@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
-import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_sheet.dart';
-import '../../core/widgets/service_tag.dart';
+import '../../core/widgets/order_card.dart';
 import '../../data/models/consultation.dart';
 import '../../data/repositories/consultation_repository.dart';
 import 'consultation_style.dart';
@@ -33,40 +32,34 @@ class ConsultationOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor(item);
-    return AppCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const ServiceTag(name: 'استشارة سريعة', icon: Icons.support_agent_rounded),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(child: Text('استشارة رقم ${item.reference}', style: consultationText(13, FontWeight.w900, AppColors.primary))),
-              Text(_dateText(item.createdAt), style: consultationText(11, FontWeight.w600, AppColors.textMuted)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(item.kind.label, style: consultationText(14, FontWeight.w700, AppColors.dark)),
-          const SizedBox(height: 4),
-          Text('${item.price} ج.م', style: consultationText(11, FontWeight.w600, AppColors.textMuted)),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(7.0)),
-            child: Row(
-              children: [
-                Icon(item.canRequestContact ? Icons.phone_missed_rounded : Icons.phone_in_talk_rounded, size: 18, color: color),
-                const SizedBox(width: 8),
-                Expanded(child: Text(item.statusText, style: consultationText(12.5, FontWeight.w800, color))),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          AppButton.primary(text: 'عرض التفاصيل', height: 40, fontSize: 13, onPressed: onOpen),
-        ],
-      ),
+    final isDone = item.status == 'DONE';
+    final isStopped = !isDone && !item.isOngoing && !item.canRequestContact;
+    return OrderCard(
+      service: 'استشارة سريعة',
+      serviceIcon: Icons.support_agent_rounded,
+      date: orderCardDate(item.createdAt),
+      title: item.kind.label,
+      details: '${item.price} ج.م',
+      status: item.statusText,
+      statusIcon: item.canRequestContact
+          ? Icons.phone_missed_rounded
+          : isDone
+              ? Icons.check_circle_rounded
+              : isStopped
+                  ? Icons.cancel_outlined
+                  : Icons.phone_in_talk_rounded,
+      tone: item.canRequestContact
+          ? OrderCardTone.urgent
+          : isDone
+              ? OrderCardTone.done
+              : isStopped
+                  ? OrderCardTone.closed
+                  : OrderCardTone.progress,
+      stages: const ['الدفع', 'التواصل', 'الإنهاء'],
+      stagesDone: isDone ? 3 : 1,
+      isStopped: isStopped,
+      reference: 'استشارة رقم ${item.reference}',
+      onOpen: onOpen,
     );
   }
 }

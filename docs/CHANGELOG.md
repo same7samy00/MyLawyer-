@@ -1,5 +1,12 @@
 # 📝 CHANGELOG - My Lawyer
 
+## [One Order Card for Every Request, No Arrows on Buttons] - 2026-11-10
+- **One card (`OrderCard` in `core/widgets/order_card.dart`)** for every request from every service, for the client and the lawyer: service name on top with the date, title, one details line, a coloured status box (blue running, red needs you now, green done, grey closed), a thin stage bar with «المرحلة X من Y», then the number and «عرض التفاصيل». The whole card opens the details. `OrderSummaryCard`, `RequestOrderCard`, `ConsultationOrderCard` and the lawyer's new-request card all build it, so a request keeps its shape from the first moment to the end.
+- The lawyer's new request counts its time inside the status box («ابعت سعرك • باقي 2:45»); `RequestSteps` is removed.
+- **White button with white text fixed:** `AppButton.outlined` no longer forces a white background, so «إلغاء…» and «إغلاق» buttons get their red background everywhere (the cancel button in the order sheet was white on white).
+- **No arrows on buttons** (owner decision): removed from «اختار طريقة الدفع» and «المتابعة إلى خريطة المحامين», and `AppButton` lost its forward-arrow handling. A test keeps it that way.
+- Lawyer orders page: the number on «الطلبات الحالية» counts only the cards shown, and an empty history says «السجل فاضي».
+
 ## [Short Messages Back at the Bottom] - 2026-11-09
 - Short messages are back at the bottom (`showAppMessage` in `core/widgets/app_message.dart`), a little smaller, with an X to close them.
 

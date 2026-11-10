@@ -62,7 +62,8 @@ class AppButton extends StatefulWidget {
         textColor = Colors.white,
         borderColor = null;
 
-  /// زر بإطار (Outlined Button) بحواف 24.0px
+  /// زر بإطار (Outlined Button) بحواف 24.0px.
+  /// الألوان من غير قيمة ثابتة هنا، عشان زرار الإلغاء ياخد الخلفية الحمرا مع نصه الأبيض وما يبقاش أبيض على أبيض
   const AppButton.outlined({
     super.key,
     required this.text,
@@ -74,9 +75,9 @@ class AppButton extends StatefulWidget {
     this.width,
     this.fontSize = 13.0,
     this.fontWeight = FontWeight.w800,
-    this.backgroundColor = Colors.white,
-    this.textColor = AppColors.dark,
-    this.borderColor = AppColors.cardBorder,
+    this.backgroundColor,
+    this.textColor,
+    this.borderColor,
   }) : isOutlined = true;
 
   static const double buttonRadius = 24.0;
@@ -115,7 +116,6 @@ class _AppButtonState extends State<AppButton> {
     // زرار الإلغاء خلفيته حمرا ونصه أبيض، حتى لو كان متكتب كزرار بإطار
     final effectiveBgColor = widget.backgroundColor ?? (isCancel ? AppColors.danger : (isOutlined ? Colors.white : AppColors.primary));
     final effectiveTextColor = widget.textColor ?? (isCancel ? Colors.white : (isOutlined ? AppColors.dark : Colors.white));
-    final isForwardArrow = widget.customIcon == null && widget.icon == Icons.arrow_forward_rounded;
     final effectiveBorderColor = widget.borderColor ?? (isCancel ? AppColors.danger : AppColors.cardBorder);
 
     final shape = RoundedRectangleBorder(
@@ -140,7 +140,7 @@ class _AppButtonState extends State<AppButton> {
               if (widget.customIcon != null) ...[
                 widget.customIcon!,
                 const SizedBox(width: 8),
-              ] else if (widget.icon != null && !isForwardArrow) ...[
+              ] else if (widget.icon != null) ...[
                 Icon(widget.icon, color: effectiveTextColor, size: 18),
                 const SizedBox(width: 8),
               ],
@@ -159,11 +159,6 @@ class _AppButtonState extends State<AppButton> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              // سهم المتابعة يأتي بعد النص ليشير إلى اتجاه القراءة
-              if (isForwardArrow) ...[
-                const SizedBox(width: 8),
-                Icon(widget.icon, color: effectiveTextColor, size: 18),
-              ],
             ],
           ),
         ),

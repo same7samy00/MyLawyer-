@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models/order_model.dart';
-import '../constants/app_colors.dart';
-import 'app_button.dart';
-import 'app_card.dart';
-import 'order_status_tracker.dart';
-import 'service_tag.dart';
+import 'order_card.dart';
 
-/// ملخص الطلب في صفحة الطلبات، والإجراءات كلها في صفحة التفاصيل
+/// كارت الطلب بعد اختيار المحامي في صفحة الطلبات، والإجراءات كلها في صفحة التفاصيل
 class OrderSummaryCard extends StatelessWidget {
   final OrderModel order;
   final bool isLawyer;
@@ -20,57 +16,40 @@ class OrderSummaryCard extends StatelessWidget {
     this.isLawyer = false,
   });
 
+  OrderCardTone get _tone {
+    if (order.isCompleted) return OrderCardTone.done;
+    if (!order.isOngoing) return OrderCardTone.closed;
+    // الموكل هو اللي عليه الدفع بوقت
+    return order.isAccepted && !isLawyer ? OrderCardTone.urgent : OrderCardTone.progress;
+  }
+
+  IconData get _icon {
+    if (order.isCompleted) return Icons.check_circle_rounded;
+    if (!order.isOngoing) return Icons.cancel_outlined;
+    if (order.isAccepted) return isLawyer ? Icons.hourglass_top_rounded : Icons.timer_outlined;
+    if (order.isPostponed) return Icons.event_rounded;
+    return order.arrivedAt == null ? Icons.navigation_rounded : Icons.verified_user_rounded;
+  }
+
   @override
   Widget build(BuildContext context) {
     final otherParty = isLawyer ? 'الموكل: ${order.clientName ?? '-'}' : 'المحامي: ${order.lawyerName ?? '-'}';
+    final isStopped = order.trackerFailedStep != null;
 
-    return AppCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ServiceTag(name: order.serviceTitle, icon: Icons.location_on_rounded),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(child: Text('طلب رقم ${order.orderNumber}', style: _numberStyle)),
-              Text(order.formattedDate, style: _mutedStyle),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(order.problemType ?? order.serviceTitle, style: _titleStyle),
-          const SizedBox(height: 4),
-          Text('$otherParty • ${order.priceText} ج.م', style: _mutedStyle),
-          const SizedBox(height: 14),
-          OrderStatusTracker(order: order, statusText: isLawyer ? order.lawyerStatusLabel : null),
-          const SizedBox(height: 12),
-          AppButton.primary(text: 'عرض التفاصيل', height: 40, fontSize: 13, onPressed: onOpen),
-        ],
-      ),
+    return OrderCard(
+      service: order.serviceTitle,
+      serviceIcon: Icons.location_on_rounded,
+      date: orderCardDate(DateTime.tryParse(order.createdAt)?.toLocal()),
+      title: order.problemType ?? order.serviceTitle,
+      details: '$otherParty • ${order.priceText} ج.م',
+      status: (isLawyer ? order.lawyerStatusLabel : null) ?? order.statusLabel,
+      statusIcon: _icon,
+      tone: _tone,
+      stages: urgentOrderStages,
+      stagesDone: order.trackerDoneSteps,
+      isStopped: isStopped,
+      reference: 'طلب رقم ${order.orderNumber}',
+      onOpen: onOpen,
     );
   }
-
-  static const TextStyle _numberStyle = TextStyle(
-    fontFamily: 'AppFont',
-    fontFamilyFallback: appFontFallback,
-    fontSize: 13,
-    fontWeight: FontWeight.w900,
-    color: AppColors.primary,
-  );
-
-  static const TextStyle _titleStyle = TextStyle(
-    fontFamily: 'AppFont',
-    fontFamilyFallback: appFontFallback,
-    fontSize: 14,
-    fontWeight: FontWeight.w700,
-    color: AppColors.dark,
-  );
-
-  static const TextStyle _mutedStyle = TextStyle(
-    fontFamily: 'AppFont',
-    fontFamilyFallback: appFontFallback,
-    fontSize: 11,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textMuted,
-  );
 }

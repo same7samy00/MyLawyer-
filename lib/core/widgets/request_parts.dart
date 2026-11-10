@@ -88,49 +88,6 @@ class RequestPriceBox extends StatelessWidget {
   }
 }
 
-/// خطوات الطلب جنب بعض: الطلب وصل، السعر، اختيار الموكل، الدفع
-class RequestSteps extends StatelessWidget {
-  final bool priceSent;
-
-  const RequestSteps({super.key, required this.priceSent});
-
-  @override
-  Widget build(BuildContext context) {
-    final steps = [('الطلب وصل', true), (priceSent ? 'عرضك اتبعت' : 'ابعت سعرك', priceSent), ('الموكل يختار', false), ('الدفع', false)];
-    return Row(
-      children: [
-        for (var i = 0; i < steps.length; i++) ...[
-          Expanded(
-            child: Column(
-              children: [
-                Icon(
-                  steps[i].$2 ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                  size: 18,
-                  color: steps[i].$2 ? AppColors.success : (i == (priceSent ? 2 : 1) ? AppColors.primary : AppColors.cardBorder),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  steps[i].$1,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                    color: steps[i].$2 ? AppColors.dark : AppColors.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
 /// سطر بأيقونة في كارت تفاصيل الطلب
 class RequestInfoRow extends StatelessWidget {
   final IconData icon;

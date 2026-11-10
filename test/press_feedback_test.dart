@@ -269,19 +269,7 @@ void main() {
   });
 
   group('اتجاه الأسهم في RTL', () {
-    testWidgets('سهم المتابعة يأتي بعد النص، أي على يساره', (tester) async {
-      await tester.pumpWidget(_host(AppButton.primary(
-        text: 'التالي',
-        icon: Icons.arrow_forward_rounded,
-        onPressed: () {},
-      ),),);
-
-      final arrow = tester.getCenter(find.byIcon(Icons.arrow_forward_rounded));
-      final label = tester.getCenter(find.text('التالي'));
-      expect(arrow.dx, lessThan(label.dx));
-    });
-
-    test('كل زر رجوع يستخدم سهم الرجوع وكل زر متابعة يستخدم سهم المتابعة', () {
+    test('كل زر رجوع يستخدم سهم الرجوع، ومفيش زرار فيه سهم', () {
       final files = Directory('lib').listSync(recursive: true).whereType<File>().where((f) => f.path.endsWith('.dart'));
 
       for (final file in files) {
@@ -290,6 +278,8 @@ void main() {
         expect(source, isNot(contains('Icon(Icons.arrow_forward_rounded, color: AppColors.dark)')), reason: file.path);
         expect(source, isNot(contains('icon: Icons.arrow_back_rounded,')), reason: file.path);
         expect(source, isNot(contains('Icons.chevron_left_rounded')), reason: file.path);
+        // الأزرار من غير أسهم (قرار صاحب المشروع 2026-11-10)
+        expect(source, isNot(contains('icon: Icons.arrow_forward_rounded')), reason: file.path);
       }
     });
   });

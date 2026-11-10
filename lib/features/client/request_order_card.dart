@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
-import '../../core/widgets/app_card.dart';
-import '../../core/widgets/service_tag.dart';
+import '../../core/widgets/order_card.dart';
 import '../../data/models/service_request.dart';
 
 /// كارت طلب «محاميك حالاً» لسه ما اتختارش فيه محامي: بيدوّر على محامين، أو وصلته عروض، أو اتقفل من غير اختيار.
-/// لما يتختار محامي الطلب بيظهر بكارت الطلب العادي بداله
+/// لما يتختار محامي الطلب بيكمل بنفس الكارت في المرحلة اللي بعدها
 class RequestOrderCard extends StatelessWidget {
   final MyRequest request;
   final VoidCallback? onOpen;
@@ -14,28 +12,21 @@ class RequestOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      padding: const EdgeInsets.all(16),
-      onTap: request.isOpen ? onOpen : null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ServiceTag(name: request.serviceTitle, icon: Icons.location_on_rounded),
-          const SizedBox(height: 10),
-          Text(request.problemType, style: _titleStyle),
-          const SizedBox(height: 4),
-          Text('السعر من ${request.minPrice} لـ ${request.maxPrice} ج.م', style: _mutedStyle),
-          const SizedBox(height: 10),
-          Text(request.statusLabel, style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 13, fontWeight: FontWeight.w800, color: request.isOpen ? AppColors.primary : AppColors.textMuted)),
-          if (request.isOpen) ...[
-            const SizedBox(height: 10),
-            Text(request.offers > 0 ? 'دوس عشان تشوف العروض وتختار' : 'دوس عشان تتابع', style: _mutedStyle),
-          ],
-        ],
-      ),
+    final isOpen = request.isOpen;
+    return OrderCard(
+      service: request.serviceTitle,
+      serviceIcon: Icons.location_on_rounded,
+      date: orderCardDate(request.createdAt),
+      title: request.problemType,
+      details: 'السعر من ${request.minPrice} لـ ${request.maxPrice} ج.م',
+      status: request.statusLabel,
+      statusIcon: !isOpen ? Icons.cancel_outlined : (request.offers > 0 ? Icons.receipt_long_rounded : Icons.search_rounded),
+      tone: isOpen ? OrderCardTone.progress : OrderCardTone.closed,
+      stages: urgentOrderStages,
+      stagesDone: 0,
+      isStopped: !isOpen,
+      reference: isOpen ? 'طلب جديد' : 'طلب من غير محامي',
+      onOpen: isOpen ? onOpen : null,
     );
   }
-
-  static const TextStyle _titleStyle = TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.dark);
-  static const TextStyle _mutedStyle = TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12.5, color: AppColors.textMuted);
 }
