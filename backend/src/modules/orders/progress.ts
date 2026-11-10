@@ -7,6 +7,8 @@ import { HttpError, UUID_PATTERN } from '../../utils/http.js';
 import { addClientCredit, addLawyerStrike, ARRIVAL_RADIUS_KM, HOLD_HOURS, isFakeLocation, LIVE_POSITION_SECONDS, MAX_REAL_SPEED_KMH, MOCK_LOCATION_ERROR, notify } from '../lifecycle/service.js';
 import { publishPosition } from '../../services/liveUpdates.js';
 
+/// The lawyer may ask the client to confirm the arrival again only after this long
+const ASK_ARRIVAL_AGAIN_SECONDS = 60;
 /// A lawyer can keep at most this many postponed tasks
 const MAX_POSTPONED_TASKS = 2;
 import { distanceKm, lockOrder, AuthenticatedUser } from './shared.js';
@@ -59,6 +61,52 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
     });
 
     return reply.send({ success: true, message: 'تم تسجيل وصولك' });
+  });
+
+  // The lawyer is with the client but the phone's place is too weak for «وصلت» (inside a building): the client is
+  // asked to confirm the arrival from their own phone
+  fastify.post('/:id/ask-arrival', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
+    const { id } = request.params as { id: string };
+
+    await withTransaction(async (client) => {
+      const order = await lockOrder(client, id);
+      if (!order || order.lawyer_id !== userId) throw new HttpError(404, 'الطلب غير موجود أو غير مسند إليك');
+      if (order.status !== 'ACTIVE' || order.arrived_at) throw new HttpError(400, 'لا يمكن تسجيل الوصول لهذا الطلب');
+      if (order.arrival_asked_at && Date.now() - new Date(order.arrival_asked_at).getTime() < ASK_ARRIVAL_AGAIN_SECONDS * 1000) {
+        throw new HttpError(409, 'بعتنا للموكل، استنى رده');
+      }
+      await client.query('UPDATE service_orders SET arrival_asked_at = NOW(), updated_at = NOW() WHERE id = $1', [order.id]);
+      await notify(client, order.client_id, 'المحامي بيقول إنه وصل', 'لو المحامي معاك دلوقتي، افتح الطلب وأكّد وصوله', order.id);
+    });
+
+    return reply.send({ success: true, message: 'بعتنا للموكل يأكد وصولك' });
+  });
+
+  // The client says the lawyer is really here. It counts as the arrival, and the order records who confirmed it
+  fastify.post('/:id/confirm-arrival', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
+    const { id } = request.params as { id: string };
+
+    await withTransaction(async (client) => {
+      const order = await lockOrder(client, id);
+      if (!order || order.client_id !== userId) throw new HttpError(404, 'الطلب غير موجود');
+      if (order.status !== 'ACTIVE' || order.arrived_at) throw new HttpError(400, 'لا يمكن تسجيل الوصول لهذا الطلب');
+      if (!order.arrival_asked_at) throw new HttpError(400, 'المحامي ما طلبش تأكيد الوصول');
+
+      await client.query(
+        'UPDATE service_orders SET arrived_at = NOW(), arrived_by_client = TRUE, updated_at = NOW() WHERE id = $1',
+        [order.id]
+      );
+      await client.query(
+        `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)
+         VALUES ($1, $2, 'ACTIVE', 'ACTIVE', 'أكد الموكل وصول المحامي من عنده')`,
+        [order.id, userId]
+      );
+      await notify(client, order.lawyer_id, 'الموكل أكد وصولك', 'كمل الشغل ودوس «إنهاء» أو «مؤجل»', order.id);
+    });
+
+    return reply.send({ success: true, message: 'تم تأكيد وصول المحامي' });
   });
 
   // Each side's newest point on the way to the meeting, from payment until the lawyer arrives.

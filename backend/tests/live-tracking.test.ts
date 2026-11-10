@@ -91,6 +91,29 @@ describe('التتبع اللحظي', () => {
     assert.equal((await arrive()).status, 200);
   });
 
+  it('المحامي عند الموكل والزرار مش راضي: يطلب تأكيد الموكل، والموكل يأكد من عنده', async () => {
+    await closeOrders();
+    const order = await createPaidOrder();
+    const confirm = () => call('POST', `/orders/${order.id}/confirm-arrival`, clientToken, {});
+    const ask = (token = lawyerToken) => call('POST', `/orders/${order.id}/ask-arrival`, token, {});
+
+    assert.equal((await confirm()).status, 400, 'the client confirms only after the lawyer asks');
+    assert.equal((await ask(clientToken)).status, 404, 'only the lawyer of the order asks');
+    assert.equal((await ask()).status, 200);
+    assert.equal((await ask()).status, 409, 'not again within a minute');
+    assert.ok((await listed(clientToken, order.id)).arrivalAskedAt);
+    assert.equal((await sql(`SELECT 1 FROM notifications WHERE order_id = $1 AND title = 'المحامي بيقول إنه وصل'`, [order.id])).length, 1);
+
+    assert.equal((await call('POST', `/orders/${order.id}/confirm-arrival`, lawyerToken, {})).status, 404, 'the lawyer can not confirm for the client');
+    assert.equal((await confirm()).status, 200);
+    const saved = (await sql('SELECT arrived_at, arrived_by_client FROM service_orders WHERE id = $1', [order.id]))[0];
+    assert.ok(saved.arrived_at);
+    assert.equal(saved.arrived_by_client, true);
+    assert.equal((await confirm()).status, 400, 'already arrived');
+    // The task now ends like any arrived task
+    assert.equal((await call('POST', `/orders/${order.id}/complete`, lawyerToken, {})).status, 200);
+  });
+
   it('لو موبايل الموكل بطّل يبعت، «وصلت» بيتقبل جنب آخر نقطة بعتها مهما كانت قديمة', async () => {
     await closeOrders();
     const order = await createPaidOrder();

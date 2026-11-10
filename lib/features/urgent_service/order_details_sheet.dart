@@ -188,6 +188,17 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
     );
   }
 
+  /// الإشارة ضعيفة جوه المبنى: الموكل يأكد الوصول من موبايله
+  Future<void> _askArrival() async {
+    if (!await _confirm('تأكيد الوصول من الموكل', 'لو إنت مع الموكل والزرار مش راضي\nهنبعتله يأكد وصولك من موبايله', 'ابعت للموكل', icon: Icons.how_to_reg_rounded)) return;
+    await _run(() => OrderRepository.askArrival(_order.id), 'بعتنا للموكل يأكد وصولك');
+  }
+
+  Future<void> _confirmArrival() async {
+    if (!await _confirm('المحامي وصل؟', 'أكّد بس لو المحامي معاك دلوقتي', 'أيوه وصل', icon: Icons.how_to_reg_rounded)) return;
+    await _run(() => OrderRepository.confirmArrival(_order.id), 'تم تأكيد وصول المحامي');
+  }
+
   Future<void> _openCompletion() async {
     if (!await _confirm('إنهاء المهمة', 'خلصت المهمة مع الموكل؟', 'إنهاء', icon: Icons.verified_rounded)) return;
     await _run(() => OrderRepository.completeOrder(_order.id), 'تم إنهاء المهمة، والصافي هيتاح بعد 24 ساعة');
@@ -384,6 +395,10 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         _statusNote('المحامي اتأخر\nتحب تستنى ولا تلغي وترجع فلوسك؟'),
         _primaryAction('هستنى', () => _run(() => OrderRepository.keepWaiting(order.id), 'تمام، هنكمل الانتظار')),
       ],
+      if (order.canConfirmArrival) ...[
+        _statusNote('المحامي بيقول إنه وصل\nلو هو معاك دلوقتي أكّد وصوله'),
+        _primaryAction('أيوه، المحامي وصل', _confirmArrival),
+      ],
       if (order.isPostponed) PostponedSince(since: order.postponedAt!, note: 'والفلوس محجوزة لحد ما المحامي ينهيها'),
       if (order.isActive && order.lawyerPhone != null)
         SheetButton('اتصل بالمحامي', _isBusy ? null : () => _call(order.lawyerPhone), icon: Icons.call_rounded, isSuccess: true),
@@ -412,9 +427,10 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         if (!order.hasOpenComplaint) ...[
           // Finishing stays hidden until the lawyer arrives within 50 meters of the client
           if (order.isPostponed) PostponedSince(since: order.postponedAt!, note: 'وأتعابها محجوزة لحد ما تنهيها'),
-          if (order.arrivedAt == null)
-            _primaryAction('وصلت', _markArrived)
-          else ...[
+          if (order.arrivedAt == null) ...[
+            _primaryAction('وصلت', _markArrived),
+            _action('الموكل يأكد وصولي', _askArrival),
+          ] else ...[
             _primaryAction('إنهاء المهمة', _openCompletion),
             // المؤجلة بتتنهي على طول، ومفيش «إلغاء التأجيل»
             if (!order.isPostponed) _action('مؤجل', _openPostpone),

@@ -132,6 +132,16 @@ class OrderRepository {
     return ApiService.post('/orders/$orderId/arrive', {'latitude': lat, 'longitude': lon, 'mocked': mocked});
   }
 
+  /// المحامي عند الموكل وزرار «وصلت» مش راضي: يطلب من الموكل يأكد وصوله
+  static Future<ApiResponse<dynamic>> askArrival(String orderId) {
+    return ApiService.post('/orders/$orderId/ask-arrival', {});
+  }
+
+  /// الموكل يأكد إن المحامي وصل
+  static Future<ApiResponse<dynamic>> confirmArrival(String orderId) {
+    return ApiService.post('/orders/$orderId/confirm-arrival', {});
+  }
+
   /// الموكل يختار يستنى المحامي المتأخر
   static Future<ApiResponse<dynamic>> keepWaiting(String orderId) {
     return ApiService.post('/orders/$orderId/keep-waiting', {});

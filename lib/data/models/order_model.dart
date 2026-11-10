@@ -43,6 +43,8 @@ class OrderModel {
   final bool hasOpenComplaint;
   final bool canEditReview;
   final DateTime? arrivedAt;
+  /// المحامي طلب من الموكل يأكد وصوله من عنده
+  final DateTime? arrivalAskedAt;
   /// آخر مكان للطرف التاني بين الدفع والوصول، والخط اللايف بيحدثه أول بأول
   final double? liveLat;
   final double? liveLon;
@@ -95,6 +97,7 @@ class OrderModel {
     this.hasOpenComplaint = false,
     this.canEditReview = false,
     this.arrivedAt,
+    this.arrivalAskedAt,
     this.liveLat,
     this.liveLon,
     this.paymentDeadline,
@@ -161,6 +164,7 @@ class OrderModel {
       hasOpenComplaint: json['hasOpenComplaint'] == true,
       canEditReview: json['canEditReview'] == true,
       arrivedAt: _toDate(json['arrivedAt'] ?? json['arrived_at']),
+      arrivalAskedAt: _toDate(json['arrivalAskedAt']),
       liveLat: _toDouble(json['liveLatitude']),
       liveLon: _toDouble(json['liveLongitude']),
       paymentDeadline: _toDate(json['paymentDeadline'] ?? json['payment_deadline']),
@@ -236,6 +240,9 @@ class OrderModel {
   }
 
   /// سؤال «تستنى ولا تلغي؟» بيظهر لحد ما الموكل يختار يستنى
+  /// المحامي مستني الموكل يأكد إنه وصل
+  bool get canConfirmArrival => isActive && arrivedAt == null && arrivalAskedAt != null && !hasOpenComplaint;
+
   bool get canChooseToWait => isLawyerLate && delayNotifiedAt != null && !clientKeepsWaiting && !hasOpenComplaint;
 
   /// الموكل يلغي قبل الدفع، وبعده قبل وصول المحامي فقط

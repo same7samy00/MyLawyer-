@@ -150,6 +150,7 @@ erDiagram
 | `035` | `lawyer_profiles.governorate` و`governorate_at`، وفهارس خريطة المحامين وقايمة المحافظة |
 | `036` | شيل جداول «أماكن التواجد» (`presence_*`) اللي اتعملت في `031` |
 | `037` إلى `039` | إيقاظ المحامي الساكت، وشيل مسار قديم، وسبب قفل الطلب قبل الدفع (`release_reason`) |
+| `041` | تأكيد الموكل لوصول المحامي: `arrival_asked_at` و`arrived_by_client` في `service_orders` |
 | `040` | `admin_login_codes` للدخول بخطوتين في اللوحة |
 
 المرجع دايمًا `backend/migrations`. الـ migrations بتشتغل لوحدها مع تشغيل الخادم، وكل رقم بيشتغل مرة واحدة.

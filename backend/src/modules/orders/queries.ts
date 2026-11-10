@@ -109,6 +109,8 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
         completedAt: o.completed_at,
         paidAt: o.paid_at,
         arrivedAt: o.arrived_at,
+        // The lawyer asked the client to confirm the arrival from their phone
+        arrivalAskedAt: o.arrival_asked_at,
         paymentDeadline: o.payment_deadline,
         // Why a chosen order closed before payment: TAKEN or UNPAID
         releaseReason: o.release_reason,
