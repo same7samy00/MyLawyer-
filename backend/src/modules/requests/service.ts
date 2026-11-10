@@ -14,7 +14,9 @@ const ROUND_RADII_KM = [10, 25, 50];
 export const AUTO_ROUNDS = ROUND_RADII_KM.length;
 /// The service and its map reach this far from the client
 export const SEARCH_RADIUS_KM = ROUND_RADII_KM[ROUND_RADII_KM.length - 1];
-const KM_PER_DEGREE = 111.32;
+/// cos(30 degrees), Egypt's middle: a degree of longitude shrunk to about the length of a degree of latitude.
+/// The same number is in the index of migration 043
+const LON_SCALE = 0.866;
 
 /// When the automatic calls end. After «بحث جديد» past the third call it is the current call's end
 export function callsEnd(request: any): Date {
@@ -94,9 +96,9 @@ interface Candidate { id: string; distance_km: number; latitude: number; longitu
 async function inReach(db: Db, request: any, radius: number, skipAsked: boolean, limit: number, except: string[]): Promise<Candidate[]> {
   const lat = Number(request.client_latitude);
   const lon = Number(request.client_longitude);
-  // A box around the client first, so the distance is worked out only for lawyers who could be inside the circle
-  const latSpan = radius / KM_PER_DEGREE;
-  const lonSpan = radius / (KM_PER_DEGREE * Math.cos((lat * Math.PI) / 180));
+  // The index idx_lawyer_profiles_near hands back the available lawyers nearest first, so the read stops after
+  // the few it needs however many lawyers are around. The exact distance is then worked out for those only.
+  // The ORDER BY must stay word for word like the index (migration 043)
   const res = await db.query(
     `SELECT id, distance_km, latitude, longitude FROM (
        SELECT u.id, lp.latitude::float8 AS latitude, lp.longitude::float8 AS longitude,
@@ -107,16 +109,15 @@ async function inReach(db: Db, request: any, radius: number, skipAsked: boolean,
        FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id
        WHERE ${LAWYER_CAN_WORK('lp', 'u')} AND lp.latitude IS NOT NULL AND lp.longitude IS NOT NULL
          AND GREATEST(lp.last_location_updated_at, lp.last_active_at) > NOW() - make_interval(mins => ${FRESH_MINUTES})
-         AND lp.latitude BETWEEN $1::float8 - $4::float8 AND $1::float8 + $4::float8
-         AND lp.longitude BETWEEN $2::float8 - $5::float8 AND $2::float8 + $5::float8
-         AND u.id <> ALL($7::uuid[])
+         AND u.id <> ALL($5::uuid[])
          AND NOT EXISTS (SELECT 1 FROM request_offers ro WHERE ro.request_id = $3 AND ro.lawyer_id = u.id AND ro.withdrawn_at IS NULL)
          ${skipAsked ? 'AND NOT EXISTS (SELECT 1 FROM request_recipients rr WHERE rr.request_id = $3 AND rr.lawyer_id = u.id)' : ''}
+       ORDER BY point((lp.longitude::float8) * ${LON_SCALE}, lp.latitude::float8) <-> point($2::float8 * ${LON_SCALE}, $1::float8)
+       LIMIT ${limit}
      ) nearest
-     WHERE distance_km <= $6::float8
-     ORDER BY distance_km ASC
-     LIMIT ${limit}`,
-    [lat, lon, request.id, latSpan, lonSpan, radius, except]
+     WHERE distance_km <= $4::float8
+     ORDER BY distance_km ASC`,
+    [lat, lon, request.id, radius, except]
   );
   return res.rows.map((row: any) => ({ id: row.id, distance_km: Number(row.distance_km), latitude: Number(row.latitude), longitude: Number(row.longitude) }));
 }
