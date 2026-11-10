@@ -27,7 +27,7 @@ flowchart LR
 | النظام | Ubuntu 24.04، والتوقيت Europe/Berlin |
 | الخدمات | `mylawyer-backend` (systemd، `127.0.0.1:4000`، `WEB_WORKERS=5`، حد ذاكرة 8 جيجا)، وPostgreSQL 16 محلي بس، وNginx 1.24، وPostfix (محلي بس، IPv4) وOpenDKIM، وfail2ban، والـ runner |
 | الملفات | الكود `/var/www/mylawyer/backend` (و`.env` وملف Firebase جنبه)، والموقع `/var/www/mylawyer/site` (و`current` رابط ليه)، والصور والملفات `/var/www/mylawyer/storage/{public,private_docs}` |
-| Nginx | `/etc/nginx/sites-available/mylawyer`، وإعدادات عامة في `/etc/nginx/conf.d/mylawyer-api.conf` و`security_headers.conf`. 20000 اتصال لكل عملية، وTLS 1.2 و1.3 بس |
+| Nginx | `/etc/nginx/sites-available/mylawyer`، وإعدادات عامة في `/etc/nginx/conf.d/mylawyer-api.conf` و`security_headers.conf`، والخزنتين (صور الخريطة وقايمة المحامين) في `conf.d/mylawyer-map-cache.conf`. 20000 اتصال لكل عملية، وTLS 1.2 و1.3 بس |
 | PostgreSQL | `/etc/postgresql/16/main/conf.d/90-mylawyer.conf`: ذاكرة 2 جيجا، و120 اتصال، ومهلة 30 ثانية للاستعلام، وتسجيل اللي أبطأ من 500 مللي |
 | الجدار الناري | UFW: 22 و80 و443 بس |
 | SSH | بالمفتاح بس (`/etc/ssh/sshd_config.d/00-mylawyer.conf`)، وfail2ban بيحظر بعد 5 محاولات |

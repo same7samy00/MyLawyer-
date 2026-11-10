@@ -10,12 +10,14 @@ import '../../data/repositories/lawyer_repository.dart';
 /// - في النص (9 لـ 12): أعلى محامي في كل حوالي 500 متر.
 /// - قريب (12 وأكتر): كل المحامين.
 /// عدد المحامين على الشاشة بيفضل قريب من بعضه في كل المستويات، مهما كان عدد المحامين.
-/// كل مربع واحد لكل الناس والسيرفر بيجهزه كل 5 دقايق، والموبايل بيطلب بس اللي ظاهر ومش معاه.
+/// كل مربع واحد لكل الناس والسيرفر بيجهزه كل 5 دقايق، والموبايل بيطلب بس البلوكات اللي ظاهرة ومش معاه.
 class MapLawyerLoader {
   static const _waitAfterMove = Duration(milliseconds: 350);
   static const midFromZoom = 9.0;
   static const allFromZoom = 12.0;
-  static const _maxCellsPerAsk = 150;
+  /// ضلع البلوك بالمربعات: 2 للمربعات الصغيرة (حوالي 22 كم)، و8 للكبيرة والخريطة بعيدة
+  static const _blockSideNear = 2;
+  static const _blockSideFar = 8;
 
   final void Function() onChanged;
   final Map<_Level, Map<String, _Cell>> _cells = {for (final level in _Level.values) level: {}};
@@ -81,15 +83,34 @@ class MapLawyerLoader {
     }
     if (wanted.isEmpty) return true;
 
-    var changed = false;
-    for (var start = 0; start < wanted.length; start += _maxCellsPerAsk) {
-      final part = wanted.sublist(start, math.min(start + _maxCellsPerAsk, wanted.length));
-      final res = await LawyerRepository.getMapCells(
-        size: level == _Level.far ? 'l' : 's',
-        cells: part,
-        kind: level == _Level.all ? null : 'top',
+    // المربعات بتتطلب بلوكات ثابتة وبنفس الترتيب عند كل الناس، عشان السيرفر يحفظ الرد مرة ويديه للكل.
+    // البلوك بيتطلب كله حتى لو جزء منه مع الموبايل
+    final side = level == _Level.far ? _blockSideFar : _blockSideNear;
+    final blocks = <String, List<String>>{};
+    for (final cell in wanted) {
+      final parts = cell.split('_');
+      final bx = (int.parse(parts[0]) / side).floor();
+      final by = (int.parse(parts[1]) / side).floor();
+      blocks.putIfAbsent(
+        '${bx}_$by',
+        () => [
+          for (var x = bx * side; x < (bx + 1) * side; x++)
+            for (var y = by * side; y < (by + 1) * side; y++) '${x}_$y',
+        ],
       );
-      if (_closed) return false;
+    }
+
+    final answers = await Future.wait([
+      for (final part in blocks.values)
+        LawyerRepository.getMapCells(
+          size: level == _Level.far ? 'l' : 's',
+          cells: part,
+          kind: level == _Level.all ? null : 'top',
+        ),
+    ]);
+    if (_closed) return false;
+    var changed = false;
+    for (final res in answers) {
       final data = res.data;
       if (!res.isOk || data == null) continue;
       _keepFor = Duration(seconds: data.seconds);
