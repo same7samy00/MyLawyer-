@@ -15,6 +15,7 @@
 | قاعدة البيانات (و`backend/migrations` هو المرجع) | `DATABASE_ARCHITECTURE.md` |
 | السيرفرين والخدمات اللي عليهم | `SERVER_ARCHITECTURE.md` |
 | الرفع والرجوع | `DEPLOYMENT.md` |
+| ربط الدومين بـ Cloudflare: الفايدة والخطوات | `CLOUDFLARE.md` |
 | النسخ الاحتياطية والاسترجاع | `BACKUP_AND_RECOVERY.md` |
 | المراقبة والسجلات | `MONITORING.md` |
 | الأسرار والحماية | `SECURITY.md` |

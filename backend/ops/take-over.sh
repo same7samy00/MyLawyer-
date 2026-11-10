@@ -65,5 +65,23 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 say "backend here: $(curl -s --max-time 3 http://127.0.0.1:4000/api/v1/health)"
-echo
-echo "Done. Now point my-lawyer.online and www to $(ip -4 -o addr show eth0 | awk '{print $4}' | cut -d/ -f1) in the DNS."
+HERE="$(ip -4 -o addr show eth0 | awk '{print $4}' | cut -d/ -f1)"
+# With Cloudflare (docs/CLOUDFLARE.md) the domain moves here by itself, in seconds
+if [ -f /etc/mylawyer/cloudflare.env ]; then
+  # shellcheck disable=SC1091
+  . /etc/mylawyer/cloudflare.env
+  for name in my-lawyer.online www.my-lawyer.online; do
+    id="$(curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/dns_records?type=A&name=$name" | grep -oP '"id":"\K[0-9a-f]{32}' | head -1)"
+    if [ -n "$id" ] && curl -s -X PATCH -H "Authorization: Bearer $CF_TOKEN" -H 'Content-Type: application/json' \
+         --data "{\"content\":\"$HERE\"}" "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/dns_records/$id" | grep -q '"success":true'; then
+      say "Cloudflare: $name now points here"
+    else
+      bad "Cloudflare: $name did not change, change it by hand"
+    fi
+  done
+  echo
+  echo "Done."
+else
+  echo
+  echo "Done. Now point my-lawyer.online and www to $HERE in the DNS."
+fi
