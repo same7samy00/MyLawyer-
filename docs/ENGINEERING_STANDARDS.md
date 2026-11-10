@@ -26,7 +26,7 @@
 | المسارات | جمع وkebab-case تحت `/api/v1` | `/lawyers/map`، `/consultations/:id/contact` |
 | جداول القاعدة وأعمدتها | `snake_case` جمع | `service_orders.payout_status` |
 | الـ migrations | رقم من 3 خانات + وصف | `035_lawyer_showcase.sql` |
-| الفروع | `claude/<المهمة>` أو `gemini/<المهمة>` | `claude/tawagod-page` |
+| الفروع | `claude/<المهمة>` أو `gemini/<المهمة>` | `claude/orders-card` |
 
 ## 4. التطبيق (Flutter)
 - **الطبقات:** الشاشة (`features/`) ← المستودع (`data/repositories/`) ← `ApiService`. **الشاشة ما بتكلمش الخادم مباشرة أبدًا.**
