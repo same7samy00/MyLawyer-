@@ -1,6 +1,6 @@
 # بنية السيرفرات
 
-**آخر تحقق:** 2026-11-07 (قراءة من السيرفرين). بيانات الدخول وطريقته في `docs/ACCESS.md`، وممنوع أي سر هنا.
+**آخر تحقق:** 2026-11-10 (قراءة من السيرفرين). بيانات الدخول وطريقته في `docs/ACCESS.md`، وممنوع أي سر هنا.
 
 ## 1. الصورة العامة
 ```mermaid
@@ -11,6 +11,7 @@ flowchart LR
   subgraph API[السيرفر الجديد: my-lawyer.online]
     N1[Nginx :443] --> B[mylawyer-backend: 5 workers]
     B --> PG[(PostgreSQL 16)]
+    B --> RD[(Redis 7)]
     B --> PF[Postfix + OpenDKIM]
     R[GitHub runner]
   end
@@ -29,6 +30,7 @@ flowchart LR
 | الملفات | الكود `/var/www/mylawyer/backend` (و`.env` وملف Firebase جنبه)، والموقع `/var/www/mylawyer/site` (و`current` رابط ليه)، والصور والملفات `/var/www/mylawyer/storage/{public,private_docs}` |
 | Nginx | `/etc/nginx/sites-available/mylawyer`، وإعدادات عامة في `/etc/nginx/conf.d/mylawyer-api.conf` و`security_headers.conf`، والخزنتين (صور الخريطة وقايمة المحامين) في `conf.d/mylawyer-map-cache.conf`. 20000 اتصال لكل عملية، وTLS 1.2 و1.3 بس |
 | PostgreSQL | `/etc/postgresql/16/main/conf.d/90-mylawyer.conf`: ذاكرة 2 جيجا، و120 اتصال، ومهلة 30 ثانية للاستعلام، وتسجيل اللي أبطأ من 500 مللي |
+| Redis (الذاكرة السريعة) | Redis 7 على `127.0.0.1:6379` بس، وبكلمة سر (`/etc/redis/mylawyer.conf`، وعنوانه `REDIS_URL` في `.env`). 1 جيجا بالكتير، ومش بيحفظ على الديسك. عليه حدود الطلبات، ومحاولات الدخول الغلط، ومكان المحامي وقت المهمة (`services/fastMemory.ts`). لو وقع، الخادم بيكمل وكل عملية بتعد لوحدها |
 | الجدار الناري | UFW: 22 و80 و443 بس |
 | SSH | بالمفتاح بس (`/etc/ssh/sshd_config.d/00-mylawyer.conf`)، وfail2ban بيحظر بعد 5 محاولات |
 | DNS السيرفر | `/etc/systemd/resolved.conf.d/mylawyer.conf` (1.1.1.1 و8.8.8.8)، لأن سيرفرات Contabo كانت بتعلّق |
