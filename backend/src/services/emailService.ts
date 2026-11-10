@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { config } from '../config/index.js';
+import { enqueue, handleJob } from './jobQueue.js';
 
 let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 
@@ -65,7 +66,17 @@ export function emailLayout(title: string, body: string): string {
 export const emailCode = (code: string) =>
   `<div style="margin:6px 0 18px;text-align:center;"><span dir="ltr" style="display:inline-block;background:#EFF6FF;border:2px dashed #1D4ED8;border-radius:7px;padding:14px 32px;font-family:${FONT};font-size:30px;font-weight:700;letter-spacing:8px;color:#1D4ED8;">${code}</span></div>`;
 
-export async function sendOtpEmail(toEmail: string, otpCode: string, purpose: 'register' | 'reset_password'): Promise<boolean> {
+/// The code works 10 minutes, so an email still waiting after that is dropped
+const OTP_MAX_AGE_MS = 10 * 60_000;
+
+/// Sends the code through the queue, so a stopped worker or a busy mail server doesn't lose it
+export async function sendOtpEmail(toEmail: string, otpCode: string, purpose: 'register' | 'reset_password') {
+  await enqueue('otp-email', { toEmail, otpCode, purpose });
+}
+
+handleJob('otp-email', OTP_MAX_AGE_MS, ({ toEmail, otpCode, purpose }) => deliverOtpEmail(toEmail, otpCode, purpose));
+
+async function deliverOtpEmail(toEmail: string, otpCode: string, purpose: 'register' | 'reset_password') {
   const mailer = getEmailTransporter();
 
   const title = purpose === 'register' ? 'تأكيد حسابك في My Lawyer' : 'تغيير كلمة السر في My Lawyer';
@@ -78,19 +89,14 @@ export async function sendOtpEmail(toEmail: string, otpCode: string, purpose: 'r
     emailText(subtitle) + emailCode(otpCode) + emailText('الكود شغال 10 دقايق بس', true) + emailText('متدّيش الكود ده لأي حد<br>وفريق My Lawyer عمره ما هيطلبه منك', true)
   );
 
-  try {
-    const info = await mailer.sendMail({
-      from: config.smtp.from,
-      to: toEmail,
-      // The inbox shows the app's name only, the code stays inside
-      subject: 'My Lawyer',
-      html: htmlContent,
-      text: [title, subtitle.replace('<br>', '\n'), otpCode, 'الكود شغال 10 دقايق بس', 'متدّيش الكود ده لأي حد'].join('\n\n'),
-    });
-    console.log(`[Email] OTP sent to ${toEmail}. MessageId: ${info.messageId}`);
-    return true;
-  } catch (err) {
-    console.error(`[Email Error] Failed to send OTP email to ${toEmail}:`, err);
-    return false;
-  }
+  // A failure throws, and the queue tries again
+  const info = await mailer.sendMail({
+    from: config.smtp.from,
+    to: toEmail,
+    // The inbox shows the app's name only, the code stays inside
+    subject: 'My Lawyer',
+    html: htmlContent,
+    text: [title, subtitle.replace('<br>', '\n'), otpCode, 'الكود شغال 10 دقايق بس', 'متدّيش الكود ده لأي حد'].join('\n\n'),
+  });
+  console.log(`[Email] OTP sent to ${toEmail}. MessageId: ${info.messageId}`);
 }

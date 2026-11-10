@@ -8,6 +8,7 @@ import { dbPool } from './database/index.js';
 import { sweepLifecycle } from './modules/lifecycle/sweep.js';
 import { startLiveUpdates, stopLiveUpdates } from './services/liveUpdates.js';
 import { closeFastMemory } from './services/fastMemory.js';
+import { startJobWorker, stopJobQueue } from './services/jobQueue.js';
 
 const WORKERS = Math.max(1, Number(process.env.WEB_WORKERS) || 1);
 const RESTART_WAIT_MS = 1_000;
@@ -130,6 +131,7 @@ async function startWorker() {
   const app = buildApp();
   await app.listen({ port: config.port, host: config.host });
   startLiveUpdates();
+  startJobWorker();
   const stopSweeping = startSweeping();
 
   // A release restarts the workers, so open requests finish first
@@ -141,6 +143,8 @@ async function startWorker() {
       await stopSweeping();
       await stopLiveUpdates();
       await app.close();
+      // Work already started finishes, the rest waits in the queue for another worker
+      await stopJobQueue();
       await closeFastMemory();
       await dbPool.end();
       process.exit(0);

@@ -157,7 +157,7 @@ lib/
 - **صور الخريطة:** TomTom عن طريق خزنة Nginx على `/map/t/` (كل مربع مرة لكل الناس). التفاصيل في `docs/GPS_SYSTEM.md`.
 - **أسماء المناطق:** ملف `assets/data/egypt_places.json` داخل التطبيق، ولا يحتاج طلبات للسيرفر.
 - **الدومين والتشفير:** `https://my-lawyer.online` بشهادة Let's Encrypt تتجدد تلقائياً.
-- **الإشعارات:** Firebase مشروع `my-lawyer-51a6c` عبر `pushService.ts` وقناة `orders` عالية الأولوية.
+- **الإشعارات:** Firebase مشروع `my-lawyer-51a6c` عبر `pushService.ts` وقناة `orders` عالية الأولوية. بتعدّي على الطابور (`jobQueue.ts`): شغلانة لكل موبايل، و5 محاولات لو Firebase مشغول، وبتتلغي لو عدّى عليها 5 دقايق (الإيقاظ دقيقتين). من غير Redis بتتبعت على طول.
 - **نظام الخريطة:** راجع [`docs/GPS_SYSTEM.md`](./GPS_SYSTEM.md).
 - الدليل الفني المفصل: [`docs/SERVER_ARCHITECTURE.md`](./SERVER_ARCHITECTURE.md).
 
