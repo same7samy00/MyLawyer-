@@ -120,6 +120,16 @@ rm -rf "${SITE_DIR:?}"/*
 cp -a "$APP_DIR/public/site/." "$SITE_DIR/"
 chown -R www-data:www-data "$SITE_DIR"
 
+# The second server runs the same release. Its private address is in /etc/mylawyer/second-server; without it this
+# step is skipped. A failure there doesn't undo this release: its backend stops and Nginx sends everything here
+SECOND_SERVER="${SECOND_SERVER:-$(cat /etc/mylawyer/second-server 2>/dev/null || true)}"
+if [ -n "$SECOND_SERVER" ]; then
+  echo "Updating the second server"
+  scp -q -o BatchMode=yes -o ConnectTimeout=10 "$RELEASE_DIR/backend/ops/second-server-deploy.sh" "root@$SECOND_SERVER:/root/second-server-deploy.sh" \
+    && tar -C "$APP_DIR" -cf - "${ITEMS[@]}" | ssh -o BatchMode=yes -o ConnectTimeout=10 "root@$SECOND_SERVER" "bash /root/second-server-deploy.sh '$RELEASE'" \
+    || echo "WARNING: the second server did not take the release, the main server answers alone"
+fi
+
 curl -s -o /dev/null -w 'Control page: %{http_code}\n' "http://127.0.0.1:${PORT:-4000}/api/v1/admin-panel"
 curl -sk -o /dev/null -w 'Website: %{http_code}\n' --resolve my-lawyer.online:443:127.0.0.1 https://my-lawyer.online/
 

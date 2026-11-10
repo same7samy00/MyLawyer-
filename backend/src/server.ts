@@ -4,7 +4,7 @@ import path from 'node:path';
 import { buildApp } from './app.js';
 import { config } from './config/index.js';
 import { runMigrations } from './database/migrate.js';
-import { dbPool } from './database/index.js';
+import { closeReadPool, dbPool } from './database/index.js';
 import { sweepLifecycle } from './modules/lifecycle/sweep.js';
 import { startLiveUpdates, stopLiveUpdates } from './services/liveUpdates.js';
 import { closeFastMemory } from './services/fastMemory.js';
@@ -146,6 +146,7 @@ async function startWorker() {
       // Work already started finishes, the rest waits in the queue for another worker
       await stopJobQueue();
       await closeFastMemory();
+      await closeReadPool();
       await dbPool.end();
       process.exit(0);
     } catch (err) {

@@ -1,4 +1,4 @@
-import { query } from '../../database/index.js';
+import { query, readQuery } from '../../database/index.js';
 import crypto from 'crypto';
 import { GOVERNORATES, GOVERNORATE_POINTS } from './governorates.js';
 
@@ -86,7 +86,7 @@ export async function cellsJson(size: CellSize, wanted: [number, number][]): Pro
     // One read for the box around all the missing squares, then each lawyer goes to their square
     const xs = missing.map(([x]) => x);
     const ys = missing.map(([, y]) => y);
-    const res = await query(
+    const res = await readQuery(
       `SELECT ${COLUMNS} FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id
        WHERE ${SHOWN}
          AND lp.latitude >= $1::float8 AND lp.latitude < $2::float8
@@ -127,7 +127,7 @@ export async function lightCellsJson(kind: MapKind, size: CellSize, wanted: [num
   if (missing.length > 0) {
     const xs = missing.map(([x]) => x);
     const ys = missing.map(([, y]) => y);
-    const res = await query(
+    const res = await readQuery(
       `SELECT DISTINCT ON (floor(lp.latitude::float8 / $5), floor(lp.longitude::float8 / $5)) ${COLUMNS}
        FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id
        WHERE ${SHOWN} AND lp.latitude >= $1::float8 AND lp.latitude < $2::float8 AND lp.longitude >= $3::float8 AND lp.longitude < $4::float8
@@ -169,7 +169,7 @@ export async function topInGovernorate(governorate: string): Promise<any[]> {
 
 async function buildTopLists(): Promise<Map<string, any[]>> {
   await refreshGovernorates();
-  const res = await query(
+  const res = await readQuery(
     `SELECT * FROM (
        SELECT ${COLUMNS}, lp.governorate,
               row_number() OVER (PARTITION BY lp.governorate ORDER BY lp.rating DESC, lp.reviews_count DESC) AS place

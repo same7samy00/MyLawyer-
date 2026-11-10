@@ -23,6 +23,8 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   // These two are for a local machine only, production refuses to start without its own
   databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/mylawyer_dev',
+  // The read-only live copy on the second server. Empty: every read goes to the main database
+  databaseReadUrl: process.env.NODE_ENV === 'test' ? '' : process.env.DATABASE_READ_URL || '',
   jwtSecret: process.env.JWT_SECRET || 'local-development-only-secret-never-used-in-production',
   // The fast memory shared by every server copy. Empty on a developer's machine and in tests: each copy then counts on its own
   redisUrl: process.env.NODE_ENV === 'test' ? '' : process.env.REDIS_URL || '',

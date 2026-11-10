@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { query, withTransaction } from '../../database/index.js';
+import { query, readQuery, withTransaction } from '../../database/index.js';
 import { config } from '../../config/index.js';
 import { sanitizeText, shortName } from '../../utils/security.js';
 import { detectFileType } from '../../utils/files.js';
@@ -64,7 +64,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: 'معرف المحامي غير صالح' });
     }
 
-    const res = await query(
+    const res = await readQuery(
       `SELECT r.id, r.rating, r.comment, r.published_at, u.full_name, u.profile_photo_path
        FROM reviews r
        JOIN users u ON u.id = r.client_id

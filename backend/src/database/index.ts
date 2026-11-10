@@ -17,6 +17,34 @@ dbPool.on('error', (err) => {
   console.error('Unexpected error on idle PostgreSQL client:', err);
 });
 
+/// The live copy of the database on the second server, read only and a few milliseconds behind.
+/// Used only for what is fine a moment old: the lawyers map, the top lists and reviews
+const readPool = config.databaseReadUrl
+  ? new Pool({
+      connectionString: config.databaseReadUrl,
+      max: Number(process.env.DB_READ_POOL_MAX) || 5,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
+    })
+  : null;
+readPool?.on('error', (err) => console.error('Unexpected error on idle read copy client:', err.message));
+
+/// Reads from the copy. If the copy doesn't answer, the main database answers instead
+export async function readQuery<T extends pg.QueryResultRow = any>(text: string, params?: any[]): Promise<pg.QueryResult<T>> {
+  if (readPool) {
+    try {
+      return await readPool.query<T>(text, params);
+    } catch (err) {
+      console.error('[MyLawyer Backend] Read copy failed, reading the main database:', err instanceof Error ? err.message : err);
+    }
+  }
+  return dbPool.query<T>(text, params);
+}
+
+export async function closeReadPool() {
+  await readPool?.end().catch(() => undefined);
+}
+
 export async function query<T extends pg.QueryResultRow = any>(text: string, params?: any[]): Promise<pg.QueryResult<T>> {
   const start = Date.now();
   const res = await dbPool.query(text, params);
