@@ -5,7 +5,7 @@
 ## 0. المراقب والتنبيه
 `backend/ops/mylawyer-watch.sh` (على السيرفر `/usr/local/bin/mylawyer-watch`) كل 5 دقايق من `/etc/cron.d/mylawyer-watch`، وحالته في `/var/lib/mylawyer-watch` وسجله `/var/log/mylawyer-watch.log`.
 - **الجديد (`api`):** الخادم والقاعدة، والموقع من بره، وصور الخريطة، والطرق، وشهادتين (أكتر من 14 يوم)، والنسخة اليومية (أحدث من 26 ساعة)، والمساحة (أقل من 80%)، والذاكرة (أقل من 90%).
-- **القديم (`maps`):** سيرفر الباك إند من بره، والخرايط عنده، والمساحة، والذاكرة. يعني كل سيرفر بيراقب التاني.
+- **التاني (`maps`):** السيرفر الأساسي من بره، والمساحة، والذاكرة.
 - **الإيميل:** لـ `same7redaa@gmail.com` (`MYLAWYER_ALERT_TO`) بعد فشلين ورا بعض، وإيميل تاني لما يرجع. من الجديد `noreply@my-lawyer.online` (اتجرّب ووصل)، ومن القديم `alerts@maps.my-lawyer.online` (**جوجل بيرفضه لحد ما سجل SPF لـ `maps` يتضاف في Hostinger**).
 
 ## 1. الصحة
@@ -23,7 +23,6 @@
 | الإيميل | `/var/log/mail.log` | `grep status= /var/log/mail.log \| tail` |
 | استعلامات القاعدة الأبطأ من نص ثانية | سجل PostgreSQL | `journalctl -u postgresql@16-main --since "-1d" \| grep duration` |
 | الرفع | GitHub Actions | صفحة Actions في الريبو |
-| رسم الخريطة | `/var/log/mylawyer-map-seed.log` على القديم | `tail -1` |
 
 ## 3. الموارد
 `sar -u 1 5` (المعالج)، و`sar -r` (الذاكرة)، و`df -h /`، و`free -m`. sysstat بيحفظ تاريخ كل 10 دقايق.

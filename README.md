@@ -1,6 +1,6 @@
 # My Lawyer
 
-منصة قانونية عربية تربط الموكلين بالمحامين. الخدمة الشغالة دلوقتي هي «محاميك حالاً»، والمشروع لسه في مرحلة التطوير.
+منصة قانونية عربية تربط الموكلين بالمحامين. الخدمات الشغالة: «محاميك حالاً» و«استشارة سريعة». المشروع في التطوير ومفيش مستخدمين حقيقيين.
 
 | الجزء | المكان | التقنية |
 |---|---|---|
@@ -10,19 +10,7 @@
 | الموقع العام | `backend/public/site/` | HTML، وNginx بيعرضه |
 | الخرائط | `docs/GPS_SYSTEM.md` | TomTom عن طريق سيرفرنا |
 
-## التوثيق
-| الملف | المحتوى |
-|---|---|
-| [`AGENTS.md`](AGENTS.md) | القواعد الملزمة ودورة العمل |
-| [`docs/HANDOFF.md`](docs/HANDOFF.md) | الوضع الحالي والتشغيل |
-| [`docs/memory/PENDING_TASKS.md`](docs/memory/PENDING_TASKS.md) | المهام |
-| [`docs/DECISIONS.md`](docs/DECISIONS.md) | قرارات صاحب المشروع |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | المعمارية |
-| [`docs/API_DOCUMENTATION.md`](docs/API_DOCUMENTATION.md) | مسارات الخادم |
-| [`docs/DATABASE_ARCHITECTURE.md`](docs/DATABASE_ARCHITECTURE.md) | قاعدة البيانات |
-| [`docs/GPS_SYSTEM.md`](docs/GPS_SYSTEM.md) | الموقع والخريطة |
-| [`docs/SERVER_ARCHITECTURE.md`](docs/SERVER_ARCHITECTURE.md) | السيرفرين |
-| [`docs/DEVELOPMENT_GUIDE.md`](docs/DEVELOPMENT_GUIDE.md) | التشغيل والرفع |
+الوضع الحالي في [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md)، وفهرس التوثيق في [`docs/README.md`](docs/README.md).
 
 ## التشغيل
 ```bash

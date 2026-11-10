@@ -27,7 +27,7 @@ describe('تذاكر الفلوس والتسوية بالالتقاء', () => {
     assert.equal(await clientBalance(), 0);
   });
 
-  it('المحامي ما يفتحش تذكرة على طلب مدفوع قبل وصوله، فرد فلوس الموكل ما يتوقفش (SEC-04)', async () => {
+  it('المحامي ما يفتحش تذكرة على طلب مدفوع قبل وصوله، فرد فلوس الموكل ما يتوقفش', async () => {
     const order = await createPaidOrder();
     assert.equal((await openTicket(lawyerToken, order.id, 'ORDER')).status, 409);
     assert.equal((await sql('SELECT COUNT(*)::int AS total FROM support_tickets WHERE order_id = $1', [order.id]))[0].total, 0);

@@ -1,6 +1,6 @@
 # بنية السيرفرات
 
-**آخر تحقق:** 2026-11-07 (قراءة من السيرفرين). الملف ده بيحل محل `VPS_SERVER_AND_MAPS.md` القديم. بيانات الدخول وطريقته في `docs/ACCESS.md`، وممنوع أي سر هنا.
+**آخر تحقق:** 2026-11-07 (قراءة من السيرفرين). بيانات الدخول وطريقته في `docs/ACCESS.md`، وممنوع أي سر هنا.
 
 ## 1. الصورة العامة
 ```mermaid
@@ -36,7 +36,7 @@ flowchart LR
 | الإيميل | من `noreply@my-lawyer.online`، موقّع DKIM بالمفتاح `mail`، وسجلات SPF وDMARC وMX في Hostinger، والـ PTR في Contabo |
 
 ## 3. السيرفر القديم `mylawyer-vps`
-سيرفر الخرايط القديم اتمسح منه كل حاجة تخص الخريطة (2026-11-09)، وفاضل عليه التنبيهات بس. الخريطة الحالية في `docs/GPS_SYSTEM.md`.
+مفيش عليه خرايط ولا مواقع. عليه نسخة تانية من النسخ اليومية (`/var/backups/mylawyer-api`) ومراقب بينبّه لو السيرفر الأساسي وقع. الخريطة الحالية في `docs/GPS_SYSTEM.md`.
 
 ## 4. الدومين
 DNS في Hostinger. `@` و`www` للجديد، و`maps` للقديم. التفاصيل والقيم في `docs/ACCESS.md`.
@@ -49,5 +49,5 @@ ssh -F D:/KAREM/.access/ssh_config mylawyer-api 'systemctl is-active mylawyer-ba
 ssh -F D:/KAREM/.access/ssh_config mylawyer-api 'journalctl -u mylawyer-backend --since "-1h" -p err --no-pager'
 ```
 ```bash
-ssh -F D:/KAREM/.access/ssh_config mylawyer-vps 'docker ps; df -h /; du -sh /var/cache/nginx/map_render'
+ssh -F D:/KAREM/.access/ssh_config mylawyer-vps 'df -h /; ls -la /var/backups/mylawyer-api | tail -3'
 ```

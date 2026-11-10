@@ -87,7 +87,7 @@ class ApiService {
     return _client.send(request);
   }
 
-  /// الجلسة محفوظة في الخزنة المشفرة بتاعة الموبايل (Keystore أو Keychain)، مش في المحفوظ العادي (SEC-08)
+  /// الجلسة محفوظة في الخزنة المشفرة بتاعة الموبايل (Keystore أو Keychain)، مش في المحفوظ العادي
   static const FlutterSecureStorage _vault = FlutterSecureStorage();
 
   /// من الخزنة، والنسخة القديمة اللي متخزنة من غير تشفير بتتنقل للخزنة أول مرة.

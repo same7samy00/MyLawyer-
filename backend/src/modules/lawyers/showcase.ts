@@ -64,7 +64,7 @@ export function governorateOf(lat: number, lon: number): string | null {
 export const cellKey = (size: CellSize, x: number, y: number) => `${size}:${x}:${y}`;
 
 /// Each square keeps its answer as ready JSON text, so a busy square is turned into text once per
-/// five minutes instead of once per request (PERF-02, load test 2026-11-07)
+/// five minutes instead of once per request
 const cells = new Map<string, { at: number; json: string }>();
 
 /// The lawyers in each asked square. A square built less than five minutes ago is answered from memory.

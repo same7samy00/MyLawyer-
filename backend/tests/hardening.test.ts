@@ -61,7 +61,7 @@ describe('تأمين الدخول والحساب', () => {
     assert.equal((await attempt(OTP)).status, 429);
   });
 
-  it('محاولات الرمز اللي بتوصل مع بعض ما تعدّيش الحد (SEC-02)', async () => {
+  it('محاولات الرمز اللي بتوصل مع بعض ما تعدّيش الحد', async () => {
     const user = await newAccount();
     await addOtp('password_reset_requests', user.id);
     const guesses = Array.from({ length: 12 }, (_, i) => call('POST', '/auth/reset-password', null, {
