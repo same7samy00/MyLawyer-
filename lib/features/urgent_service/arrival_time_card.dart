@@ -10,7 +10,7 @@ import '../../data/models/order_model.dart';
 /// وقت الوصول من الدفع لحد «وصلت»، من غير خريطة:
 /// المحامي بيشوف «الموكل على بعد كذا، حوالي كذا دقيقة»، والموكل بيشوف «المحامي هيوصلك خلال حوالي كذا».
 /// الوقت بيتحسب على الطرق الحقيقية من محرك الطرق اللي على السيرفر، بالزحمة المتوقعة،
-/// ومرة كل 30 ثانية بالكتير أو لما المحامي يتحرك 150 متر.
+/// والسؤال مرة كل دقيقتين أو لما المحامي يتحرك 500 متر، وبين السؤالين الوقت بيقل على قد ما المحامي قرّب.
 class ArrivalTimeCard extends StatefulWidget {
   final OrderModel order;
   final bool isLawyer;
@@ -23,11 +23,14 @@ class ArrivalTimeCard extends StatefulWidget {
 
 class _ArrivalTimeCardState extends State<ArrivalTimeCard> {
   static const double _arrivalMeters = 50;
-  static const double _askAgainMeters = 150;
-  static const Duration _askAgainEvery = Duration(seconds: 30);
+  static const double _askAgainMeters = 500;
+  static const Duration _askAgainEvery = Duration(minutes: 2);
 
   final RoutingService _routing = RoutingService();
   RouteEstimate? _route;
+
+  /// بُعد المحامي عن الموكل بالخط المستقيم وقت آخر سؤال، عشان الوقت يقل مع كل حركة من غير سؤال جديد
+  double? _askedStraightMeters;
   LatLng? _askedFrom;
   DateTime? _askedAt;
   bool _asking = false;
@@ -88,17 +91,32 @@ class _ArrivalTimeCardState extends State<ArrivalTimeCard> {
     _asking = true;
     _askedFrom = trip.$1;
     _askedAt = DateTime.now();
+    final straight = const Distance().as(LengthUnit.Meter, trip.$1, trip.$2);
     final route = await _routing.calculateDrivingRoute(start: trip.$1, destination: trip.$2);
     _asking = false;
     if (!mounted) return;
-    if (route.isSuccess) setState(() => _route = route);
+    if (route.isSuccess) {
+      setState(() {
+        _route = route;
+        _askedStraightMeters = straight;
+      });
+    }
+  }
+
+  /// آخر إجابة من السيرفر، متصغّرة على قد ما المحامي قرّب من وقتها. السؤال الجاي بيصحّحها
+  RouteEstimate? _routeNow(double straightMeters) {
+    final route = _route;
+    final asked = _askedStraightMeters;
+    if (route == null || asked == null || asked <= 0) return route;
+    final left = (straightMeters / asked).clamp(0.0, 1.5);
+    return RouteEstimate(distanceMeters: route.distanceMeters * left, durationSeconds: route.durationSeconds * left);
   }
 
   String _text(double straightMeters) {
     if (straightMeters <= _arrivalMeters) {
       return widget.isLawyer ? 'إنت جنب الموكل، دوس «وصلت»' : 'المحامي وصل جنبك';
     }
-    final route = _route;
+    final route = _routeNow(straightMeters);
     if (route == null) return 'بنحسب وقت الوصول...';
     return widget.isLawyer
         ? 'الموكل على بعد ${route.distanceText}، ${route.arrivalRangeText}'

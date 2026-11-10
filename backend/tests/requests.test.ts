@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { PROBLEM, app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createUser, wallet } from './harness.js';
 import { useRoadSeconds } from '../src/modules/requests/service.js';
+import { useRoadSource } from '../src/services/roadRoutes.js';
 
 const setRange = () => sql(`UPDATE problem_prices SET min_price = 500, max_price = 1500, commission_percent = 30`);
 
@@ -456,5 +457,28 @@ describe('الطريق ووقت الوصول', () => {
     assert.equal((await call('GET', '/routes?fromLat=10&fromLon=31.25&toLat=29.96&toLon=31.26', clientToken)).status, 400);
     // Tests never call TomTom
     assert.equal((await call('GET', `/routes?${q}`, clientToken)).status, 503);
+  });
+
+  it('موبايل الموكل والمحامي بيسألوا عن نفس الطريق: سؤال واحد بس بيطلع لشركة الخرايط', async () => {
+    let asked = 0;
+    useRoadSource(async () => {
+      asked++;
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      return { distanceMeters: 9000, durationSeconds: 900, trafficDelaySeconds: 60 };
+    });
+    try {
+      // Both phones ask at the same moment, a few meters apart, then one asks again a little later
+      const [lawyerAnswer, clientAnswer] = await Promise.all([
+        call('GET', '/routes?fromLat=30.05&fromLon=31.25&toLat=29.96&toLon=31.26', lawyerToken),
+        call('GET', '/routes?fromLat=30.0501&fromLon=31.2501&toLat=29.96&toLon=31.26', clientToken),
+      ]);
+      const later = await call('GET', '/routes?fromLat=30.0502&fromLon=31.25&toLat=29.96&toLon=31.26', clientToken);
+      assert.equal(lawyerAnswer.body.data.durationSeconds, 900);
+      assert.equal(clientAnswer.body.data.durationSeconds, 900);
+      assert.equal(later.body.data.durationSeconds, 900);
+      assert.equal(asked, 1);
+    } finally {
+      useRoadSource(null);
+    }
   });
 });
