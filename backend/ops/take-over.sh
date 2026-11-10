@@ -28,8 +28,11 @@ nginx -t -q 2>/dev/null && grep -q my-lawyer.online /etc/nginx/sites-enabled/* &
 say "uploaded files: $(find /var/www/mylawyer/storage -type f | wc -l)"
 curl -s --max-time 3 http://127.0.0.1:4000/api/v1/health | grep -q '"status":"UP"' && say "backend here: UP" || bad "backend here doesn't answer"
 
+# The main server counts as up if its database answers over the private link, or its site answers from outside
+MAIN_PUBLIC=45.13.232.30
 main_up=no
-curl -s --max-time 3 "http://$MAIN:4000/api/v1/health" | grep -q '"status":"UP"' && main_up=yes
+timeout 3 bash -c "</dev/tcp/$MAIN/5432" 2>/dev/null && main_up=yes
+curl -s --max-time 5 --resolve "my-lawyer.online:443:$MAIN_PUBLIC" https://my-lawyer.online/api/v1/health | grep -q '"status":"UP"' && main_up=yes
 say "main server answering: $main_up"
 
 if [ "${1:-}" = "--check" ]; then

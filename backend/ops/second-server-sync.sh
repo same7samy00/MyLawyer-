@@ -10,6 +10,8 @@ SSH="ssh -o BatchMode=yes -o ConnectTimeout=10"
 
 rsync -a --delete -e "$SSH" /var/www/mylawyer/storage/ "root@$SECOND:/var/www/mylawyer/storage/"
 rsync -a --delete -e "$SSH" /var/www/mylawyer/site/ "root@$SECOND:/var/www/mylawyer/site/"
+# Nginx serves the website from this link, the same as here
+rsync -a -e "$SSH" /var/www/mylawyer/current "root@$SECOND:/var/www/mylawyer/"
 rsync -a -e "$SSH" /etc/letsencrypt/ "root@$SECOND:/etc/letsencrypt/"
 
 # Nginx is the same on both, so the second server can answer the domain the moment it points there.

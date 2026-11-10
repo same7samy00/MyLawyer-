@@ -9,6 +9,8 @@
 | **الصور والملفات يوميًا** | نفس المكان `storage-YYYYMMDD.tar.gz` | مع القاعدة | ✅ (27 من 27 ملف اتجرّبوا) |
 | القاعدة والكود قبل كل رفع | نفس المكان `mylawyer-*.sql.gz` و`code-*.tar.gz` | مع كل رفع | ✅ |
 | **نسخة على السيرفر التاني** | السيرفر التاني `/var/backups/mylawyer-api` | كل يوم بعد النسخة اليومية (`mylawyer-offsite-backup`) | ✅ من 2026-11-07، بقرار صاحب المشروع (من غير شراء). مفتاح مخصص مقفول على الفولدر ده بس (rrsync، ومن عنوان الجديد بس)، واتجرّب إنه بيرفض أي أمر تاني |
+| **نسخة حية** | قاعدة للقراية على السيرفر التاني | كل تغيير لحظة بلحظة | ✅ من 2026-11-10 (`SERVER_ARCHITECTURE.md`). بتنقل الغلطات زي المسح كمان، فمش بديل عن اللي تحتها |
+| **تاريخ القاعدة المستمر (pgBackRest)** | السيرفر الأساسي `/var/lib/pgbackrest` (repo 1) والتاني `/var/lib/pgbackrest` (repo 2) | كل تغيير بيتسجل (وكل 5 دقايق بالكتير)، ونسخة كاملة الجمعة 2 الصبح، والتغييرات من بعدها باقي الأيام. آخر نسختين كاملتين | ✅ من 2026-11-10، و**الاسترجاع اتجرّب** من نسخة التاني (المستخدمين والطلبات والجداول طابقوا). الإعداد `/etc/pgbackrest.conf`، والتشغيل `/etc/cron.d/mylawyer-pgbackrest`، والسجل `/var/log/pgbackrest`. التاني بيستقبل بحساب `pgbackrest` نقل ملفات بس، ومن الخط الخاص بس |
 
 السكريبت `backend/ops/mylawyer-daily-backup.sh` (على السيرفر `/usr/local/bin/mylawyer-daily-backup`)، والتشغيل `/etc/cron.d/mylawyer-backup`، والسجل `/var/log/mylawyer-backup.log`. لو النسخة طلعت فاضية بيوقف ويسيب آخر نسخة سليمة، والمراقب بينبّه لو مفيش نسخة من أكتر من 26 ساعة.
 
@@ -26,6 +28,15 @@ gunzip -c /root/mylawyer-backups/<الملف>.sql.gz | psql "$DB"
 systemctl start mylawyer-backend
 ```
 النسخ اللي من `pg_dump` العادي نص SQL؛ استرجعها في قاعدة فاضية.
+
+**لدقيقة معينة (pgBackRest)**، مثلًا قبل مسح بالغلط. بيمسح القاعدة الحالية، فمحتاج موافقة صريحة:
+```bash
+# على السيرفر الأساسي. الوقت بتوقيت السيرفر (Europe/Berlin)
+systemctl stop mylawyer-backend postgresql@16-main
+sudo -u postgres pgbackrest --stanza=mylawyer --delta --type=time "--target=2026-11-10 21:00:00" --target-action=promote restore
+systemctl start postgresql@16-main mylawyer-backend
+```
+بعدها النسخة الحية على التاني لازم تتعمل من جديد (`pg_basebackup` زي `SERVER_ARCHITECTURE.md`)، وأول نسخة كاملة جديدة: `sudo -u postgres pgbackrest --stanza=mylawyer --type=full backup`.
 
 ## 4. لو السيرفر الأساسي وقع خالص: التاني ياخد مكانه
 السيرفر التاني جاهز طول الوقت: عليه نسخة حية من القاعدة، ونسخة من الخادم، وRedis خاص بيه، وNginx والشهادة والموقع والملفات (`mylawyer-second-sync` على الأساسي كل دقيقة). المراقب على التاني بيبعت إيميل لما الأساسي يقع.
