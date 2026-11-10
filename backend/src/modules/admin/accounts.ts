@@ -4,6 +4,7 @@ import { notify, revokeLawyerStrike } from '../lifecycle/service.js';
 import { sanitizeText } from '../../utils/security.js';
 import { UUID_PATTERN } from '../../utils/http.js';
 import { logAdminAction } from './actions.js';
+import { forgetActive } from '../../services/fastMemory.js';
 import { addWarning, adjustBalance, revokeWarning } from '../lifecycle/settlement.js';
 import { PAGE_LIMIT, userStats } from './directory.js';
 
@@ -132,6 +133,8 @@ export async function registerAdminAccounts(fastify: FastifyInstance) {
     );
     if (res.rows.length === 0) return reply.status(404).send({ success: false, error: 'الحساب غير موجود' });
 
+    // The suspension holds from the very next request
+    if (suspend) await forgetActive(id);
     await logAdminAction(adminId, suspend ? 'ACCOUNT_SUSPEND' : 'ACCOUNT_ACTIVATE', res.rows[0].label, null, id);
 
     if (suspend) {

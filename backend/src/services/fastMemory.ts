@@ -25,6 +25,27 @@ export function newConnection(): Redis {
   return connection;
 }
 
+/// An account seen active is remembered this long, so a request doesn't ask the database «is this account
+/// suspended?» every time. A suspension forgets it at once, on every worker
+const ACTIVE_SECONDS = 30;
+const activeKey = (userId: string) => `active:${userId}`;
+
+export async function knownActive(userId: string): Promise<boolean> {
+  try {
+    return (await fastMemory()?.get(activeKey(userId))) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function rememberActive(userId: string) {
+  fastMemory()?.set(activeKey(userId), '1', 'EX', ACTIVE_SECONDS).catch(() => undefined);
+}
+
+export async function forgetActive(userId: string) {
+  await fastMemory()?.del(activeKey(userId)).catch(() => undefined);
+}
+
 /// Whether the fast memory answers, for the health check
 export async function fastMemoryState(): Promise<'CONNECTED' | 'OFF' | 'ERROR'> {
   const memory = fastMemory();

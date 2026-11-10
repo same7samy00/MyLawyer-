@@ -22,7 +22,7 @@ import { adminRoutes } from './modules/admin/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { registerAdminPanel } from './modules/admin/panel.js';
 import { dbPool } from './database/index.js';
-import { fastMemory, fastMemoryState } from './services/fastMemory.js';
+import { fastMemory, fastMemoryState, knownActive, rememberActive } from './services/fastMemory.js';
 
 // PostgreSQL's code for a value of the wrong type, like a malformed id in a link
 const INVALID_TEXT_FOR_TYPE = '22P02';
@@ -155,10 +155,13 @@ export function buildApp() {
       const user = request.user as { userId?: string } | undefined;
       if (!user?.userId || request.url.endsWith('/notifications/device-token/remove')) return;
 
+      // Seen active a few seconds ago: the database is not asked again
+      if (await knownActive(user.userId)) return;
       const res = await dbPool.query('SELECT status, suspended_until FROM users WHERE id = $1', [user.userId]);
       if (res.rows[0]?.status === 'suspended') {
         return reply.status(403).send({ success: false, error: 'تم إيقاف هذا الحساب', data: { status: 'suspended', suspendedUntil: res.rows[0].suspended_until } });
       }
+      if (res.rows[0]?.status === 'active') rememberActive(user.userId);
     });
 
     api.get('/health', healthHandler);

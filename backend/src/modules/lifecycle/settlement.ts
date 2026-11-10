@@ -1,5 +1,6 @@
 import pg from 'pg';
-import { Db } from '../../database/index.js';
+import { Db, onceSaved } from '../../database/index.js';
+import { forgetActive } from '../../services/fastMemory.js';
 import { addClientCredit, lawyerShare, notify } from './service.js';
 
 export const CANCEL_MINUTES = 5;
@@ -118,6 +119,7 @@ export async function addWarning(db: Db, userId: string, reason: string, orderId
       [SUSPENSION_DAYS, userId]
     );
     await db.query(`UPDATE lawyer_profiles SET is_available = FALSE, availability_off_reason = 'SUSPENDED' WHERE user_id = $1`, [userId]);
+    onceSaved(db, () => void forgetActive(userId));
     await notify(db, userId, 'حسابك اتوقف أسبوع', 'بسبب تكرار الإنذارات');
   } else {
     await notify(db, userId, 'وصلك إنذار', reason, orderId ?? undefined);
