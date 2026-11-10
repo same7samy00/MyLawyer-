@@ -22,6 +22,7 @@ import '../../data/repositories/order_repository.dart';
 import '../support/new_ticket_screen.dart';
 import '../support/ticket_details_screen.dart';
 import 'arrival_time_card.dart';
+import 'lawyer_on_map_card.dart';
 import 'payment_screen.dart';
 
 /// كل تفاصيل الطلب وإجراءاته للموكل والمحامي في بوتن شيت، وبتتحدث لوحدها
@@ -244,6 +245,11 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         ),
         const SizedBox(height: 12),
         if (order.isActive && order.arrivedAt == null) ...[
+          // الموكل بيشوف المحامي جاي على الخريطة، والمحامي معاه Google Maps
+          if (!widget.isLawyer) ...[
+            LawyerOnMapCard(order: order),
+            const SizedBox(height: 12),
+          ],
           ArrivalTimeCard(order: order, isLawyer: widget.isLawyer),
           const SizedBox(height: 12),
         ],
