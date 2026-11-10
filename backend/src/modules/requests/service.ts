@@ -88,7 +88,7 @@ const MIN_ASKS_FOR_RATE = 5;
 let roadSeconds = async (from: Point, to: Point): Promise<number | null> => (await roadRoute(from, to))?.durationSeconds ?? null;
 export function useRoadSeconds(fn: typeof roadSeconds) { roadSeconds = fn; }
 
-interface Candidate { id: string; distance_km: number; latitude: number; longitude: number }
+interface Candidate { id: string; distance_km: number; latitude: number; longitude: number; road_seconds?: number | null }
 
 /// The lawyers in reach of one distance, nearest by straight line first
 async function inReach(db: Db, request: any, radius: number, skipAsked: boolean, limit: number, except: string[]): Promise<Candidate[]> {
@@ -143,6 +143,8 @@ async function nearestByRoad(db: Db, request: any, candidates: Candidate[]): Pro
   );
   return candidates
     .map((lawyer, i) => {
+      // Kept with the lawyer, so the offer card shows this road time and nothing is asked twice
+      lawyer.road_seconds = roads?.[i] != null ? Math.round(roads[i] as number) : null;
       const seconds = roads?.[i] ?? (lawyer.distance_km / FALLBACK_KMH) * 3600;
       return { lawyer, score: seconds - (rate.get(lawyer.id) ?? 0.5) * ANSWER_BONUS_SECONDS };
     })
@@ -207,10 +209,11 @@ export async function deliverCall(db: Db, request: any, call: Call): Promise<num
 
   // Asked again later, the lawyer sees the request as new
   await db.query(
-    `INSERT INTO request_recipients (request_id, lawyer_id, round, distance_km)
-     SELECT $1, v.id, $2, v.km FROM unnest($3::uuid[], $4::float8[]) AS v(id, km)
-     ON CONFLICT (request_id, lawyer_id) DO UPDATE SET round = EXCLUDED.round, distance_km = EXCLUDED.distance_km`,
-    [request.id, call.round, lawyers.map((lawyer) => lawyer.id), lawyers.map((lawyer) => lawyer.distance_km)]
+    `INSERT INTO request_recipients (request_id, lawyer_id, round, distance_km, road_seconds)
+     SELECT $1, v.id, $2, v.km, v.road FROM unnest($3::uuid[], $4::float8[], $5::int[]) AS v(id, km, road)
+     ON CONFLICT (request_id, lawyer_id) DO UPDATE
+       SET round = EXCLUDED.round, distance_km = EXCLUDED.distance_km, road_seconds = COALESCE(EXCLUDED.road_seconds, request_recipients.road_seconds)`,
+    [request.id, call.round, lawyers.map((lawyer) => lawyer.id), lawyers.map((lawyer) => lawyer.distance_km), lawyers.map((lawyer) => lawyer.road_seconds ?? null)]
   );
   await notifyRequestTo(
     db, lawyers.map((lawyer) => lawyer.id), 'طلب جديد', `${request.problem_type || request.service_title}. ابعت سعرك دلوقتي`, request.id

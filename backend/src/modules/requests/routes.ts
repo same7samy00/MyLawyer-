@@ -6,6 +6,7 @@ import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../u
 import { HAS_OPEN_ORDER, lawyerHasOpenOrder, lawyerShare, LAWYER_RESPONSE_SECONDS, notify, PAYMENT_MINUTES } from '../lifecycle/service.js';
 import { callsEnd, chooseEnd, LAWYER_CAN_WORK, LIVE_OFFERS, chooseNextCall, chooseRound, deliverCall, NEW_REQUEST_ID, priceRangeFor, ROUND_SECONDS } from './service.js';
 import { readOnAction } from '../notifications/readOnAction.js';
+import { roadRoute } from '../../services/roadRoutes.js';
 
 const ROAD_FACTOR = 1.4;
 const CITY_SPEED_KMH = 30;
@@ -166,6 +167,24 @@ export async function requestRoutes(fastify: FastifyInstance) {
     if (role !== 'lawyer') throw new HttpError(403, 'العروض للمحامين فقط');
     const price = Number((request.body as { price?: unknown } | null)?.price);
 
+    // The client sees how long this lawyer needs by road. With few lawyers around it was not asked at the call,
+    // so it is asked once here, before anything is locked
+    const way = (await query(
+      `SELECT rr.road_seconds, r.client_latitude, r.client_longitude, lp.latitude, lp.longitude
+       FROM request_recipients rr JOIN service_requests r ON r.id = rr.request_id JOIN lawyer_profiles lp ON lp.user_id = rr.lawyer_id
+       WHERE rr.request_id = $1 AND rr.lawyer_id = $2 AND r.status = 'OPEN'`,
+      [id, userId]
+    )).rows[0];
+    if (way && way.road_seconds == null && way.latitude != null) {
+      const road = await roadRoute(
+        { lat: Number(way.latitude), lon: Number(way.longitude) },
+        { lat: Number(way.client_latitude), lon: Number(way.client_longitude) }
+      );
+      if (road) {
+        await query('UPDATE request_recipients SET road_seconds = $3 WHERE request_id = $1 AND lawyer_id = $2', [id, userId, Math.round(road.durationSeconds)]);
+      }
+    }
+
     await withTransaction(async (client) => {
       const locked = await client.query(`SELECT * FROM service_requests WHERE id = $1 FOR UPDATE`, [id]);
       const target = locked.rows[0];
@@ -233,7 +252,7 @@ export async function requestRoutes(fastify: FastifyInstance) {
     if (!target) throw new HttpError(404, 'الطلب غير موجود');
 
     const offers = await query(
-      `SELECT ro.id, ro.lawyer_id, ro.price, rr.distance_km, lp.full_name, lp.profile_photo_path, lp.rating, lp.reviews_count, lp.experience_years
+      `SELECT ro.id, ro.lawyer_id, ro.price, rr.distance_km, rr.road_seconds, lp.full_name, lp.profile_photo_path, lp.rating, lp.reviews_count, lp.experience_years
        ${LIVE_OFFERS.replace('WHERE', 'JOIN request_recipients rr ON rr.request_id = ro.request_id AND rr.lawyer_id = ro.lawyer_id WHERE')}
          AND ro.request_id = $1
        ORDER BY ro.created_at ASC`,
@@ -262,7 +281,10 @@ export async function requestRoutes(fastify: FastifyInstance) {
           experienceYears: Number(row.experience_years) || 0,
           price: Number(row.price),
           distanceKm: roundedKm(row.distance_km),
-          minutesAway: Math.ceil((Number(row.distance_km) * ROAD_FACTOR / CITY_SPEED_KMH) * 60),
+          // The road time with traffic when it is known, and a city-driving guess on the straight distance when not
+          minutesAway: row.road_seconds != null
+            ? Math.max(1, Math.ceil(Number(row.road_seconds) / 60))
+            : Math.ceil((Number(row.distance_km) * ROAD_FACTOR / CITY_SPEED_KMH) * 60),
         })),
       },
     });

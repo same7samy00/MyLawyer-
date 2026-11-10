@@ -459,6 +459,36 @@ describe('الطريق ووقت الوصول', () => {
     assert.equal((await call('GET', `/routes?${q}`, clientToken)).status, 503);
   });
 
+  it('كارت العرض فيه وقت الطريق الحقيقي: من النداء لو اتحسب، وإلا بيتسأل مرة وقت إرسال السعر', async () => {
+    // One lawyer around: nothing was asked at the call, so the offer asks once
+    useRoadSource(async () => ({ distanceMeters: 9000, durationSeconds: 1500, trafficDelaySeconds: 0 }));
+    try {
+      const id = await createRequest();
+      assert.equal((await sql('SELECT road_seconds FROM request_recipients WHERE request_id = $1', [id]))[0].road_seconds, null);
+      await offer(id, 1000);
+      assert.equal((await follow(id)).offers[0].minutesAway, 25);
+    } finally {
+      useRoadSource(null);
+    }
+
+    // Many lawyers around: the road time worked out for the call is the one shown
+    await sql(`UPDATE service_requests SET status = 'CANCELLED' WHERE status = 'OPEN'`);
+    const others = [];
+    for (let i = 1; i <= 11; i++) others.push(await otherLawyer(30.05 + i * 0.002));
+    useRoadSeconds(async () => 420);
+    try {
+      const id = await createRequest();
+      const asked = (await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1 AND road_seconds = 420', [id])).map((row: any) => row.lawyer_id);
+      assert.equal(asked.length, 10);
+      const one = others.find((lawyer) => asked.includes(lawyer.id))!;
+      await offer(id, 1000, one.token);
+      assert.equal((await follow(id)).offers[0].minutesAway, 7);
+    } finally {
+      useRoadSeconds(async () => null);
+      for (const lawyer of others) await removeLawyer(lawyer.id);
+    }
+  });
+
   it('موبايل الموكل والمحامي بيسألوا عن نفس الطريق: سؤال واحد بس بيطلع لشركة الخرايط', async () => {
     let asked = 0;
     useRoadSource(async () => {
