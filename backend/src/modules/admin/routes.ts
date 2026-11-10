@@ -166,6 +166,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
     return reply.send({ success: true, message: 'تم تحديث أقل نسخة مسموحة' });
   });
 
+  // GET /api/v1/admin/app-errors - The crashes phones reported in the last 30 days, the same crash counted once
+  fastify.get('/app-errors', async (_request: FastifyRequest, reply: FastifyReply) => {
+    const res = await query(
+      `SELECT message, COUNT(*)::int AS times, COUNT(DISTINCT user_id)::int AS people, MAX(created_at) AS last_at,
+              MIN(app_build) AS oldest_build, MAX(app_build) AS newest_build,
+              string_agg(DISTINCT platform, '، ') AS platforms, (array_agg(stack ORDER BY id DESC))[1] AS stack
+       FROM app_errors GROUP BY message ORDER BY MAX(created_at) DESC LIMIT 200`
+    );
+    return reply.send({ success: true, data: res.rows });
+  });
+
   // GET /api/v1/admin/reviews/reported
   fastify.get('/reviews/reported', async (_request: FastifyRequest, reply: FastifyReply) => {
     const res = await query(

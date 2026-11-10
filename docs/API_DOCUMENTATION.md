@@ -100,6 +100,7 @@
 | `/orders/:id/confirm-arrival` | `POST` | موكل | يأكد وصول المحامي بعد ما المحامي يطلب، وبيتسجل وصول «بتأكيد الموكل» (`arrived_by_client`) |
 | `/orders?limit=30&offset=0` | `GET` | صاحب الطلب | القائمة على دفعات، والطلبات المفتوحة دايمًا في أول صفحة. من غير `limit` بترجع 100 زي الأول |
 | `/app/errors` | `POST` | أي تطبيق | عطل حصل في التطبيق على موبايل (`message`، `stack`، `platform`)، 10 في الدقيقة |
+| `/admin/app-errors` | `GET` | إدارة | أعطال التطبيق في آخر 30 يوم، نفس العطل مرة واحدة بعدد مراته والمستخدمين |
 | `/admin/app-version` | `GET` و`POST` | إدارة | أقل نسخة مسموحة (`minBuild`) ورابط التحديث (`updateUrl`). التطبيق بيبعت رقم نسخته في `X-App-Build`، والأقدم بياخد 426 «حدّث التطبيق» في أي طلب |
 | `/orders/:id/position` | `POST` | طرف في الطلب | التتبع اللحظي: آخر نقطة للطرف ده (`latitude` و`longitude`) من الدفع لحد الوصول، مرة كل 4 ثواني بالكتير. بترد `tracking: false` لما الطريق يخلص. النقطة بتوصل للطرف التاني على `/events` كـ `data: position <orderId> <side> <lat> <lon>`، و`GET /orders` بيرجعها في `liveLatitude` و`liveLongitude` |
 | `/orders/:id/complete` | `POST` | محامٍ | إنهاء المهمة بعد تسجيل الوصول، من غير كود |

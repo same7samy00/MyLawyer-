@@ -50,5 +50,15 @@ describe('التحديث الإجباري وأعطال التطبيق', () => {
     assert.equal(rows[0].platform, 'android');
     assert.ok(rows[0].stack <= 4000);
     assert.equal(rows[1].user_id, null);
+
+    // The control page sees the same crash once, with how many times and how many people
+    await call('POST', '/app/errors', null, { message: 'قبل الدخول' });
+    assert.equal((await call('GET', '/admin/app-errors', clientToken)).status, 403);
+    const shown = (await call('GET', '/admin/app-errors', adminToken)).body.data;
+    assert.equal(shown.length, 2);
+    const repeated = shown.find((item: any) => item.message === 'قبل الدخول');
+    assert.equal(repeated.times, 2);
+    assert.equal(repeated.people, 0);
+    assert.equal(shown.find((item: any) => item.message.startsWith('Null check')).people, 1);
   });
 });

@@ -22,6 +22,7 @@ const SCRIPTS = [
   'js/pages/prices.js',
   'js/pages/money.js',
   'js/pages/decisions.js',
+  'js/pages/appHealth.js',
   'js/router.js',
   'js/app.js',
 ];

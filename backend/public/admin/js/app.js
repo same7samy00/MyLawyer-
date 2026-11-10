@@ -12,6 +12,7 @@ const PAGES = {
   decisions: ['سجل قرارات الإدارة', 'apply', decisionsPage],
   money: ['إدارة الأموال', 'money', moneyPage],
   prices: ['الأسعار والنسب', 'price', pricesPage],
+  appHealth: ['نسخة التطبيق وأعطاله', 'power', appHealthPage],
 };
 const INNER = { user: userPage, order: orderPage, application: applicationPage, ticket: ticketPage, reviewReport: reviewReportPage, consultation: consultationPage, review: reviewPage };
 const INNER_TITLES = { user: 'الملف الشخصي', order: 'تفاصيل الطلب', application: 'طلب تقديم على محاميك حالاً', ticket: 'تذكرة دعم فني', reviewReport: 'بلاغ عن تقييم', consultation: 'استشارة سريعة', review: 'تفاصيل التقييم' };
@@ -19,7 +20,7 @@ const SUBTITLES = {
   overview: 'إجمالي إحصائيات التطبيق', consultations: 'استشارات مدفوعة تنتظر اتصال الفريق بالموكل', consultation: 'تفاصيل المشكلة والمستندات والحالة', review: 'التقييم والتعليق وطرفا الطلب', tasks: 'ما يحتاج إلى متابعتك الآن', tickets: 'كل ما يرسله الموكلون والمحامون إلى الدعم الفني', reports: 'تعليقات أبلغ عنها المحامون',
   reviewReport: 'مراجعة التعليق والقرار', ticket: 'الرسائل والرد والإغلاق', applications: 'طلبات التقديم على الخدمة والمحامون المفعلة لهم', lawyers: 'كل حسابات المحامين',
   clients: 'كل حسابات الموكلين', orders: 'البحث في الطلبات ومتابعة حالتها', reviews: 'تقييمات الموكلين للمحامين',
-  decisions: 'من اتخذ كل قرار في اللوحة ومتى', money: 'المدفوعات والأموال المجمدة والحركات', prices: 'أسعار الخدمات ونسبة المنصة والضريبة', application: 'مراجعة بيانات المحامي والقرار', user: 'البيانات والطلبات والتقييمات', order: 'البيانات ودورة حياة الطلب',
+  decisions: 'من اتخذ كل قرار في اللوحة ومتى', money: 'المدفوعات والأموال المجمدة والحركات', prices: 'أسعار الخدمات ونسبة المنصة والضريبة', appHealth: 'أقل نسخة مسموحة، والأعطال التي سجلها التطبيق على هواتف المستخدمين', application: 'مراجعة بيانات المحامي والقرار', user: 'البيانات والطلبات والتقييمات', order: 'البيانات ودورة حياة الطلب',
 };
 const NAV_GROUPS = [
   [null, ['overview']],
@@ -27,6 +28,7 @@ const NAV_GROUPS = [
   ['الخدمات', ['applications', 'consultations']],
   ['الطلبات والحسابات', ['orders', 'lawyers', 'clients', 'reviews', 'decisions']],
   ['الأموال', ['money', 'prices']],
+  ['التطبيق', ['appHealth']],
 ];
 // Stretched so the first menu word lines up with the longer names under it
 const NAV_LABELS = { overview: 'الرئيــــــــــسية' };

@@ -41,12 +41,17 @@ const user = async (phone: string, role: string, name: string) =>
     [phone, `${phone}@example.test`, role, name]
   )).rows[0].id as string;
 
+const token = (userId: string, role: string) => app.jwt.sign({ userId, role, status: 'active' });
+/// Each lawyer's sign-in, so a sample order can be priced by the lawyer it is meant for
+const lawyerTokens = new Map<string, string>();
+
 const lawyer = async (phone: string, name: string, urgentStatus: string, specialty: string) => {
   const id = await user(phone, 'lawyer', name);
+  lawyerTokens.set(id, token(id, 'lawyer'));
   await sql(
     `INSERT INTO lawyer_profiles (user_id, full_name, syndicate_number, specialty, bio, approval_status, is_available,
-                                  latitude, longitude, urgent_status, urgent_terms_accepted_at)
-     VALUES ($1, $2, $3, $4, 'محامٍ بخبرة في القضايا العاجلة', 'approved', TRUE, 30.05, 31.25, $5, NOW())`,
+                                  latitude, longitude, urgent_status, urgent_terms_accepted_at, last_location_updated_at, last_active_at)
+     VALUES ($1, $2, $3, $4, 'محامٍ بخبرة في القضايا العاجلة', 'approved', TRUE, 30.05, 31.25, $5, NOW(), NOW(), NOW())`,
     [id, name, String(100000 + Number(phone.slice(-3))), specialty, urgentStatus]
   );
   return id;
@@ -62,7 +67,6 @@ const lawyer1 = await lawyer('01200000001', 'أ. محمد حسن', 'APPROVED', '
 const lawyer2 = await lawyer('01200000002', 'أ. منى عادل', 'APPROVED', 'قانون الأسرة');
 await lawyer('01200000003', 'أ. كريم سمير', 'PENDING', 'القانون المدني');
 
-const token = (userId: string, role: string) => app.jwt.sign({ userId, role, status: 'active' });
 const call = async (url: string, userToken: string, payload: object = {}) =>
   (await app.inject({ method: 'POST', url: `/api/v1${url}`, headers: { authorization: `Bearer ${userToken}` }, payload })).json();
 const list = async (userToken: string) =>
@@ -71,16 +75,24 @@ const list = async (userToken: string) =>
 const c1 = token(client1, 'client');
 const c2 = token(client2, 'client');
 const l1 = token(lawyer1, 'lawyer');
-const l2 = token(lawyer2, 'lawyer');
 
-const order = async (clientToken: string, lawyerId: string, problemType: string) =>
-  (await call('/orders', clientToken, {
-    lawyerId, problemType, problemDescription: 'وصف تجريبي للمشكلة', clientLat: 30.05, clientLon: 31.25,
-  })).data;
+/// An order the way the app makes one: the client asks, this lawyer prices it, and the client chooses that price.
+/// It then waits for the payment
+const order = async (clientToken: string, lawyerId: string, problemType: string) => {
+  const sent = await call('/requests', clientToken, {
+    problemType, problemDescription: 'وصف تجريبي للمشكلة', clientLat: 30.05, clientLon: 31.25, clientAddress: 'المعادي، محافظة القاهرة',
+  });
+  const requestId = sent.data.id as string;
+  const range = (await sql('SELECT min_price FROM service_requests WHERE id = $1', [requestId])).rows[0];
+  await call(`/requests/${requestId}/offer`, lawyerTokens.get(lawyerId)!, { price: Number(range.min_price) });
+  const followed = (await app.inject({ method: 'GET', url: `/api/v1/requests/${requestId}`, headers: { authorization: `Bearer ${clientToken}` } })).json();
+  const mine = followed.data.offers.find((offer: any) => offer.lawyerId === lawyerId);
+  const chosen = await call(`/requests/${requestId}/offers/${mine.id}/select`, clientToken);
+  return { id: chosen.data.orderId as string };
+};
 
 // Completed and reviewed
 const done = await order(c1, lawyer1, 'محضر في قسم الشرطة');
-await call(`/orders/${done.id}/accept`, l1);
 await call(`/orders/${done.id}/confirm-payment`, c1);
 await call(`/orders/${done.id}/arrive`, l1, { latitude: 30.0501, longitude: 31.25 });
 await call(`/orders/${done.id}/complete`, l1, {});
@@ -90,11 +102,10 @@ await call('/support/tickets', c1, { category: 'ORDER', orderId: done.id, title:
 
 // Active with an open money ticket
 const active = await order(c2, lawyer1, 'محضر في قسم الشرطة');
-await call(`/orders/${active.id}/accept`, l1);
 await call(`/orders/${active.id}/confirm-payment`, c2);
 await call('/support/tickets', c2, { category: 'MONEY', orderId: active.id, title: 'المحامي اتأخر', body: 'المحامي اتأخر عن الميعاد المتفق عليه ومش بيرد' });
 
-// Cancelled, then one waiting for the lawyer
+// Cancelled, then one waiting for the payment
 const cancelled = await order(c1, lawyer2, 'محضر في قسم الشرطة');
 await call(`/orders/${cancelled.id}/cancel`, c1, { reason: 'الموكل غيّر رأيه' });
 await order(c1, lawyer2, 'محضر في قسم الشرطة');
@@ -137,14 +148,12 @@ await sql(`UPDATE support_tickets SET status = 'OPEN' WHERE id = $1`, [accountTi
 
 // Lawyer ticket on an order that expired
 const expired = await order(c4, lawyer4, 'محضر في قسم الشرطة');
-await call(`/orders/${expired.id}/accept`, l4);
 await call(`/orders/${expired.id}/confirm-payment`, c4);
 await call('/support/tickets', l4, { category: 'ORDER', orderId: expired.id, title: 'تعامل غير لائق', body: 'الموكل اتعامل بشكل غير لائق وقت المهمة' });
 await sql(`UPDATE service_orders SET status = 'EXPIRED', expires_at = NOW() - INTERVAL '1 hour' WHERE id = $1`, [expired.id]);
 
 // Cancelled after payment, so the client got the money back as credit
 const refunded = await order(c5, lawyer5, 'محضر في قسم الشرطة');
-await call(`/orders/${refunded.id}/accept`, l5);
 await call(`/orders/${refunded.id}/confirm-payment`, c5);
 await call(`/orders/${refunded.id}/cancel`, c5, { reason: 'اتحلت المشكلة' });
 
@@ -152,6 +161,15 @@ await call(`/orders/${refunded.id}/cancel`, c5, { reason: 'اتحلت المشك
 await sql(`UPDATE reviews SET reported_at = NOW(), report_reason = 'التعليق فيه معلومات غلط' WHERE order_id = $1`, [done.id]);
 await sql(`INSERT INTO lawyer_strikes (lawyer_id, kind) VALUES ($1, 'NO_RESPONSE'), ($1, 'WITHDRAW')`, [lawyer2]);
 await sql(`UPDATE users SET status = 'suspended' WHERE id = $1`, [client4]);
+
+// Crashes the app reported from phones, for the app page
+await sql(
+  `INSERT INTO app_errors (user_id, app_build, platform, message, stack, created_at) VALUES
+     ($1, 1, 'android', 'Null check operator used on a null value', '#0 OrderDetailsSheet._load (order_details_sheet.dart:120)', NOW() - INTERVAL '2 hours'),
+     ($2, 1, 'android', 'Null check operator used on a null value', '#0 OrderDetailsSheet._load (order_details_sheet.dart:120)', NOW() - INTERVAL '1 hour'),
+     (NULL, 1, 'android', 'RangeError (index): Invalid value: Valid value range is empty: 0', '#0 OrdersTab.build (orders_tab.dart:201)', NOW() - INTERVAL '1 day')`,
+  [client1, client2]
+);
 
 // Quick consultations: one waiting call, one with papers being handled, one done
 const consultDetails = 'اتفقت مع صاحب الشقة على الإيجار لمدة سنة، ودلوقتي عايز يطلعني قبل المدة من غير أي سبب واضح';
