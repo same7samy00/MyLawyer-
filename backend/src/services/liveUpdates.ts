@@ -2,6 +2,7 @@ import type { ServerResponse } from 'http';
 import pg from 'pg';
 import { config } from '../config/index.js';
 import type { Db } from '../database/index.js';
+import { fastMemory, newConnection } from './fastMemory.js';
 
 const CHANNEL = 'user_changes';
 // Live positions on the way to a meeting: never stored in change_log, only the newest one matters
@@ -14,6 +15,7 @@ const lines = new Map<string, Set<ServerResponse>>();
 /// The control page's lines: every change reaches them
 const adminLines = new Set<ServerResponse>();
 let listener: pg.Client | null = null;
+let positionListener: ReturnType<typeof newConnection> | null = null;
 let stopped = false;
 
 /// Tells this person's open apps that something changed.
@@ -34,9 +36,21 @@ export function deliverChange(userId: string, alert = false, kind = 'all', entit
   for (const line of adminLines) line.write(`data: change ${kind} ${entityId}\n\n`);
 }
 
-/// Sends one side's newest point to the other side of the order, and to nobody else
+/// Sends one side's newest point to the other side of the order, and to nobody else.
+/// A point is a small message that needs no saving, so it goes through the fast memory and leaves the database
+/// alone. Without the fast memory, or if it doesn't answer, it goes through the database as before
 export async function publishPosition(db: Db, toUserId: string, orderId: string, side: 'lawyer' | 'client', lat: number, lon: number) {
-  await db.query('SELECT pg_notify($1, $2)', [POSITION_CHANNEL, `${toUserId}|${orderId}|${side}|${lat}|${lon}`]);
+  const payload = `${toUserId}|${orderId}|${side}|${lat}|${lon}`;
+  const memory = fastMemory();
+  if (memory) {
+    try {
+      await memory.publish(POSITION_CHANNEL, payload);
+      return;
+    } catch {
+      // Falls back to the database
+    }
+  }
+  await db.query('SELECT pg_notify($1, $2)', [POSITION_CHANNEL, payload]);
 }
 
 function deliverPosition(payload: string) {
@@ -111,9 +125,22 @@ async function connectListener() {
   }
 }
 
+/// Points sent through the fast memory by a worker on either server. The connection reconnects by itself,
+/// and listens again every time it is ready
+function listenForPositions() {
+  if (!fastMemory()) return;
+  const connection = newConnection();
+  positionListener = connection;
+  connection.on('message', (_channel, payload) => deliverPosition(payload));
+  connection.on('ready', () => {
+    connection.subscribe(POSITION_CHANNEL).catch((err) => console.error('[MyLawyer Backend] Position listener failed:', err.message));
+  });
+}
+
 export function startLiveUpdates() {
   stopped = false;
   void connectListener();
+  listenForPositions();
 }
 
 export async function stopLiveUpdates() {
@@ -121,4 +148,6 @@ export async function stopLiveUpdates() {
   closeAllLines();
   await listener?.end().catch(() => undefined);
   listener = null;
+  await positionListener?.quit().catch(() => undefined);
+  positionListener = null;
 }

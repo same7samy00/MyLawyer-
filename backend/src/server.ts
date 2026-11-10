@@ -7,6 +7,7 @@ import { runMigrations } from './database/migrate.js';
 import { dbPool } from './database/index.js';
 import { sweepLifecycle } from './modules/lifecycle/sweep.js';
 import { startLiveUpdates, stopLiveUpdates } from './services/liveUpdates.js';
+import { closeFastMemory } from './services/fastMemory.js';
 
 const WORKERS = Math.max(1, Number(process.env.WEB_WORKERS) || 1);
 const RESTART_WAIT_MS = 1_000;
@@ -140,6 +141,7 @@ async function startWorker() {
       await stopSweeping();
       await stopLiveUpdates();
       await app.close();
+      await closeFastMemory();
       await dbPool.end();
       process.exit(0);
     } catch (err) {

@@ -19,7 +19,7 @@ export async function registerSession(fastify: FastifyInstance) {
     const { identifier, password, rememberMe } = parseResult.data;
     const attemptKey = identifier.toLowerCase();
 
-    if (isLoginLocked(attemptKey)) {
+    if (await isLoginLocked(attemptKey)) {
       return reply.status(429).send({ success: false, error: 'محاولات دخول كتير على الحساب ده، استنى 10 دقايق وحاول تاني' });
     }
 
@@ -35,7 +35,7 @@ export async function registerSession(fastify: FastifyInstance) {
     );
 
     if (userRes.rows.length === 0) {
-      recordLoginFailure(attemptKey);
+      await recordLoginFailure(attemptKey);
       return reply.status(401).send({ success: false, error: 'بيانات الدخول غير صحيحة، تأكد من رقم الهاتف/الإيميل وكلمة المرور' });
     }
 
@@ -43,10 +43,10 @@ export async function registerSession(fastify: FastifyInstance) {
 
     const isValid = await verifyPassword(user.password_hash, password);
     if (!isValid) {
-      recordLoginFailure(attemptKey);
+      await recordLoginFailure(attemptKey);
       return reply.status(401).send({ success: false, error: 'بيانات الدخول غير صحيحة، تأكد من رقم الهاتف/الإيميل وكلمة المرور' });
     }
-    clearLoginFailures(attemptKey);
+    await clearLoginFailures(attemptKey);
 
     // Check account statuses
     if (user.status === 'suspended') {

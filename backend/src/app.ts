@@ -22,6 +22,7 @@ import { adminRoutes } from './modules/admin/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { registerAdminPanel } from './modules/admin/panel.js';
 import { dbPool } from './database/index.js';
+import { fastMemory, fastMemoryState } from './services/fastMemory.js';
 
 // PostgreSQL's code for a value of the wrong type, like a malformed id in a link
 const INVALID_TEXT_FOR_TYPE = '22P02';
@@ -67,8 +68,12 @@ export function buildApp() {
   });
 
   // Rate Limiter
-  // Mobile networks put many phones behind one IP, so signed-in users count by account
+  // Mobile networks put many phones behind one IP, so signed-in users count by account.
+  // Counted in the fast memory, so every worker on both servers shares one count. If it stops answering,
+  // requests go through rather than fail
+  const memory = fastMemory();
   fastify.register(rateLimit, {
+    ...(memory ? { redis: memory, nameSpace: 'limit:', skipOnError: true } : {}),
     max: (_request, key) => {
       if (config.nodeEnv === 'test') return 100000;
       if (key.startsWith('auth:')) return 120;
@@ -131,8 +136,9 @@ export function buildApp() {
   const healthHandler = async () => {
     try {
       await dbPool.query('SELECT 1');
-      // The release lets deploy.sh see that the new code is the one answering
-      return { status: 'UP', database: 'CONNECTED', release: process.env.MYLAWYER_RELEASE || null };
+      // The release lets deploy.sh see that the new code is the one answering.
+      // The app works without the fast memory, so its state is told but doesn't change UP
+      return { status: 'UP', database: 'CONNECTED', fastMemory: await fastMemoryState(), release: process.env.MYLAWYER_RELEASE || null };
     } catch {
       return { status: 'DEGRADED', database: 'ERROR' };
     }

@@ -24,6 +24,8 @@ export const config = {
   // These two are for a local machine only, production refuses to start without its own
   databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/mylawyer_dev',
   jwtSecret: process.env.JWT_SECRET || 'local-development-only-secret-never-used-in-production',
+  // The fast memory shared by every server copy. Empty on a developer's machine and in tests: each copy then counts on its own
+  redisUrl: process.env.NODE_ENV === 'test' ? '' : process.env.REDIS_URL || '',
   publicStoragePath: process.env.PUBLIC_STORAGE_PATH || path.resolve(process.cwd(), 'storage/public'),
   privateStoragePath: process.env.PRIVATE_STORAGE_PATH || path.resolve(process.cwd(), 'storage/private_docs'),
   smtp: {

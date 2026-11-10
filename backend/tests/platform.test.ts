@@ -126,6 +126,12 @@ describe('حماية السيرفر', () => {
       assert.equal((await app.inject({ method: 'GET', url })).statusCode, 404);
     }
   });
+
+  it('من غير الذاكرة السريعة الخادم شغال عادي، وفحص الحالة بيقول إنها مقفولة', async () => {
+    const health = (await app.inject({ method: 'GET', url: '/api/v1/health' })).json();
+    assert.equal(health.status, 'UP');
+    assert.equal(health.fastMemory, 'OFF');
+  });
 });
 
 describe('إيقاف الحساب', () => {
