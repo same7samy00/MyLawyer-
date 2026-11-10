@@ -1,4 +1,4 @@
-import { query, readQuery } from '../../database/index.js';
+import { dbPool, readQuery } from '../../database/index.js';
 import crypto from 'crypto';
 import { GOVERNORATES, GOVERNORATE_POINTS } from './governorates.js';
 
@@ -18,6 +18,8 @@ export type CellSize = keyof typeof CELL_DEGREES;
 export const MAX_CELLS = 150;
 /// Kept per governorate; the app shows 20 at a time with «المزيد»
 const TOP_PER_GOVERNORATE = 100;
+/// One number for the whole database: only one worker works out the governorates at a time
+const GOVERNORATES_LOCK = 4_242_002;
 
 const SHOWN = `
   lp.approval_status = 'approved' AND u.status = 'active' AND lp.suspended_until IS NULL
@@ -192,22 +194,35 @@ async function buildTopLists(): Promise<Map<string, any[]>> {
 
 /// Lawyers who are new or moved since their governorate was worked out get it again
 export async function refreshGovernorates() {
-  for (let batch = 0; batch < 20; batch++) {
-    const res = await query(
-      `SELECT id, latitude, longitude FROM lawyer_profiles
-       WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-         AND (governorate_at IS NULL OR governorate_at < last_location_updated_at)
-       LIMIT 2000`
-    );
-    if (res.rows.length === 0) return;
-    const ids = res.rows.map((row) => row.id);
-    const names = res.rows.map((row) => governorateOf(Number(row.latitude), Number(row.longitude)));
-    await query(
-      `UPDATE lawyer_profiles lp SET governorate = v.name, governorate_at = NOW()
-       FROM unnest($1::uuid[], $2::text[]) AS v(id, name) WHERE lp.id = v.id`,
-      [ids, names]
-    );
-    if (res.rows.length < 2000) return;
+  // Every worker on both servers rebuilds its lists, so many would write the same lawyers at the same moment and
+  // block each other (seen in the load test of 2026-11-11). One worker at a time does it; the others read what is there
+  const client = await dbPool.connect();
+  try {
+    const lock = await client.query('SELECT pg_try_advisory_lock($1) AS taken', [GOVERNORATES_LOCK]);
+    if (!lock.rows[0].taken) return;
+    try {
+      for (let batch = 0; batch < 20; batch++) {
+        const res = await client.query(
+          `SELECT id, latitude, longitude FROM lawyer_profiles
+           WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+             AND (governorate_at IS NULL OR governorate_at < last_location_updated_at)
+           ORDER BY id LIMIT 2000`
+        );
+        if (res.rows.length === 0) return;
+        const ids = res.rows.map((row) => row.id);
+        const names = res.rows.map((row) => governorateOf(Number(row.latitude), Number(row.longitude)));
+        await client.query(
+          `UPDATE lawyer_profiles lp SET governorate = v.name, governorate_at = NOW()
+           FROM unnest($1::uuid[], $2::text[]) AS v(id, name) WHERE lp.id = v.id`,
+          [ids, names]
+        );
+        if (res.rows.length < 2000) return;
+      }
+    } finally {
+      await client.query('SELECT pg_advisory_unlock($1)', [GOVERNORATES_LOCK]);
+    }
+  } finally {
+    client.release();
   }
 }
 
