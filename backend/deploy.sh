@@ -123,8 +123,12 @@ chown -R www-data:www-data "$SITE_DIR"
 # The second server runs the same release. Its private address is in /etc/mylawyer/second-server; without it this
 # step is skipped. A failure there doesn't undo this release: its backend stops and Nginx sends everything here
 SECOND_SERVER="${SECOND_SERVER:-$(cat /etc/mylawyer/second-server 2>/dev/null || true)}"
+# The scripts that keep the two servers ready for a take-over, always the newest
+install -m 755 "$RELEASE_DIR/backend/ops/main-guard.sh" /usr/local/sbin/mylawyer-main-guard
+install -m 755 "$RELEASE_DIR/backend/ops/second-server-sync.sh" /usr/local/sbin/mylawyer-second-sync
 if [ -n "$SECOND_SERVER" ]; then
   echo "Updating the second server"
+  scp -q -o BatchMode=yes -o ConnectTimeout=10 "$RELEASE_DIR/backend/ops/take-over.sh" "root@$SECOND_SERVER:/root/take-over.sh" || true
   scp -q -o BatchMode=yes -o ConnectTimeout=10 "$RELEASE_DIR/backend/ops/second-server-deploy.sh" "root@$SECOND_SERVER:/root/second-server-deploy.sh" \
     && tar -C "$APP_DIR" -cf - "${ITEMS[@]}" | ssh -o BatchMode=yes -o ConnectTimeout=10 "root@$SECOND_SERVER" "bash /root/second-server-deploy.sh '$RELEASE'" \
     || echo "WARNING: the second server did not take the release, the main server answers alone"
