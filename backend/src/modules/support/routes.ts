@@ -4,6 +4,7 @@ import { dbPool, query, withTransaction } from '../../database/index.js';
 import { sanitizeText } from '../../utils/security.js';
 import { AuthenticatedUser, HttpError, requireAuth } from '../../utils/http.js';
 import { notify } from '../lifecycle/service.js';
+import { readOnAction } from '../notifications/readOnAction.js';
 import {
   addMessage,
   attachmentFile,
@@ -33,6 +34,7 @@ const listItem = (row: any) => ({
 /// Technical support for clients and lawyers: open a ticket, read the replies, and answer until an admin closes it
 export async function supportRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', requireAuth());
+  readOnAction(fastify, 'ticket_id');
 
   const handle = async (reply: FastifyReply, work: () => Promise<{ status?: number; data: unknown; message?: string }>) => {
     const result = await work();

@@ -39,6 +39,11 @@ class _OrdersTabState extends State<OrdersTab> {
   List<OrderModel> _orders = OrderStore.orders.value;
   bool _showCurrent = true;
 
+  /// الصفحة بتفتح دايمًا على الطلبات الحالية، حتى لو كانت آخر مرة على السجل
+  void _backToCurrent() {
+    if (mounted && !_showCurrent) setState(() => _showCurrent = true);
+  }
+
   /// صفحة الطلبات شاملة كل الخدمات: «محاميك حالاً» والاستشارة السريعة
   List<Consultation> _consultations = ConsultationRepository.peek();
   StreamSubscription<LiveChange>? _live;
@@ -47,6 +52,7 @@ class _OrdersTabState extends State<OrdersTab> {
   void initState() {
     super.initState();
     widget.refreshSignal?.addListener(_loadOrders);
+    widget.refreshSignal?.addListener(_backToCurrent);
     OrderStore.start();
     OrderStore.orders.addListener(_onStoreChanged);
     ApiService.isServerReachable.addListener(_onReachabilityChanged);
@@ -92,6 +98,7 @@ class _OrdersTabState extends State<OrdersTab> {
   @override
   void dispose() {
     widget.refreshSignal?.removeListener(_loadOrders);
+    widget.refreshSignal?.removeListener(_backToCurrent);
     OrderStore.orders.removeListener(_onStoreChanged);
     _live?.cancel();
     ApiService.isServerReachable.removeListener(_onReachabilityChanged);

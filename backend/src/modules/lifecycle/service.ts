@@ -47,9 +47,14 @@ export interface NotifyLink {
   consultationId?: string;
 }
 
+/// The page a notification opens when it isn't the order itself: a new rating opens the lawyer's ratings
+export function screenFor(title: string): string | undefined {
+  return title === 'تقييم جديد' ? 'reviews' : undefined;
+}
+
 /// Worth knowing, but nothing to do right now: it stays inside the app, with no sound and no device notification
 const QUIET_TITLES = new Set([
-  'تسوية الطلب', 'المحامي أجّل المهمة', 'قيّم المحامي', 'تم التحويل', 'أتعابك جاهزة', 'تقييم جديد',
+  'تسوية الطلب', 'قيّم المحامي', 'تم التحويل', 'أتعابك جاهزة',
   'الموكل مستنيك', 'أتعابك اتجمدت', 'مراجعة على طلب', 'نتيجة بلاغك', 'اتلغى إنذار',
 ]);
 
@@ -91,7 +96,7 @@ export async function notify(db: Db, userId: string, title: string, body: string
   );
 
   // The order never waits for the phone, and the phone hears only about what is already saved
-  if (!quiet) onceSaved(db, () => void sendPush(userId, title, body, { orderId, ticketId, requestId, consultationId }));
+  if (!quiet) onceSaved(db, () => void sendPush(userId, title, body, { orderId, ticketId, requestId, consultationId, screen: screenFor(title) }));
 }
 
 export async function addClientCredit(db: Db, clientId: string, orderId: string, amount: number, reason: string) {
@@ -211,15 +216,22 @@ export async function revokeLawyerStrike(db: Db, strikeId: string, actorId: stri
   return true;
 }
 
-/// Rebuilds a lawyer's public rating from published, visible reviews.
+/// The newest reviews only make the average, like the big apps: it shows how the lawyer works now
+export const RATING_RECENT_REVIEWS = 100;
+
+/// Rebuilds a lawyer's public rating from published, visible reviews: the average of the newest 100,
+/// and the count of all of them. The app shows the number from the third review (docs/DECISIONS.md)
 export async function refreshLawyerRating(db: Db, lawyerId: string) {
   await db.query(
     `UPDATE lawyer_profiles lp
      SET rating = stats.average, reviews_count = stats.total
      FROM (
-       SELECT COALESCE(ROUND(AVG(rating), 2), 0) AS average, COUNT(*)::int AS total
-       FROM reviews
-       WHERE lawyer_id = $1 AND published_at IS NOT NULL AND is_hidden = FALSE
+       SELECT COALESCE((SELECT ROUND(AVG(recent.rating), 2) FROM (
+                SELECT rating FROM reviews
+                WHERE lawyer_id = $1 AND published_at IS NOT NULL AND is_hidden = FALSE
+                ORDER BY published_at DESC LIMIT ${RATING_RECENT_REVIEWS}) recent), 0) AS average,
+              (SELECT COUNT(*)::int FROM reviews
+               WHERE lawyer_id = $1 AND published_at IS NOT NULL AND is_hidden = FALSE) AS total
      ) stats
      WHERE lp.user_id = $1`,
     [lawyerId]

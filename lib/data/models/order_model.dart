@@ -26,6 +26,9 @@ class OrderModel {
   final String? lawyerPhone;
   final String? lawyerAvatar;
   final double? lawyerRating;
+  final String? lawyerId;
+  final int lawyerReviewsCount;
+  final int lawyerExperienceYears;
   final String? clientName;
   final String? clientPhone;
   final DateTime? completedAt;
@@ -33,6 +36,9 @@ class OrderModel {
   final DateTime? holdUntil;
   final String? payoutStatus;
   final bool hasReview;
+
+  /// نجوم التقييم على الطلب ده، لو اتعمل
+  final int? reviewRating;
   final String? openTicketId;
   final bool hasOpenComplaint;
   final bool canEditReview;
@@ -74,6 +80,9 @@ class OrderModel {
     this.lawyerPhone,
     this.lawyerAvatar,
     this.lawyerRating,
+    this.lawyerId,
+    this.lawyerReviewsCount = 0,
+    this.lawyerExperienceYears = 0,
     this.clientName,
     this.clientPhone,
     this.completedAt,
@@ -81,6 +90,7 @@ class OrderModel {
     this.holdUntil,
     this.payoutStatus,
     this.hasReview = false,
+    this.reviewRating,
     this.openTicketId,
     this.hasOpenComplaint = false,
     this.canEditReview = false,
@@ -136,6 +146,9 @@ class OrderModel {
       lawyerPhone: lawyerObj?['phone']?.toString() ?? json['lawyerPhone']?.toString() ?? json['lawyer_phone']?.toString(),
       lawyerAvatar: lawyerObj?['avatar']?.toString() ?? json['lawyerAvatar']?.toString() ?? json['lawyer_avatar']?.toString(),
       lawyerRating: _toDouble(lawyerObj?['rating'] ?? json['lawyerRating']),
+      lawyerId: json['lawyerId']?.toString(),
+      lawyerReviewsCount: _toDouble(json['lawyerReviewsCount'])?.toInt() ?? 0,
+      lawyerExperienceYears: _toDouble(json['lawyerExperienceYears'])?.toInt() ?? 0,
       clientName: clientObj?['name']?.toString() ?? json['clientName']?.toString() ?? json['client_name']?.toString(),
       clientPhone: clientObj?['phone']?.toString() ?? json['clientPhone']?.toString() ?? json['client_phone']?.toString(),
       completedAt: _toDate(json['completedAt'] ?? json['completed_at']),
@@ -143,6 +156,7 @@ class OrderModel {
       holdUntil: _toDate(json['holdUntil'] ?? json['hold_until']),
       payoutStatus: json['payoutStatus']?.toString(),
       hasReview: json['hasReview'] == true,
+      reviewRating: _toDouble(json['reviewRating'])?.toInt(),
       openTicketId: json['openTicketId']?.toString(),
       hasOpenComplaint: json['hasOpenComplaint'] == true,
       canEditReview: json['canEditReview'] == true,
@@ -186,6 +200,9 @@ class OrderModel {
         'avatar': lawyerAvatar,
         'rating': lawyerRating,
       },
+      'lawyerId': lawyerId,
+      'lawyerReviewsCount': lawyerReviewsCount,
+      'lawyerExperienceYears': lawyerExperienceYears,
       'client': {
         'name': clientName,
         'phone': clientPhone,

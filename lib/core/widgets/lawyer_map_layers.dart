@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import '../../data/models/map_lawyer.dart';
 import '../constants/app_colors.dart';
+import '../constants/rating_rules.dart';
 
 /// المحامين على الخريطة: بعيد دبابيس صغيرة لكل المحامين (عادي تتراكب)، ومن زوم [cardsFromZoom] كروت صغيرة
 /// على شكل دبوس (أول حرف والاسم والتقييم، والكارت ومثلثه قطعة واحدة) للأعلى تقييمًا في كل منطقة صغيرة،
@@ -138,7 +139,7 @@ Rect _cardRect(MapLawyer lawyer, Offset point, double scale) {
 }
 
 double _cardWidth(MapLawyer lawyer) {
-  final text = math.max(_Texts.name(lawyer.name).width, _Texts.rate(lawyer.rating).width);
+  final text = math.max(_Texts.name(lawyer.name).width, _Texts.rate(shownRating(lawyer.rating, lawyer.reviewsCount)).width);
   return 7 + text + 6 + _photo + 5;
 }
 
@@ -278,7 +279,7 @@ class _CardsPainter extends CustomPainter {
 
     // The name, and the rating under it
     final name = _Texts.name(lawyer.name);
-    final rate = _Texts.rate(lawyer.rating);
+    final rate = _Texts.rate(shownRating(lawyer.rating, lawyer.reviewsCount));
     final textRight = box.right - 5 - _photo - 6;
     final top = box.center.dy - (name.height + rate.height) / 2;
     name.paint(canvas, Offset(textRight - name.width, top));

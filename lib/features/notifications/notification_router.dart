@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/notification_center.dart';
 import '../../core/widgets/app_message.dart';
+import '../../core/widgets/my_reviews_screen.dart';
 import '../../data/models/service_request.dart';
 import '../../data/repositories/consultation_repository.dart';
 import '../../data/repositories/order_repository.dart';
@@ -36,6 +37,10 @@ class NotificationRouter {
     }
 
     final isLawyer = await AuthService.currentRole() == 'lawyer';
+    if (!context.mounted) return false;
+
+    // «تقييم جديد» بيفتح تقييمات المحامي، مش الطلب
+    if (target.screen == 'reviews' && isLawyer) return MyReviewsScreen.openForMe(context);
     if (!context.mounted) return false;
 
     final requestId = target.requestId;

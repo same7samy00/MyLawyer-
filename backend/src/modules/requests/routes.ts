@@ -5,6 +5,7 @@ import { publishChange } from '../../services/liveUpdates.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { HAS_OPEN_ORDER, lawyerHasOpenOrder, lawyerShare, LAWYER_RESPONSE_SECONDS, notify, PAYMENT_MINUTES } from '../lifecycle/service.js';
 import { callsEnd, chooseEnd, LAWYER_CAN_WORK, LIVE_OFFERS, priceRangeFor, ROUND_SECONDS, sendNextCall, sendRound } from './service.js';
+import { readOnAction } from '../notifications/readOnAction.js';
 
 const ROAD_FACTOR = 1.4;
 const CITY_SPEED_KMH = 30;
@@ -18,6 +19,7 @@ function requireId(id: string) {
 
 export async function requestRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', requireAuth());
+  readOnAction(fastify, 'request_id');
 
   // The price limits shown to the client before sending
   fastify.get('/range', async (request: FastifyRequest, reply: FastifyReply) => {

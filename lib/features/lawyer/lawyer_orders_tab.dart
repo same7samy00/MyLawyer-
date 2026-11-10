@@ -9,7 +9,6 @@ import '../../core/services/live_updates.dart';
 import '../../core/services/order_store.dart';
 import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_state_message.dart';
-import '../../core/widgets/lawyer_availability_card.dart';
 import '../../core/widgets/order_card.dart';
 import '../../core/widgets/order_summary_card.dart';
 import '../../core/widgets/orders_filter.dart';
@@ -39,10 +38,16 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
   List<IncomingRequest> _requests = const [];
   bool _showCurrent = true;
 
+  /// الصفحة بتفتح دايمًا على الطلبات الحالية، حتى لو كانت آخر مرة على السجل
+  void _backToCurrent() {
+    if (mounted && !_showCurrent) setState(() => _showCurrent = true);
+  }
+
   @override
   void initState() {
     super.initState();
     widget.refreshSignal?.addListener(_loadOrders);
+    widget.refreshSignal?.addListener(_backToCurrent);
     OrderStore.start();
     OrderStore.orders.addListener(_onStoreChanged);
     LiveUpdates.requests.addListener(_loadRequests);
@@ -70,6 +75,7 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
   @override
   void dispose() {
     widget.refreshSignal?.removeListener(_loadOrders);
+    widget.refreshSignal?.removeListener(_backToCurrent);
     OrderStore.orders.removeListener(_onStoreChanged);
     LiveUpdates.requests.removeListener(_loadRequests);
     ApiService.isServerReachable.removeListener(_onReachabilityChanged);
@@ -177,21 +183,21 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
         child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 16.0),
-          itemCount: 2 + requests.length + (orders.isEmpty && requests.isEmpty ? 1 : orders.length),
+          itemCount: 1 + requests.length + (orders.isEmpty && requests.isEmpty ? 1 : orders.length),
           itemBuilder: (context, position) {
-            if (position == 0) return const LawyerAvailabilityCard();
-            if (position == 1) {
+            // زرار «متاح» في الرئيسية بس، زي تطبيقات التوصيل: مكان واحد للحالة
+            if (position == 0) {
               // العدد على قد الكروت اللي ظاهرة: طلب وقته خلص من غير سعر ما بيتحسبش
               final openRequests = _requests.where((item) => item.myPrice != null || item.secondsLeftNow > 0).length;
               return OrdersFilter(currentCount: openRequests + _orders.where((order) => order.isOngoing).length, showCurrent: _showCurrent, onChanged: (value) => setState(() => _showCurrent = value));
             }
-            if (position - 2 < requests.length) return _requestCard(requests[position - 2]);
-            final index = position - requests.length - 2;
+            if (position - 1 < requests.length) return _requestCard(requests[position - 1]);
+            final index = position - requests.length - 1;
             if (orders.isEmpty) {
               return AppStateMessage(
                 icon: Icons.receipt_long_rounded,
                 title: _showCurrent ? 'مفيش طلبات حالية' : 'السجل فاضي',
-                message: _showCurrent ? 'خليك متاح، والطلبات القريبة منك هتظهر هنا أول بأول' : 'الطلبات اللي خلصت أو اتلغت\nبتتجمع هنا',
+                message: _showCurrent ? 'فعّل «متاح» من الرئيسية، والطلبات القريبة منك هتظهر هنا أول بأول' : 'الطلبات اللي خلصت أو اتلغت\nبتتجمع هنا',
               );
             }
             final order = orders[index];

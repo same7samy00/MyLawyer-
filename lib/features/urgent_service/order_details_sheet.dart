@@ -12,6 +12,7 @@ import '../../core/services/order_store.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_dialog.dart';
 import '../../core/widgets/app_sheet.dart';
+import '../../core/widgets/lawyer_profile_sheet.dart';
 import '../../core/widgets/order_action_sheets.dart';
 import '../../core/widgets/order_status_tracker.dart';
 import '../../core/widgets/postponed_since.dart';
@@ -96,6 +97,8 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
 
     setState(() => _isBusy = false);
     _showNotice(res.isOk ? success : (res.error ?? 'تعذر تنفيذ العملية'));
+    // السيرفر بيعلّم إشعارات الطلب مقروءة مع أي إجراء، فالعداد يتحدث على طول
+    unawaited(NotificationCenter.refresh());
     await _load();
   }
 
@@ -268,7 +271,11 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
     final isLawyer = widget.isLawyer;
     final closingReason = order.cancellationReason ?? order.rejectionReason;
     final rows = <Widget>[
-      _infoRow(isLawyer ? 'الموكل' : 'المحامي', (isLawyer ? order.clientName : order.lawyerName) ?? '-'),
+      _infoRow(
+        isLawyer ? 'الموكل' : 'المحامي',
+        (isLawyer ? order.clientName : order.lawyerName) ?? '-',
+        onTap: !isLawyer && order.lawyerId != null ? () => _openLawyerProfile(order) : null,
+      ),
       _infoRow('نوع المشكلة', order.problemType ?? order.serviceTitle),
       if (order.problemDescription.isNotEmpty) _infoRow('تفاصيل المشكلة', order.problemDescription),
       if (order.clientAddress != null) _infoRow('المنطقة', order.clientAddress!),
@@ -277,6 +284,12 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         '${order.priceText} ج.م',
         valueColor: isLawyer || order.isPaid ? AppColors.success : null,
       ),
+      if (order.reviewRating != null)
+        _infoRow(
+          isLawyer ? 'تقييم الموكل' : 'تقييمك',
+          '${'★' * order.reviewRating!}${'☆' * (5 - order.reviewRating!)}',
+          valueColor: const Color(0xFFEAB308),
+        ),
       if (!order.isOngoing && closingReason != null) _infoRow('السبب', closingReason),
     ];
 
@@ -293,8 +306,21 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
     );
   }
 
-  Widget _infoRow(String label, String value, {Color? valueColor}) {
-    return Padding(
+  /// ملف المحامي وتقييماته من غير ما الطلب يتقفل
+  Future<void> _openLawyerProfile(OrderModel order) {
+    return LawyerProfileSheet.open(
+      context,
+      lawyerId: order.lawyerId!,
+      name: order.lawyerName ?? 'المحامي',
+      photoPath: order.lawyerAvatar,
+      rating: order.lawyerRating ?? 0,
+      reviewsCount: order.lawyerReviewsCount,
+      experienceYears: order.lawyerExperienceYears,
+    );
+  }
+
+  Widget _infoRow(String label, String value, {Color? valueColor, VoidCallback? onTap}) {
+    final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 9),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,13 +335,18 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
                 fontSize: 12,
                 height: 1.4,
                 fontWeight: FontWeight.w800,
-                color: valueColor ?? AppColors.dark,
+                color: valueColor ?? (onTap != null ? AppColors.primary : AppColors.dark),
               ),
             ),
           ),
+          if (onTap != null) ...[
+            const Text('عرض الملف', style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary)),
+          ],
         ],
       ),
     );
+    if (onTap == null) return row;
+    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(7.0), child: row);
   }
 
   Widget _action(String text, VoidCallback onPressed, {bool isDanger = false, IconData? icon}) {

@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { query } from '../../database/index.js';
 import { AuthenticatedUser, requireAuth } from '../../utils/http.js';
+import { screenFor } from '../lifecycle/service.js';
 
 export async function notificationRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', requireAuth());
@@ -33,9 +34,19 @@ export async function notificationRoutes(fastify: FastifyInstance) {
     return reply.send({ success: true });
   });
 
+  /// «طلب جديد» اللي وقته خلص أو اتقفل ما بقاش محتاج حاجة من المحامي، فبيبقى مقروء لوحده
+  const readClosedRequests = (userId: string) => query(
+    `UPDATE notifications n SET read_at = NOW()
+     FROM service_requests r
+     WHERE n.user_id = $1 AND n.read_at IS NULL AND n.request_id = r.id AND n.title = 'طلب جديد'
+       AND (r.status <> 'OPEN' OR r.round_deadline <= NOW())`,
+    [userId]
+  );
+
   // GET /api/v1/notifications - Latest notifications for the current user
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId } = request.user as AuthenticatedUser;
+    await readClosedRequests(userId);
     const res = await query(
       `SELECT id, title, body, order_id, ticket_id, request_id, consultation_id, read_at, created_at
        FROM notifications WHERE user_id = $1
@@ -53,6 +64,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         ticketId: row.ticket_id,
         requestId: row.request_id,
         consultationId: row.consultation_id,
+        screen: screenFor(row.title) ?? null,
         isRead: row.read_at !== null,
         createdAt: row.created_at,
       })),
@@ -62,6 +74,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   // GET /api/v1/notifications/summary - Badge counts
   fastify.get('/summary', async (request: FastifyRequest, reply: FastifyReply) => {
     const { userId, role } = request.user as AuthenticatedUser;
+    if (role === 'lawyer') await readClosedRequests(userId);
     const unreadRes = await query(
       'SELECT COUNT(*)::int AS total FROM notifications WHERE user_id = $1 AND read_at IS NULL',
       [userId]

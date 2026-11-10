@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/rating_rules.dart';
 import '../../core/services/app_visibility.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/services/live_updates.dart';
@@ -340,6 +341,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       AppSheetHeader(
+                        showHandle: false,
                         title: _showReviews
                             ? 'التقييمات'
                             : _isViewingLawyer

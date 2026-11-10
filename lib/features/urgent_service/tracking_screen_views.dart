@@ -86,7 +86,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
                     children: [
                       const Icon(Icons.star_rounded, size: 15, color: Color(0xFFF5B301)),
                       Flexible(
-                        child: Text(' ${lawyer.rating.toStringAsFixed(1)}  ·  $distance', maxLines: 1, overflow: TextOverflow.ellipsis, style: small),
+                        child: Text(' ${ratingLabel(lawyer.rating, lawyer.reviewsCount)}  ·  $distance', maxLines: 1, overflow: TextOverflow.ellipsis, style: small),
                       ),
                     ],
                   ),
@@ -107,6 +107,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
                     LawyerProfileSummary(
+                      lawyerId: _selectedLawyer!.id,
                       avatar: _LawyerAvatarPhoto(
                         imageUrl: _selectedLawyer!.imageUrl,
                         initials: _selectedLawyer!.avatarInitials,
@@ -150,7 +151,7 @@ extension _TrackingScreenViews on _TrackingScreenState {
                         const SizedBox(width: 10),
                         Expanded(
                           child: AppButton.outlined(
-                            text: 'التقييمات (${_selectedLawyer!.reviewsCount})',
+                            text: 'التقييمات',
                             height: 44,
                             onPressed: () => _setReviewsVisible(true),
                           ),

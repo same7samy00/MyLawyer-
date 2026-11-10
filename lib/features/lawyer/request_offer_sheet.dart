@@ -20,7 +20,7 @@ class RequestOfferSheet extends StatefulWidget {
   const RequestOfferSheet({super.key, required this.request});
 
   static Future<void> open(BuildContext context, IncomingRequest request) {
-    return AppSheet.show<void>(context, isDismissible: false, builder: (_) => RequestOfferSheet(request: request));
+    return AppSheet.show<void>(context, builder: (_) => RequestOfferSheet(request: request));
   }
 
   @override

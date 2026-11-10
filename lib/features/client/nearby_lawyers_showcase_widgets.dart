@@ -29,8 +29,8 @@ class _ShowcaseAvatarPhoto extends StatelessWidget {
               imageUrl: imageUrl,
               width: size,
               height: size,
-              memCacheWidth: (size * 2).toInt(),
-              memCacheHeight: (size * 2).toInt(),
+              // العرض بس، فالصورة تفضل بنسبتها وتتقص من النص (تحديد الطول كمان كان بيمطها)
+              memCacheWidth: (size * 3).toInt(),
               fit: BoxFit.cover,
               placeholder: (_, __) => _buildFallback(),
               errorWidget: (_, __, ___) => _buildFallback(),

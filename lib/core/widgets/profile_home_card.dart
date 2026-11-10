@@ -5,7 +5,7 @@ import '../constants/app_colors.dart';
 import '../services/notification_center.dart';
 import 'app_button.dart';
 import 'app_card.dart';
-import 'lawyer_reviews_panel.dart';
+import 'my_reviews_screen.dart';
 import 'profile_photo.dart';
 
 /// كارت الحساب في الرئيسية للمحامي والموكل، وبياناته من الخادم
@@ -57,17 +57,7 @@ class _ProfileHomeCardState extends State<ProfileHomeCard> {
 
   void _openReviews() {
     final lawyerId = _profile!['id'].toString();
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => Scaffold(
-          appBar: AppBar(title: const Text('تقييماتي')),
-          body: Padding(
-            padding: const EdgeInsets.all(18),
-            child: LawyerReviewsPanel(lawyerId: lawyerId, canReport: true, onClose: () => Navigator.of(context).pop()),
-          ),
-        ),
-      ),
-    );
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => MyReviewsScreen(lawyerId: lawyerId)));
   }
 
   Widget _buildStars(num rating) {

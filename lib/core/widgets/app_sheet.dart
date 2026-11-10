@@ -6,14 +6,18 @@ import 'app_card.dart';
 import 'app_loader.dart';
 
 /// رأس موحد لكل البوتن شيت: خط السحب في النص، وتحته العنوان، وتحته خط فاصل متقطع.
-/// خط السحب بيظهر حتى في الشيت اللي ما بيتقفلش، عشان الشكل يفضل واحد
+/// الشيت اللي فوق الخريطة ثابت وما بيتقفلش، فمالوش خط سحب ([showHandle] = false)
+/// أي شيت تاني بيتقفل بالضغط بره أو السحب لتحت
 class AppSheetHeader extends StatelessWidget {
   final String title;
 
   /// زر رجوع جنب العنوان، لما الشيت فيه أكتر من خطوة
   final VoidCallback? onBack;
 
-  const AppSheetHeader({super.key, required this.title, this.onBack});
+  /// خط السحب فوق العنوان، للشيت اللي بيتقفل بالسحب بس
+  final bool showHandle;
+
+  const AppSheetHeader({super.key, required this.title, this.onBack, this.showHandle = true});
 
   @override
   Widget build(BuildContext context) {
@@ -21,14 +25,17 @@ class AppSheetHeader extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 10),
-        Center(
-          child: Container(
-            width: 44,
-            height: 4,
-            decoration: BoxDecoration(color: AppColors.cardBorder, borderRadius: BorderRadius.circular(4.0)),
+        if (showHandle) ...[
+          const SizedBox(height: 10),
+          Center(
+            child: Container(
+              width: 44,
+              height: 4,
+              decoration: BoxDecoration(color: AppColors.cardBorder, borderRadius: BorderRadius.circular(4.0)),
+            ),
           ),
-        ),
+        ] else
+          const SizedBox(height: 8),
         SizedBox(
           height: 44,
           child: Stack(

@@ -29,6 +29,7 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               AppSheetHeader(
+                showHandle: false,
                 title: _showReviews ? 'التقييمات' : _selectedLawyer != null ? 'ملف المحامي' : 'الأعلى تقييماً حولك',
                 onBack: _showReviews
                     ? () => _update(() => _showReviews = false)
@@ -135,7 +136,7 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
                   const Icon(Icons.star_rounded, color: Color(0xFFEAB308), size: 18),
                   const SizedBox(width: 3),
                   Text(
-                    lawyer.rating.toStringAsFixed(1),
+                    ratingLabel(lawyer.rating, lawyer.reviewsCount),
                     style: const TextStyle(
                       fontFamily: 'AppFont',
                       fontFamilyFallback: appFontFallback,
@@ -189,6 +190,7 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           LawyerProfileSummary(
+            lawyerId: lawyer.id,
             avatar: _ShowcaseAvatarPhoto(
               imageUrl: lawyer.imageUrl,
               initials: lawyer.avatarInitials,
@@ -215,7 +217,7 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
               const SizedBox(width: 10),
               Expanded(
                 child: AppButton.outlined(
-                  text: 'التقييمات (${lawyer.reviewsCount})',
+                  text: 'التقييمات',
                   onPressed: () => _update(() => _showReviews = true),
                   height: 44,
                 ),

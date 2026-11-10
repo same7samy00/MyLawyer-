@@ -63,7 +63,7 @@ async function getAccessToken(service: ServiceAccount): Promise<string> {
   return accessToken.value;
 }
 
-type Link = { orderId?: string; ticketId?: string; requestId?: string; consultationId?: string };
+type Link = { orderId?: string; ticketId?: string; requestId?: string; consultationId?: string; screen?: string };
 
 /// A notification is news for a few minutes only: Firebase drops it after 5, and so does the queue
 const PUSH_MAX_AGE_MS = 5 * 60_000;

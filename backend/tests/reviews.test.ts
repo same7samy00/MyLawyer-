@@ -35,6 +35,16 @@ describe('التقييمات', () => {
     assert.equal(Number((await sql('SELECT rating FROM lawyer_profiles WHERE user_id = $1', [lawyerId]))[0].rating), 4);
   });
 
+  it('ملف المحامي بياخد تقييمه دلوقتي، مش من نسخة الخريطة', async () => {
+    const order = await createCompletedOrder();
+    await call('POST', `/orders/${order.id}/review`, clientToken, { rating: 5 });
+    const res = await call('GET', `/lawyers/${lawyerId}/rating`, clientToken);
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.reviewsCount, 1);
+    assert.equal(res.body.data.rating, 5);
+    assert.equal((await call('GET', `/lawyers/${lawyerId}/rating`, null)).status, 401);
+  });
+
   it('لوحة التحكم تعرض الحساب وطلباته ودورة حياة الطلب والبحث', async () => {
     const order = await createCompletedOrder();
 

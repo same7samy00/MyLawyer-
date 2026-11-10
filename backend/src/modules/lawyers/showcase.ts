@@ -25,6 +25,10 @@ const SHOWN = `
   AND lp.latitude BETWEEN 22.0 AND 31.8 AND lp.longitude BETWEEN 24.5 AND 37.0
   AND lp.last_location_updated_at > NOW() - make_interval(days => ${STALE_DAYS})`;
 
+/// «الأعلى تقييمًا» بيوزن التقييم بعدده، زي التطبيقات الكبيرة: كأن كل محامي بادئ بـ 5 تقييمات 4 نجوم.
+/// فـ 5 نجوم من تقييم واحد (4.17) بتيجي بعد 4.9 من 50 تقييم (4.82). نفس القاعدة على الموبايل
+const TRUSTED_RATING = `((lp.rating * lp.reviews_count + 4.0 * 5) / (lp.reviews_count + 5))`;
+
 const COLUMNS = `u.id, lp.full_name, lp.profile_photo_path, lp.rating, lp.reviews_count, lp.experience_years, lp.latitude, lp.longitude`;
 
 /// The public spot: the real place moved 150 to 450 m in a direction fixed for each lawyer. Never the exact
@@ -131,7 +135,7 @@ export async function lightCellsJson(kind: MapKind, size: CellSize, wanted: [num
       `SELECT DISTINCT ON (floor(lp.latitude::float8 / $5), floor(lp.longitude::float8 / $5)) ${COLUMNS}
        FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id
        WHERE ${SHOWN} AND lp.latitude >= $1::float8 AND lp.latitude < $2::float8 AND lp.longitude >= $3::float8 AND lp.longitude < $4::float8
-       ORDER BY floor(lp.latitude::float8 / $5), floor(lp.longitude::float8 / $5), lp.rating DESC, lp.reviews_count DESC`,
+       ORDER BY floor(lp.latitude::float8 / $5), floor(lp.longitude::float8 / $5), ${TRUSTED_RATING} DESC, lp.reviews_count DESC`,
       [Math.min(...ys) * degrees, (Math.max(...ys) + 1) * degrees, Math.min(...xs) * degrees, (Math.max(...xs) + 1) * degrees, area]
     );
     const fresh = new Map<string, unknown[]>(missing.map(([x, y]) => [key(x, y), []]));
@@ -172,7 +176,7 @@ async function buildTopLists(): Promise<Map<string, any[]>> {
   const res = await readQuery(
     `SELECT * FROM (
        SELECT ${COLUMNS}, lp.governorate,
-              row_number() OVER (PARTITION BY lp.governorate ORDER BY lp.rating DESC, lp.reviews_count DESC) AS place
+              row_number() OVER (PARTITION BY lp.governorate ORDER BY ${TRUSTED_RATING} DESC, lp.reviews_count DESC) AS place
        FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id
        WHERE ${SHOWN} AND lp.governorate IS NOT NULL
      ) ranked WHERE place <= ${TOP_PER_GOVERNORATE} ORDER BY governorate, place`

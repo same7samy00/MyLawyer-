@@ -29,8 +29,8 @@ class _LawyerAvatarPhoto extends StatelessWidget {
               imageUrl: imageUrl,
               width: size,
               height: size,
-              memCacheWidth: (size * 2).toInt(),
-              memCacheHeight: (size * 2).toInt(),
+              // العرض بس، فالصورة تفضل بنسبتها وتتقص من النص (تحديد الطول كمان كان بيمطها)
+              memCacheWidth: (size * 3).toInt(),
               fit: BoxFit.cover,
               placeholder: (_, __) => _initials(),
               errorWidget: (_, __, ___) => _initials(),
@@ -136,7 +136,7 @@ class _LawyerMapSquareMarker extends StatelessWidget {
                     const Icon(Icons.star_rounded, size: 12, color: Color(0xFFEAB308)),
                     const SizedBox(width: 2),
                     Text(
-                      lawyer.rating.toString(),
+                      ratingLabel(lawyer.rating, lawyer.reviewsCount),
                       style: const TextStyle(
                         fontFamily: 'AppFont',
                         fontFamilyFallback: appFontFallback,
@@ -270,7 +270,7 @@ class _OfferCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '★ ${offer.rating.toStringAsFixed(1)} • ${offer.distanceKm} كم • يوصل خلال ${offer.minutesAway} دقيقة تقريبًا',
+                      '★ ${ratingLabel(offer.rating, offer.reviewsCount)} • ${offer.distanceKm} كم • يوصل خلال ${offer.minutesAway} دقيقة تقريبًا',
                       style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted),
                     ),
                   ],

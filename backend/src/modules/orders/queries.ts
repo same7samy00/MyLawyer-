@@ -25,7 +25,10 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
              lp.full_name as lawyer_name,
              lp.profile_photo_path as lawyer_avatar,
              lp.rating as lawyer_rating,
+             lp.reviews_count as lawyer_reviews_count,
+             lp.experience_years as lawyer_experience_years,
              EXISTS (SELECT 1 FROM reviews r WHERE r.order_id = o.id) as has_review,
+             (SELECT r.rating FROM reviews r WHERE r.order_id = o.id AND (o.client_id = $1 OR (r.published_at IS NOT NULL AND r.is_hidden = FALSE))) as review_rating,
              (SELECT st.id FROM support_tickets st WHERE st.order_id = o.id AND st.user_id = $1 AND st.status <> 'CLOSED' LIMIT 1) as open_ticket_id,
              ${OPEN_ORDER_TICKET('o.id')} as has_open_complaint,
              EXISTS (SELECT 1 FROM reviews r WHERE r.order_id = o.id AND r.edited = FALSE
@@ -87,6 +90,11 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
         lawyerName: o.lawyer_name,
         lawyerPhone: PAID_STATUSES.includes(o.status) ? o.lawyer_phone : null,
         lawyerAvatar: o.lawyer_avatar,
+        // The client opens the lawyer's profile from the order
+        lawyerId: role === 'lawyer' ? null : o.lawyer_id,
+        lawyerRating: Number(o.lawyer_rating) || 0,
+        lawyerReviewsCount: Number(o.lawyer_reviews_count) || 0,
+        lawyerExperienceYears: Number(o.lawyer_experience_years) || 0,
         status: o.status,
         statusLabel,
         // The lawyer sees only the net amount, the client only the full price
@@ -115,6 +123,8 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
         holdUntil: o.hold_until,
         payoutStatus: o.payout_status,
         hasReview: o.has_review,
+        // The stars on this order: the client sees theirs, the lawyer once it is published
+        reviewRating: o.review_rating ?? null,
         openTicketId: o.open_ticket_id,
         hasOpenComplaint: o.has_open_complaint,
         canEditReview: o.review_editable,

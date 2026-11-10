@@ -14,7 +14,10 @@ class NotificationTarget {
   final String? requestId;
   final String? consultationId;
 
-  const NotificationTarget({this.orderId, this.ticketId, this.requestId, this.consultationId});
+  /// صفحة غير الطلب نفسه، زي «reviews» لتقييمات المحامي
+  final String? screen;
+
+  const NotificationTarget({this.orderId, this.ticketId, this.requestId, this.consultationId, this.screen});
 
   factory NotificationTarget.fromMap(Map<String, dynamic> data) {
     String? value(String key) {
@@ -22,7 +25,7 @@ class NotificationTarget {
       return raw == null || raw.isEmpty ? null : raw;
     }
 
-    return NotificationTarget(orderId: value('orderId'), ticketId: value('ticketId'), requestId: value('requestId'), consultationId: value('consultationId'));
+    return NotificationTarget(orderId: value('orderId'), ticketId: value('ticketId'), requestId: value('requestId'), consultationId: value('consultationId'), screen: value('screen'));
   }
 }
 

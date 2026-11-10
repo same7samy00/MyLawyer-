@@ -74,6 +74,7 @@ class _LawyerReviewsPanelState extends State<LawyerReviewsPanel> {
     return ListView.separated(
       physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.zero,
+      shrinkWrap: true,
       itemCount: _reviews.length,
       separatorBuilder: (context, index) => const SizedBox(height: 10),
       itemBuilder: (context, index) {

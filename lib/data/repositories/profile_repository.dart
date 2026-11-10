@@ -19,11 +19,8 @@ class ProfileRepository {
   static Future<ApiResponse<dynamic>> me() {
     return _loading ??= ApiService.get('/users/me').then((res) {
       if (res.isOk && res.data is Map<String, dynamic>) {
-        // الرقم والإيميل ما بيتحفظوش على الموبايل، بيظهروا أول ما السيرفر يرد
-        final shown = Map<String, dynamic>.of(res.data as Map<String, dynamic>)
-          ..remove('phone')
-          ..remove('email');
-        unawaited(SavedData.write(_savedKey, shown));
+        // كل بيانات الحساب بتتحفظ جوه التطبيق بس (زي ما الدخول بيحفظ الرقم)، فالحساب يترسم كامل من أول لحظة
+        unawaited(SavedData.write(_savedKey, res.data));
       }
       return res;
     }).whenComplete(() => _loading = null);

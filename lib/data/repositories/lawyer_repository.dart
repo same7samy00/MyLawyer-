@@ -97,6 +97,20 @@ class LawyerRepository {
     return ApiService.post('/lawyers/me/reviews/$reviewId/report', {'reason': reason});
   }
 
+  /// تقييم المحامي دلوقتي، لأن كروت الخريطة نسخة عمرها ساعات. آخر رقم بيتحفظ فالملف يترسم بيه على طول
+  static final Map<String, (double, int)> _freshRatings = {};
+
+  static (double, int)? knownRating(String lawyerId) => _freshRatings[lawyerId];
+
+  static Future<(double, int)?> freshRating(String lawyerId) async {
+    final res = await ApiService.get('/lawyers/$lawyerId/rating');
+    final data = res.data;
+    if (!res.isOk || data is! Map<String, dynamic>) return null;
+    final value = ((data['rating'] as num?)?.toDouble() ?? 0, (data['reviewsCount'] as num?)?.toInt() ?? 0);
+    _freshRatings[lawyerId] = value;
+    return value;
+  }
+
   static Future<ApiResponse<List<LawyerReview>>> getReviews(String lawyerId) async {
     final res = await ApiService.get('/lawyers/$lawyerId/reviews');
     if (res.isOk && res.data is List) {

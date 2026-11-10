@@ -257,7 +257,8 @@ export async function releaseChoice(db: Db, order: { id: string; client_id: stri
   if (!taken) {
     await db.query(`UPDATE service_requests SET status = 'EXPIRED' WHERE order_id = $1`, [order.id]);
     await notify(db, order.client_id, 'الطلب اتلغى', 'ما كمّلتش الدفع، تقدر تطلب تاني', order.id);
-    await publishChange(db, order.lawyer_id, false, 'orders', order.id);
+    // The lawyer was waiting for this payment, so they hear it too, and are free for other requests
+    await notify(db, order.lawyer_id, 'الطلب اتلغى', 'الموكل ما دفعش في المهلة، وتقدر تستقبل طلبات تانية', order.id);
     return undefined;
   }
   const reopened = await db.query(

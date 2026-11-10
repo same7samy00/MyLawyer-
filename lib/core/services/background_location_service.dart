@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:workmanager/workmanager.dart';
 import 'api_service.dart';
@@ -128,7 +129,18 @@ class BackgroundLocationService {
     return _far;
   }
 
+  static AppLifecycleListener? _lifecycle;
+
+  /// من أندرويد 14 أي حد يقدر يمسح إشعار «أنت متاح» من لوحة الإشعارات، والنظام بيسيب الخدمة شغالة.
+  /// فأول ما التطبيق يرجع قدام، الإشعار الثابت بيرجع تاني زي تطبيقات التوصيل
+  static void _keepNotificationShown() {
+    _lifecycle ??= AppLifecycleListener(onResume: () {
+      if (_available || _onMission) unawaited(_restart());
+    },);
+  }
+
   static Future<void> _restart() async {
+    _keepNotificationShown();
     _availableTimer?.cancel();
     _availableTimer = null;
     _missionTimer?.cancel();

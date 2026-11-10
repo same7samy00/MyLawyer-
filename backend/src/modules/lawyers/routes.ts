@@ -57,6 +57,19 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
     return reply.send({ success: true, data });
   });
 
+  // GET /api/v1/lawyers/:id/rating - The lawyer's rating as it is now. The map cards are a copy hours old,
+  // so the profile asks for this the moment it opens
+  fastify.get('/:id/rating', { onRequest: requireAuth() }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    if (!UUID_PATTERN.test(id)) {
+      return reply.status(400).send({ success: false, error: 'معرف المحامي غير صالح' });
+    }
+    const res = await readQuery('SELECT rating, reviews_count FROM lawyer_profiles WHERE user_id = $1', [id]);
+    const row = res.rows[0];
+    if (!row) return reply.status(404).send({ success: false, error: 'المحامي غير موجود' });
+    return reply.send({ success: true, data: { rating: Number(row.rating) || 0, reviewsCount: Number(row.reviews_count) || 0 } });
+  });
+
   // GET /api/v1/lawyers/:id/reviews - Published reviews, for signed-in accounts
   fastify.get('/:id/reviews', { onRequest: requireAuth() }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };

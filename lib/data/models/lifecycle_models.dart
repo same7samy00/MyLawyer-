@@ -39,6 +39,7 @@ class AppNotification {
   final String? ticketId;
   final String? requestId;
   final String? consultationId;
+  final String? screen;
 
   const AppNotification({
     required this.id,
@@ -49,14 +50,15 @@ class AppNotification {
     this.ticketId,
     this.requestId,
     this.consultationId,
+    this.screen,
   });
 
-  bool get opensPage => orderId != null || ticketId != null || requestId != null || consultationId != null;
+  bool get opensPage => screen != null || orderId != null || ticketId != null || requestId != null || consultationId != null;
 
-  NotificationTarget get target => NotificationTarget(orderId: orderId, ticketId: ticketId, requestId: requestId, consultationId: consultationId);
+  NotificationTarget get target => NotificationTarget(orderId: orderId, ticketId: ticketId, requestId: requestId, consultationId: consultationId, screen: screen);
 
   AppNotification asRead() => AppNotification(
-      id: id, title: title, body: body, isRead: true, orderId: orderId, ticketId: ticketId, requestId: requestId, consultationId: consultationId,);
+      id: id, title: title, body: body, isRead: true, orderId: orderId, ticketId: ticketId, requestId: requestId, consultationId: consultationId, screen: screen,);
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
@@ -68,6 +70,7 @@ class AppNotification {
       ticketId: json['ticketId']?.toString(),
       requestId: json['requestId']?.toString(),
       consultationId: json['consultationId']?.toString(),
+      screen: json['screen']?.toString(),
     );
   }
 }

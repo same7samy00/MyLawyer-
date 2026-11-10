@@ -5,13 +5,13 @@ import { forgetShowcase, governorateOf, publicPoint } from '../src/modules/lawye
 
 const extra: string[] = [];
 
-async function addLawyer(phone: string, lat: number, lon: number, options: { available?: boolean; approved?: boolean; rating?: number; daysSinceMove?: number } = {}) {
+async function addLawyer(phone: string, lat: number, lon: number, options: { available?: boolean; approved?: boolean; rating?: number; reviews?: number; daysSinceMove?: number } = {}) {
   const id = await createUser(phone, 'lawyer');
   extra.push(id);
   await sql(
-    `INSERT INTO lawyer_profiles (user_id, full_name, syndicate_number, approval_status, is_available, latitude, longitude, rating, last_location_updated_at)
-     VALUES ($1, $2, $3, $4::lawyer_approval_status, $5, $6, $7, $8, NOW() - make_interval(days => $9))`,
-    [id, `أ. ${phone}`, phone, options.approved === false ? 'pending' : 'approved', options.available ?? false, lat, lon, options.rating ?? 4, options.daysSinceMove ?? 0]
+    `INSERT INTO lawyer_profiles (user_id, full_name, syndicate_number, approval_status, is_available, latitude, longitude, rating, reviews_count, last_location_updated_at)
+     VALUES ($1, $2, $3, $4::lawyer_approval_status, $5, $6, $7, $8, $10, NOW() - make_interval(days => $9))`,
+    [id, `أ. ${phone}`, phone, options.approved === false ? 'pending' : 'approved', options.available ?? false, lat, lon, options.rating ?? 4, options.daysSinceMove ?? 0, options.reviews ?? 20]
   );
   return id;
 }
@@ -77,8 +77,8 @@ describe('خريطة المحامين للعرض', () => {
   });
 
   it('أهم محامي في كل منطقة: الأعلى تقييمًا بس، زي جوجل', async () => {
-    const best = await addLawyer('01200000009', 30.0512, 31.2512, { rating: 4.99 });
-    const weak = await addLawyer('01200000010', 30.0513, 31.2513, { rating: 3.0 });
+    const best = await addLawyer('01200000009', 30.0512, 31.2512, { rating: 4.99, reviews: 40 });
+    const weak = await addLawyer('01200000010', 30.0513, 31.2513, { rating: 3.0, reviews: 40 });
     const cell = cellOf(30.05, 31.25);
     const ids = (await call('GET', `/lawyers/map?kind=top&cells=${cell}`, clientToken)).body.data.cells[cell].map((l: any) => l.id);
     assert.ok(ids.includes(best) && !ids.includes(weak));
@@ -109,5 +109,23 @@ describe('خريطة المحامين للعرض', () => {
     assert.equal(after[0], alex);
 
     assert.equal((await call('GET', '/lawyers/top?governorate=x', clientToken)).status, 400);
+  });
+});
+
+describe('ترتيب التقييم العادل', () => {
+  afterEach(async () => {
+    await sql('DELETE FROM lawyer_profiles WHERE user_id = ANY($1)', [extra]);
+    await sql('DELETE FROM users WHERE id = ANY($1)', [extra]);
+    extra.length = 0;
+    forgetShowcase();
+  });
+
+  it('5 نجوم من تقييم واحد بتيجي بعد 4.9 من 50 تقييم', async () => {
+    const steady = await addLawyer('01200000011', 30.065, 31.335, { rating: 4.9, reviews: 50 });
+    const once = await addLawyer('01200000012', 30.066, 31.336, { rating: 5, reviews: 1 });
+    forgetShowcase();
+    const cairo = (await call('GET', `/lawyers/top?governorate=${encodeURIComponent('القاهرة')}`, clientToken)).body.data.map((lawyer: any) => lawyer.id);
+    assert.ok(cairo.includes(steady) && cairo.includes(once), JSON.stringify(cairo));
+    assert.ok(cairo.indexOf(steady) < cairo.indexOf(once));
   });
 });
