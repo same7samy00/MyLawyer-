@@ -74,6 +74,7 @@ async function removeOldNotifications() {
   await dbPool.query(`DELETE FROM notifications WHERE created_at < NOW() - INTERVAL '30 days'`);
   // An app away longer than two days reloads everything instead of reading old changes
   await dbPool.query(`DELETE FROM change_log WHERE created_at < NOW() - INTERVAL '2 days'`);
+  await dbPool.query(`DELETE FROM app_errors WHERE created_at < NOW() - INTERVAL '30 days'`);
 }
 
 async function sendArrivalReminders() {

@@ -59,6 +59,9 @@ class ApiService {
   /// يستدعى عند رفض الخادم للحساب لأنه موقوف
   static Future<void> Function()? onAccountSuspended;
 
+  /// يستدعى لما الخادم يقول إن النسخة دي أقدم من المسموح، ومعاه رابط التحديث
+  static Future<void> Function(String? updateUrl)? onUpdateRequired;
+
   /// يوقف إشعار انتهاء الجلسة أثناء فحص بدء التشغيل لأن الفحص يوجّه المستخدم بنفسه
   static bool muteSessionExpiry = false;
 
@@ -75,6 +78,7 @@ class ApiService {
     muteSessionExpiry = false;
     onSessionExpired = null;
     onAccountSuspended = null;
+    onUpdateRequired = null;
     isServerReachable.value = true;
   }
 
@@ -170,6 +174,8 @@ class ApiService {
     final headers = <String, String>{
       'Content-Type': 'application/json; charset=utf-8',
       'Accept': 'application/json',
+      // الخادم بيعرف منه لو النسخة أقدم من المسموح
+      'X-App-Build': '${AppConfig.build}',
     };
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
@@ -363,6 +369,11 @@ class ApiService {
       final parsed = await _parseResponse(response);
       isServerReachable.value = !parsed.isConnectivityError;
       if (isSuspended(parsed) && !endpoint.startsWith('/auth/')) return _accountSuspended(parsed);
+      // النسخة دي أقدم من المسموح: صفحة التحديث بتفتح مكان أي حاجة
+      final data = parsed.data;
+      if (parsed.statusCode == 426 && data is Map && data['status'] == 'update_required') {
+        await onUpdateRequired?.call(data['updateUrl']?.toString());
+      }
       return parsed;
     } on TimeoutException {
       isServerReachable.value = false;

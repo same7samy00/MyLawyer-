@@ -9,6 +9,7 @@ import { registerAdminMoney } from './money.js';
 import { logAdminAction, registerAdminActions } from './actions.js';
 import { sanitizeText } from '../../utils/security.js';
 import { requireAuth } from '../../utils/http.js';
+import { appVersion, forgetAppVersion } from '../appClient/routes.js';
 import { notify, refreshLawyerRating } from '../lifecycle/service.js';
 
 export async function adminRoutes(fastify: FastifyInstance) {
@@ -138,6 +139,31 @@ export async function adminRoutes(fastify: FastifyInstance) {
     await query('UPDATE platform_settings SET tax_percent = $1, updated_at = NOW()', [percent]);
     await logAdminAction(adminId, 'TAX_UPDATE', 'نسبة الضريبة', `من ${Number(oldTax.rows[0]?.tax_percent ?? 0)}% إلى ${percent}%`);
     return reply.send({ success: true, message: 'تم تحديث نسبة الضريبة' });
+  });
+
+  // GET /api/v1/admin/app-version - The oldest app build still served, and where an older app is sent to update
+  fastify.get('/app-version', async (_request: FastifyRequest, reply: FastifyReply) => {
+    forgetAppVersion();
+    const { minBuild, updateUrl } = await appVersion();
+    return reply.send({ success: true, data: { minBuild, updateUrl } });
+  });
+
+  // POST /api/v1/admin/app-version - Every app older than this build shows its update page from the next minute
+  fastify.post('/app-version', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId: adminId } = request.user as { userId: string };
+    const body = (request.body || {}) as { minBuild?: number; updateUrl?: string };
+    const minBuild = Number(body.minBuild);
+    const updateUrl = typeof body.updateUrl === 'string' && body.updateUrl.trim() ? body.updateUrl.trim() : null;
+    if (!Number.isInteger(minBuild) || minBuild < 0 || minBuild > 1_000_000) {
+      return reply.status(400).send({ success: false, error: 'رقم النسخة غير صالح' });
+    }
+    if (updateUrl && (!updateUrl.startsWith('https://') || updateUrl.length > 300 || updateUrl.includes(' '))) {
+      return reply.status(400).send({ success: false, error: 'رابط التحديث لازم يبدأ بـ https' });
+    }
+    await query('UPDATE platform_settings SET min_app_build = $1, app_update_url = $2, updated_at = NOW()', [minBuild, updateUrl]);
+    forgetAppVersion();
+    await logAdminAction(adminId, 'APP_VERSION_UPDATE', 'أقل نسخة مسموحة من التطبيق', `النسخة ${minBuild}`);
+    return reply.send({ success: true, message: 'تم تحديث أقل نسخة مسموحة' });
   });
 
   // GET /api/v1/admin/reviews/reported

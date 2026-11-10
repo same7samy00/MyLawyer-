@@ -13,6 +13,7 @@ import 'connection_retry_screen.dart';
 import 'lawyer_approval_status_screen.dart';
 import 'location_permission_screen.dart';
 import 'login_screen.dart';
+import 'update_required_screen.dart';
 
 /// المرجع الوحيد لتوجيه المستخدم حسب جلسته ونوع حسابه
 /// كل انتقال بين الدخول والخروج يمسح المكدس حتى لا يعود الرجوع لصفحات غير منطقية
@@ -86,6 +87,8 @@ class SessionRouter {
   }
 
   /// يستدعيها ApiService لما الخادم يرفض الحساب، فكل الصفحات تتقفل
+  static bool _isUpdateScreenOpen = false;
+
   static Future<void> handleAccountSuspended() async {
     final navigator = navigatorKey.currentState;
     if (_isSuspendedScreenOpen || navigator == null) return;
@@ -93,6 +96,15 @@ class SessionRouter {
     _isSuspendedScreenOpen = true;
     unawaited(BackgroundLocationService.stopAll());
     await replaceStack(navigator, const AccountSuspendedScreen());
+  }
+
+  /// يستدعيها ApiService لما الخادم يقول إن النسخة أقدم من المسموح: صفحة التحديث مكان كل حاجة
+  static Future<void> handleUpdateRequired(String? updateUrl) async {
+    final navigator = navigatorKey.currentState;
+    if (_isUpdateScreenOpen || navigator == null) return;
+
+    _isUpdateScreenOpen = true;
+    await replaceStack(navigator, UpdateRequiredScreen(updateUrl: updateUrl));
   }
 
   static void onSuspendedScreenClosed() {

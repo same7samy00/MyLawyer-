@@ -22,6 +22,7 @@ import { adminRoutes } from './modules/admin/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { registerAdminPanel } from './modules/admin/panel.js';
 import { dbPool } from './database/index.js';
+import { appClientRoutes, refuseOldApp } from './modules/appClient/routes.js';
 import { fastMemory, fastMemoryState, knownActive, rememberActive } from './services/fastMemory.js';
 
 // PostgreSQL's code for a value of the wrong type, like a malformed id in a link
@@ -150,6 +151,9 @@ export function buildApp() {
 
   // Register API modules under /api/v1
   fastify.register(async (api) => {
+    // An app too old to be served shows its update page instead of working half-way
+    api.addHook('onRequest', refuseOldApp);
+
     // A suspended account is refused everywhere, even with a valid sign-in
     api.addHook('preHandler', async (request, reply) => {
       const user = request.user as { userId?: string } | undefined;
@@ -208,6 +212,7 @@ export function buildApp() {
     api.register(roadRouteRoutes, { prefix: '/routes' });
     api.register(adminRoutes, { prefix: '/admin' });
     api.register(notificationRoutes, { prefix: '/notifications' });
+    api.register(appClientRoutes, { prefix: '/app' });
   }, { prefix: '/api/v1' });
 
   // Open lines would otherwise hold a restart forever

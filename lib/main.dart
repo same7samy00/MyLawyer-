@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/services/api_service.dart';
 import 'core/services/biometric_service.dart';
+import 'core/services/error_reporter.dart';
 import 'core/services/saved_data.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/connection_gate.dart';
@@ -28,6 +29,9 @@ Future<void> main() async {
   ]);
   ApiService.onSessionExpired = SessionRouter.handleSessionExpired;
   ApiService.onAccountSuspended = SessionRouter.handleAccountSuspended;
+  ApiService.onUpdateRequired = SessionRouter.handleUpdateRequired;
+  // أعطال التطبيق على موبايلات الناس بتوصل لسيرفرنا
+  if (kReleaseMode) ErrorReporter.start();
   runApp(const MyLawyerApp());
 }
 

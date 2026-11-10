@@ -7,6 +7,10 @@ import 'package:flutter/foundation.dart';
 class AppConfig {
   AppConfig._();
 
+  /// رقم النسخة، نفس اللي بعد علامة + في `version` في pubspec.yaml (اختبار بيتأكد إنهم واحد).
+  /// الخادم بيقارنه بأقل نسخة مسموحة، وبيتسجل مع أي عطل
+  static const int build = 1;
+
   static const String productionApiBaseUrl = 'https://my-lawyer.online/api/v1';
 
   static const String _environment = String.fromEnvironment('APP_ENV', defaultValue: 'production');

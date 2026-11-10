@@ -153,6 +153,7 @@ erDiagram
 | `041` | تأكيد الموكل لوصول المحامي: `arrival_asked_at` و`arrived_by_client` في `service_orders` |
 | `042` | وقت الطريق من كل محامي للموكل (`road_seconds` في `request_recipients`)، لكارت العرض |
 | `043` | فهرس المحامين المتاحين مترتب بالمسافة (`idx_lawyer_profiles_near`، GiST)، وفهرس صغير للمتاحين للمهام الزمنية، وشيل 3 فهارس قديمة كانت بتتكتب مع كل «أنا لسه هنا» |
+| `044` | أقل نسخة مسموحة من التطبيق ورابط التحديث (`min_app_build` و`app_update_url` في `platform_settings`)، وجدول أعطال التطبيق `app_errors` (بيتمسح بعد 30 يوم) |
 | `040` | `admin_login_codes` للدخول بخطوتين في اللوحة |
 
 المرجع دايمًا `backend/migrations`. الـ migrations بتشتغل لوحدها مع تشغيل الخادم، وكل رقم بيشتغل مرة واحدة.

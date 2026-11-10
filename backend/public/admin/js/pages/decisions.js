@@ -1,6 +1,6 @@
 const ADMIN_ACTIONS = {
   ACCOUNT_SUSPEND: ['إيقاف حساب', 'red'], ACCOUNT_ACTIVATE: ['تفعيل حساب', 'green'],
-  PRICE_UPDATE: ['تعديل سعر خدمة', 'blue'], COMMISSION_UPDATE: ['تعديل نسبة المنصة', 'blue'], TAX_UPDATE: ['تعديل الضريبة', 'blue'],
+  PRICE_UPDATE: ['تعديل سعر خدمة', 'blue'], COMMISSION_UPDATE: ['تعديل نسبة المنصة', 'blue'], TAX_UPDATE: ['تعديل الضريبة', 'blue'], APP_VERSION_UPDATE: ['أقل نسخة مسموحة من التطبيق', 'blue'],
   LAWYER_APPROVE: ['موافقة على محامٍ', 'green'], LAWYER_REJECT: ['رفض محامٍ', 'red'],
   REVIEW_HIDE: ['إخفاء تعليق', 'red'], REVIEW_KEEP: ['إبقاء تعليق', 'green'],
   CONSULTATION_SETTINGS: ['إعدادات الاستشارة السريعة', 'blue'],
