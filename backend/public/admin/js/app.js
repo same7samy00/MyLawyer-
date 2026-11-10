@@ -192,6 +192,30 @@ function refreshQuietly() {
   render({ quiet: true });
 }
 
+/// The code field under the password, the same look as the other fields
+function showCodeStep(sentTo) {
+  if (!$('login-code-step')) {
+    const step = el('div');
+    step.id = 'login-code-step';
+    const label = el('label', 'كود الدخول اللي وصل على الإيميل', 'login-label');
+    label.htmlFor = 'login-code';
+    const field = el('div', undefined, 'login-field');
+    const input = el('input');
+    input.id = 'login-code';
+    input.inputMode = 'numeric';
+    input.autocomplete = 'one-time-code';
+    input.maxLength = 6;
+    input.required = true;
+    input.dir = 'ltr';
+    field.append(input);
+    step.append(label, field);
+    $('login-button').before(step);
+  }
+  $('login-error').textContent = `بعتنا كود من 6 أرقام على ${sentTo}، شغال 10 دقايق`;
+  $('login-button').textContent = 'تأكيد الكود';
+  $('login-code').focus();
+}
+
 async function signIn() {
   $('login-error').textContent = '';
   let res;
@@ -199,10 +223,11 @@ async function signIn() {
   submit.classList.add('is-loading');
   submit.disabled = true;
   try {
+    const code = $('login-code')?.value.trim();
     res = await safeFetch(API + '/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: $('identifier').value.trim(), password: $('password').value }),
+      body: JSON.stringify({ identifier: $('identifier').value.trim(), password: $('password').value, ...(code ? { code } : {}) }),
     });
   } catch (err) {
     $('login-error').textContent = err.message;
@@ -213,6 +238,12 @@ async function signIn() {
   }
   const json = await readJson(res);
 
+  // The second step: the password was right, and a code went by email
+  if (res.status === 202 && json.data?.needsCode) {
+    showCodeStep(json.data.sentTo);
+    return;
+  }
+
   if (!res.ok || json.data?.user?.role !== 'admin') {
     $('login-error').textContent = res.ok ? 'الحساب ليس حساب إدارة' : friendlyError(res.status, json.error);
     return;
@@ -221,6 +252,8 @@ async function signIn() {
   saveSession({ accessToken: json.data.accessToken, refreshToken: json.data.refreshToken });
   navCountsAt = 0;
   $('password').value = '';
+  $('login-code-step')?.remove();
+  $('login-button').textContent = 'تسجيل الدخول';
   render();
   showAccount();
   startLive();

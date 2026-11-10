@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { query, withTransaction } from '../../database/index.js';
 import { verifyPassword, hashSha256, generateSecureToken } from '../../utils/security.js';
+import { adminCodeRequired, checkAdminCode, sendAdminCode } from './adminCode.js';
 import { clearLoginFailures, isLoginLocked, recordLoginFailure } from './loginAttempts.js';
 import { loginSchema } from './schemas.js';
 
@@ -19,8 +20,8 @@ export async function registerSession(fastify: FastifyInstance) {
     const { identifier, password, rememberMe } = parseResult.data;
     const attemptKey = identifier.toLowerCase();
 
-    if (await isLoginLocked(attemptKey)) {
-      return reply.status(429).send({ success: false, error: 'محاولات دخول كتير على الحساب ده، استنى 10 دقايق وحاول تاني' });
+    if (await isLoginLocked(attemptKey, request.ip)) {
+      return reply.status(429).send({ success: false, error: 'محاولات دخول غلط كتير، استنى شوية وحاول تاني، أو غيّر كلمة السر من «نسيت كلمة السر»' });
     }
 
     // Search by email or phone
@@ -35,7 +36,7 @@ export async function registerSession(fastify: FastifyInstance) {
     );
 
     if (userRes.rows.length === 0) {
-      await recordLoginFailure(attemptKey);
+      await recordLoginFailure(attemptKey, request.ip);
       return reply.status(401).send({ success: false, error: 'بيانات الدخول غير صحيحة، تأكد من رقم الهاتف/الإيميل وكلمة المرور' });
     }
 
@@ -43,10 +44,10 @@ export async function registerSession(fastify: FastifyInstance) {
 
     const isValid = await verifyPassword(user.password_hash, password);
     if (!isValid) {
-      await recordLoginFailure(attemptKey);
+      await recordLoginFailure(attemptKey, request.ip);
       return reply.status(401).send({ success: false, error: 'بيانات الدخول غير صحيحة، تأكد من رقم الهاتف/الإيميل وكلمة المرور' });
     }
-    await clearLoginFailures(attemptKey);
+    await clearLoginFailures(attemptKey, request.ip);
 
     // Check account statuses
     if (user.status === 'suspended') {
@@ -71,6 +72,19 @@ export async function registerSession(fastify: FastifyInstance) {
         error: 'يرجى تأكيد بريدك الإلكتروني أولاً لتفعيل حسابك',
         data: { status: 'pending_email_verification', email: user.email }
       });
+    }
+
+    // The control page needs a second step: a code by email after the right password
+    if (user.role === 'admin' && adminCodeRequired()) {
+      const code = parseResult.data.code;
+      if (!code) {
+        const sentTo = await sendAdminCode(user);
+        return reply.status(202).send({ success: true, data: { needsCode: true, sentTo }, message: `بعتنا كود على ${sentTo}` });
+      }
+      if (!(await checkAdminCode(user.id, code))) {
+        await recordLoginFailure(attemptKey, request.ip);
+        return reply.status(401).send({ success: false, error: 'الكود غلط أو انتهى، اطلب كود جديد' });
+      }
     }
 
     // Generate JWT Access Token (15 mins) & Refresh Token (30 days)

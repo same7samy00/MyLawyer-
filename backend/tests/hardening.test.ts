@@ -102,12 +102,7 @@ describe('تأمين الدخول والحساب', () => {
     assert.equal((await call('POST', '/auth/refresh', null, { refreshToken: login.body.data.refreshToken })).status, 401);
   });
 
-  it('محاولات الدخول على نفس الحساب محدودة حتى من عناوين مختلفة', async () => {
-    const user = await newAccount();
-    const attempt = (ip: string) => app.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: ip, payload: { identifier: user.phone, password: 'wrong-password' } });
-    for (let i = 0; i < 10; i++) assert.equal((await attempt(`10.0.0.${i + 1}`)).statusCode, 401);
-    assert.equal((await attempt('10.0.0.99')).statusCode, 429);
-  });
+it('10 محاولات غلط بتقفل العنوان ده بس، وصاحب الحساب يدخل من عنوانه', async () => {    const user = await newAccount();    const attempt = (ip: string, password = 'wrong-password') => app.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: ip, payload: { identifier: user.phone, password } });    for (let i = 0; i < 10; i++) assert.equal((await attempt('10.0.1.1')).statusCode, 401);    assert.equal((await attempt('10.0.1.1')).statusCode, 429, 'العنوان اللي بيخمّن اتقفل');    assert.equal((await attempt('10.0.1.2', PASSWORD)).statusCode, 200, 'صاحب الحساب مش متقفل');  });  it('التخمين من عناوين كتير (50 في الساعة) بيقفل الحساب نفسه', async () => {    const user = await newAccount();    const attempt = (ip: string) => app.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: ip, payload: { identifier: user.phone, password: 'wrong-password' } });    for (let i = 0; i < 50; i++) assert.equal((await attempt(`10.0.2.${i + 1}`)).statusCode, 401);    assert.equal((await attempt('10.0.3.1')).statusCode, 429);  });
 
   it('رمز التجديد المتكرر في نفس اللحظة بينجح مرة واحدة', async () => {
     const user = await newAccount();
@@ -328,5 +323,39 @@ describe('الفلوس لما عمليتين ييجوا في نفس اللحظة
       call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.0502, longitude: 31.25 }),
     ]);
     assert.equal(statuses(results), 1, JSON.stringify(results.map((res) => res.status)));
+  });
+});
+
+describe('دخول لوحة التحكم بخطوتين', () => {
+  it('كلمة السر لوحدها ما بتفتحش، والكود بيشتغل مرة واحدة', async () => {
+    process.env.ADMIN_LOGIN_CODE = 'on';
+    try {
+      const admin = await newAccount('active', 'admin');
+      const login = (code?: string) => call('POST', '/auth/login', null, { identifier: admin.phone, password: PASSWORD, ...(code ? { code } : {}) });
+      const first = await login();
+      assert.equal(first.status, 202);
+      assert.equal(first.body.data.needsCode, true);
+      assert.equal(first.body.data.accessToken, undefined, 'مفيش دخول قبل الكود');
+      // The email can't be read here, so the test puts a known code on the row the server made
+      const { createHash } = await import('node:crypto');
+      await sql('UPDATE admin_login_codes SET code_hash = $2 WHERE user_id = $1 AND consumed_at IS NULL', [admin.id, createHash('sha256').update(`${admin.id}:123456`).digest('hex')]);
+      assert.equal((await login('000000')).status, 401, 'كود غلط');
+      const ok = await login('123456');
+      assert.equal(ok.status, 200);
+      assert.ok(ok.body.data.accessToken);
+      assert.equal((await login('123456')).status, 401, 'الكود ما بيشتغلش مرتين');
+    } finally {
+      delete process.env.ADMIN_LOGIN_CODE;
+    }
+  });
+
+  it('حسابات التطبيق ما بيتطلبش منها كود', async () => {
+    process.env.ADMIN_LOGIN_CODE = 'on';
+    try {
+      const user = await newAccount();
+      assert.equal((await call('POST', '/auth/login', null, { identifier: user.phone, password: PASSWORD })).status, 200);
+    } finally {
+      delete process.env.ADMIN_LOGIN_CODE;
+    }
   });
 });

@@ -30,7 +30,9 @@ export const resendOtpSchema = z.object({
 export const loginSchema = z.object({
   identifier: z.string().min(3, { message: 'أدخل رقم الهاتف أو البريد الإلكتروني' }).trim(),
   password: z.string().min(1, { message: 'أدخل كلمة المرور' }),
-  rememberMe: z.boolean().optional()
+  rememberMe: z.boolean().optional(),
+  // The control page's second step: the code sent by email after the password
+  code: z.string().regex(/^\d{6}$/).optional()
 });
 
 export const forgotPasswordSchema = z.object({

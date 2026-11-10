@@ -69,20 +69,25 @@ export const emailCode = (code: string) =>
 /// The code works 10 minutes, so an email still waiting after that is dropped
 const OTP_MAX_AGE_MS = 10 * 60_000;
 
+export type OtpPurpose = 'register' | 'reset_password' | 'admin_login';
+
+const OTP_TEXTS: Record<OtpPurpose, [title: string, subtitle: string]> = {
+  register: ['تأكيد حسابك في My Lawyer', 'أهلًا بيك في My Lawyer<br>اكتب الكود ده في التطبيق عشان نفعّل حسابك'],
+  reset_password: ['تغيير كلمة السر في My Lawyer', 'وصلنا طلب لتغيير كلمة السر بتاعة حسابك<br>اكتب الكود ده في التطبيق'],
+  admin_login: ['دخول لوحة التحكم', 'حد دخل بكلمة سر الإدارة دلوقتي<br>اكتب الكود ده في لوحة التحكم. لو مش إنت، غيّر كلمة السر فورًا'],
+};
+
 /// Sends the code through the queue, so a stopped worker or a busy mail server doesn't lose it
-export async function sendOtpEmail(toEmail: string, otpCode: string, purpose: 'register' | 'reset_password') {
+export async function sendOtpEmail(toEmail: string, otpCode: string, purpose: OtpPurpose) {
   await enqueue('otp-email', { toEmail, otpCode, purpose });
 }
 
 handleJob('otp-email', OTP_MAX_AGE_MS, ({ toEmail, otpCode, purpose }) => deliverOtpEmail(toEmail, otpCode, purpose));
 
-async function deliverOtpEmail(toEmail: string, otpCode: string, purpose: 'register' | 'reset_password') {
+async function deliverOtpEmail(toEmail: string, otpCode: string, purpose: OtpPurpose) {
   const mailer = getEmailTransporter();
 
-  const title = purpose === 'register' ? 'تأكيد حسابك في My Lawyer' : 'تغيير كلمة السر في My Lawyer';
-  const subtitle = purpose === 'register'
-    ? 'أهلًا بيك في My Lawyer<br>اكتب الكود ده في التطبيق عشان نفعّل حسابك'
-    : 'وصلنا طلب لتغيير كلمة السر بتاعة حسابك<br>اكتب الكود ده في التطبيق';
+  const [title, subtitle] = OTP_TEXTS[purpose];
 
   const htmlContent = emailLayout(
     title,

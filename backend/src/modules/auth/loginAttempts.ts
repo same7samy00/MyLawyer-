@@ -1,51 +1,68 @@
 import { fastMemory } from '../../services/fastMemory.js';
 
-const MAX_FAILURES = 10;
-const WINDOW_SECONDS = 10 * 60;
+/// Two counts, like the big apps, so a stranger can't lock someone else out by typing wrong passwords:
+/// - one address on one account: 10 wrong in 10 minutes stops that address only;
+/// - the account from everywhere: 50 wrong in an hour means guessing from many addresses, and stops the account.
+const LIMITS = {
+  address: { max: 10, seconds: 10 * 60 },
+  account: { max: 50, seconds: 60 * 60 },
+} as const;
 const MAX_TRACKED = 50_000;
-const KEY = (identifier: string) => `login-fail:${identifier}`;
+type Kind = keyof typeof LIMITS;
+const key = (kind: Kind, identifier: string, ip: string) => (kind === 'address' ? `login-fail:${identifier}:${ip}` : `login-fail:${identifier}`);
 
 /// Used only when the fast memory is off or not answering: then each worker counts on its own
 const failures = new Map<string, { count: number; until: number }>();
 
-/// Guessing one account's password from many addresses stops here, the address limit can't see it.
-/// Counted in the fast memory, so every worker on both servers sees the same count.
-export async function isLoginLocked(identifier: string): Promise<boolean> {
+function localCount(k: string): number {
+  const entry = failures.get(k);
+  if (!entry) return 0;
+  if (entry.until <= Date.now()) {
+    failures.delete(k);
+    return 0;
+  }
+  return entry.count;
+}
+
+/// Counted in the fast memory, so every worker on both servers sees the same counts
+export async function isLoginLocked(identifier: string, ip: string): Promise<boolean> {
+  const kinds = Object.keys(LIMITS) as Kind[];
   const memory = fastMemory();
   if (memory) {
     try {
-      return Number(await memory.get(KEY(identifier))) >= MAX_FAILURES;
+      const counts = await memory.mget(...kinds.map((kind) => key(kind, identifier, ip)));
+      return kinds.some((kind, i) => Number(counts[i]) >= LIMITS[kind].max);
     } catch {
       // Falls back to this worker's own count
     }
   }
-  const entry = failures.get(identifier);
-  if (!entry) return false;
-  if (entry.until <= Date.now()) {
-    failures.delete(identifier);
-    return false;
-  }
-  return entry.count >= MAX_FAILURES;
+  return kinds.some((kind) => localCount(key(kind, identifier, ip)) >= LIMITS[kind].max);
 }
 
-export async function recordLoginFailure(identifier: string) {
+export async function recordLoginFailure(identifier: string, ip: string) {
   const memory = fastMemory();
   if (memory) {
     try {
-      // The window starts with the first failure and isn't pushed back by later ones
-      await memory.multi().incr(KEY(identifier)).expire(KEY(identifier), WINDOW_SECONDS, 'NX').exec();
+      const batch = memory.multi();
+      // Each window starts with the first failure and isn't pushed back by later ones
+      for (const kind of Object.keys(LIMITS) as Kind[]) batch.incr(key(kind, identifier, ip)).expire(key(kind, identifier, ip), LIMITS[kind].seconds, 'NX');
+      await batch.exec();
       return;
     } catch {
       // Falls back to this worker's own count
     }
   }
   if (failures.size >= MAX_TRACKED) failures.clear();
-  const entry = failures.get(identifier);
-  if (entry && entry.until > Date.now()) entry.count += 1;
-  else failures.set(identifier, { count: 1, until: Date.now() + WINDOW_SECONDS * 1000 });
+  for (const kind of Object.keys(LIMITS) as Kind[]) {
+    const k = key(kind, identifier, ip);
+    const count = localCount(k);
+    failures.set(k, { count: count + 1, until: count === 0 ? Date.now() + LIMITS[kind].seconds * 1000 : failures.get(k)!.until });
+  }
 }
 
-export async function clearLoginFailures(identifier: string) {
-  failures.delete(identifier);
-  await fastMemory()?.del(KEY(identifier)).catch(() => undefined);
+/// A right password clears this address's count. The account count stays, so a guess that lands doesn't
+/// wipe the trace of many wrong ones
+export async function clearLoginFailures(identifier: string, ip: string) {
+  failures.delete(key('address', identifier, ip));
+  await fastMemory()?.del(key('address', identifier, ip)).catch(() => undefined);
 }
