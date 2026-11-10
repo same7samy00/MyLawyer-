@@ -4,11 +4,13 @@ import { sanitizeText } from '../../utils/security.js';
 import { publishChange } from '../../services/liveUpdates.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { HAS_OPEN_ORDER, lawyerHasOpenOrder, lawyerShare, LAWYER_RESPONSE_SECONDS, notify, PAYMENT_MINUTES } from '../lifecycle/service.js';
-import { callsEnd, chooseEnd, LAWYER_CAN_WORK, LIVE_OFFERS, priceRangeFor, ROUND_SECONDS, sendNextCall, sendRound } from './service.js';
+import { callsEnd, chooseEnd, LAWYER_CAN_WORK, LIVE_OFFERS, chooseNextCall, chooseRound, deliverCall, NEW_REQUEST_ID, priceRangeFor, ROUND_SECONDS } from './service.js';
 import { readOnAction } from '../notifications/readOnAction.js';
 
 const ROAD_FACTOR = 1.4;
 const CITY_SPEED_KMH = 30;
+
+const NOBODY_NEAR = 'مفيش محامي قريب منك دلوقتي، جرب تاني بعد شوية';
 
 const secondsUntil = (date: string | Date) => Math.max(0, Math.ceil((new Date(date).getTime() - Date.now()) / 1000));
 const roundedKm = (value: unknown) => Number(Number(value).toFixed(1));
@@ -48,6 +50,10 @@ export async function requestRoutes(fastify: FastifyInstance) {
 
     const problemType = body.problemType ? sanitizeText(body.problemType, 100) : null;
 
+    // The nearest lawyers are worked out before anything is locked, so the road answer holds nothing back.
+    // The first call goes to the nearest 10 inside 10 km. With nobody there it moves straight to 25, then 50 km
+    const firstCall = await chooseNextCall({ id: NEW_REQUEST_ID, client_latitude: lat, client_longitude: lon }, 1);
+
     const created = await withTransaction(async (client) => {
       await client.query('SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);
 
@@ -57,22 +63,21 @@ export async function requestRoutes(fastify: FastifyInstance) {
       const openOrder = await client.query(`SELECT ${HAS_OPEN_ORDER('client_id', '$1')} AS open`, [userId]);
       if (openOrder.rows[0].open) throw new HttpError(409, 'عندك طلب مفتوح بالفعل، كمله من صفحة الطلبات');
 
+      if (!firstCall) throw new HttpError(409, NOBODY_NEAR);
       const range = await priceRangeFor(client, problemType);
       const res = await client.query(
         `INSERT INTO service_requests (
            client_id, service_title, problem_type, problem_description, client_latitude, client_longitude, client_address,
-           min_price, max_price, commission_percent, tax_percent, round_deadline
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW() + make_interval(secs => $12)) RETURNING *`,
+           min_price, max_price, commission_percent, tax_percent, round_deadline, round
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW() + make_interval(secs => $12), $13) RETURNING *`,
         [
           userId, sanitizeText(body.serviceTitle || 'محاميك حالاً', 255), problemType, description,
           lat, lon, body.clientAddress ? sanitizeText(body.clientAddress, 500) : null,
-          range.minPrice, range.maxPrice, range.commissionPercent, range.taxPercent, ROUND_SECONDS,
+          range.minPrice, range.maxPrice, range.commissionPercent, range.taxPercent, ROUND_SECONDS, firstCall.round,
         ]
       );
-      // The first call goes to the nearest 10 inside 10 km. With nobody there it moves straight to 25, then 50 km
-      const round = await sendNextCall(client, res.rows[0], 1);
-      if (round === 0) throw new HttpError(409, 'مفيش محامي قريب منك دلوقتي، جرب تاني بعد شوية');
-      if (round > 1) await client.query('UPDATE service_requests SET round = $1 WHERE id = $2', [round, res.rows[0].id]);
+      // Every picked lawyer got busy in the last moment: nothing is saved, and the client asks again
+      if (await deliverCall(client, res.rows[0], firstCall) === 0) throw new HttpError(409, NOBODY_NEAR);
       return res.rows[0];
     });
 
@@ -284,15 +289,22 @@ export async function requestRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     requireId(id);
 
+    const seen = (await query('SELECT * FROM service_requests WHERE id = $1 AND client_id = $2', [id, userId])).rows[0];
+    if (!seen) throw new HttpError(404, 'الطلب غير موجود');
+    if (seen.status !== 'OPEN') throw new HttpError(409, 'الطلب اتقفل، ابعت طلب جديد');
+    // With fewer than 10 lawyers around, the next group is empty, so the search goes straight back to the nearest.
+    // Worked out before the lock, like every call
+    const call = await chooseRound(seen, seen.round + 1, true);
+
     const round = await withTransaction(async (client) => {
       const locked = await client.query(`SELECT * FROM service_requests WHERE id = $1 AND client_id = $2 FOR UPDATE`, [id, userId]);
       const target = locked.rows[0];
       if (!target) throw new HttpError(404, 'الطلب غير موجود');
       if (target.status !== 'OPEN') throw new HttpError(409, 'الطلب اتقفل، ابعت طلب جديد');
 
-      // With fewer than 10 lawyers around, the next group is empty, so the search goes straight back to the nearest
+      // An automatic call may have gone out meanwhile, so this one takes the number after the newest
       const next = target.round + 1;
-      const sent = await sendRound(client, target, next, true);
+      const sent = await deliverCall(client, target, { ...call, round: next });
       if (sent === 0) throw new HttpError(409, 'مفيش محامين تانيين متاحين قريب منك دلوقتي');
       await client.query(
         `UPDATE service_requests SET round = $1, round_deadline = NOW() + make_interval(secs => $2) WHERE id = $3`,

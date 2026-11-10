@@ -297,6 +297,36 @@ describe('الطلب وعروض الأسعار', () => {
     }
   });
 
+  it('سؤال وقت الطريق بيتم وقاعدة البيانات مش مقفولة، في الطلب الجديد وفي النداء اللي بعده', async () => {
+    const others = [];
+    for (let i = 1; i <= 21; i++) others.push(await otherLawyer(30.05 + i * 0.002));
+    // The tests have one database connection. A road answer asked for inside a transaction would wait for
+    // that connection forever, so this read only finishes when nothing is locked
+    let asked = 0;
+    useRoadSeconds(async () => {
+      asked++;
+      await sql('SELECT 1');
+      return 300;
+    });
+    try {
+      const id = await createRequest();
+      assert.ok(asked > 0, 'the road time was asked for the new request');
+      assert.equal((await sql('SELECT 1 FROM request_recipients WHERE request_id = $1', [id])).length, 10);
+      assert.equal((await sql(`SELECT 1 FROM notifications WHERE request_id = $1 AND title = 'طلب جديد'`, [id])).length, 10);
+
+      asked = 0;
+      await endRound(id);
+      await sweepLifecycle();
+      assert.ok(asked > 0, 'and again for the next call');
+      const sent = await sql('SELECT round FROM request_recipients WHERE request_id = $1', [id]);
+      assert.equal(sent.length, 20, 'ten new lawyers, nobody asked twice');
+      assert.equal(sent.filter((row: any) => row.round === 2).length, 10);
+    } finally {
+      useRoadSeconds(async () => null);
+      for (const lawyer of others) await removeLawyer(lawyer.id);
+    }
+  });
+
   it('بين اتنين قريبين من بعض، اللي بيرد على الطلبات يدخل الأول', async () => {
     const others = [];
     for (let i = 1; i <= 11; i++) others.push(await otherLawyer(30.05 + i * 0.005));

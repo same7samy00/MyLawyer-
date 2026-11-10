@@ -29,6 +29,20 @@ export async function publishChange(db: Db, userId: string, alert = false, kind 
   await db.query('SELECT pg_notify($1, $2)', [CHANNEL, `${userId}|${alert ? 'alert' : 'change'}|${kind}|${entityId ?? '-'}|${saved.rows[0].id}`]);
 }
 
+/// The same change for many people in one write, like a new request reaching ten lawyers
+export async function publishChanges(db: Db, userIds: string[], alert: boolean, kind: string, entityId: string) {
+  if (userIds.length === 0) return;
+  await db.query(
+    `WITH saved AS (
+       INSERT INTO change_log (user_id, kind, entity_id)
+       SELECT person, $2::varchar, $3::uuid FROM unnest($1::uuid[]) AS person
+       RETURNING id, user_id
+     )
+     SELECT pg_notify($4::text, user_id::text || '|' || $5::text || '|' || $2::text || '|' || $3::text || '|' || id::text) FROM saved`,
+    [userIds, kind, entityId, CHANNEL, alert ? 'alert' : 'change']
+  );
+}
+
 export function deliverChange(userId: string, alert = false, kind = 'all', entityId = '-', changeId = '') {
   const text = `${changeId ? `id: ${changeId}\n` : ''}data: ${alert ? 'change-alert' : 'change'} ${kind} ${entityId}\n\n`;
   for (const line of lines.get(userId) ?? []) line.write(text);

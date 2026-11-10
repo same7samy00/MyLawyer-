@@ -1,7 +1,7 @@
 import pg from 'pg';
 import { Db, dbPool, withTransaction } from '../../database/index.js';
-import { HAS_OPEN_ORDER, notify } from '../lifecycle/service.js';
-import { publishChange } from '../../services/liveUpdates.js';
+import { HAS_OPEN_ORDER, notify, notifyRequestTo } from '../lifecycle/service.js';
+import { publishChange, publishChanges } from '../../services/liveUpdates.js';
 import { Point, roadRoute } from '../../services/roadRoutes.js';
 
 /// Each call lasts one minute, then the next call goes out by itself, even when offers already came (owner decision 2026-11-09)
@@ -150,46 +150,72 @@ async function nearestByRoad(db: Db, request: any, candidates: Candidate[]): Pro
     .map((entry) => entry.lawyer);
 }
 
-/// Sends the request to the 10 nearest lawyers not asked yet, and returns how many got it.
-/// It starts inside this call's distance, and when fewer than 10 are there it fills the 10 from the next
-/// distance, never past 50 km. With more than 10 in reach the 10 are the nearest by road, not by straight line.
+/// A request that is not saved yet has no offers and no asked lawyers
+export const NEW_REQUEST_ID = '00000000-0000-0000-0000-000000000000';
+
+/// One call worked out and not sent yet: its number, the lawyers, and whether they are being asked a second time
+export interface Call { round: number; lawyers: Candidate[]; reasked: boolean }
+
+/// Works out the 10 nearest lawyers not asked yet. It starts inside this call's distance, and when fewer than 10
+/// are there it fills the 10 from the next distance, never past 50 km. With more than 10 in reach the 10 are the
+/// nearest by road, not by straight line.
 /// With [again], when nobody new is left, the nearest 10 who have not sent a price are asked once more («بحث جديد»).
-/// A lawyer whose price is already with the client is never asked again.
-export async function sendRound(db: Db, request: any, round: number, again = false): Promise<number> {
+/// It runs outside any transaction: the road answer can take seconds, and nothing in the database waits for it
+export async function chooseRound(request: any, round: number, again = false): Promise<Call> {
   const first = Math.min(round, AUTO_ROUNDS) - 1;
   const pool = Math.max(LAWYERS_PER_ROUND, ROAD_CANDIDATES);
   const pick = async (skipAsked: boolean) => {
     const chosen: Candidate[] = [];
     for (let i = first; i < ROUND_RADII_KM.length && chosen.length < LAWYERS_PER_ROUND; i++) {
-      const found = await inReach(db, request, ROUND_RADII_KM[i], skipAsked, pool, chosen.map((lawyer) => lawyer.id));
+      const found = await inReach(dbPool, request, ROUND_RADII_KM[i], skipAsked, pool, chosen.map((lawyer) => lawyer.id));
       const left = LAWYERS_PER_ROUND - chosen.length;
-      const ranked = found.length > left && ROAD_CANDIDATES > 0 ? await nearestByRoad(db, request, found) : found;
+      const ranked = found.length > left && ROAD_CANDIDATES > 0 ? await nearestByRoad(dbPool, request, found) : found;
       chosen.push(...ranked.slice(0, left));
     }
     return chosen;
   };
-  let chosen = await pick(true);
-  if (chosen.length === 0 && again) chosen = await pick(false);
-
-  for (const lawyer of chosen) {
-    // Asked again later, the lawyer sees the request as new
-    await db.query(
-      `INSERT INTO request_recipients (request_id, lawyer_id, round, distance_km) VALUES ($1, $2, $3, $4)
-       ON CONFLICT (request_id, lawyer_id) DO UPDATE SET round = EXCLUDED.round, distance_km = EXCLUDED.distance_km`,
-      [request.id, lawyer.id, round, lawyer.distance_km]
-    );
-    await notify(db, lawyer.id, 'طلب جديد', `${request.problem_type || request.service_title}. ابعت سعرك دلوقتي`, { requestId: request.id });
-  }
-  return chosen.length;
+  const lawyers = await pick(true);
+  if (lawyers.length > 0 || !again) return { round, lawyers, reasked: false };
+  return { round, lawyers: await pick(false), reasked: true };
 }
 
 /// The next automatic call that finds lawyers. A call with nobody new inside its distance is skipped right away.
-/// Returns the call number, or 0 when no lawyer is left inside 50 km.
-export async function sendNextCall(db: Db, request: any, from: number): Promise<number> {
+/// Null when no lawyer is left inside 50 km
+export async function chooseNextCall(request: any, from: number): Promise<Call | null> {
   for (let round = from; round <= AUTO_ROUNDS; round++) {
-    if (await sendRound(db, request, round) > 0) return round;
+    const call = await chooseRound(request, round);
+    if (call.lawyers.length > 0) return call;
   }
-  return 0;
+  return null;
+}
+
+/// Sends a worked-out call inside the request's transaction, and returns how many lawyers got it.
+/// The lawyers were picked a moment ago without a lock, so each is checked once more: still free, not asked
+/// meanwhile, and no price of theirs with the client
+export async function deliverCall(db: Db, request: any, call: Call): Promise<number> {
+  if (call.lawyers.length === 0) return 0;
+  const still = await db.query(
+    `SELECT u.id FROM users u JOIN lawyer_profiles lp ON lp.user_id = u.id
+     WHERE u.id = ANY($1::uuid[]) AND ${LAWYER_CAN_WORK('lp', 'u')}
+       AND NOT EXISTS (SELECT 1 FROM request_offers ro WHERE ro.request_id = $2 AND ro.lawyer_id = u.id AND ro.withdrawn_at IS NULL)
+       ${call.reasked ? '' : 'AND NOT EXISTS (SELECT 1 FROM request_recipients rr WHERE rr.request_id = $2 AND rr.lawyer_id = u.id)'}`,
+    [call.lawyers.map((lawyer) => lawyer.id), request.id]
+  );
+  const free = new Set<string>(still.rows.map((row: any) => row.id));
+  const lawyers = call.lawyers.filter((lawyer) => free.has(lawyer.id));
+  if (lawyers.length === 0) return 0;
+
+  // Asked again later, the lawyer sees the request as new
+  await db.query(
+    `INSERT INTO request_recipients (request_id, lawyer_id, round, distance_km)
+     SELECT $1, v.id, $2, v.km FROM unnest($3::uuid[], $4::float8[]) AS v(id, km)
+     ON CONFLICT (request_id, lawyer_id) DO UPDATE SET round = EXCLUDED.round, distance_km = EXCLUDED.distance_km`,
+    [request.id, call.round, lawyers.map((lawyer) => lawyer.id), lawyers.map((lawyer) => lawyer.distance_km)]
+  );
+  await notifyRequestTo(
+    db, lawyers.map((lawyer) => lawyer.id), 'طلب جديد', `${request.problem_type || request.service_title}. ابعت سعرك دلوقتي`, request.id
+  );
+  return lawyers.length;
 }
 
 async function closeRequest(db: pg.PoolClient, request: any, status: string, title: string, body: string) {
@@ -197,48 +223,68 @@ async function closeRequest(db: pg.PoolClient, request: any, status: string, tit
   await notify(db, request.client_id, title, body, { requestId: request.id });
 }
 
+/// How many due requests move forward at the same moment. Each one may wait for a road answer, so one slow
+/// request never holds the others back
+const ADVANCE_TOGETHER = 8;
+
 /// Every minute the next call goes out, offers or not. After the calls a request with no offers closes,
 /// and one with offers waits 5 minutes for the client to choose
 export async function advanceRequests() {
-  const due = await dbPool.query(`SELECT id FROM service_requests WHERE status = 'OPEN' AND round_deadline <= NOW()`);
+  const due = await dbPool.query(`SELECT * FROM service_requests WHERE status = 'OPEN' AND round_deadline <= NOW()`);
+  const waiting = [...due.rows];
+  const worker = async () => {
+    for (let seen = waiting.shift(); seen; seen = waiting.shift()) {
+      // One request that fails is tried again by the next sweep, and the others still move
+      await advanceRequest(seen).catch((err) => console.error(`[MyLawyer Backend] Request ${seen.id} did not advance:`, err));
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(ADVANCE_TOGETHER, waiting.length) }, worker));
+}
 
-  for (const { id } of due.rows) {
-    await withTransaction(async (client) => {
-      const locked = await client.query(`SELECT * FROM service_requests WHERE id = $1 AND status = 'OPEN' AND round_deadline <= NOW() FOR UPDATE`, [id]);
-      const request = locked.rows[0];
-      if (!request) return;
+async function advanceRequest(seen: any) {
+  // The lawyers of the next call are worked out first, with no lock held while the road answer comes
+  const call = seen.round < AUTO_ROUNDS ? await chooseNextCall(seen, seen.round + 1) : null;
 
-      if (request.round < AUTO_ROUNDS) {
-        const next = await sendNextCall(client, request, request.round + 1);
-        if (next > 0) {
-          await client.query(
-            `UPDATE service_requests SET round = $1, round_deadline = NOW() + make_interval(secs => $2) WHERE id = $3`,
-            [next, ROUND_SECONDS, id]
-          );
-          return;
-        }
-        // Nobody else inside 50 km: the calls end now, and the 5 minutes to choose start from here
-        await client.query(`UPDATE service_requests SET round = $1, round_deadline = NOW() WHERE id = $2`, [AUTO_ROUNDS, id]);
-        request.round = AUTO_ROUNDS;
-        request.round_deadline = new Date();
-      }
+  await withTransaction(async (client) => {
+    const id = seen.id;
+    const locked = await client.query(
+      `SELECT * FROM service_requests WHERE id = $1 AND status = 'OPEN' AND round_deadline <= NOW() AND round = $2 FOR UPDATE`,
+      [id, seen.round]
+    );
+    const request = locked.rows[0];
+    if (!request) return;
 
-      const live = await client.query(`SELECT 1 ${LIVE_OFFERS} AND ro.request_id = $1 LIMIT 1`, [id]);
-      if (live.rows.length > 0) {
-        if (chooseEnd(request).getTime() > Date.now()) return;
-        await closeRequest(client, request, 'EXPIRED', 'الطلب اتلغى', 'ما اخترتش عرض في الوقت المحدد. تقدر تطلب تاني');
-        const offered = await client.query('SELECT lawyer_id FROM request_offers WHERE request_id = $1 AND withdrawn_at IS NULL', [id]);
-        for (const row of offered.rows) await publishChange(client, row.lawyer_id, false, 'requests', id);
+    if (request.round < AUTO_ROUNDS) {
+      if (call) {
+        // Every picked lawyer got busy in the last moment: the next sweep picks again
+        if (await deliverCall(client, request, call) === 0) return;
+        await client.query(
+          `UPDATE service_requests SET round = $1, round_deadline = NOW() + make_interval(secs => $2) WHERE id = $3`,
+          [call.round, ROUND_SECONDS, id]
+        );
         return;
       }
+      // Nobody else inside 50 km: the calls end now, and the 5 minutes to choose start from here
+      await client.query(`UPDATE service_requests SET round = $1, round_deadline = NOW() WHERE id = $2`, [AUTO_ROUNDS, id]);
+      request.round = AUTO_ROUNDS;
+      request.round_deadline = new Date();
+    }
 
-      // No offers after the calls: the request closes right away, so nothing waits on the server.
-      // The app keeps «بحث جديد», which sends a new request to the nearest lawyers
-      await closeRequest(client, request, 'NO_OFFERS', 'محدش بعت عرض', 'مفيش محامي قريب منك دلوقتي، جرّب بعد شوية أو دوس «بحث جديد»');
-      const asked = await client.query('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [id]);
-      for (const row of asked.rows) await publishChange(client, row.lawyer_id, false, 'requests', id);
-    });
-  }
+    const live = await client.query(`SELECT 1 ${LIVE_OFFERS} AND ro.request_id = $1 LIMIT 1`, [id]);
+    if (live.rows.length > 0) {
+      if (chooseEnd(request).getTime() > Date.now()) return;
+      await closeRequest(client, request, 'EXPIRED', 'الطلب اتلغى', 'ما اخترتش عرض في الوقت المحدد. تقدر تطلب تاني');
+      const offered = await client.query('SELECT lawyer_id FROM request_offers WHERE request_id = $1 AND withdrawn_at IS NULL', [id]);
+      await publishChanges(client, offered.rows.map((row: any) => row.lawyer_id), false, 'requests', id);
+      return;
+    }
+
+    // No offers after the calls: the request closes right away, so nothing waits on the server.
+    // The app keeps «بحث جديد», which sends a new request to the nearest lawyers
+    await closeRequest(client, request, 'NO_OFFERS', 'محدش بعت عرض', 'مفيش محامي قريب منك دلوقتي، جرّب بعد شوية أو دوس «بحث جديد»');
+    const asked = await client.query('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [id]);
+    await publishChanges(client, asked.rows.map((row: any) => row.lawyer_id), false, 'requests', id);
+  });
 }
 
 /// A chosen order that was not paid goes away.

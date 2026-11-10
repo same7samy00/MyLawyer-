@@ -1,6 +1,6 @@
 import { Db, onceSaved } from '../../database/index.js';
 import { sendPush } from '../../services/pushService.js';
-import { publishChange } from '../../services/liveUpdates.js';
+import { publishChange, publishChanges } from '../../services/liveUpdates.js';
 import { roadRoute } from '../../services/roadRoutes.js';
 
 export const HOLD_HOURS = 24;
@@ -97,6 +97,18 @@ export async function notify(db: Db, userId: string, title: string, body: string
 
   // The order never waits for the phone, and the phone hears only about what is already saved
   if (!quiet) onceSaved(db, () => void sendPush(userId, title, body, { orderId, ticketId, requestId, consultationId, screen: screenFor(title) }));
+}
+
+/// One request told to many lawyers at once: the same lines as [notify], in three writes instead of five per lawyer
+export async function notifyRequestTo(db: Db, userIds: string[], title: string, body: string, requestId: string) {
+  if (userIds.length === 0) return;
+  await db.query('DELETE FROM notifications WHERE user_id = ANY($1::uuid[]) AND request_id = $2', [userIds, requestId]);
+  await db.query(
+    'INSERT INTO notifications (user_id, title, body, request_id) SELECT person, $2, $3, $4 FROM unnest($1::uuid[]) AS person',
+    [userIds, title, body, requestId]
+  );
+  await publishChanges(db, userIds, true, 'requests', requestId);
+  for (const userId of userIds) onceSaved(db, () => void sendPush(userId, title, body, { requestId }));
 }
 
 export async function addClientCredit(db: Db, clientId: string, orderId: string, amount: number, reason: string) {
