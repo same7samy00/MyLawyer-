@@ -8,7 +8,6 @@
 | **القاعدة يوميًا** | السيرفر الجديد `/root/mylawyer-backups/daily-YYYYMMDD.sql.gz` | 3:30 الصبح، وتتمسح بعد 14 يوم | ✅ من 2026-11-07، و**الاسترجاع اتجرّب** (القاعدة المسترجعة طابقت الحقيقية) |
 | **الصور والملفات يوميًا** | نفس المكان `storage-YYYYMMDD.tar.gz` | مع القاعدة | ✅ (27 من 27 ملف اتجرّبوا) |
 | القاعدة والكود قبل كل رفع | نفس المكان `mylawyer-*.sql.gz` و`code-*.tar.gz` | مع كل رفع | ✅ |
-| آخر نسخة من قاعدة السيرفر القديم | `old-server-final-20261107.sql.gz` | مرة واحدة قبل مسحها | ✅ |
 | **نسخة على السيرفر التاني** | السيرفر التاني `/var/backups/mylawyer-api` | كل يوم بعد النسخة اليومية (`mylawyer-offsite-backup`) | ✅ من 2026-11-07، بقرار صاحب المشروع (من غير شراء). مفتاح مخصص مقفول على الفولدر ده بس (rrsync، ومن عنوان الجديد بس)، واتجرّب إنه بيرفض أي أمر تاني |
 
 السكريبت `backend/ops/mylawyer-daily-backup.sh` (على السيرفر `/usr/local/bin/mylawyer-daily-backup`)، والتشغيل `/etc/cron.d/mylawyer-backup`، والسجل `/var/log/mylawyer-backup.log`. لو النسخة طلعت فاضية بيوقف ويسيب آخر نسخة سليمة، والمراقب بينبّه لو مفيش نسخة من أكتر من 26 ساعة.
@@ -26,7 +25,7 @@ DB=$(grep ^DATABASE_URL= /var/www/mylawyer/backend/.env | cut -d= -f2-)
 gunzip -c /root/mylawyer-backups/<الملف>.sql.gz | psql "$DB"
 systemctl start mylawyer-backend
 ```
-النسخ اللي من `pg_dump` العادي نص SQL؛ استرجعها في قاعدة فاضية. ونسخة النقل `from-old-server.dump` بصيغة `pg_restore`.
+النسخ اللي من `pg_dump` العادي نص SQL؛ استرجعها في قاعدة فاضية.
 
 ## 4. لو السيرفر الجديد وقع خالص
 1. سيرفر جديد بنفس الخطوات اللي في `SERVER_ARCHITECTURE.md`.
