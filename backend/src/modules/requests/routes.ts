@@ -176,7 +176,7 @@ export async function requestRoutes(fastify: FastifyInstance) {
         `SELECT 1 FROM users u JOIN lawyer_profiles lp ON lp.user_id = u.id WHERE u.id = $1 AND ${LAWYER_CAN_WORK('lp', 'u')}`,
         [userId]
       );
-      if (eligible.rows.length === 0) throw new HttpError(409, 'لازم تكون متاح، ومعندكش 3 مهمات شغالة');
+      if (eligible.rows.length === 0) throw new HttpError(409, 'لازم تكون متاح، ومعندكش مهمة شغالة دلوقتي');
 
       const saved = await client.query(
         `INSERT INTO request_offers (request_id, lawyer_id, price, lawyer_amount) VALUES ($1, $2, $3, $4)

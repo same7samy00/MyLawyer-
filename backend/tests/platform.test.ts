@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { PROBLEM, app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createUser, createOrder, createPaidOrder } from './harness.js';
+import { PROBLEM, app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createUser, createOrder, createPaidOrder, createArrivedOrder } from './harness.js';
 import { LAWYER_CAN_WORK } from '../src/modules/requests/service.js';
 const canWork = async (id: string) => (await sql(`SELECT 1 FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id WHERE lp.user_id = $1 AND ${LAWYER_CAN_WORK('lp', 'u')}`, [id])).length > 0;
 
@@ -68,6 +68,25 @@ describe('استقبال المحامي للطلبات', () => {
     assert.deepEqual(await available(), { is_available: false, wake_count: 0 });
     const notes = await sql(`SELECT 1 FROM notifications WHERE user_id = $1 AND title = 'خرجت من الخدمة'`, [lawyerId]);
     assert.equal(notes.length, 1);
+  });
+
+  it('الموبايل الساكت: صاحب المهمة الشغالة ما يتقفلش، وصاحب المهمة المؤجلة يتقفل زي أي حد', async () => {
+    const order = await createArrivedOrder();
+    const silent = () => sql(
+      `UPDATE lawyer_profiles SET is_available = TRUE, wake_count = 2, last_wake_at = NOW() - INTERVAL '2 minutes',
+         last_location_updated_at = NOW() - INTERVAL '9 minutes', last_active_at = NOW() - INTERVAL '9 minutes' WHERE user_id = $1`,
+      [lawyerId]
+    );
+    const isAvailable = async () => (await sql('SELECT is_available FROM lawyer_profiles WHERE user_id = $1', [lawyerId]))[0].is_available;
+
+    await silent();
+    await sweepLifecycle();
+    assert.equal(await isAvailable(), true, 'a running task keeps the lawyer on');
+
+    assert.equal((await call('POST', `/orders/${order.id}/postpone`, lawyerToken, {})).status, 200);
+    await silent();
+    await sweepLifecycle();
+    assert.equal(await isAvailable(), false, 'only a postponed task: a silent phone is turned off');
   });
 
   it('التحديث لا يرجع المحامي اللي قفل الزر بنفسه', async () => {

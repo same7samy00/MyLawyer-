@@ -46,7 +46,8 @@ async function wakeQuietLawyers() {
 }
 
 /// Eight quiet minutes and two unanswered wakes mean the phone is really off or offline.
-/// A lawyer with an open task is free to close it.
+/// A lawyer with an open task is free to close it. A postponed task does not count: that lawyer takes new
+/// requests like anyone, so a silent phone turns them off like anyone (owner decision 2026-11-10).
 async function hideSilentLawyers() {
   const res = await dbPool.query(
     `UPDATE lawyer_profiles lp SET is_available = FALSE, availability_off_reason = 'NO_LOCATION'
@@ -54,7 +55,7 @@ async function hideSilentLawyers() {
        AND COALESCE(lp.last_location_updated_at, lp.last_active_at, lp.updated_at) <= NOW() - make_interval(mins => $1)
        AND NOT EXISTS (
          SELECT 1 FROM service_orders o
-         WHERE o.lawyer_id = lp.user_id AND o.status IN ('PENDING', 'ACCEPTED', 'ACTIVE')
+         WHERE o.lawyer_id = lp.user_id AND o.status IN ('PENDING', 'ACCEPTED', 'ACTIVE') AND o.postponed_at IS NULL
        )
      RETURNING lp.user_id`,
     [LOCATION_SILENCE_MINUTES]

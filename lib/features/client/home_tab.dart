@@ -9,7 +9,6 @@ import '../../core/services/app_cached_tile_provider.dart';
 import '../../core/services/device_permission_service.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/widgets/app_card.dart';
-import '../../core/widgets/app_message.dart';
 import '../../core/widgets/lawyer_pin_illustration.dart';
 import '../../core/widgets/profile_home_card.dart';
 import '../auth/location_permission_screen.dart';
@@ -119,33 +118,6 @@ class _HomeTabState extends State<HomeTab> {
               image: 'assets/images/consultation_icon.png',
               onTap: _openConsultation,
             ),
-            const SizedBox(height: 10),
-            _buildServiceListItem(
-              title: 'صياغة ومراجعة العقود',
-              desc: 'صياغة قانونية محكمة ومراجعة شاملة لجميع بنود الاتفاقيات والوثائق',
-              icon: Icons.description_rounded,
-              onTap: () {
-                _showServiceNotice('خدمة صياغة ومراجعة العقود');
-              },
-            ),
-            const SizedBox(height: 10),
-            _buildServiceListItem(
-              title: 'تأسيس الشركات والتراخيص',
-              desc: 'إنهاء إجراءات السجل التجاري والبطاقة الضريبية واستخراج التراخيص',
-              icon: Icons.business_rounded,
-              onTap: () {
-                _showServiceNotice('خدمة تأسيس الشركات والتراخيص');
-              },
-            ),
-            const SizedBox(height: 10),
-            _buildServiceListItem(
-              title: 'إدارة القضايا والتوكيلات',
-              desc: 'توكيل محامٍ لمتابعة الدعاوى والجلسات وإيداع المذكرات القضائية',
-              icon: Icons.policy_rounded,
-              onTap: () {
-                _showServiceNotice('خدمة إدارة القضايا والتوكيلات');
-              },
-            ),
             const SizedBox(height: 16),
           ],
         ),
@@ -163,19 +135,6 @@ class _HomeTabState extends State<HomeTab> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => hasLocation ? const UrgentServiceProblemScreen() : const LocationPermissionScreen(),
-      ),
-    );
-  }
-
-  void _showServiceNotice(String serviceName) {
-    showAppMessage(context, 
-      SnackBar(
-        content: Text(
-          '$serviceName ستتوفر للحجز المباشر قريباً جداً',
-          style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback),
-        ),
-        backgroundColor: AppColors.dark,
-        duration: const Duration(seconds: 2),
       ),
     );
   }

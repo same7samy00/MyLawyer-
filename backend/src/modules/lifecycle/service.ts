@@ -1,4 +1,4 @@
-import { Db } from '../../database/index.js';
+import { Db, onceSaved } from '../../database/index.js';
 import { sendPush } from '../../services/pushService.js';
 import { publishChange } from '../../services/liveUpdates.js';
 import { roadRoute } from '../../services/roadRoutes.js';
@@ -90,8 +90,8 @@ export async function notify(db: Db, userId: string, title: string, body: string
     orderId ?? requestId ?? ticketId ?? consultationId ?? null
   );
 
-  // The order never waits for the phone
-  if (!quiet) void sendPush(userId, title, body, { orderId, ticketId, requestId, consultationId });
+  // The order never waits for the phone, and the phone hears only about what is already saved
+  if (!quiet) onceSaved(db, () => void sendPush(userId, title, body, { orderId, ticketId, requestId, consultationId }));
 }
 
 export async function addClientCredit(db: Db, clientId: string, orderId: string, amount: number, reason: string) {

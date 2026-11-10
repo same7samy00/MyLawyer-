@@ -654,11 +654,11 @@ void main() {
       // Search bar is strictly removed
       expect(find.textContaining('ابحث عن محامي'), findsNothing);
 
-      // Services list preserved
+      // Only the services that really work are listed
       expect(find.text('استشارة سريعة'), findsOneWidget);
-      expect(find.text('صياغة ومراجعة العقود'), findsOneWidget);
-      expect(find.text('تأسيس الشركات والتراخيص'), findsOneWidget);
-      expect(find.text('إدارة القضايا والتوكيلات'), findsOneWidget);
+      expect(find.text('صياغة ومراجعة العقود'), findsNothing);
+      expect(find.text('تأسيس الشركات والتراخيص'), findsNothing);
+      expect(find.text('إدارة القضايا والتوكيلات'), findsNothing);
 
       // Real user address from prefs is text only (not clickable to open tracking)
       final addressFinder = find.text('الدقي، محافظة الجيزة');

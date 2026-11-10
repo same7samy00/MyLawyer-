@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { PROBLEM, app, sweepLifecycle, clientId, lawyerId, clientToken, lawyerToken, adminToken, call, sql, createUser, wallet } from './harness.js';
+import { useRoadSeconds } from '../src/modules/requests/service.js';
 
 const setRange = () => sql(`UPDATE problem_prices SET min_price = 500, max_price = 1500, commission_percent = 30`);
 
@@ -23,8 +24,8 @@ let phoneCounter = 500;
 async function otherLawyer(lat = 30.06) {
   const id = await createUser(`010000${phoneCounter++}`, 'lawyer');
   await sql(
-    `INSERT INTO lawyer_profiles (user_id, full_name, syndicate_number, approval_status, is_available, urgent_status, latitude, longitude)
-     VALUES ($1, 'أ. تاني', $2, 'approved'::lawyer_approval_status, TRUE, 'APPROVED', $3, 31.25)`,
+    `INSERT INTO lawyer_profiles (user_id, full_name, syndicate_number, approval_status, is_available, urgent_status, latitude, longitude, last_location_updated_at, last_active_at)
+     VALUES ($1, 'أ. تاني', $2, 'approved'::lawyer_approval_status, TRUE, 'APPROVED', $3, 31.25, NOW(), NOW())`,
     [id, `S${phoneCounter}`, lat]
   );
   return { id, token: app.jwt.sign({ userId: id, role: 'lawyer' }) as string };
@@ -255,6 +256,74 @@ describe('الطلب وعروض الأسعار', () => {
     const sent = (await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [id])).map((r: any) => r.lawyer_id);
     assert.equal(sent.includes(far.id), false);
     await removeLawyer(far.id);
+  });
+
+  it('المحامي اللي موبايله ساكت من أكتر من 5 دقايق ما يوصلوش الطلب', async () => {
+    const quiet = await otherLawyer(30.051);
+    await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '6 minutes', last_active_at = NOW() - INTERVAL '6 minutes' WHERE user_id = $1`, [quiet.id]);
+    const id = await createRequest();
+    const sent = (await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [id])).map((r: any) => r.lawyer_id);
+    assert.equal(sent.includes(quiet.id), false);
+    assert.equal(sent.includes(lawyerId), true);
+    await removeLawyer(quiet.id);
+  });
+
+  it('النداء اللي فيه أقل من 10 بيكمّل العشرة من الدايرة الأوسع، ومش أبعد من 50 كم', async () => {
+    const mid = await otherLawyer(30.05 + 0.15); // about 17 km: outside the first distance
+    const outside = await otherLawyer(30.05 + 0.6); // about 67 km: never asked
+    const id = await createRequest();
+    const sent = (await sql('SELECT lawyer_id, round FROM request_recipients WHERE request_id = $1', [id]));
+    assert.equal(sent.some((row: any) => row.lawyer_id === mid.id && row.round === 1), true, 'asked in the first call');
+    assert.equal(sent.some((row: any) => row.lawyer_id === outside.id), false);
+    await removeLawyer(mid.id);
+    await removeLawyer(outside.id);
+  });
+
+  it('مع أكتر من 10 في المنطقة، العشرة هم الأقرب بوقت الطريق مش بالخط المستقيم', async () => {
+    const others = [];
+    for (let i = 1; i <= 11; i++) others.push(await otherLawyer(30.05 + i * 0.005));
+    // The two nearest by straight line are across the river: an hour by road. Everyone else is five minutes away
+    const slow = others[0];
+    useRoadSeconds(async (from) => (from.lat > 30.0501 && from.lat < 30.0625 ? 3600 : 300));
+    try {
+      const id = await createRequest();
+      const sent = (await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [id])).map((r: any) => r.lawyer_id);
+      assert.equal(sent.length, 10);
+      assert.equal(sent.includes(slow.id) || sent.includes(others[1].id), false, 'near on the map, far by road');
+      assert.equal(sent.includes(others[10].id), true, 'further on the map, near by road');
+    } finally {
+      useRoadSeconds(async () => null);
+      for (const lawyer of others) await removeLawyer(lawyer.id);
+    }
+  });
+
+  it('بين اتنين قريبين من بعض، اللي بيرد على الطلبات يدخل الأول', async () => {
+    const others = [];
+    for (let i = 1; i <= 11; i++) others.push(await otherLawyer(30.05 + i * 0.005));
+    // Everyone is the same time away. The last one answered every request this month, the first one never did
+    useRoadSeconds(async () => 600);
+    await setRange();
+    for (let i = 0; i < 5; i++) {
+      const old = await sql(
+        `INSERT INTO service_requests (client_id, service_title, problem_description, client_latitude, client_longitude, min_price, max_price, commission_percent, tax_percent, round_deadline, status)
+         VALUES ($1, 'محاميك حالاً', 'قديم', 30.05, 31.25, 500, 1500, 30, 0, NOW(), 'CANCELLED') RETURNING id`,
+        [clientId]
+      );
+      for (const lawyer of [others[0], others[10]]) {
+        await sql('INSERT INTO request_recipients (request_id, lawyer_id, round, distance_km) VALUES ($1, $2, 1, 1)', [old[0].id, lawyer.id]);
+      }
+      await sql('INSERT INTO request_offers (request_id, lawyer_id, price, lawyer_amount) VALUES ($1, $2, 1000, 700)', [old[0].id, others[10].id]);
+    }
+    try {
+      const id = await createRequest();
+      const sent = (await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [id])).map((r: any) => r.lawyer_id);
+      assert.equal(sent.length, 10);
+      assert.equal(sent.includes(others[10].id), true, 'always answers');
+      assert.equal(sent.includes(others[0].id), false, 'never answers');
+    } finally {
+      useRoadSeconds(async () => null);
+      for (const lawyer of others) await removeLawyer(lawyer.id);
+    }
   });
 
   it('لو فيه عرض بعد النداءات، وبعد 5 دقايق من غير اختيار الطلب يتلغي ويتبلغ الطرفين', async () => {

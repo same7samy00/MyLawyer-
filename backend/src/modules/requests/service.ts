@@ -2,13 +2,14 @@ import pg from 'pg';
 import { Db, dbPool, withTransaction } from '../../database/index.js';
 import { HAS_OPEN_ORDER, notify } from '../lifecycle/service.js';
 import { publishChange } from '../../services/liveUpdates.js';
+import { Point, roadRoute } from '../../services/roadRoutes.js';
 
 /// Each call lasts one minute, then the next call goes out by itself, even when offers already came (owner decision 2026-11-09)
 export const ROUND_SECONDS = 60;
 /// After the calls end with offers in hand, the client has this long to choose before the request is cancelled
 export const CHOOSE_MINUTES = 5;
 const LAWYERS_PER_ROUND = 10;
-/// The three calls reach further each time: up to 10 km, then 25, then 50. At most 30 lawyers get one request
+/// Each call starts further out: up to 10 km, then 25, then 50, and a call with fewer than 10 fills up from the next distance. At most 30 lawyers get one request
 const ROUND_RADII_KM = [10, 25, 50];
 export const AUTO_ROUNDS = ROUND_RADII_KM.length;
 /// The service and its map reach this far from the client
@@ -68,38 +69,109 @@ export async function priceRangeFor(db: Db, problemType: string | null): Promise
   };
 }
 
-/// Sends the request to the nearest 10 not asked yet inside this call's distance, and returns how many got it.
-/// With [again], when nobody new is left, the nearest 10 who have not sent a price are asked once more («بحث جديد»).
-/// A lawyer whose price is already with the client is never asked again.
-export async function sendRound(db: Db, request: any, round: number, again = false): Promise<number> {
-  const radius = ROUND_RADII_KM[Math.min(round, AUTO_ROUNDS) - 1];
+/// A lawyer counts as reachable when the phone spoke to the server this recently. The phone says «still here»
+/// every 3 minutes and the server starts waking a quiet one at 5, so a request never goes to a phone that is gone
+const FRESH_MINUTES = 5;
+/// More than 10 lawyers in reach: the road time is asked for this many of the nearest by straight line,
+/// and the 10 really nearest by road are picked. 0 turns the road check off (straight line only)
+const ROAD_CANDIDATES = Math.max(0, Number(process.env.REQUEST_ROAD_CANDIDATES ?? 20));
+/// The whole road check never holds a request longer than this
+const ROAD_WAIT_MS = 2500;
+/// Used when the road time is not known: city driving, on the straight distance
+const FALLBACK_KMH = 30;
+/// A lawyer who always answers gets up to this much head start over one who never does
+const ANSWER_BONUS_SECONDS = 180;
+/// With fewer asks than this in 30 days the lawyer counts as average, so new lawyers are not pushed back
+const MIN_ASKS_FOR_RATE = 5;
+
+/// Road seconds from a lawyer to the client, or null. Tests swap it, so they never call TomTom
+let roadSeconds = async (from: Point, to: Point): Promise<number | null> => (await roadRoute(from, to))?.durationSeconds ?? null;
+export function useRoadSeconds(fn: typeof roadSeconds) { roadSeconds = fn; }
+
+interface Candidate { id: string; distance_km: number; latitude: number; longitude: number }
+
+/// The lawyers in reach of one distance, nearest by straight line first
+async function inReach(db: Db, request: any, radius: number, skipAsked: boolean, limit: number, except: string[]): Promise<Candidate[]> {
   const lat = Number(request.client_latitude);
   const lon = Number(request.client_longitude);
   // A box around the client first, so the distance is worked out only for lawyers who could be inside the circle
   const latSpan = radius / KM_PER_DEGREE;
   const lonSpan = radius / (KM_PER_DEGREE * Math.cos((lat * Math.PI) / 180));
-  const pick = (skipAsked: boolean) => db.query(
-    `SELECT id, distance_km FROM (
-       SELECT u.id, 6371.0 * acos(least(1.0::float8, greatest(-1.0::float8,
+  const res = await db.query(
+    `SELECT id, distance_km, latitude, longitude FROM (
+       SELECT u.id, lp.latitude::float8 AS latitude, lp.longitude::float8 AS longitude,
+         6371.0 * acos(least(1.0::float8, greatest(-1.0::float8,
          cos(radians($1::float8)) * cos(radians(lp.latitude::float8)) *
          cos(radians(lp.longitude::float8) - radians($2::float8)) +
          sin(radians($1::float8)) * sin(radians(lp.latitude::float8))))) AS distance_km
        FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id
        WHERE ${LAWYER_CAN_WORK('lp', 'u')} AND lp.latitude IS NOT NULL AND lp.longitude IS NOT NULL
+         AND GREATEST(lp.last_location_updated_at, lp.last_active_at) > NOW() - make_interval(mins => ${FRESH_MINUTES})
          AND lp.latitude BETWEEN $1::float8 - $4::float8 AND $1::float8 + $4::float8
          AND lp.longitude BETWEEN $2::float8 - $5::float8 AND $2::float8 + $5::float8
+         AND u.id <> ALL($7::uuid[])
          AND NOT EXISTS (SELECT 1 FROM request_offers ro WHERE ro.request_id = $3 AND ro.lawyer_id = u.id AND ro.withdrawn_at IS NULL)
          ${skipAsked ? 'AND NOT EXISTS (SELECT 1 FROM request_recipients rr WHERE rr.request_id = $3 AND rr.lawyer_id = u.id)' : ''}
      ) nearest
      WHERE distance_km <= $6::float8
      ORDER BY distance_km ASC
-     LIMIT ${LAWYERS_PER_ROUND}`,
-    [lat, lon, request.id, latSpan, lonSpan, radius]
+     LIMIT ${limit}`,
+    [lat, lon, request.id, latSpan, lonSpan, radius, except]
   );
-  let res = await pick(true);
-  if (res.rows.length === 0 && again) res = await pick(false);
+  return res.rows.map((row: any) => ({ id: row.id, distance_km: Number(row.distance_km), latitude: Number(row.latitude), longitude: Number(row.longitude) }));
+}
 
-  for (const lawyer of res.rows) {
+/// The really nearest out of more than are needed: by road time with the traffic now, and a lawyer who answers
+/// requests gets a small head start. Without a road answer the straight distance stands in
+async function nearestByRoad(db: Db, request: any, candidates: Candidate[]): Promise<Candidate[]> {
+  const client = { lat: Number(request.client_latitude), lon: Number(request.client_longitude) };
+  const roads = await Promise.race([
+    Promise.all(candidates.map((lawyer) => roadSeconds({ lat: lawyer.latitude, lon: lawyer.longitude }, client).catch(() => null))),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ROAD_WAIT_MS)),
+  ]);
+  const answers = await db.query(
+    `SELECT rr.lawyer_id, COUNT(*)::int AS asked, COUNT(ro.lawyer_id)::int AS answered
+     FROM request_recipients rr
+     JOIN service_requests sr ON sr.id = rr.request_id
+     LEFT JOIN request_offers ro ON ro.request_id = rr.request_id AND ro.lawyer_id = rr.lawyer_id
+     WHERE rr.lawyer_id = ANY($1::uuid[]) AND sr.created_at > NOW() - INTERVAL '30 days'
+     GROUP BY rr.lawyer_id`,
+    [candidates.map((lawyer) => lawyer.id)]
+  );
+  const rate = new Map<string, number>(
+    answers.rows.filter((row: any) => row.asked >= MIN_ASKS_FOR_RATE).map((row: any) => [row.lawyer_id, row.answered / row.asked])
+  );
+  return candidates
+    .map((lawyer, i) => {
+      const seconds = roads?.[i] ?? (lawyer.distance_km / FALLBACK_KMH) * 3600;
+      return { lawyer, score: seconds - (rate.get(lawyer.id) ?? 0.5) * ANSWER_BONUS_SECONDS };
+    })
+    .sort((a, b) => a.score - b.score || a.lawyer.distance_km - b.lawyer.distance_km)
+    .map((entry) => entry.lawyer);
+}
+
+/// Sends the request to the 10 nearest lawyers not asked yet, and returns how many got it.
+/// It starts inside this call's distance, and when fewer than 10 are there it fills the 10 from the next
+/// distance, never past 50 km. With more than 10 in reach the 10 are the nearest by road, not by straight line.
+/// With [again], when nobody new is left, the nearest 10 who have not sent a price are asked once more («بحث جديد»).
+/// A lawyer whose price is already with the client is never asked again.
+export async function sendRound(db: Db, request: any, round: number, again = false): Promise<number> {
+  const first = Math.min(round, AUTO_ROUNDS) - 1;
+  const pool = Math.max(LAWYERS_PER_ROUND, ROAD_CANDIDATES);
+  const pick = async (skipAsked: boolean) => {
+    const chosen: Candidate[] = [];
+    for (let i = first; i < ROUND_RADII_KM.length && chosen.length < LAWYERS_PER_ROUND; i++) {
+      const found = await inReach(db, request, ROUND_RADII_KM[i], skipAsked, pool, chosen.map((lawyer) => lawyer.id));
+      const left = LAWYERS_PER_ROUND - chosen.length;
+      const ranked = found.length > left && ROAD_CANDIDATES > 0 ? await nearestByRoad(db, request, found) : found;
+      chosen.push(...ranked.slice(0, left));
+    }
+    return chosen;
+  };
+  let chosen = await pick(true);
+  if (chosen.length === 0 && again) chosen = await pick(false);
+
+  for (const lawyer of chosen) {
     // Asked again later, the lawyer sees the request as new
     await db.query(
       `INSERT INTO request_recipients (request_id, lawyer_id, round, distance_km) VALUES ($1, $2, $3, $4)
@@ -108,7 +180,7 @@ export async function sendRound(db: Db, request: any, round: number, again = fal
     );
     await notify(db, lawyer.id, 'طلب جديد', `${request.problem_type || request.service_title}. ابعت سعرك دلوقتي`, { requestId: request.id });
   }
-  return res.rows.length;
+  return chosen.length;
 }
 
 /// The next automatic call that finds lawyers. A call with nobody new inside its distance is skipped right away.
