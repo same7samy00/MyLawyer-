@@ -3,8 +3,9 @@ import crypto from 'crypto';
 import { GOVERNORATES, GOVERNORATE_POINTS } from './governorates.js';
 
 /// The lawyers map is for looking only: every approved lawyer, available or not, in squares that are the same
-/// for everyone and rebuilt at most every five minutes (owner decision 2026-11-07)
-export const SHOWCASE_SECONDS = 300;
+/// for everyone and rebuilt at most every 15 minutes: it is a showcase to look at, so it need not be fresh
+/// (owner decisions 2026-11-07 and 2026-11-10)
+export const SHOWCASE_SECONDS = 900;
 /// A lawyer whose place has not changed for this long leaves the map
 const STALE_DAYS = 30;
 /// Small squares close in, big squares when the map shows a large part of Egypt

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
-import { call, createUser, lawyerId, sql } from './harness.js';
+import { call, clientToken, createUser, lawyerId, sql } from './harness.js';
 import { forgetShowcase, governorateOf, publicPoint } from '../src/modules/lawyers/showcase.js';
 
 const extra: string[] = [];
@@ -40,7 +40,7 @@ describe('خريطة المحامين للعرض', () => {
     await sql(`UPDATE lawyer_profiles SET suspended_until = NOW() + interval '1 day' WHERE user_id = $1`, [stopped]);
 
     const cell = cellOf(30.05, 31.25);
-    const res = await call('GET', `/lawyers/map?size=s&cells=${cell}`, null);
+    const res = await call('GET', `/lawyers/map?size=s&cells=${cell}`, clientToken);
     assert.equal(res.status, 200, JSON.stringify(res.body));
     const ids = res.body.data.cells[cell].map((lawyer: any) => lawyer.id);
     assert.ok(ids.includes(lawyerId) && ids.includes(off));
@@ -55,15 +55,24 @@ describe('خريطة المحامين للعرض', () => {
     assert.equal(card.isOnline, undefined);
   });
 
-  it('المربع بيتحفظ 5 دقايق، فالتغيير يبان في النسخة الجاية بس', async () => {
+  it('خريطة المحامين وقايمتهم وتقييماتهم للحسابات المسجلة بس', async () => {
     const cell = cellOf(30.05, 31.25);
-    const first = await call('GET', `/lawyers/map?cells=${cell}`, null);
+    assert.equal((await call('GET', `/lawyers/map?cells=${cell}`, null)).status, 401);
+    assert.equal((await call('GET', `/lawyers/top?governorate=${encodeURIComponent('القاهرة')}`, null)).status, 401);
+    assert.equal((await call('GET', `/lawyers/${lawyerId}/reviews`, null)).status, 401);
+    assert.equal((await call('GET', '/auth/check', null)).status, 401);
+    assert.equal((await call('GET', '/auth/check', clientToken)).status, 200);
+  });
+
+  it('المربع بيتحفظ 15 دقيقة، فالتغيير يبان في النسخة الجاية بس', async () => {
+    const cell = cellOf(30.05, 31.25);
+    const first = await call('GET', `/lawyers/map?cells=${cell}`, clientToken);
     const before = first.body.data.cells[cell].length;
     await addLawyer('01200000005', 30.055, 31.255);
-    const second = await call('GET', `/lawyers/map?cells=${cell}`, null);
+    const second = await call('GET', `/lawyers/map?cells=${cell}`, clientToken);
     assert.equal(second.body.data.cells[cell].length, before);
     forgetShowcase();
-    const third = await call('GET', `/lawyers/map?cells=${cell}`, null);
+    const third = await call('GET', `/lawyers/map?cells=${cell}`, clientToken);
     assert.equal(third.body.data.cells[cell].length, before + 1);
   });
 
@@ -71,18 +80,18 @@ describe('خريطة المحامين للعرض', () => {
     const best = await addLawyer('01200000009', 30.0512, 31.2512, { rating: 4.99 });
     const weak = await addLawyer('01200000010', 30.0513, 31.2513, { rating: 3.0 });
     const cell = cellOf(30.05, 31.25);
-    const ids = (await call('GET', `/lawyers/map?kind=top&cells=${cell}`, null)).body.data.cells[cell].map((l: any) => l.id);
+    const ids = (await call('GET', `/lawyers/map?kind=top&cells=${cell}`, clientToken)).body.data.cells[cell].map((l: any) => l.id);
     assert.ok(ids.includes(best) && !ids.includes(weak));
   });
 
   it('المربعات الكبيرة والطلبات الغلط', async () => {
     const big = cellOf(30.05, 31.25, 0.5);
-    const res = await call('GET', `/lawyers/map?size=l&cells=${big}`, null);
+    const res = await call('GET', `/lawyers/map?size=l&cells=${big}`, clientToken);
     assert.ok(res.body.data.cells[big].some((lawyer: any) => lawyer.id === lawyerId));
-    assert.equal((await call('GET', '/lawyers/map?cells=abc', null)).status, 400);
-    assert.equal((await call('GET', '/lawyers/map?cells=0_0', null)).status, 400);
+    assert.equal((await call('GET', '/lawyers/map?cells=abc', clientToken)).status, 400);
+    assert.equal((await call('GET', '/lawyers/map?cells=0_0', clientToken)).status, 400);
     const many = Array.from({ length: 151 }, (_, i) => `${250 + (i % 100)}_${260 + Math.floor(i / 100)}`).join(',');
-    assert.equal((await call('GET', `/lawyers/map?cells=${many}`, null)).status, 400);
+    assert.equal((await call('GET', `/lawyers/map?cells=${many}`, clientToken)).status, 400);
   });
 
   it('أعلى المحامين تقييمًا في المحافظة، والمحافظة بتتحسب تاني لما المكان يتغير', async () => {
@@ -90,15 +99,15 @@ describe('خريطة المحامين للعرض', () => {
     const low = await addLawyer('01200000007', 30.07, 31.34, { rating: 3.1 });
     const alex = await addLawyer('01200000008', 31.2, 29.92, { rating: 5 });
 
-    const cairo = (await call('GET', `/lawyers/top?governorate=${encodeURIComponent('القاهرة')}`, null)).body.data.map((lawyer: any) => lawyer.id);
+    const cairo = (await call('GET', `/lawyers/top?governorate=${encodeURIComponent('القاهرة')}`, clientToken)).body.data.map((lawyer: any) => lawyer.id);
     assert.ok(cairo.indexOf(top) < cairo.indexOf(low));
     assert.ok(!cairo.includes(alex));
 
     await sql(`UPDATE lawyer_profiles SET latitude = 30.06, longitude = 31.33, last_location_updated_at = NOW() + interval '1 second' WHERE user_id = $1`, [alex]);
     forgetShowcase();
-    const after = (await call('GET', `/lawyers/top?governorate=${encodeURIComponent('القاهرة')}`, null)).body.data.map((lawyer: any) => lawyer.id);
+    const after = (await call('GET', `/lawyers/top?governorate=${encodeURIComponent('القاهرة')}`, clientToken)).body.data.map((lawyer: any) => lawyer.id);
     assert.equal(after[0], alex);
 
-    assert.equal((await call('GET', '/lawyers/top?governorate=x', null)).status, 400);
+    assert.equal((await call('GET', '/lawyers/top?governorate=x', clientToken)).status, 400);
   });
 });

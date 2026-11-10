@@ -16,8 +16,9 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
   const requireLawyerAuth = requireAuth(['lawyer', 'admin'], 'هذا المسار مخصص للمحامين فقط');
 
   // GET /api/v1/lawyers/map?size=s&cells=x_y,x_y - every approved lawyer in the asked squares, for looking only.
+  // Signed-in accounts only (owner decision 2026-11-10). The answer is the same for every account, so Nginx keeps it
   // A square is x = floor(lon / size), y = floor(lat / size), with size 0.1 (s) or 0.5 (l) degrees.
-  fastify.get('/map', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/map', { onRequest: requireAuth() }, async (request: FastifyRequest, reply: FastifyReply) => {
     const params = request.query as { size?: string; cells?: string; kind?: string };
     // cards (default): every lawyer, for up close; top: only the best rated lawyer of each small area (showcase.ts)
     const kind = params.kind === 'top' ? 'top' : 'cards';
@@ -43,7 +44,7 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
   });
 
   // GET /api/v1/lawyers/top?governorate=... - the top rated lawyers of one governorate, for the lawyers map list
-  fastify.get('/top', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/top', { onRequest: requireAuth() }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { governorate, offset, limit } = request.query as { governorate?: string; offset?: string; limit?: string };
     if (!governorate || !GOVERNORATES.includes(governorate)) {
       return reply.status(400).send({ success: false, error: 'المحافظة غير معروفة' });
@@ -56,8 +57,8 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
     return reply.send({ success: true, data });
   });
 
-  // GET /api/v1/lawyers/:id/reviews - Published reviews, open to everyone
-  fastify.get('/:id/reviews', async (request: FastifyRequest, reply: FastifyReply) => {
+  // GET /api/v1/lawyers/:id/reviews - Published reviews, for signed-in accounts
+  fastify.get('/:id/reviews', { onRequest: requireAuth() }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     if (!UUID_PATTERN.test(id)) {
       return reply.status(400).send({ success: false, error: 'معرف المحامي غير صالح' });
