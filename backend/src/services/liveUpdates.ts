@@ -1,7 +1,7 @@
 import type { ServerResponse } from 'http';
 import pg from 'pg';
 import { config } from '../config/index.js';
-import type { Db } from '../database/index.js';
+import { Db, dbPool, onceSaved } from '../database/index.js';
 import { fastMemory, newConnection } from './fastMemory.js';
 
 const CHANNEL = 'user_changes';
@@ -19,28 +19,53 @@ let positionListener: ReturnType<typeof newConnection> | null = null;
 let stopped = false;
 
 /// Tells this person's open apps that something changed.
-/// PostgreSQL delivers it only after the transaction commits, so the app never reads old data.
+/// It is sent only after the transaction is saved, so the app never reads old data.
 /// [alert] makes the open app play its sound and vibrate.
 /// [kind] tells the app which screens to reload: orders, requests, support, notifications or all.
 /// [entityId] is the order, request or ticket that changed, so the app reloads that one item only.
 /// Every change gets a number, so an app that was offline asks for what it missed and nothing more.
 export async function publishChange(db: Db, userId: string, alert = false, kind = 'all', entityId: string | null = null) {
   const saved = await db.query('INSERT INTO change_log (user_id, kind, entity_id) VALUES ($1, $2, $3) RETURNING id', [userId, kind, entityId]);
-  await db.query('SELECT pg_notify($1, $2)', [CHANNEL, `${userId}|${alert ? 'alert' : 'change'}|${kind}|${entityId ?? '-'}|${saved.rows[0].id}`]);
+  const payload = changePayload(userId, alert, kind, entityId, saved.rows[0].id);
+  onceSaved(db, () => void broadcast(CHANNEL, [payload]));
 }
 
 /// The same change for many people in one write, like a new request reaching ten lawyers
 export async function publishChanges(db: Db, userIds: string[], alert: boolean, kind: string, entityId: string) {
   if (userIds.length === 0) return;
-  await db.query(
-    `WITH saved AS (
-       INSERT INTO change_log (user_id, kind, entity_id)
-       SELECT person, $2::varchar, $3::uuid FROM unnest($1::uuid[]) AS person
-       RETURNING id, user_id
-     )
-     SELECT pg_notify($4::text, user_id::text || '|' || $5::text || '|' || $2::text || '|' || $3::text || '|' || id::text) FROM saved`,
-    [userIds, kind, entityId, CHANNEL, alert ? 'alert' : 'change']
+  const saved = await db.query(
+    `INSERT INTO change_log (user_id, kind, entity_id)
+     SELECT person, $2::varchar, $3::uuid FROM unnest($1::uuid[]) AS person
+     RETURNING id, user_id`,
+    [userIds, kind, entityId]
   );
+  const payloads = saved.rows.map((row: any) => changePayload(row.user_id, alert, kind, entityId, row.id));
+  onceSaved(db, () => void broadcast(CHANNEL, payloads));
+}
+
+const changePayload = (userId: string, alert: boolean, kind: string, entityId: string | null, changeId: unknown) =>
+  `${userId}|${alert ? 'alert' : 'change'}|${kind}|${entityId ?? '-'}|${changeId}`;
+
+/// Sends small messages to every worker on both servers. They go through the fast memory, which costs the
+/// database nothing; without the fast memory, or if it doesn't answer, they go through the database as before
+async function broadcast(channel: string, payloads: string[]) {
+  const memory = fastMemory();
+  if (memory) {
+    try {
+      await Promise.all(payloads.map((payload) => memory.publish(channel, payload)));
+      return;
+    } catch {
+      // Falls back to the database
+    }
+  }
+  for (const payload of payloads) {
+    await dbPool.query('SELECT pg_notify($1, $2)', [channel, payload]).catch((err) => console.error('[MyLawyer Backend] Live update not sent:', err.message));
+  }
+}
+
+function deliverChangePayload(payload: string) {
+  const [userId, level, kind, entityId, changeId] = payload.split('|');
+  if (userId) deliverChange(userId, level === 'alert', kind || 'all', entityId || '-', changeId || '');
 }
 
 export function deliverChange(userId: string, alert = false, kind = 'all', entityId = '-', changeId = '') {
@@ -51,20 +76,9 @@ export function deliverChange(userId: string, alert = false, kind = 'all', entit
 }
 
 /// Sends one side's newest point to the other side of the order, and to nobody else.
-/// A point is a small message that needs no saving, so it goes through the fast memory and leaves the database
-/// alone. Without the fast memory, or if it doesn't answer, it goes through the database as before
-export async function publishPosition(db: Db, toUserId: string, orderId: string, side: 'lawyer' | 'client', lat: number, lon: number) {
-  const payload = `${toUserId}|${orderId}|${side}|${lat}|${lon}`;
-  const memory = fastMemory();
-  if (memory) {
-    try {
-      await memory.publish(POSITION_CHANNEL, payload);
-      return;
-    } catch {
-      // Falls back to the database
-    }
-  }
-  await db.query('SELECT pg_notify($1, $2)', [POSITION_CHANNEL, payload]);
+/// A point is a small message that needs no saving: only the newest one matters
+export async function publishPosition(toUserId: string, orderId: string, side: 'lawyer' | 'client', lat: number, lon: number) {
+  await broadcast(POSITION_CHANNEL, [`${toUserId}|${orderId}|${side}|${lat}|${lon}`]);
 }
 
 function deliverPosition(payload: string) {
@@ -125,8 +139,7 @@ async function connectListener() {
   client.on('end', retryOnce);
   client.on('notification', (message) => {
     if (message.channel === POSITION_CHANNEL) return deliverPosition(message.payload ?? '');
-    const [userId, level, kind, entityId, changeId] = (message.payload ?? '').split('|');
-    if (userId) deliverChange(userId, level === 'alert', kind || 'all', entityId || '-', changeId || '');
+    deliverChangePayload(message.payload ?? '');
   });
   try {
     await client.connect();
@@ -139,15 +152,15 @@ async function connectListener() {
   }
 }
 
-/// Points sent through the fast memory by a worker on either server. The connection reconnects by itself,
-/// and listens again every time it is ready
+/// Changes and points sent through the fast memory by a worker on either server. The connection reconnects by
+/// itself, and listens again every time it is ready
 function listenForPositions() {
   if (!fastMemory()) return;
   const connection = newConnection();
   positionListener = connection;
-  connection.on('message', (_channel, payload) => deliverPosition(payload));
+  connection.on('message', (channel, payload) => (channel === POSITION_CHANNEL ? deliverPosition(payload) : deliverChangePayload(payload)));
   connection.on('ready', () => {
-    connection.subscribe(POSITION_CHANNEL).catch((err) => console.error('[MyLawyer Backend] Position listener failed:', err.message));
+    connection.subscribe(CHANNEL, POSITION_CHANNEL).catch((err) => console.error('[MyLawyer Backend] Position listener failed:', err.message));
   });
 }
 

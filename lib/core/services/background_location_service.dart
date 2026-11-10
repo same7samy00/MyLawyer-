@@ -12,7 +12,7 @@ const String _oldTaskName = 'lawyer_location_update';
 const Duration _availableEvery = Duration(minutes: 3);
 const int _availableMoveMeters = 100;
 
-/// الطريق للمقابلة: التحديث على قد المسافة للموكل، والدقة عالية. مفيش خريطة تتبع، فالمكان للوقت وزرار «وصلت» بس
+/// الطريق للمقابلة: التحديث على قد المسافة للموكل، والدقة عالية. المكان للوقت المكتوب، وزرار «وصلت»، ونقطة المحامي على خريطة الموكل
 typedef _Pace = ({Duration every, int meters});
 const _Pace _far = (every: Duration(seconds: 30), meters: 150);
 const _Pace _closer = (every: Duration(seconds: 15), meters: 50);

@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { dbPool, query, withTransaction } from '../../database/index.js';
+import { query, withTransaction } from '../../database/index.js';
 import { CANCEL_MINUTES } from '../lifecycle/settlement.js';
 import { OPEN_ORDER_TICKET } from '../support/service.js';
 import { sanitizeText } from '../../utils/security.js';
@@ -146,7 +146,7 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
         : 'UPDATE service_orders SET client_live_latitude = $2, client_live_longitude = $3, client_live_at = NOW() WHERE id = $1',
       [id, lat, lon]
     );
-    await publishPosition(dbPool, side === 'lawyer' ? order.client_id : order.lawyer_id, id, side, lat, lon);
+    await publishPosition(side === 'lawyer' ? order.client_id : order.lawyer_id, id, side, lat, lon);
     return reply.send({ success: true, data: { tracking: true } });
   });
 
