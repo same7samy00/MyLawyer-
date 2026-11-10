@@ -73,9 +73,10 @@ export async function enqueue(kind: JobKind, data: object) {
   await runNow(kind, data);
 }
 
-/// Every web worker also does queued work, so the queue grows with the workers on both servers
+/// Every web worker also does queued work, so the queue grows with the workers. JOB_WORKER=off keeps a server
+/// out of it: the second server sends no email, the signed mail server is on the main one
 export function startJobWorker() {
-  if (!config.redisUrl) return;
+  if (!config.redisUrl || process.env.JOB_WORKER === 'off') return;
   worker = new Worker(
     QUEUE,
     async (job: Job) => {

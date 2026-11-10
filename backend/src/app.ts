@@ -30,8 +30,9 @@ const INVALID_TEXT_FOR_TYPE = '22P02';
 export function buildApp() {
   const fastify = Fastify({
     logger: config.nodeEnv === 'test' ? false : { level: config.nodeEnv === 'production' ? 'warn' : 'info' },
-    // Only Nginx on this machine may name the caller, so nobody can pose as another address
-    trustProxy: 'loopback',
+    // Only Nginx may name the caller, so nobody can pose as another address. On the second server Nginx is the
+    // main server, reached over the private link, so TRUST_PROXY names it there
+    trustProxy: process.env.TRUST_PROXY || 'loopback',
   });
 
   // Nothing technical reaches the caller, and every server failure reaches the log
