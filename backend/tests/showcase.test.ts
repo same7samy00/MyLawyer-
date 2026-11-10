@@ -64,7 +64,7 @@ describe('خريطة المحامين للعرض', () => {
     assert.equal((await call('GET', '/auth/check', clientToken)).status, 200);
   });
 
-  it('المربع بيتحفظ 15 دقيقة، فالتغيير يبان في النسخة الجاية بس', async () => {
+  it('المربع بيتحفظ عند الخادم، فالتغيير يبان في النسخة الجاية بس', async () => {
     const cell = cellOf(30.05, 31.25);
     const first = await call('GET', `/lawyers/map?cells=${cell}`, clientToken);
     const before = first.body.data.cells[cell].length;

@@ -3,9 +3,13 @@ import crypto from 'crypto';
 import { GOVERNORATES, GOVERNORATE_POINTS } from './governorates.js';
 
 /// The lawyers map is for looking only: every approved lawyer, available or not, in squares that are the same
-/// for everyone and rebuilt at most every 15 minutes: it is a showcase to look at, so it need not be fresh
+/// for everyone. It is a showcase to look at, so it is a copy refreshed every 5 hours: Nginx and the phone keep
+/// an answer that long
 /// (owner decisions 2026-11-07 and 2026-11-10)
-export const SHOWCASE_SECONDS = 900;
+export const SHOWCASE_SECONDS = 5 * 60 * 60;
+/// The app server itself keeps a square only this long. Nginx stands in front, so a square is asked for again
+/// only when Nginx's copy runs out, and then it is built from the lawyers as they are now
+const MEMORY_SECONDS = 300;
 /// A lawyer whose place has not changed for this long leaves the map
 const STALE_DAYS = 30;
 /// Small squares close in, big squares when the map shows a large part of Egypt
@@ -75,7 +79,7 @@ export async function cellsJson(size: CellSize, wanted: [number, number][]): Pro
   const degrees = CELL_DEGREES[size];
   const missing = wanted.filter(([x, y]) => {
     const saved = cells.get(cellKey(size, x, y));
-    return !saved || now - saved.at >= SHOWCASE_SECONDS * 1000;
+    return !saved || now - saved.at >= MEMORY_SECONDS * 1000;
   });
 
   if (missing.length > 0) {
@@ -117,7 +121,7 @@ export async function lightCellsJson(kind: MapKind, size: CellSize, wanted: [num
   const key = (x: number, y: number) => `${kind}:${size}:${x}:${y}`;
   const missing = wanted.filter(([x, y]) => {
     const saved = light.get(key(x, y));
-    return !saved || now - saved.at >= SHOWCASE_SECONDS * 1000;
+    return !saved || now - saved.at >= MEMORY_SECONDS * 1000;
   });
 
   if (missing.length > 0) {
@@ -135,7 +139,7 @@ export async function lightCellsJson(kind: MapKind, size: CellSize, wanted: [num
       fresh.get(key(Math.floor(Number(row.longitude) / degrees), Math.floor(Number(row.latitude) / degrees)))?.push(toCard(row));
     }
     for (const [k, value] of fresh) light.set(k, { at: now, json: JSON.stringify(value) });
-    if (light.size > 20000) for (const [k, saved] of light) if (now - saved.at >= SHOWCASE_SECONDS * 1000) light.delete(k);
+    if (light.size > 20000) for (const [k, saved] of light) if (now - saved.at >= MEMORY_SECONDS * 1000) light.delete(k);
   }
 
   return `{${wanted.map(([x, y]) => `"${x}_${y}":${light.get(key(x, y))?.json ?? '[]'}`).join(',')}}`;
@@ -144,7 +148,7 @@ export async function lightCellsJson(kind: MapKind, size: CellSize, wanted: [num
 function forgetOld(now: number) {
   if (cells.size < 5000) return;
   for (const [key, saved] of cells) {
-    if (now - saved.at >= SHOWCASE_SECONDS * 1000) cells.delete(key);
+    if (now - saved.at >= MEMORY_SECONDS * 1000) cells.delete(key);
   }
 }
 
@@ -153,7 +157,7 @@ let building: Promise<Map<string, any[]>> | null = null;
 
 /// The top rated lawyers of one governorate. All the lists are rebuilt together at most every five minutes.
 export async function topInGovernorate(governorate: string): Promise<any[]> {
-  if (!top || Date.now() - top.at >= SHOWCASE_SECONDS * 1000) {
+  if (!top || Date.now() - top.at >= MEMORY_SECONDS * 1000) {
     building ??= buildTopLists().finally(() => {
       building = null;
     });

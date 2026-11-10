@@ -42,7 +42,7 @@ class LawyerRepository {
     return [for (final item in saved) if (item is Map<String, dynamic>) LawyerModel.fromJson(item)];
   }
 
-  /// أعلى المحامين تقييمًا في المحافظة، والسيرفر بيجهز القايمة كل 15 دقيقة
+  /// أعلى المحامين تقييمًا في المحافظة، والسيرفر بيجهز القايمة كل 5 ساعات
   /// 20 في كل مرة، و[offset] للـ «المزيد». أول صفحة بس اللي بتتحفظ للرسم الفوري
   static Future<ApiResponse<List<LawyerModel>>> getTopInGovernorate(String governorate, {int offset = 0}) async {
     final res = await ApiService.get('/lawyers/top', queryParams: {'governorate': governorate, 'offset': '$offset', 'limit': '20'});
