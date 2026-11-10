@@ -158,6 +158,7 @@ async function lines(count, holdSeconds) {
         resolve(req);
       });
       req.on('error', () => { fail++; resolve(req); });
+      req.end();
     }));
     if (i % 200 === 199) await sleep(50);
   }
