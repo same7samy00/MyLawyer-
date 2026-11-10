@@ -4,7 +4,7 @@ import { CANCEL_MINUTES } from '../lifecycle/settlement.js';
 import { OPEN_ORDER_TICKET } from '../support/service.js';
 import { sanitizeText } from '../../utils/security.js';
 import { HttpError, UUID_PATTERN } from '../../utils/http.js';
-import { addClientCredit, addLawyerStrike, ARRIVAL_RADIUS_KM, HOLD_HOURS, LIVE_POSITION_SECONDS, notify } from '../lifecycle/service.js';
+import { addClientCredit, addLawyerStrike, ARRIVAL_RADIUS_KM, HOLD_HOURS, isFakeLocation, LIVE_POSITION_SECONDS, MAX_REAL_SPEED_KMH, MOCK_LOCATION_ERROR, notify } from '../lifecycle/service.js';
 import { publishPosition } from '../../services/liveUpdates.js';
 
 /// A lawyer can keep at most this many postponed tasks
@@ -24,11 +24,19 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
       return reply.status(400).send({ success: false, error: 'تعذر تحديد موقعك' });
     }
+    if (isFakeLocation(body)) throw new HttpError(400, MOCK_LOCATION_ERROR);
 
     await withTransaction(async (client) => {
       const order = await lockOrder(client, id);
       if (!order || order.lawyer_id !== userId) throw new HttpError(404, 'الطلب غير موجود أو غير مسند إليك');
       if (order.status !== 'ACTIVE' || order.arrived_at) throw new HttpError(400, 'لا يمكن تسجيل الوصول لهذا الطلب');
+
+      // A lawyer whose phone was far away a moment ago did not drive here: the place jumped
+      if (order.lawyer_live_at) {
+        const hours = Math.max(1, Date.now() - new Date(order.lawyer_live_at).getTime()) / 3_600_000;
+        const moved = distanceKm(lat, lon, Number(order.lawyer_live_latitude), Number(order.lawyer_live_longitude));
+        if (moved > 1 && moved / hours > MAX_REAL_SPEED_KMH) throw new HttpError(400, 'تعذر تأكيد مكانك، استنى لحظة وجرب تاني');
+      }
 
       // The arrival is the proof that the two really met: near where the client asked from, or near the last
       // point the client's phone shared on the way, however old, since a phone may stop sharing (owner decision 2026-11-06)
@@ -65,6 +73,7 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < 21 || lat > 32.5 || lon < 24 || lon > 37.5) {
       throw new HttpError(400, 'إحداثيات الموقع غير صالحة');
     }
+    if (isFakeLocation(body)) throw new HttpError(400, MOCK_LOCATION_ERROR);
 
     const res = await query(
       `SELECT lawyer_id, client_id, status, arrived_at, lawyer_live_at, client_live_at FROM service_orders WHERE id = $1`,

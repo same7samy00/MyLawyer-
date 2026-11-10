@@ -128,8 +128,8 @@ class OrderRepository {
   }
 
   /// تسجيل وصول المحامي، والخادم يتحقق من قربه من الموكل
-  static Future<ApiResponse<dynamic>> markArrived(String orderId, double lat, double lon) {
-    return ApiService.post('/orders/$orderId/arrive', {'latitude': lat, 'longitude': lon});
+  static Future<ApiResponse<dynamic>> markArrived(String orderId, double lat, double lon, {bool mocked = false}) {
+    return ApiService.post('/orders/$orderId/arrive', {'latitude': lat, 'longitude': lon, 'mocked': mocked});
   }
 
   /// الموكل يختار يستنى المحامي المتأخر

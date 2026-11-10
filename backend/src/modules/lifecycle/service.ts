@@ -16,6 +16,17 @@ export const PAYMENT_MINUTES = 10;
 export const MAX_LAWYER_TASKS = 1;
 /// The lawyer and the client must really meet, so arrival is accepted within 50 meters only
 export const ARRIVAL_RADIUS_KM = 0.05;
+/// A phone running a fake-location app says so with every point it sends. Such a point is refused, so a lawyer
+/// can't get requests from a place they are not in, or press «وصلت» from home. ALLOW_MOCK_LOCATION=true lets
+/// the emulator's test location through while the app is being developed
+export const MOCK_LOCATION_ERROR = 'قفل برنامج الموقع الوهمي عشان نقدر نحدد مكانك';
+export function isFakeLocation(body: unknown): boolean {
+  if (process.env.ALLOW_MOCK_LOCATION === 'true') return false;
+  return (body as { mocked?: unknown } | null)?.mocked === true;
+}
+/// Faster than this between two points of one lawyer is not a car: the place was faked or the phone jumped
+export const MAX_REAL_SPEED_KMH = 200;
+
 /// Each side shares its newest point at most this often on the way to the meeting
 export const LIVE_POSITION_SECONDS = 4;
 export const ARRIVAL_REMINDER_MINUTES = 5;

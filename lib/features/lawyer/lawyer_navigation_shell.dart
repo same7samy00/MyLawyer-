@@ -86,7 +86,7 @@ class _LawyerNavigationShellState extends State<LawyerNavigationShell> with Widg
       final result = await LocationService.instance.checkAndRequestPermission();
       final position = result.position;
       if (position == null) return;
-      await LawyerRepository.updateLawyerLocation(lat: position.latitude, lon: position.longitude);
+      await LawyerRepository.updateLawyerLocation(lat: position.latitude, lon: position.longitude, mocked: position.isMocked);
     } catch (_) {
       // تعذر الموقع لا يوقف باقي التطبيق
     }

@@ -183,7 +183,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
     }
 
     await _run(
-      () => OrderRepository.markArrived(_order.id, position.latitude, position.longitude),
+      () => OrderRepository.markArrived(_order.id, position.latitude, position.longitude, mocked: position.isMocked),
       'تم تسجيل وصولك',
     );
   }

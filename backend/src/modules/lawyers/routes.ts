@@ -9,6 +9,7 @@ import { detectFileType } from '../../utils/files.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { CELL_DEGREES, CellSize, cellsJson, lightCellsJson, MAX_CELLS, SHOWCASE_SECONDS, topInGovernorate } from './showcase.js';
 import { GOVERNORATES } from './governorates.js';
+import { isFakeLocation, MOCK_LOCATION_ERROR } from '../lifecycle/service.js';
 
 export async function lawyerRoutes(fastify: FastifyInstance) {
   // Helper authentication hook for protected lawyer routes
@@ -243,6 +244,8 @@ export async function lawyerRoutes(fastify: FastifyInstance) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
       return reply.status(400).send({ success: false, error: 'إحداثيات الموقع غير صالحة' });
     }
+
+    if (isFakeLocation(body)) return reply.status(400).send({ success: false, error: MOCK_LOCATION_ERROR });
 
     // Egypt bounds check
     if (lat < 21.0 || lat > 32.5 || lon < 24.0 || lon > 37.5) {

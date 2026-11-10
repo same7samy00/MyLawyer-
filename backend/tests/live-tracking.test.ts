@@ -67,6 +67,30 @@ describe('التتبع اللحظي', () => {
     assert.equal((await listed(clientToken, order.id)).liveLatitude, null);
   });
 
+  it('المكان المزيف بيترفض: لا مكان المحامي، ولا نقطة الطريق، ولا «وصلت»', async () => {
+    await closeOrders();
+    const order = await createPaidOrder();
+    const fake = { latitude: 30.0501, longitude: 31.25, mocked: true };
+    assert.equal((await call('POST', '/lawyers/me/location', lawyerToken, fake)).status, 400);
+    assert.equal((await call('POST', `/orders/${order.id}/position`, lawyerToken, fake)).status, 400);
+    assert.equal((await call('POST', `/orders/${order.id}/arrive`, lawyerToken, fake)).status, 400);
+    assert.equal((await sql('SELECT arrived_at FROM service_orders WHERE id = $1', [order.id]))[0].arrived_at, null);
+    // The same point from a phone with no fake-location app is taken
+    assert.equal((await call('POST', `/orders/${order.id}/arrive`, lawyerToken, { ...fake, mocked: false })).status, 200);
+  });
+
+  it('محامي كان بعيد من ثواني ما يقدرش يدوس «وصلت»: المكان نطّ', async () => {
+    await closeOrders();
+    const order = await createPaidOrder();
+    // 11 km away a few seconds ago, then suddenly at the client's door
+    await send(lawyerToken, order.id, 30.15, 31.25);
+    const arrive = () => call('POST', `/orders/${order.id}/arrive`, lawyerToken, { latitude: 30.0501, longitude: 31.25 });
+    assert.equal((await arrive()).status, 400);
+    // The same distance over twenty minutes is a normal drive
+    await sql(`UPDATE service_orders SET lawyer_live_at = NOW() - INTERVAL '20 minutes' WHERE id = $1`, [order.id]);
+    assert.equal((await arrive()).status, 200);
+  });
+
   it('لو موبايل الموكل بطّل يبعت، «وصلت» بيتقبل جنب آخر نقطة بعتها مهما كانت قديمة', async () => {
     await closeOrders();
     const order = await createPaidOrder();

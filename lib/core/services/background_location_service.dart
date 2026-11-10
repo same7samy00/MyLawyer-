@@ -111,7 +111,7 @@ class BackgroundLocationService {
       position ??= await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium, timeLimit: Duration(seconds: 20)),
       ).catchError((_) => Geolocator.getLastKnownPosition().then((p) => p!));
-      await ApiService.post('/lawyers/me/location', {'latitude': position.latitude, 'longitude': position.longitude});
+      await ApiService.post('/lawyers/me/location', {'latitude': position.latitude, 'longitude': position.longitude, 'mocked': position.isMocked});
     } catch (e) {
       debugPrint('Wake answer error: $e');
     }
@@ -193,6 +193,7 @@ class BackgroundLocationService {
     await ApiService.post('/lawyers/me/location', {
       'latitude': position.latitude,
       'longitude': position.longitude,
+      'mocked': position.isMocked,
     });
   }
 
@@ -207,6 +208,7 @@ class BackgroundLocationService {
     final res = await ApiService.post('/orders/$orderId/position', {
       'latitude': position.latitude,
       'longitude': position.longitude,
+      'mocked': position.isMocked,
     });
     // الخادم بيقول إن الطريق خلص (وصل، أو الطلب اتقفل)، فالمشاركة تقف
     final data = res.data;

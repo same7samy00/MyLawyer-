@@ -68,11 +68,13 @@ class LawyerRepository {
     required double lat,
     required double lon,
     bool isAvailable = true,
+    bool mocked = false,
   }) async {
     final response = await ApiService.post('/lawyers/me/location', {
       'lat': lat,
       'lon': lon,
       'isAvailable': isAvailable,
+      'mocked': mocked,
     });
     return response.isOk;
   }

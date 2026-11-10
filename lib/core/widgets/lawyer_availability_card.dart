@@ -77,8 +77,16 @@ class _LawyerAvailabilityCardState extends State<LawyerAvailabilityCard> {
         );
         return;
       }
-      await LawyerRepository.updateLawyerLocation(lat: position.latitude, lon: position.longitude);
+      final sent = await LawyerRepository.updateLawyerLocation(lat: position.latitude, lon: position.longitude, mocked: position.isMocked);
       if (!mounted) return;
+      // موبايل شغال ببرنامج موقع وهمي ما يبقاش «متاح»: الطلبات بتروح للأقرب فعلًا، والخادم هو اللي بيرفض المكان
+      if (!sent && position.isMocked) {
+        setState(() => _isSaving = false);
+        showAppMessage(context,
+          const SnackBar(content: Text('قفل برنامج الموقع الوهمي عشان تبقى متاح')),
+        );
+        return;
+      }
     }
     final res = await LawyerRepository.setAvailability(value);
     if (!mounted) return;
