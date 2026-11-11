@@ -7,10 +7,12 @@ void main() {
   testWidgets('صفحة الشروط فيها حذف الحساب، والنافذة بتطلب كلمة السر قبل ما تبعت', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.lightTheme,
-      home: const Directionality(textDirection: TextDirection.rtl, child: TermsPrivacyScreen()),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const Directionality(textDirection: TextDirection.rtl, child: TermsPrivacyScreen()),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('الشروط والأحكام'), findsOneWidget);
