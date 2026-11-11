@@ -12,8 +12,6 @@ const LAWYERS_PER_ROUND = 10;
 /// Each call starts further out: up to 10 km, then 25, then 50, and a call with fewer than 10 fills up from the next distance. At most 30 lawyers get one request
 const ROUND_RADII_KM = [10, 25, 50];
 export const AUTO_ROUNDS = ROUND_RADII_KM.length;
-/// The service and its map reach this far from the client
-export const SEARCH_RADIUS_KM = ROUND_RADII_KM[ROUND_RADII_KM.length - 1];
 /// cos(30 degrees), Egypt's middle: a degree of longitude shrunk to about the length of a degree of latitude.
 /// The same number is in the index of migration 043
 const LON_SCALE = 0.866;
