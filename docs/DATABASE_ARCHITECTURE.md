@@ -10,7 +10,7 @@
 | نسخة القراية | نسخة حية على السيرفر التاني، بتتحدّث لحظة بلحظة، للخريطة والقوايم والتقييمات (`readQuery` في `src/database/index.ts`) |
 | الحسابات | `mylawyer_user` (الخادم، من غير صلاحيات إدارة)، و`replicator` (النسخة الحية بس)، و`postgres` (محلي على السيرفر بس) |
 | الاتصال | محلي، ومن السيرفر التاني على الخط الخاص بس (`pg_hba.conf`). مقفول على الإنترنت |
-| التحديثات | 46 ملف في `backend/migrations` (من `001` لـ `045`). لحد `044` متطبقين على الإنتاج يوم 2026-11-11، و`045` بيتطبق مع الرفع الجاي. بيشتغلوا لوحدهم مع تشغيل الخادم بالترتيب ومرة واحدة (`src/database/migrate.ts`، جدول `schema_migrations`)، ولو واحد فشل الخادم ما بيشتغلش |
+| التحديثات | 47 ملف في `backend/migrations` (من `001` لـ `046`)، كلهم متطبقين على الإنتاج. بيشتغلوا لوحدهم مع تشغيل الخادم بالترتيب ومرة واحدة (`src/database/migrate.ts`، جدول `schema_migrations`)، ولو واحد فشل الخادم ما بيشتغلش |
 | الأرقام | 36 جدول، و114 فهرس، و58 علاقة، و21 شرط `CHECK`، وtrigger واحد (`updated_at` في `service_orders`). مفيش views ولا stored procedures |
 
 ## 2. الصورة العامة
@@ -45,7 +45,7 @@ erDiagram
 ### الحسابات والدخول
 | الجدول | فيه إيه | بيستخدمه |
 |---|---|---|
-| `users` | الحساب: الموبايل والإيميل (فريدين)، والدور (`client`، `lawyer`، `admin`)، والحالة، والاسم، والصورة، و`suspended_until`، و`warnings_count`، و`deletion_requested_at` و`deleted_at` (حذف الحساب) | `auth`، `users`، `admin` |
+| `users` | الحساب: الموبايل والإيميل (فريدين)، والدور (`client`، `lawyer`، `admin`)، والحالة، والاسم، والصورة، و`suspended_until`، و`warnings_count`، و`deletion_requested_at` و`deleted_at` (حذف الحساب)، و`is_review_account` (حسابات مراجعة جوجل، migration `046`) | `auth`، `users`، `admin` |
 | `user_credentials` | كلمة السر (argon2id)، واحدة لكل حساب | `auth` |
 | `user_sessions` | الجلسات: hash للـ refresh token، والجهاز، والعنوان، والانتهاء والإلغاء | `auth/session.ts` |
 | `email_verifications` | كود تأكيد الإيميل (hash)، ومحاولاته | `auth/register.ts` |

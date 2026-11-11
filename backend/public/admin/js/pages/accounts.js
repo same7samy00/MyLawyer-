@@ -208,6 +208,8 @@ function isSuspendedByStrikes(user) {
 
 /// The account's real state: suspended by the admin, by warnings until a date, or by strikes until a date
 function accountState(user) {
+  // Google's reviewers sign in with it: never suspended or deleted
+  if (user.is_review_account) return badge('حساب مراجعة جوجل', 'blue');
   if (user.status === 'suspended') {
     return badge(user.account_suspended_until ? 'موقوف بسبب الإنذارات حتى ' + date(user.account_suspended_until) : 'موقوف بقرار الإدارة', 'red');
   }

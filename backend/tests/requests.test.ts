@@ -512,3 +512,31 @@ describe('الطريق ووقت الوصول', () => {
     }
   });
 });
+
+describe('حسابات مراجعة جوجل في «محاميك حالاً»', () => {
+  it('طلب موكل حقيقي ما بيوصلش محامي المراجعة، وطلب موكل المراجعة ما بيوصلش غيره', async () => {
+    const review = await otherLawyer(30.051);
+    await sql('UPDATE users SET is_review_account = TRUE WHERE id = $1', [review.id]);
+    try {
+      const realRequest = await createRequest();
+      const reached = await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [realRequest]);
+      assert.ok(reached.some((row: any) => row.lawyer_id === lawyerId), 'a real lawyer still gets it');
+      assert.ok(!reached.some((row: any) => row.lawyer_id === review.id), 'the review lawyer does not');
+      assert.equal((await call('POST', `/requests/${realRequest}/cancel`, clientToken, {})).status, 200);
+
+      const reviewClient = await createUser(`010009${phoneCounter++}`, 'client');
+      await sql('UPDATE users SET is_review_account = TRUE WHERE id = $1', [reviewClient]);
+      const reviewToken = app.jwt.sign({ userId: reviewClient, role: 'client' }) as string;
+      const sent = await send(reviewToken);
+      assert.equal(sent.status, 201, JSON.stringify(sent.body));
+      const got = await sql('SELECT lawyer_id FROM request_recipients WHERE request_id = $1', [sent.body.data.id]);
+      assert.deepEqual(got.map((row: any) => row.lawyer_id), [review.id]);
+      await call('POST', `/requests/${sent.body.data.id}/cancel`, reviewToken, {});
+      await sql('DELETE FROM service_requests WHERE client_id = $1', [reviewClient]);
+      await sql('DELETE FROM users WHERE id = $1', [reviewClient]);
+    } finally {
+      await sql('DELETE FROM request_recipients WHERE lawyer_id = $1', [review.id]);
+      await removeLawyer(review.id);
+    }
+  });
+});

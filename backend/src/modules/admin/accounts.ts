@@ -16,7 +16,7 @@ export async function registerAdminAccounts(fastify: FastifyInstance) {
     const search = `%${(q ?? '').trim()}%`;
 
     const res = await query(
-      `SELECT u.id, u.role, u.status, u.phone, u.email, u.created_at, u.warnings_count,
+      `SELECT u.id, u.role, u.status, u.phone, u.email, u.created_at, u.warnings_count, u.is_review_account,
               COALESCE(lp.full_name, u.full_name) AS full_name,
               COALESCE(lp.profile_photo_path, u.profile_photo_path) AS photo,
               lp.experience_years, lp.syndicate_number, lp.rating, lp.reviews_count, lp.is_available, lp.urgent_status,
@@ -38,7 +38,7 @@ export async function registerAdminAccounts(fastify: FastifyInstance) {
     if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
 
     const userRes = await query(
-      `SELECT u.id, u.role, u.status, u.phone, u.email, u.created_at, u.warnings_count, u.suspended_until AS account_suspended_until,
+      `SELECT u.id, u.role, u.status, u.phone, u.email, u.created_at, u.warnings_count, u.is_review_account, u.suspended_until AS account_suspended_until,
               COALESCE(lp.full_name, u.full_name) AS full_name,
               COALESCE(lp.profile_photo_path, u.profile_photo_path) AS photo,
               lp.experience_years, lp.syndicate_number, lp.rating, lp.reviews_count, lp.is_available,
@@ -126,6 +126,9 @@ export async function registerAdminAccounts(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const { suspend } = (request.body || {}) as { suspend?: boolean };
     if (!UUID_PATTERN.test(id)) return reply.status(400).send({ success: false, error: 'المعرف غير صالح' });
+    // Google's reviewers sign in with this account: suspending it gets the app refused
+    const review = await query('SELECT is_review_account FROM users WHERE id = $1', [id]);
+    if (suspend && review.rows[0]?.is_review_account) return reply.status(409).send({ success: false, error: 'ده حساب مراجعة جوجل، وإيقافه بيخلي جوجل ترفض التطبيق' });
 
     const res = await query(
       `UPDATE users SET status = $1::user_status, suspended_until = NULL, updated_at = NOW() WHERE id = $2 AND role <> 'admin' RETURNING id, COALESCE(full_name, phone) AS label`,

@@ -53,7 +53,7 @@ export async function requestRoutes(fastify: FastifyInstance) {
 
     // The nearest lawyers are worked out before anything is locked, so the road answer holds nothing back.
     // The first call goes to the nearest 10 inside 10 km. With nobody there it moves straight to 25, then 50 km
-    const firstCall = await chooseNextCall({ id: NEW_REQUEST_ID, client_latitude: lat, client_longitude: lon }, 1);
+    const firstCall = await chooseNextCall({ id: NEW_REQUEST_ID, client_id: userId, client_latitude: lat, client_longitude: lon }, 1);
 
     const created = await withTransaction(async (client) => {
       await client.query('SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);

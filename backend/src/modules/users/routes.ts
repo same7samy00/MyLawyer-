@@ -112,6 +112,8 @@ export async function userRoutes(fastify: FastifyInstance) {
     const password = (request.body as { password?: unknown } | null)?.password;
     if (typeof password !== 'string' || !password) return reply.status(400).send({ success: false, error: 'اكتب كلمة السر عشان نتأكد إنه حسابك' });
     if (role === 'admin') return reply.status(403).send({ success: false, error: 'حساب الإدارة ما بيتمسحش من هنا' });
+    const review = await query('SELECT is_review_account FROM users WHERE id = $1', [userId]);
+    if (review.rows[0]?.is_review_account) return reply.status(403).send({ success: false, error: 'ده حساب مراجعة جوجل، وما بيتمسحش' });
 
     const cred = await query('SELECT password_hash FROM user_credentials WHERE user_id = $1', [userId]);
     if (!cred.rows[0] || !(await verifyPassword(cred.rows[0].password_hash, password))) {

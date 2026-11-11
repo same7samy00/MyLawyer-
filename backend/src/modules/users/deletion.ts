@@ -49,7 +49,7 @@ async function removeFiles(dir: string, names: string[]) {
 /// Wipes one account whose 30 days are over. Orders, payments, transfers and reviews stay for the books,
 /// under a nameless account that can never sign in again. Returns false when something new stops it
 export async function wipeAccount(userId: string): Promise<boolean> {
-  const user = (await dbPool.query('SELECT id, role FROM users WHERE id = $1 AND deleted_at IS NULL', [userId])).rows[0];
+  const user = (await dbPool.query('SELECT id, role FROM users WHERE id = $1 AND deleted_at IS NULL AND is_review_account = FALSE', [userId])).rows[0];
   if (!user) return false;
   // Money that came in after the request (an admin decision, say) waits for the team instead of disappearing
   if (await deletionBlocker(dbPool, user)) return false;

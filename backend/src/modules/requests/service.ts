@@ -108,6 +108,8 @@ async function inReach(db: Db, request: any, radius: number, skipAsked: boolean,
        WHERE ${LAWYER_CAN_WORK('lp', 'u')} AND lp.latitude IS NOT NULL AND lp.longitude IS NOT NULL
          AND GREATEST(lp.last_location_updated_at, lp.last_active_at) > NOW() - make_interval(mins => ${FRESH_MINUTES})
          AND u.id <> ALL($5::uuid[])
+         -- Google's review accounts only meet each other, never a real client or lawyer
+         AND u.is_review_account = (SELECT c.is_review_account FROM users c WHERE c.id = $6)
          AND NOT EXISTS (SELECT 1 FROM request_offers ro WHERE ro.request_id = $3 AND ro.lawyer_id = u.id AND ro.withdrawn_at IS NULL)
          ${skipAsked ? 'AND NOT EXISTS (SELECT 1 FROM request_recipients rr WHERE rr.request_id = $3 AND rr.lawyer_id = u.id)' : ''}
        ORDER BY point((lp.longitude::float8) * ${LON_SCALE}, lp.latitude::float8) <-> point($2::float8 * ${LON_SCALE}, $1::float8)
@@ -115,7 +117,7 @@ async function inReach(db: Db, request: any, radius: number, skipAsked: boolean,
      ) nearest
      WHERE distance_km <= $4::float8
      ORDER BY distance_km ASC`,
-    [lat, lon, request.id, radius, except]
+    [lat, lon, request.id, radius, except, request.client_id]
   );
   return res.rows.map((row: any) => ({ id: row.id, distance_km: Number(row.distance_km), latitude: Number(row.latitude), longitude: Number(row.longitude) }));
 }

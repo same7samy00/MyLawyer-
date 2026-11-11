@@ -55,6 +55,15 @@ describe('خريطة المحامين للعرض', () => {
     assert.equal(card.isOnline, undefined);
   });
 
+  it('محامي مراجعة جوجل ما بيظهرش على الخريطة للناس', async () => {
+    const review = await addLawyer('01200000009', 30.055, 31.255);
+    await sql('UPDATE users SET is_review_account = TRUE WHERE id = $1', [review]);
+    const cell = cellOf(30.05, 31.25);
+    const ids = (await call('GET', `/lawyers/map?size=s&cells=${cell}`, clientToken)).body.data.cells[cell].map((lawyer: any) => lawyer.id);
+    assert.ok(ids.includes(lawyerId));
+    assert.ok(!ids.includes(review));
+  });
+
   it('خريطة المحامين وقايمتهم وتقييماتهم للحسابات المسجلة بس', async () => {
     const cell = cellOf(30.05, 31.25);
     assert.equal((await call('GET', `/lawyers/map?cells=${cell}`, null)).status, 401);

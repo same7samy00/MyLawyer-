@@ -23,6 +23,7 @@ const GOVERNORATES_LOCK = 4_242_002;
 
 const SHOWN = `
   lp.approval_status = 'approved' AND u.status = 'active' AND lp.suspended_until IS NULL
+  AND u.is_review_account = FALSE
   AND lp.latitude IS NOT NULL AND lp.longitude IS NOT NULL
   AND lp.latitude BETWEEN 22.0 AND 31.8 AND lp.longitude BETWEEN 24.5 AND 37.0
   AND lp.last_location_updated_at > NOW() - make_interval(days => ${STALE_DAYS})`;

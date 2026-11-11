@@ -102,3 +102,28 @@ describe('حذف الحساب', () => {
     assert.equal((await sql('SELECT deleted_at FROM users WHERE id = $1', [me.id]))[0].deleted_at, null);
   });
 });
+
+describe('حسابات مراجعة جوجل', () => {
+  it('ما بتتمسحش ولا بتتوقف، وبتظهر في اللوحة بعلامتها', async () => {
+    const me = await account('lawyer');
+    await sql('UPDATE users SET is_review_account = TRUE WHERE id = $1', [me.id]);
+    try {
+      const deletion = await call('POST', '/users/me/delete', me.token, { password: PASSWORD });
+      assert.equal(deletion.status, 403);
+      assert.match(deletion.body.error, /مراجعة جوجل/);
+
+      const suspend = await call('POST', `/admin/users/${me.id}/status`, adminToken, { suspend: true });
+      assert.equal(suspend.status, 409);
+      assert.equal((await sql('SELECT status FROM users WHERE id = $1', [me.id]))[0].status, 'active');
+
+      await sql(`UPDATE users SET deletion_requested_at = NOW() - INTERVAL '31 days' WHERE id = $1`, [me.id]);
+      assert.equal(await wipeAccount(me.id), false, 'the 30-day wipe passes it by');
+
+      const profile = await call('GET', `/admin/users/${me.id}`, adminToken);
+      assert.equal(profile.status, 200);
+      assert.equal(JSON.stringify(profile.body.data).includes('"is_review_account":true'), true);
+    } finally {
+      await sql('UPDATE users SET is_review_account = FALSE, deletion_requested_at = NULL WHERE id = $1', [me.id]);
+    }
+  });
+});
