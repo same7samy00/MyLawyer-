@@ -11,9 +11,13 @@ import 'service_terms_screen.dart';
 class ProblemDescriptionScreen extends StatefulWidget {
   final String problemTitle;
 
+  /// الوصف اللي الموكل كتبه لمحاميحو بيتكتب هنا جاهز
+  final String initialDescription;
+
   const ProblemDescriptionScreen({
     super.key,
     required this.problemTitle,
+    this.initialDescription = '',
   });
 
   @override
@@ -21,7 +25,7 @@ class ProblemDescriptionScreen extends StatefulWidget {
 }
 
 class _ProblemDescriptionScreenState extends State<ProblemDescriptionScreen> {
-  final TextEditingController _descriptionController = TextEditingController();
+  late final TextEditingController _descriptionController = TextEditingController(text: widget.initialDescription);
 
   @override
   void dispose() {

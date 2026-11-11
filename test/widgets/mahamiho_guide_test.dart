@@ -29,15 +29,15 @@ void main() {
     expect(find.bySemanticsLabel('محاميحو'), findsOneWidget);
   });
 
-  testWidgets('لمسه بيرجّع الجملة', (tester) async {
+  testWidgets('لمسه بيفتح صفحة محاميحو', (tester) async {
     await tester.pumpWidget(_host());
     await tester.pump(const Duration(seconds: 12));
-    expect(_bubbleOpacity(tester), 0);
 
     await tester.tap(find.bySemanticsLabel('محاميحو'));
     await tester.pump();
-    expect(_bubbleOpacity(tester), 1);
-    await tester.pump(const Duration(seconds: 10));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('اكتب لمحاميحو...'), findsOneWidget);
+    expect(find.text('محضر شرطة'), findsOneWidget);
   });
 
   testWidgets('بعد أول مرة بيظهر واقف على طول من غير تلويح', (tester) async {

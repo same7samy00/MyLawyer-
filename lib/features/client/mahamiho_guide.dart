@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import 'mahamiho_chat_screen.dart';
 
 /// محاميحو: صغير تحت على الشمال، ثابت طول ما الرئيسية مفتوحة.
 /// أول ما التطبيق يتفتح بيطلع من ورا الشريط السفلي ويشاور، وجنبه جملة بتختفي بعد شوية.
-/// لمسه بيعمل لايك ويقول الجملة تاني.
+/// لمسه بيفتح صفحة محاميحو (MahamihoChatScreen).
 class MahamihoGuide extends StatefulWidget {
   const MahamihoGuide({super.key});
 
@@ -21,14 +22,13 @@ class MahamihoGuide extends StatefulWidget {
   State<MahamihoGuide> createState() => _MahamihoGuideState();
 }
 
-enum _Clip { popWave, idle, like }
+enum _Clip { popWave, idle }
 
 class _MahamihoGuideState extends State<MahamihoGuide> {
   // مدة كل حركة = عدد اللقطات × 42 مللي ثانية
   static const _clips = {
     _Clip.popWave: ('assets/mahamiho/pop-wave.webp', Duration(milliseconds: 66 * 42)),
     _Clip.idle: ('assets/mahamiho/idle.webp', Duration.zero),
-    _Clip.like: ('assets/mahamiho/like.webp', Duration(milliseconds: 55 * 42)),
   };
   static const _hello = 'أهلاً! أنا محاميحو 👋\nاختار الخدمة اللي محتاجها، وأنا معاك لحد ما المحامي يوصلك.';
 
@@ -100,10 +100,10 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
     _sayHello(const Duration(milliseconds: 700));
   }
 
+  /// لمسه بيفتح صفحة محاميحو
   void _onTap() {
-    _cancelTimers();
-    _playClip(_Clip.like);
-    _sayHello(Duration.zero);
+    setState(() => _bubble = false);
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MahamihoChatScreen()));
   }
 
   @override

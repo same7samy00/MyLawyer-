@@ -15,14 +15,17 @@ import 'consultation_style.dart';
 class ConsultationDetailsScreen extends StatefulWidget {
   final ConsultationKind kind;
 
-  const ConsultationDetailsScreen({super.key, required this.kind});
+  /// المشكلة اللي الموكل كتبها لمحاميحو بتتكتب هنا جاهزة
+  final String initialDetails;
+
+  const ConsultationDetailsScreen({super.key, required this.kind, this.initialDetails = ''});
 
   @override
   State<ConsultationDetailsScreen> createState() => _ConsultationDetailsScreenState();
 }
 
 class _ConsultationDetailsScreenState extends State<ConsultationDetailsScreen> {
-  final _details = TextEditingController();
+  late final _details = TextEditingController(text: widget.initialDetails);
   final List<XFile> _pages = [];
   ConsultationSettings _settings = const ConsultationSettings();
 
@@ -41,7 +44,7 @@ class _ConsultationDetailsScreenState extends State<ConsultationDetailsScreen> {
   }
 
   // بنعيد البناء بس لما العداد أو الزرار يتغير
-  int _lastLength = 0;
+  late int _lastLength = widget.initialDetails.trim().length;
   void _onTyping() {
     final length = _details.text.trim().length;
     final crossed = (length >= _settings.minDetailsChars) != (_lastLength >= _settings.minDetailsChars);
