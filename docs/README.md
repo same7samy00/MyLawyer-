@@ -37,6 +37,7 @@
 | الرفع والرجوع | `DEPLOYMENT.md` |
 | اختبار الضغط: الأرقام وإزاي يتعاد | `LOAD_TEST.md` |
 | الدومين وسجلات DNS وCloudflare | `CLOUDFLARE.md` |
+| Google Play: حساب المطوّر، والتطبيق، وحسابات المراجعة، والطريق للنشر | `GOOGLE_PLAY.md` |
 | النسخ الاحتياطية والاسترجاع | `BACKUP_AND_RECOVERY.md` |
 | المراقبة والسجلات | `MONITORING.md` |
 | الأسرار والحماية | `SECURITY.md` |

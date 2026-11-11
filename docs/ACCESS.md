@@ -83,7 +83,7 @@ ssh -F D:/KAREM/.access/ssh_config mylawyer-vps
 | Cloudflare | الـ DNS، والحماية، والكاش (`CLOUDFLARE.md`) |
 | Firebase (مشروع `my-lawyer-51a6c`) | إشعارات الموبايل |
 | TomTom | مفتاحين: الطرق، وصور الخريطة |
-| Google Play Console | حساب المطوّر (شخصي)، وبيتراجع عند جوجل من 2026-11-11 |
+| Google Play Console | حساب المطوّر (شخصي، اتقبل 2026-11-11) والتطبيق (`GOOGLE_PLAY.md`) |
 | Google Search Console | إثبات ملكية الموقع (العلامة في `backend/public/site/index.html`) |
 
 ## 7. صلاحيات Claude Code المحلية
