@@ -42,6 +42,7 @@ flutter:
   assets:
     - assets/data/
     - assets/images/
+    - assets/mahamiho/
     - assets/videos/
 
   fonts:

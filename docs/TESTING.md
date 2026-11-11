@@ -6,7 +6,7 @@
 | الجزء | الأمر | النتيجة يوم 2026-11-11 |
 |---|---|---|
 | التطبيق: تحليل | `flutter analyze` | نضيف |
-| التطبيق: اختبارات | `flutter test` | 133 نجحوا و4 متخطين (الرابع: اختبار التحويل، بيشتغل بس مع `--dart-define=WALLET_TRANSFERS=true`) |
+| التطبيق: اختبارات | `flutter test` | 136 نجحوا و4 متخطين (الرابع: اختبار التحويل، بيشتغل بس مع `--dart-define=WALLET_TRANSFERS=true`) |
 | الخادم: الأنواع | `cd backend && npx tsc --noEmit` | نضيف |
 | الخادم: اختبارات | `cd backend && npm test` | 198 نجحوا |
 | الخادم: كود مش مستخدم | `npx tsc --noEmit --noUnusedLocals --noUnusedParameters` | نضيف |

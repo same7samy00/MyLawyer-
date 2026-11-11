@@ -1,0 +1,203 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_theme.dart';
+
+/// محاميحو: بيطلع صغير من ورا الشريط السفلي على الشمال، يشاور ويقول جملة، وبعدين ينزل.
+/// بيظهر مرة واحدة في كل فتحة للتطبيق، ولمسه بيعمل لايك ويقول الجملة تاني.
+class MahamihoGuide extends StatefulWidget {
+  const MahamihoGuide({super.key});
+
+  /// مرة واحدة في كل فتحة للتطبيق
+  static bool _greeted = false;
+
+  @visibleForTesting
+  static void resetForTest() => _greeted = false;
+
+  @override
+  State<MahamihoGuide> createState() => _MahamihoGuideState();
+}
+
+enum _Clip { popWave, idle, like }
+
+class _MahamihoGuideState extends State<MahamihoGuide> with SingleTickerProviderStateMixin {
+  // مدة كل حركة = عدد اللقطات × 42 مللي ثانية
+  static const _clips = {
+    _Clip.popWave: ('assets/mahamiho/pop-wave.webp', Duration(milliseconds: 66 * 42)),
+    _Clip.idle: ('assets/mahamiho/idle.webp', Duration.zero),
+    _Clip.like: ('assets/mahamiho/like.webp', Duration(milliseconds: 55 * 42)),
+  };
+  static const _hello = 'أهلاً! أنا محاميحو 👋\nلو محتاج محامي دلوقتي، دوس «محاميك حالاً» وأنا معاك.';
+
+  late final AnimationController _exit;
+  final List<Timer> _timers = [];
+  bool _visible = false;
+  bool _bubble = false;
+  _Clip _clip = _Clip.popWave;
+  int _play = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _exit = AnimationController(vsync: this, duration: const Duration(milliseconds: 350));
+    if (MahamihoGuide._greeted) return;
+    MahamihoGuide._greeted = true;
+    _later(const Duration(milliseconds: 1200), _show);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // تجهيز الحركات قبل ما تظهر عشان ما يحصلش وميض وهي بتتبدل
+    if (_timers.isEmpty || _visible) return;
+    final config = createLocalImageConfiguration(context);
+    for (final clip in _clips.values) {
+      AssetImage(clip.$1).resolve(config);
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final t in _timers) {
+      t.cancel();
+    }
+    _exit.dispose();
+    super.dispose();
+  }
+
+  void _later(Duration d, VoidCallback f) => _timers.add(Timer(d, () { if (mounted) f(); }));
+
+  void _cancelTimers() {
+    for (final t in _timers) {
+      t.cancel();
+    }
+    _timers.clear();
+  }
+
+  /// الحركة اللي بتتشغل مرة بتتمسح من الذاكرة عشان تبدأ من أولها كل مرة
+  void _playClip(_Clip clip) {
+    final (asset, length) = _clips[clip]!;
+    if (length > Duration.zero) AssetImage(asset).evict();
+    setState(() {
+      _clip = clip;
+      _play++;
+    });
+    if (length > Duration.zero) _later(length, () => setState(() => _clip = _Clip.idle));
+  }
+
+  void _show() {
+    _exit.value = 0;
+    setState(() => _visible = true);
+    _playClip(_Clip.popWave);
+    _later(const Duration(milliseconds: 700), () => setState(() => _bubble = true));
+    _later(const Duration(seconds: 8), _hide);
+  }
+
+  Future<void> _hide() async {
+    setState(() => _bubble = false);
+    await _exit.forward();
+    if (mounted) setState(() => _visible = false);
+  }
+
+  void _onTap() {
+    _cancelTimers();
+    _exit.value = 0;
+    setState(() => _bubble = true);
+    _playClip(_Clip.like);
+    _later(const Duration(seconds: 6), _hide);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_visible) return const SizedBox.shrink();
+
+    // الحجم على قد عرض الشاشة: صغير على الموبايلات الصغيرة، وما يكبرش زيادة على التابلت
+    final screen = MediaQuery.sizeOf(context).width;
+    final width = (screen * 0.24).clamp(84.0, 120.0);
+    final height = width * 366 / 270;
+    final bubbleWidth = (screen - width - 32).clamp(140.0, 260.0);
+    final (asset, _) = _clips[_clip]!;
+
+    return Positioned.fill(
+      child: Stack(
+        children: [
+          Positioned(
+            left: 4,
+            bottom: 0,
+            width: width,
+            height: height,
+            child: AnimatedBuilder(
+              animation: _exit,
+              builder: (context, child) => ClipRect(
+                child: FractionalTranslation(translation: Offset(0, Curves.easeIn.transform(_exit.value)), child: child),
+              ),
+              child: GestureDetector(
+                onTap: _onTap,
+                child: Semantics(
+                  label: 'محاميحو',
+                  button: true,
+                  child: Image.asset(
+                    asset,
+                    key: ValueKey(_play),
+                    fit: BoxFit.contain,
+                    gaplessPlayback: true,
+                    filterQuality: FilterQuality.medium,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: width + 2,
+            bottom: height * 0.42,
+            width: bubbleWidth,
+            child: IgnorePointer(
+              ignoring: !_bubble,
+              child: AnimatedOpacity(
+                opacity: _bubble ? 1 : 0,
+                duration: const Duration(milliseconds: 220),
+                child: AnimatedScale(
+                  scale: _bubble ? 1 : 0.85,
+                  alignment: Alignment.bottomLeft,
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutBack,
+                  child: GestureDetector(onTap: _hide, child: const _Bubble(text: _hello)),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Bubble extends StatelessWidget {
+  final String text;
+  const _Bubble({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppTheme.borderRadiusValue),
+          topRight: Radius.circular(AppTheme.borderRadiusValue),
+          bottomRight: Radius.circular(AppTheme.borderRadiusValue),
+          bottomLeft: Radius.circular(4),
+        ),
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 4))],
+      ),
+      child: Text(
+        text,
+        textAlign: TextAlign.start,
+        style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12.5, height: 1.5, color: AppColors.dark),
+      ),
+    );
+  }
+}

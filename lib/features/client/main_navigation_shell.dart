@@ -12,6 +12,7 @@ import '../notifications/notification_router.dart';
 import '../notifications/notifications_screen.dart';
 import 'account_tab.dart';
 import 'home_tab.dart';
+import 'mahamiho_guide.dart';
 import 'orders_tab.dart';
 import 'wallet_tab.dart';
 
@@ -139,9 +140,15 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           title: _tabTitles[_currentIndex],
           isInnerPage: false,
         ),
-        body: IndexedStack(
-          index: _currentIndex,
-          children: List.generate(_tabTitles.length, _buildTab),
+        body: Stack(
+          children: [
+            IndexedStack(
+              index: _currentIndex,
+              children: List.generate(_tabTitles.length, _buildTab),
+            ),
+            // محاميحو في الرئيسية بس
+            Positioned.fill(child: Offstage(offstage: _currentIndex != 0, child: const Stack(children: [MahamihoGuide()]))),
+          ],
         ),
         bottomNavigationBar: AppBottomBar(
           activeIndex: _currentIndex,
