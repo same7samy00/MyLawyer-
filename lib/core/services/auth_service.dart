@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/repositories/profile_repository.dart';
@@ -124,13 +122,6 @@ class AuthService {
   static const String _prefIsEmailVerified = 'is_email_verified';
   static const String _prefApprovalStatus = 'lawyer_approval_status';
   static const String _prefUserStatus = 'user_account_status';
-
-  /// تجزئة كلمة المرور بتقنية SHA-256 لضمان عدم حفظها بنص صريح إطلاقاً
-  static String hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
 
   /// فحص وحساب قوة كلمة المرور وتحديد مدى مطابقتها للمعايير الصارمة
   static PasswordStrength evaluatePasswordStrength(String password) {

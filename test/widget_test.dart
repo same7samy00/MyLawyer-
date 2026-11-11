@@ -438,7 +438,7 @@ void main() {
       expect(imageProvider, isA<AppCachedMapImageProvider>());
     });
 
-    test('AuthService evaluatePasswordStrength and hashPassword work securely', () {
+    test('AuthService evaluatePasswordStrength rates weak and strong passwords', () {
       final weak = AuthService.evaluatePasswordStrength('123');
       expect(weak.score < 0.5, isTrue);
       expect(weak.label, 'ضعيفة');
@@ -447,13 +447,6 @@ void main() {
       expect(strong.score, 1.0);
       expect(strong.label, 'قوية');
       expect(strong.isStrong, isTrue);
-
-      final hash1 = AuthService.hashPassword('Secret123!');
-      final hash2 = AuthService.hashPassword('Secret123!');
-      final hashDiff = AuthService.hashPassword('Other123!');
-      expect(hash1.length, 64);
-      expect(hash1, hash2);
-      expect(hash1 != hashDiff, isTrue);
     });
 
     testWidgets('UserTypeSelectionScreen displays Client and Lawyer options', (WidgetTester tester) async {
