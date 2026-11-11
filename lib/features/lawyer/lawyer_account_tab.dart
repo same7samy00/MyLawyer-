@@ -10,6 +10,7 @@ import '../../core/widgets/logout_confirmation_sheet.dart';
 import '../../core/widgets/profile_photo.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../account/personal_data_screen.dart';
+import '../account/terms_privacy_screen.dart';
 import '../auth/session_router.dart';
 import '../support/support_screen.dart';
 
@@ -183,7 +184,9 @@ class _LawyerAccountTabState extends State<LawyerAccountTab> {
                     icon: Icons.security_rounded,
                     title: 'الشروط والأحكام المهنية للمحامين',
                     subtitle: 'ضوابط وأخلاقيات المهنة وسرية البيانات',
-                    onTap: () => _showComingSoon('الشروط والأحكام'),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => const TermsPrivacyScreen()),
+                    ),
                   ),
                   const Divider(height: 1, color: AppColors.cardBorder, indent: 16, endIndent: 16),
                   _buildMenuItem(
@@ -194,6 +197,7 @@ class _LawyerAccountTabState extends State<LawyerAccountTab> {
                       MaterialPageRoute(builder: (context) => const SupportScreen()),
                     ),
                   ),
+
                 ],
               ),
             ),

@@ -10,6 +10,7 @@ import '../../core/widgets/profile_photo.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../account/payments_screen.dart';
 import '../account/personal_data_screen.dart';
+import '../account/terms_privacy_screen.dart';
 import '../auth/session_router.dart';
 import '../support/support_screen.dart';
 
@@ -137,7 +138,9 @@ class _AccountTabState extends State<AccountTab> {
             _buildSettingItem(
               title: 'الشروط والأحكام وسياسة الخصوصية',
               icon: Icons.verified_user_outlined,
-              onTap: () {},
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const TermsPrivacyScreen()),
+              ),
             ),
             const SizedBox(height: 20),
 

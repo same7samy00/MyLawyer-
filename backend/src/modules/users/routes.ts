@@ -3,11 +3,12 @@ import crypto from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { config } from '../../config/index.js';
-import { query, withTransaction } from '../../database/index.js';
+import { dbPool, query, withTransaction } from '../../database/index.js';
 import { hashPassword, verifyPassword, sanitizeText } from '../../utils/security.js';
 import { z } from 'zod';
 import { detectFileType } from '../../utils/files.js';
 import { requireAuth } from '../../utils/http.js';
+import { deletionBlocker, requestDeletion } from './deletion.js';
 
 export async function userRoutes(fastify: FastifyInstance) {
   // Hook to authenticate all routes in this plugin
@@ -102,6 +103,26 @@ export async function userRoutes(fastify: FastifyInstance) {
     }
 
     return reply.send({ success: true, message: 'تم تحديث البيانات بنجاح' });
+  });
+
+  // POST /api/v1/users/me/delete - Asks to delete the account. The password confirms it is the owner; the account
+  // is signed out now and wiped 30 days later, and signing in before that cancels it
+  fastify.post('/me/delete', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId, role } = request.user as { userId: string; role: string };
+    const password = (request.body as { password?: unknown } | null)?.password;
+    if (typeof password !== 'string' || !password) return reply.status(400).send({ success: false, error: 'اكتب كلمة السر عشان نتأكد إنه حسابك' });
+    if (role === 'admin') return reply.status(403).send({ success: false, error: 'حساب الإدارة ما بيتمسحش من هنا' });
+
+    const cred = await query('SELECT password_hash FROM user_credentials WHERE user_id = $1', [userId]);
+    if (!cred.rows[0] || !(await verifyPassword(cred.rows[0].password_hash, password))) {
+      return reply.status(400).send({ success: false, error: 'كلمة السر غلط' });
+    }
+
+    const blocker = await deletionBlocker(dbPool, { id: userId, role });
+    if (blocker) return reply.status(409).send({ success: false, error: blocker });
+
+    const deleteAt = await requestDeletion(dbPool, userId);
+    return reply.send({ success: true, message: 'اتسجل طلب حذف الحساب', data: { deleteAt } });
   });
 
   // POST /api/v1/users/me/change-password

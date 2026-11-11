@@ -3,6 +3,7 @@ import { ARRIVAL_REMINDER_MINUTES, CLIENT_REPLY_MINUTES, notify, REVIEW_WINDOW_D
 import { applySettlement, liftUserSuspensions } from './settlement.js';
 import { advanceRequests, releaseChoice } from '../requests/service.js';
 import { sendWake } from '../../services/pushService.js';
+import { wipeDueAccounts } from '../users/deletion.js';
 
 /// An available lawyer's phone says «still here» every 3 minutes. After 5 quiet minutes the server wakes it with a
 /// silent push, after 7 a second one, and after 8 with no answer the lawyer is turned off (owner decision 2026-11-09)
@@ -75,6 +76,8 @@ async function removeOldNotifications() {
   // An app away longer than two days reloads everything instead of reading old changes
   await dbPool.query(`DELETE FROM change_log WHERE created_at < NOW() - INTERVAL '2 days'`);
   await dbPool.query(`DELETE FROM app_errors WHERE created_at < NOW() - INTERVAL '30 days'`);
+  // Accounts whose 30 days after a deletion request are over
+  await wipeDueAccounts();
 }
 
 async function sendArrivalReminders() {

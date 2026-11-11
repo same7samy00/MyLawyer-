@@ -4,8 +4,22 @@
     {
       "name": "panel",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "backend", "run", "preview:panel"],
+      "runtimeArgs": [
+        "--prefix",
+        "backend",
+        "run",
+        "preview:panel"
+      ],
       "port": 3900
+    },
+    {
+      "name": "site",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "-e",
+        "const h=require('http'),fs=require('fs'),p=require('path');const r=p.resolve('backend/public/site');const t={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.png':'image/png','.svg':'image/svg+xml','.ttf':'font/ttf'};h.createServer((q,s)=>{let u=decodeURIComponent(q.url.split('?')[0]);if(u.endsWith('/'))u+='index.html';const f=p.join(r,u);if(!f.startsWith(r)||!fs.existsSync(f)){s.writeHead(404);return s.end();}s.writeHead(200,{'Content-Type':t[p.extname(f)]||'application/octet-stream'});fs.createReadStream(f).pipe(s);}).listen(3901,'127.0.0.1')"
+      ],
+      "port": 3901
     }
   ]
 }

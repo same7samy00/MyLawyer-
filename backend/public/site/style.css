@@ -108,3 +108,16 @@ footer .copy { grid-column: 1 / -1; border-top: 1px solid var(--slate); padding-
   .hero h1 { font-size: 28px; }
   .hero .art { order: -1; max-width: 300px; margin: 0 auto; }
 }
+
+/* Forms (the account deletion page) */
+.form { display: grid; gap: 8px; max-width: 420px; margin-top: 10px; }
+.form label { color: var(--dark); font-size: 14px; }
+.form input { height: 46px; padding: 0 14px; border: 1px solid var(--border); border-radius: 16px; font-family: inherit; font-size: 15px; background: #fff; }
+.form input:focus { outline: none; border-color: var(--primary); }
+.form .btn { margin-top: 8px; border: 0; cursor: pointer; }
+.btn.danger { background: #DC2626; }
+.btn.danger:hover { background: #B91C1C; }
+.btn:disabled { opacity: 0.6; cursor: default; }
+.result { margin: 4px 0 0; padding: 12px 14px; border-radius: 7px; font-size: 14px; }
+.result.ok { background: #F0FDF4; color: #166534; }
+.result.bad { background: #FEF2F2; color: #DC2626; }

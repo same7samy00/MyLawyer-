@@ -32,7 +32,7 @@ async function findRecipient(db: Db, phone: string, senderId: string) {
   const res = await db.query(
     `SELECT u.id, u.role, u.status, COALESCE(lp.full_name, u.full_name) AS full_name
      FROM users u LEFT JOIN lawyer_profiles lp ON lp.user_id = u.id
-     WHERE u.phone = $1 AND u.role IN ('client', 'lawyer')`,
+     WHERE u.phone = $1 AND u.role IN ('client', 'lawyer') AND u.deletion_requested_at IS NULL`,
     [phone.trim()]
   );
   const recipient = res.rows[0];

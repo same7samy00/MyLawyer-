@@ -26,7 +26,7 @@ export async function registerSession(fastify: FastifyInstance) {
 
     // Search by email or phone
     const userRes = await query(
-      `SELECT u.id, u.phone, u.email, u.role, u.status, u.suspended_until, u.email_verified_at, uc.password_hash,
+      `SELECT u.id, u.phone, u.email, u.role, u.status, u.suspended_until, u.email_verified_at, u.deletion_requested_at, uc.password_hash,
               COALESCE(lp.full_name, u.full_name) as full_name, lp.profile_photo_path, lp.approval_status, lp.rejection_reason
        FROM users u
        JOIN user_credentials uc ON u.id = uc.user_id
@@ -87,6 +87,10 @@ export async function registerSession(fastify: FastifyInstance) {
       }
     }
 
+    // Signing in within the 30 days cancels a deletion request (said on the deletion page and the website)
+    const deletionCancelled = Boolean(user.deletion_requested_at);
+    if (deletionCancelled) await query('UPDATE users SET deletion_requested_at = NULL WHERE id = $1', [user.id]);
+
     // Generate JWT Access Token (15 mins) & Refresh Token (30 days)
     const accessToken = fastify.jwt.sign(
       {
@@ -116,7 +120,7 @@ export async function registerSession(fastify: FastifyInstance) {
 
     return reply.send({
       success: true,
-      message: 'تم تسجيل الدخول بنجاح',
+      message: deletionCancelled ? 'أهلًا بيك تاني، اتلغى طلب حذف حسابك' : 'تم تسجيل الدخول بنجاح',
       data: {
         accessToken,
         refreshToken,
@@ -128,7 +132,8 @@ export async function registerSession(fastify: FastifyInstance) {
           status: user.status,
           fullName: user.full_name || null,
           profilePhotoPath: user.profile_photo_path || null,
-          lawyerApprovalStatus: user.approval_status || null
+          lawyerApprovalStatus: user.approval_status || null,
+          deletionCancelled,
         }
       }
     });
