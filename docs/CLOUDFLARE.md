@@ -16,14 +16,16 @@
 | `A` | `@` | `45.13.232.30` (السيرفر الأساسي) | برتقالي |
 | `CNAME` | `www` | `my-lawyer.online` | برتقالي |
 | `A` | `maps` | `13.140.141.32` (السيرفر التاني) | رمادي |
-| `MX` | `@` | `my-lawyer.online` | رمادي |
-| `TXT` | `@` | SPF: `v=spf1 a mx ip4:45.13.232.30 ip4:13.140.141.32 -all` | — |
+| `MX` | `@` | `mx.zoho.com` (10) و`mx2.zoho.com` (20) و`mx3.zoho.com` (50): الاستقبال على Zoho Mail | رمادي |
+| `TXT` | `@` | SPF: `v=spf1 a mx ip4:45.13.232.30 ip4:13.140.141.32 include:zohomail.com ~all`. **لازم يفضل سجل SPF واحد بس**: سجلين بيبوّظوا الإيميل كله | — |
+| `TXT` | `@` | `zoho-verification=...` (إثبات ملكية لـ Zoho) | — |
+| `TXT` | `zmail._domainkey` | مفتاح توقيع Zoho (DKIM) | — |
 | `TXT` | `maps` | SPF: `v=spf1 ip4:13.140.141.32 -all` | — |
-| `TXT` | `mail._domainkey` | مفتاح توقيع الإيميل (DKIM) | — |
+| `TXT` | `mail._domainkey` | مفتاح توقيع إيميلات السيرفر (DKIM) | — |
 | `TXT` | `_dmarc` | `v=DMARC1; p=quarantine; adkim=s; aspf=s` | — |
 
 - تحذير «origin IP partially exposed» في Cloudflare طبيعي ومش هيروح: سجلات الإيميل لازم تبيّن عنوان السيرفر لأنه هو اللي بيبعت الإيميل.
-- السيرفر بيبعت إيميل بس وما بيستقبلش، فمفيش صندوق بريد على الدومين (`KNOWN_ISSUES.md`).
+- **الإيميل:** السيرفر بيبعت بس (`noreply@`، أكواد وتنبيهات). الاستقبال على **Zoho Mail** (الخطة المجانية) من 2026-11-11، وصندوقه `info@my-lawyer.online`. اتجرب: السيرفر بعتله وZoho استلم (`250 Message received`).
 
 ## 3. الإعدادات
 | الإعداد | القيمة | اتأكدت إزاي |
