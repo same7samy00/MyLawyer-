@@ -38,7 +38,7 @@
 | `JOB_WORKER` | `off` على التاني: بيحط في الطابور وما بيشغّلوش، عشان الإيميل الموقّع يطلع من الأساسي بس | — | ✅ |
 | `JWT_REFRESH_SECRET` | **الكود ما بيقراهوش.** متساب من نظام قديم (`KNOWN_ISSUES.md`) | ✅ | ✅ |
 
-**متغيرات ليها قيمة افتراضية ومش مكتوبة على السيرفر:** `SMTP_USER` و`SMTP_PASS`، و`ADMIN_LOGIN_CODE` (`on` أو `off`)، و`FIREBASE_SERVICE_ACCOUNT_PATH`، و`REQUEST_ROAD_CANDIDATES` (20)، و`PASSWORD_SLOTS` (2)، و`DB_READ_POOL_MAX` (5)، و`ALLOW_MOCK_LOCATION` (ممنوع في الإنتاج بعد الإطلاق).
+**متغيرات ليها قيمة افتراضية ومش مكتوبة على السيرفر:** `SMTP_USER` و`SMTP_PASS`، و`ADMIN_LOGIN_CODE` (`on` أو `off`)، و`FIREBASE_SERVICE_ACCOUNT_PATH`، و`REQUEST_ROAD_CANDIDATES` (20)، و`PASSWORD_SLOTS` (2)، و`DB_READ_POOL_MAX` (5)، و`ALLOW_MOCK_LOCATION` (ممنوع في الإنتاج بعد الإطلاق)، و`WALLET_TRANSFERS` (فاضي = التحويل بين الحسابات مقفول، و`on` يرجّعه. في التطبيق الزرار بيرجع بـ `--dart-define=WALLET_TRANSFERS=true` في البناء).
 
 **في إعداد الخدمة مش في `.env`** (`systemctl cat mylawyer-backend`): `WEB_WORKERS` (5 على الأساسي و3 على التاني)، و`DB_POOL_MAX` (15)، وحد الذاكرة 8 جيجا.
 

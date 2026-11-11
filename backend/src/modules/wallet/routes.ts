@@ -7,6 +7,12 @@ import { notify } from '../lifecycle/service.js';
 export const MIN_TRANSFER = 100;
 export const DAILY_TRANSFER_LIMIT = 10000;
 
+/// Sending balance to another account is off until there is a licensed payment partner:
+/// Google Play treats it as a money transfer feature. WALLET_TRANSFERS=on brings it back.
+function requireTransfersOn() {
+  if (process.env.WALLET_TRANSFERS !== 'on') throw new HttpError(403, 'التحويل بين الحسابات متوقف دلوقتي');
+}
+
 /// What the account can spend now: the client's credits, or the lawyer's available earnings
 export async function spendableBalance(db: Db, userId: string, role: string): Promise<number> {
   const res = role === 'lawyer'
@@ -51,6 +57,7 @@ export async function walletRoutes(fastify: FastifyInstance) {
     const { userId } = request.user as AuthenticatedUser;
     const { phone } = (request.query || {}) as { phone?: string };
     return handle(reply, async () => {
+      requireTransfersOn();
       const recipient = await findRecipient(dbPool, String(phone ?? ''), userId);
       return { name: shortName(recipient.full_name), role: recipient.role };
     });
@@ -126,6 +133,7 @@ export async function walletRoutes(fastify: FastifyInstance) {
     const amount = Number(body.amount);
 
     return handle(reply, () => withTransaction(async (db) => {
+      requireTransfersOn();
       if (!Number.isFinite(amount) || Math.round(amount * 100) !== amount * 100) {
         throw new HttpError(400, 'اكتب المبلغ صح');
       }

@@ -199,6 +199,18 @@ describe('التحويل بين الحسابات', () => {
     assert.equal(await clientBalance(), 500);
   });
 
+  it('من غير WALLET_TRANSFERS=on التحويل مقفول، والرصيد ما بيتحركش', async () => {
+    await credit(500);
+    process.env.WALLET_TRANSFERS = 'off';
+    try {
+      assert.equal((await call('GET', '/wallet/recipient?phone=01000000002', clientToken)).status, 403);
+      assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 150 })).status, 403);
+    } finally {
+      process.env.WALLET_TRANSFERS = 'on';
+    }
+    assert.equal(await clientBalance(), 500);
+  });
+
   it('أقصى مجموع 10,000 في اليوم', async () => {
     await credit(20000);
     assert.equal((await call('POST', '/wallet/transfer', clientToken, { phone: '01000000002', amount: 9950 })).status, 200);

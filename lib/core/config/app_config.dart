@@ -11,6 +11,10 @@ class AppConfig {
   /// الخادم بيقارنه بأقل نسخة مسموحة، وبيتسجل مع أي عطل
   static const int build = 1;
 
+  /// زرار «تحويل لحساب تاني» في المحفظة. مقفول لحد ما يبقى فيه شريك دفع مرخّص،
+  /// لأن جوجل بتعتبر التحويل بين الحسابات ميزة مالية محتاجة ترخيص. الخادم كمان مقفول (`WALLET_TRANSFERS`)
+  static const bool walletTransfers = bool.fromEnvironment('WALLET_TRANSFERS');
+
   static const String productionApiBaseUrl = 'https://my-lawyer.online/api/v1';
 
   static const String _environment = String.fromEnvironment('APP_ENV', defaultValue: 'production');

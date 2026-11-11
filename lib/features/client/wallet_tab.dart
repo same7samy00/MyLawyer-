@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/live_updates.dart';
@@ -154,12 +155,14 @@ class _WalletTabState extends State<WalletTab> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            AppButton.primary(
-              text: 'تحويل لحساب تاني',
-              icon: Icons.send_rounded,
-              onPressed: _openTransfer,
-            ),
+            if (AppConfig.walletTransfers) ...[
+              const SizedBox(height: 16),
+              AppButton.primary(
+                text: 'تحويل لحساب تاني',
+                icon: Icons.send_rounded,
+                onPressed: _openTransfer,
+              ),
+            ],
           ],
         ),
       ),

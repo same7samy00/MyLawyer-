@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:my_lawyer/core/config/app_config.dart';
 import 'package:my_lawyer/features/client/wallet_tab.dart';
 import '../helpers/session_test_helpers.dart';
 
@@ -8,6 +9,15 @@ void main() {
   setUpSessionTests();
 
   group('التحويل من المحفظة', () {
+    testWidgets('التحويل مقفول في النسخة العادية، فالزرار مش ظاهر', (tester) async {
+      await tester.pumpWidget(testApp(const Scaffold(body: WalletTab())));
+      await settleAsync(tester);
+      expect(find.text('تحويل لحساب تاني'), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+      },
+      skip: AppConfig.walletTransfers,
+    );
+
     testWidgets('الموكل يكتب الرقم والمبلغ، ويأكد اسم المستلم، وبعدها يتحول', (tester) async {
       backend.overrides['GET /wallet/recipient'] = (request) {
         expect(request.url.queryParameters['phone'], '01000000002');
@@ -44,6 +54,8 @@ void main() {
       expect(find.text('تأكيد التحويل'), findsNothing);
 
       await tester.pumpWidget(const SizedBox.shrink());
-    });
+      },
+      skip: !AppConfig.walletTransfers,
+    );
   });
 }

@@ -9,6 +9,7 @@ import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 const PORT = 55433;
 process.env.DATABASE_URL = `postgresql://postgres:postgres@127.0.0.1:${PORT}/postgres?sslmode=disable`;
 process.env.NODE_ENV = 'test';
+process.env.WALLET_TRANSFERS = 'on';
 process.env.PRIVATE_STORAGE_PATH = (await import('node:path')).join((await import('node:os')).tmpdir(), 'mylawyer-test-docs');
 
 export const PROBLEM = 'محضر في قسم الشرطة';
