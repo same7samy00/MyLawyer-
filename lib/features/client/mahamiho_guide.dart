@@ -25,20 +25,26 @@ class MahamihoGuide extends StatefulWidget {
 class _Clip {
   final String name;
   final int frames;
-  const _Clip(this.name, this.frames);
+
+  /// اللقطة اللي بيكون طلع فيها من ورا الشريط، وصورة الترحيب بتظهر معاها
+  final int upAt;
+  const _Clip(this.name, this.frames, {this.upAt = 0});
 
   String get asset => 'assets/mahamiho/$name.webp';
   Duration get length => Duration(milliseconds: frames * 42);
+  Duration get upDelay => Duration(milliseconds: upAt * 42);
 }
 
 class _MahamihoGuideState extends State<MahamihoGuide> {
   static const _idle = _Clip('idle', 0);
-  static const _popWave = _Clip('pop-wave', 66);
+  static const _popWave = _Clip('pop-wave', 66, upAt: 8);
   // بالترتيب ده، وبيلف
-  static const _cycle = [_Clip('pop-up', 61), _Clip('like', 55), _Clip('thinking', 96), _popWave];
+  static const _cycle = [_Clip('pop-up', 61, upAt: 12), _Clip('like', 55), _Clip('thinking', 96, upAt: 12), _popWave];
   static const _gap = Duration(seconds: 5);
   static const _badgeFor = Duration(milliseconds: 3500);
   static const _badge = 'assets/mahamiho/hello.webp';
+  static const _minRise = Duration(milliseconds: 350);
+  Duration _rise = _minRise;
 
   Timer? _timer;
   Timer? _badgeTimer;
@@ -100,13 +106,16 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
   /// الحركة بتتمسح من الذاكرة عشان تبدأ من أولها، وبعدها يرجع واقف ويستنى 5 ثواني
   void _start(_Clip clip) {
     AssetImage(clip.asset).evict();
+    // الصورة بتطلع من ورا الشريط مع محاميحو في نفس الوقت وبنفس سرعته
+    final rise = clip.upDelay < _minRise ? _minRise : clip.upDelay;
     setState(() {
       _clip = clip;
       _play++;
+      _rise = rise;
       _showBadge = true;
     });
     _badgeTimer?.cancel();
-    _badgeTimer = Timer(_badgeFor, () {
+    _badgeTimer = Timer(rise + _badgeFor, () {
       if (mounted) setState(() => _showBadge = false);
     });
     _schedule(clip.length, () {
@@ -153,25 +162,24 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
             ),
           ),
         ),
-        // «أهلاً أنا محاميحو» فوق الشريط على طول وجنبه
+        // «أهلاً أنا محاميحو» لازقة فيه، وبتطلع من ورا الشريط زيه وتنزل وراه تاني
         Positioned(
-          left: width,
-          bottom: 6,
+          left: width - 8,
+          bottom: 0,
           width: badgeWidth,
           child: IgnorePointer(
-            child: AnimatedSlide(
-              offset: _showBadge ? Offset.zero : const Offset(0, 0.4),
-              duration: const Duration(milliseconds: 320),
-              curve: _showBadge ? Curves.easeOutBack : Curves.easeIn,
-              child: AnimatedScale(
-                scale: _showBadge ? 1 : 0.6,
-                alignment: Alignment.bottomLeft,
-                duration: const Duration(milliseconds: 320),
-                curve: _showBadge ? Curves.easeOutBack : Curves.easeIn,
-                child: AnimatedOpacity(
-                  opacity: _showBadge ? 1 : 0,
-                  duration: const Duration(milliseconds: 250),
-                  child: Image.asset(_badge, semanticLabel: 'أهلاً أنا محاميحو موجود هنا لمساعدتك', gaplessPlayback: true),
+            child: ClipRect(
+              child: AnimatedOpacity(
+                opacity: _showBadge ? 1 : 0,
+                duration: _showBadge ? Duration.zero : const Duration(milliseconds: 300),
+                child: AnimatedSlide(
+                  offset: _showBadge ? Offset.zero : const Offset(0, 1.1),
+                  duration: _showBadge ? _rise : const Duration(milliseconds: 300),
+                  curve: _showBadge ? Curves.easeOutBack : Curves.easeIn,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Image.asset(_badge, semanticLabel: 'أهلاً أنا محاميحو موجود هنا لمساعدتك', gaplessPlayback: true),
+                  ),
                 ),
               ),
             ),

@@ -11,6 +11,9 @@ Widget _host() => const MaterialApp(
 
 final _badgeImage = find.byWidgetPredicate((w) => w is Image && w.image is AssetImage && (w.image as AssetImage).assetName.endsWith('hello.webp'));
 
+Offset _badgeSlide(WidgetTester tester) =>
+    tester.widget<AnimatedSlide>(find.ancestor(of: _badgeImage, matching: find.byType(AnimatedSlide))).offset;
+
 double _badgeOpacity(WidgetTester tester) =>
     tester.widget<AnimatedOpacity>(find.ancestor(of: _badgeImage, matching: find.byType(AnimatedOpacity))).opacity;
 
@@ -27,10 +30,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1300));
     expect(find.bySemanticsLabel('محاميحو'), findsOneWidget);
     expect(_clip(tester), 'assets/mahamiho/pop-wave.webp');
+    // الصورة بتطلع معاه في نفس اللحظة
     expect(_badgeOpacity(tester), 1);
+    expect(_badgeSlide(tester), Offset.zero);
 
     await tester.pump(const Duration(seconds: 4));
     expect(_badgeOpacity(tester), 0);
+    expect(_badgeSlide(tester), const Offset(0, 1.1));
     expect(find.bySemanticsLabel('محاميحو'), findsOneWidget);
   });
 
