@@ -72,6 +72,11 @@ if [ -f /etc/mylawyer/cloudflare.env ]; then
   . /etc/mylawyer/cloudflare.env
   for name in my-lawyer.online www.my-lawyer.online; do
     id="$(curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/dns_records?type=A&name=$name" | grep -oP '"id":"\K[0-9a-f]{32}' | head -1)"
+    # www is a CNAME to the main name, so it moves with it
+    if [ -z "$id" ] && curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/dns_records?type=CNAME&name=$name" | grep -q '"content":"my-lawyer.online"'; then
+      say "Cloudflare: $name follows my-lawyer.online"
+      continue
+    fi
     if [ -n "$id" ] && curl -s -X PATCH -H "Authorization: Bearer $CF_TOKEN" -H 'Content-Type: application/json' \
          --data "{\"content\":\"$HERE\"}" "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/dns_records/$id" | grep -q '"success":true'; then
       say "Cloudflare: $name now points here"
