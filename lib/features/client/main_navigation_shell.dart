@@ -142,12 +142,19 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         ),
         body: Stack(
           children: [
-            IndexedStack(
-              index: _currentIndex,
-              children: List.generate(_tabTitles.length, _buildTab),
+            Positioned.fill(
+              child: IndexedStack(
+                index: _currentIndex,
+                children: List.generate(_tabTitles.length, _buildTab),
+              ),
             ),
-            // محاميحو في الرئيسية بس
-            Positioned.fill(child: Offstage(offstage: _currentIndex != 0, child: const Stack(children: [MahamihoGuide()]))),
+            // محاميحو في الرئيسية بس، لازق في الشريط السفلي. حركته بتقف في التبويبات التانية
+            Positioned.fill(
+              child: TickerMode(
+                enabled: _currentIndex == 0,
+                child: Offstage(offstage: _currentIndex != 0, child: const MahamihoGuide()),
+              ),
+            ),
           ],
         ),
         bottomNavigationBar: AppBottomBar(

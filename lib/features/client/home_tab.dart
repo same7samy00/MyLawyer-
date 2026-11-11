@@ -9,12 +9,21 @@ import '../../core/services/app_cached_tile_provider.dart';
 import '../../core/services/device_permission_service.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/widgets/app_card.dart';
-import '../../core/widgets/lawyer_pin_illustration.dart';
 import '../../core/widgets/profile_home_card.dart';
 import '../auth/location_permission_screen.dart';
 import '../consultation/consultation_type_screen.dart';
+import '../urgent_service/problem_description_screen.dart';
 import '../urgent_service/urgent_service_problem_screen.dart';
 import 'home_banners.dart';
+
+/// خدمة في قايمة الرئيسية. اللي ليها مشكلة بتفتح «محاميك حالاً»، والباقي بيفتح الاستشارة
+class _Service {
+  final String title;
+  final String desc;
+  final IconData icon;
+  final String? urgentProblem;
+  const _Service(this.title, this.desc, this.icon, {this.urgentProblem});
+}
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -102,23 +111,18 @@ class _HomeTabState extends State<HomeTab> {
             ),
             const SizedBox(height: 12),
 
-            // 5. Legal Services List (LIST Style)
-            _buildServiceListItem(
-              title: 'محاميك حالاً',
-              desc: 'طلب مساعدة قانونية عاجلة ومباشرة من أقرب محامٍ متاح لموقعك الآن',
-              icon: Icons.shield_rounded,
-              highlighted: true,
-              onTap: _openUrgentService,
-            ),
-            const SizedBox(height: 10),
-            _buildServiceListItem(
-              title: 'استشارة سريعة',
-              desc: 'اكتب مشكلتك وادفع، وفريقنا القانوني يكلمك على تليفونك خلال دقايق',
-              icon: Icons.support_agent_rounded,
-              image: 'assets/images/consultation_icon.png',
-              onTap: _openConsultation,
-            ),
-            const SizedBox(height: 16),
+            // 5. الخدمات: أول تلاتة بتفتح الاستشارة، ومن «محضر شرطة» بتفتح «محاميك حالاً» بالمشكلة مكتوبة
+            for (final service in _services) ...[
+              _buildServiceListItem(
+                title: service.title,
+                desc: service.desc,
+                icon: service.icon,
+                onTap: service.urgentProblem == null ? _openConsultation : () => _openUrgentService(service.urgentProblem),
+              ),
+              const SizedBox(height: 10),
+            ],
+            // مساحة لمحاميحو تحت على الشمال عشان ما يغطيش آخر خدمة
+            const SizedBox(height: 90),
           ],
         ),
       ),
@@ -129,22 +133,36 @@ class _HomeTabState extends State<HomeTab> {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuickConsultationScreen()));
   }
 
-  Future<void> _openUrgentService() async {
+  /// المشكلة بتتكتب في الطلب على طول، ومن غيرها بتتفتح قايمة المشاكل
+  Future<void> _openUrgentService([String? problem]) async {
     final hasLocation = await DevicePermissionService.instance.isLocationPermissionGranted();
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => hasLocation ? const UrgentServiceProblemScreen() : const LocationPermissionScreen(),
+        builder: (context) => !hasLocation
+            ? const LocationPermissionScreen()
+            : problem == null
+                ? const UrgentServiceProblemScreen()
+                : ProblemDescriptionScreen(problemTitle: problem),
       ),
     );
   }
 
+  static const _services = [
+    _Service('استشارة قانونية', 'احكي مشكلتك ومحامي يكلمك خلال دقايق', Icons.support_agent_rounded),
+    _Service('اطلاع على مستندات', 'محامي يراجع ورقك ويقولك موقفك', Icons.find_in_page_rounded),
+    _Service('كتابة عقد أو مستندات', 'عقد أو إنذار أو أي ورقة قانونية مظبوطة', Icons.edit_document),
+    _Service('محضر شرطة', 'محامي يروحلك القسم دلوقتي', Icons.local_police_rounded, urgentProblem: 'محضر في قسم الشرطة'),
+    _Service('تحقيق نيابة', 'محامي يحضر معاك التحقيق', Icons.manage_search_rounded, urgentProblem: 'تحقيق عاجل في النيابة العامة'),
+    _Service('حضور جلسة', 'محامي يحضر عنك أو معاك الجلسة', Icons.event_available_rounded, urgentProblem: 'حضور جلسة'),
+    _Service('حضور مجلس عرفي', 'محامي يحضر الجلسة العرفية ويحفظ حقك', Icons.groups_rounded, urgentProblem: 'حضور مجلس عرفي'),
+    _Service('إجراءات إدارية', 'محامي يخلّصلك ورقك في الجهات الحكومية', Icons.assignment_turned_in_rounded, urgentProblem: 'إجراءات إدارية'),
+  ];
+
   Widget _buildServiceListItem({
     required String title,
     required String desc,
-    IconData? icon,
-    String? image,
-    bool highlighted = false,
+    required IconData icon,
     required VoidCallback onTap,
   }) {
     return AppCard(
@@ -152,14 +170,7 @@ class _HomeTabState extends State<HomeTab> {
       onTap: onTap,
       child: Row(
         children: [
-          // Icon or SVG with RepaintBoundary for optimal scrolling performance
-          // «محاميك حالاً» بنفس صورة البانر اللي فوق
-          if (highlighted)
-            const RepaintBoundary(child: LawyerPinIllustration(size: 48))
-          else if (image != null)
-            Image.asset(image, width: 48, height: 48, fit: BoxFit.contain, cacheWidth: 144)
-          else
-            Container(
+          Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(

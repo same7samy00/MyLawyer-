@@ -647,8 +647,10 @@ void main() {
       // Search bar is strictly removed
       expect(find.textContaining('ابحث عن محامي'), findsNothing);
 
-      // Only the services that really work are listed
-      expect(find.text('استشارة سريعة'), findsOneWidget);
+      // قايمة الخدمات بالأسماء اللي اختارها صاحب المشروع، و«محاميك حالاً» مش منها
+      for (final name in ['استشارة قانونية', 'اطلاع على مستندات', 'كتابة عقد أو مستندات', 'محضر شرطة']) {
+        expect(find.text(name), findsOneWidget);
+      }
       expect(find.text('صياغة ومراجعة العقود'), findsNothing);
       expect(find.text('تأسيس الشركات والتراخيص'), findsNothing);
       expect(find.text('إدارة القضايا والتوكيلات'), findsNothing);
