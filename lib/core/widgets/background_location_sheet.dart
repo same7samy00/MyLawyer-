@@ -162,7 +162,9 @@ class _BackgroundLocationSheetState extends State<BackgroundLocationSheet> with 
       title: 'عشان تجيلك طلبات وإنت برّه التطبيق',
       children: [
             const Text(
-              'طول ما أنت متاح، بنحدث مكانك ونبعتلك الطلبات القريبة\nلو قفلت التطبيق من قائمة البرامج ممكن تخرج من الخدمة',
+              'My Lawyer بيجمع موقعك طول ما أنت «متاح» لاستقبال الطلبات، حتى لو التطبيق مقفول أو مش مستخدم، '
+              'عشان نوصّلك بالموكلين القريبين منك ونوريهم إنت فين وجاي في الطريق.\n'
+              'لما تقفل «متاح» ومفيش طلب شغال معاك، بنوقف نجمع موقعك في الخلفية.',
               textAlign: TextAlign.center,
               style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12, height: 1.5, color: AppColors.textMuted),
             ),
