@@ -20,9 +20,9 @@ http_ok() { # url, expected text (optional)
   [ -z "${2:-}" ] || grep -q "$2" <<<"$body"
 }
 
-cert_days() { # host
+cert_days() { # host. Asks this server's own Nginx: from outside Cloudflare answers with its own certificate
   local end
-  end=$(echo | openssl s_client -servername "$1" -connect "$1:443" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+  end=$(echo | openssl s_client -servername "$1" -connect "127.0.0.1:443" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
   [ -n "$end" ] || { echo -1; return; }
   echo $(( ($(date -d "$end" +%s) - $(date +%s)) / 86400 ))
 }
