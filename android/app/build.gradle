@@ -32,7 +32,8 @@ android {
     defaultConfig {
         // One app for clients and lawyers, the production one only (owner decision 2026-11-06)
         applicationId = "com.mylawyer.my_lawyer"
-        minSdk = 23
+        // 24: Google Play's automatic app protection needs Android 7 or newer
+        minSdk = 24
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName

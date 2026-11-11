@@ -11,7 +11,7 @@
 
 | المنصة | أقل إصدار مدعوم (Min SDK) | الإصدار المستهدف (Target SDK) | حالة الدعم |
 |---|---|---|---|
-| **Android** | Android 6.0 (API 23) | API 35 | الهدف الأول للإطلاق (`android/app/build.gradle`) |
+| **Android** | Android 7.0 (API 24، شرط حماية Google Play التلقائية) | API 35 | الهدف الأول للإطلاق (`android/app/build.gradle`) |
 | **iOS** | iOS 12.0 | - | الكود بيراعيه، ولسه ما اتجربش ولا اتوقع |
 
 ---
