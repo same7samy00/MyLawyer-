@@ -2,17 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../core/constants/app_colors.dart';
-import '../../core/theme/app_theme.dart';
 import 'mahamiho_chat_screen.dart';
 
 /// محاميحو: صغير تحت على الشمال، ثابت طول ما الرئيسية مفتوحة.
-/// أول ما التطبيق يتفتح بيطلع من ورا الشريط السفلي ويشاور، وجنبه جملة بتختفي بعد شوية.
+/// كل 5 ثواني بيعمل حركة مختلفة (يطلع ويشاور، يطلع، لايك، بيفكّر)، ومع كل حركة
+/// صورة «أهلاً أنا محاميحو» بتظهر جنبه فوق الشريط السفلي وتختفي.
 /// لمسه بيفتح صفحة محاميحو (MahamihoChatScreen).
 class MahamihoGuide extends StatefulWidget {
   const MahamihoGuide({super.key});
 
-  /// التلويح مرة واحدة في كل فتحة للتطبيق، وبعدها بيفضل واقف
+  /// الظهور الأول بالتلويح مرة واحدة في كل فتحة للتطبيق
   static bool _greeted = false;
 
   @visibleForTesting
@@ -22,20 +21,31 @@ class MahamihoGuide extends StatefulWidget {
   State<MahamihoGuide> createState() => _MahamihoGuideState();
 }
 
-enum _Clip { popWave, idle }
+/// حركة: الملف ومدتها (عدد اللقطات × 42 مللي ثانية)
+class _Clip {
+  final String name;
+  final int frames;
+  const _Clip(this.name, this.frames);
+
+  String get asset => 'assets/mahamiho/$name.webp';
+  Duration get length => Duration(milliseconds: frames * 42);
+}
 
 class _MahamihoGuideState extends State<MahamihoGuide> {
-  // مدة كل حركة = عدد اللقطات × 42 مللي ثانية
-  static const _clips = {
-    _Clip.popWave: ('assets/mahamiho/pop-wave.webp', Duration(milliseconds: 66 * 42)),
-    _Clip.idle: ('assets/mahamiho/idle.webp', Duration.zero),
-  };
-  static const _hello = 'أهلاً! أنا محاميحو 👋\nاختار الخدمة اللي محتاجها، وأنا معاك لحد ما المحامي يوصلك.';
+  static const _idle = _Clip('idle', 0);
+  static const _popWave = _Clip('pop-wave', 66);
+  // بالترتيب ده، وبيلف
+  static const _cycle = [_Clip('pop-up', 61), _Clip('like', 55), _Clip('thinking', 96), _popWave];
+  static const _gap = Duration(seconds: 5);
+  static const _badgeFor = Duration(milliseconds: 3500);
+  static const _badge = 'assets/mahamiho/hello.webp';
 
-  final List<Timer> _timers = [];
+  Timer? _timer;
+  Timer? _badgeTimer;
   bool _visible = false;
-  bool _bubble = false;
-  _Clip _clip = _Clip.idle;
+  bool _showBadge = false;
+  _Clip _clip = _idle;
+  int _next = 0;
   int _play = 0;
 
   @override
@@ -43,10 +53,14 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
     super.initState();
     if (MahamihoGuide._greeted) {
       _visible = true;
+      _schedule(_gap, _playNext);
       return;
     }
     MahamihoGuide._greeted = true;
-    _later(const Duration(milliseconds: 1200), _greet);
+    _schedule(const Duration(milliseconds: 1200), () {
+      setState(() => _visible = true);
+      _start(_popWave);
+    });
   }
 
   @override
@@ -54,55 +68,55 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
     super.didChangeDependencies();
     // تجهيز الحركات قبل ما تظهر عشان ما يحصلش وميض وهي بتتبدل
     final config = createLocalImageConfiguration(context);
-    for (final clip in _clips.values) {
-      AssetImage(clip.$1).resolve(config);
+    for (final asset in [_idle.asset, _popWave.asset, _badge, for (final c in _cycle) c.asset]) {
+      AssetImage(asset).resolve(config);
     }
   }
 
   @override
   void dispose() {
-    _cancelTimers();
+    _timer?.cancel();
+    _badgeTimer?.cancel();
     super.dispose();
   }
 
-  void _later(Duration d, VoidCallback f) => _timers.add(Timer(d, () { if (mounted) f(); }));
-
-  void _cancelTimers() {
-    for (final t in _timers) {
-      t.cancel();
-    }
-    _timers.clear();
+  void _schedule(Duration after, VoidCallback f) {
+    _timer?.cancel();
+    _timer = Timer(after, () {
+      if (mounted) f();
+    });
   }
 
-  /// الحركة اللي بتتشغل مرة بتتمسح من الذاكرة عشان تبدأ من أولها كل مرة، وبعدها يرجع واقف
-  void _playClip(_Clip clip) {
-    final (asset, length) = _clips[clip]!;
-    AssetImage(asset).evict();
+  /// في تبويب تاني أو صفحة فوق الرئيسية بيستنى من غير ما يتحرك
+  void _playNext() {
+    if (!TickerMode.of(context)) {
+      _schedule(_gap, _playNext);
+      return;
+    }
+    _start(_cycle[_next]);
+    _next = (_next + 1) % _cycle.length;
+  }
+
+  /// الحركة بتتمسح من الذاكرة عشان تبدأ من أولها، وبعدها يرجع واقف ويستنى 5 ثواني
+  void _start(_Clip clip) {
+    AssetImage(clip.asset).evict();
     setState(() {
       _clip = clip;
       _play++;
+      _showBadge = true;
     });
-    _later(length, () => setState(() => _clip = _Clip.idle));
+    _badgeTimer?.cancel();
+    _badgeTimer = Timer(_badgeFor, () {
+      if (mounted) setState(() => _showBadge = false);
+    });
+    _schedule(clip.length, () {
+      setState(() => _clip = _idle);
+      _schedule(_gap, _playNext);
+    });
   }
 
-  void _sayHello(Duration after) {
-    if (after == Duration.zero) {
-      setState(() => _bubble = true);
-    } else {
-      _later(after, () => setState(() => _bubble = true));
-    }
-    _later(after + const Duration(seconds: 7), () => setState(() => _bubble = false));
-  }
-
-  void _greet() {
-    setState(() => _visible = true);
-    _playClip(_Clip.popWave);
-    _sayHello(const Duration(milliseconds: 700));
-  }
-
-  /// لمسه بيفتح صفحة محاميحو
   void _onTap() {
-    setState(() => _bubble = false);
+    setState(() => _showBadge = false);
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MahamihoChatScreen()));
   }
 
@@ -114,8 +128,7 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
     final screen = MediaQuery.sizeOf(context).width;
     final width = (screen * 0.22).clamp(80.0, 110.0);
     final height = width * 274 / 270;
-    final bubbleWidth = (screen - width - 24).clamp(140.0, 250.0);
-    final (asset, _) = _clips[_clip]!;
+    final badgeWidth = (width * 1.5).clamp(110.0, 170.0);
 
     return Stack(
       children: [
@@ -130,7 +143,7 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
               label: 'محاميحو',
               button: true,
               child: Image.asset(
-                asset,
+                _clip.asset,
                 key: ValueKey(_play),
                 fit: BoxFit.contain,
                 alignment: Alignment.bottomCenter,
@@ -140,56 +153,31 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
             ),
           ),
         ),
+        // «أهلاً أنا محاميحو» فوق الشريط على طول وجنبه
         Positioned(
           left: width,
-          bottom: height * 0.45,
-          width: bubbleWidth,
+          bottom: 6,
+          width: badgeWidth,
           child: IgnorePointer(
-            ignoring: !_bubble,
-            child: AnimatedOpacity(
-              opacity: _bubble ? 1 : 0,
-              duration: const Duration(milliseconds: 220),
+            child: AnimatedSlide(
+              offset: _showBadge ? Offset.zero : const Offset(0, 0.4),
+              duration: const Duration(milliseconds: 320),
+              curve: _showBadge ? Curves.easeOutBack : Curves.easeIn,
               child: AnimatedScale(
-                scale: _bubble ? 1 : 0.85,
+                scale: _showBadge ? 1 : 0.6,
                 alignment: Alignment.bottomLeft,
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutBack,
-                child: GestureDetector(
-                  onTap: () => setState(() => _bubble = false),
-                  child: const _Bubble(text: _hello),
+                duration: const Duration(milliseconds: 320),
+                curve: _showBadge ? Curves.easeOutBack : Curves.easeIn,
+                child: AnimatedOpacity(
+                  opacity: _showBadge ? 1 : 0,
+                  duration: const Duration(milliseconds: 250),
+                  child: Image.asset(_badge, semanticLabel: 'أهلاً أنا محاميحو موجود هنا لمساعدتك', gaplessPlayback: true),
                 ),
               ),
             ),
           ),
         ),
       ],
-    );
-  }
-}
-
-class _Bubble extends StatelessWidget {
-  final String text;
-  const _Bubble({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(AppTheme.borderRadiusValue),
-          topRight: Radius.circular(AppTheme.borderRadiusValue),
-          bottomRight: Radius.circular(AppTheme.borderRadiusValue),
-          bottomLeft: Radius.circular(4),
-        ),
-        border: Border.all(color: AppColors.cardBorder),
-        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 4))],
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12.5, height: 1.5, color: AppColors.dark),
-      ),
     );
   }
 }
