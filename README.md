@@ -9,8 +9,9 @@
 | لوحة التحكم | `backend/public/admin/` | HTML وJavaScript، على `/api/v1/admin-panel` |
 | الموقع العام | `backend/public/site/` | HTML، وNginx بيعرضه |
 | الخرائط | `docs/GPS_SYSTEM.md` | TomTom عن طريق سيرفرنا |
+| سكريبتات السيرفر | `backend/ops/` و`backend/deploy.sh` | Bash |
 
-الوضع الحالي في [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md)، وفهرس التوثيق في [`docs/README.md`](docs/README.md).
+الوضع الحالي في [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md)، وفهرس التوثيق في [`docs/README.md`](docs/README.md)، وقواعد العمل لأي مطور أو نموذج في [`CLAUDE.md`](CLAUDE.md).
 
 ## التشغيل
 ```bash

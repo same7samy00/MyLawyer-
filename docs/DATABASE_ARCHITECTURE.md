@@ -1,159 +1,125 @@
-# 🗄️ توثيق قاعدة بيانات MyLawyer الإنتاجية (PostgreSQL Schema & Models)
+# قاعدة البيانات
 
-> **محرك قاعدة البيانات:** PostgreSQL 16.x مع ملحقات `uuid-ossp` و `pgcrypto`  
-> **السيرفر المستضيف:** Contabo Cloud (Germany) - IP: `13.140.141.32`
+**آخر تحقق:** 2026-11-11، بالقراية من القاعدة الشغالة نفسها (`mylawyer_prod`) ومقارنتها بـ `backend/migrations`. **المرجع دايمًا `backend/migrations`**: الملف ده وصف للوضع الحالي، مش تاريخ.
 
----
+## 1. الأساسيات
+| البند | القيمة |
+|---|---|
+| النوع | PostgreSQL 16.15 على السيرفر الأساسي (`mylawyer-api`)، بملحقين: `pgcrypto` و`uuid-ossp` |
+| القاعدة | `mylawyer_prod`، حجمها 13 ميجا (2026-11-11) |
+| نسخة القراية | نسخة حية على السيرفر التاني، بتتحدّث لحظة بلحظة، للخريطة والقوايم والتقييمات (`readQuery` في `src/database/index.ts`) |
+| الحسابات | `mylawyer_user` (الخادم، من غير صلاحيات إدارة)، و`replicator` (النسخة الحية بس)، و`postgres` (محلي على السيرفر بس) |
+| الاتصال | محلي، ومن السيرفر التاني على الخط الخاص بس (`pg_hba.conf`). مقفول على الإنترنت |
+| التحديثات | 45 ملف في `backend/migrations` (من `001` لـ `044`)، كلهم متطبقين. بيشتغلوا لوحدهم مع تشغيل الخادم بالترتيب ومرة واحدة (`src/database/migrate.ts`، جدول `schema_migrations`)، ولو واحد فشل الخادم ما بيشتغلش |
+| الأرقام | 36 جدول، و114 فهرس، و58 علاقة، و21 شرط `CHECK`، وtrigger واحد (`updated_at` في `service_orders`). مفيش views ولا stored procedures |
 
-## 📌 1. مخطط الكيانات والعلاقات (ER Diagram)
-
+## 2. الصورة العامة
 ```mermaid
 erDiagram
-    USERS ||--o| USER_CREDENTIALS : has
-    USERS ||--o| LAWYER_PROFILES : has_profile
-    USERS ||--o| CLIENT_PROFILES : has_profile
-    USERS ||--o{ EMAIL_VERIFICATIONS : validates
-    USERS ||--o{ USER_SESSIONS : maintains
-    USERS ||--o{ SERVICE_ORDERS : places_or_handles
-    SERVICE_ORDERS ||--o{ ORDER_STATUS_LOGS : tracks_history
-    LAWYER_PROFILES ||--o{ LAWYER_DOCUMENTS : owns_documents
-
-    USERS {
-        uuid id PK
-        varchar phone UK
-        varchar email UK
-        enum role
-        enum status
-        timestamptz email_verified_at
-        timestamptz created_at
-    }
-
-    LAWYER_PROFILES {
-        uuid id PK
-        uuid user_id FK
-        varchar full_name
-        varchar syndicate_number UK
-        varchar degree
-        numeric rating
-        numeric latitude
-        numeric longitude
-        boolean is_available
-        enum approval_status
-    }
-
-    SERVICE_ORDERS {
-        uuid id PK
-        varchar order_number UK
-        uuid client_id FK
-        uuid lawyer_id FK
-        varchar service_title
-        numeric price
-        varchar status
-        numeric client_latitude
-        numeric client_longitude
-        timestamptz created_at
-    }
-
-    ORDER_STATUS_LOGS {
-        uuid id PK
-        uuid order_id FK
-        uuid changed_by_user_id FK
-        varchar old_status
-        varchar new_status
-        timestamptz created_at
-    }
+    users ||--o| user_credentials : "كلمة السر"
+    users ||--o{ user_sessions : "الجلسات"
+    users ||--o| lawyer_profiles : "ملف المحامي"
+    lawyer_profiles ||--o{ lawyer_documents : "الكارنيه"
+    users ||--o{ service_requests : "طلب الموكل قبل الدفع"
+    service_requests ||--o{ request_recipients : "اتبعت لمين"
+    service_requests ||--o{ request_offers : "العروض"
+    service_requests |o--o| service_orders : "بقى طلب"
+    users ||--o{ service_orders : "موكل أو محامي"
+    service_orders ||--o{ order_status_logs : "المراحل"
+    service_orders ||--o| payments : "الدفعة"
+    service_orders ||--o{ payout_events : "تجميد وتسوية"
+    service_orders ||--o| reviews : "التقييم"
+    service_orders ||--o{ support_tickets : "تذاكر على الطلب"
+    support_tickets ||--o{ ticket_messages : "الرسايل"
+    ticket_messages ||--o{ ticket_attachments : "الصور"
+    users ||--o{ client_credits : "رصيد الموكل"
+    users ||--o{ lawyer_adjustments : "حركات الإدارة على المحامي"
+    users ||--o{ consultations : "الاستشارات"
+    consultations ||--o{ consultation_pages : "صور الورق"
+    users ||--o{ notifications : "الإشعارات"
 ```
 
----
+## 3. الجداول
+«بيستخدمه» هو المكان في `backend/src/modules` اللي بيكتب فيه.
 
-## 🚀 2. استراتيجية الفهارس والأداء (Performance Indices)
-
-1. **فهارس البحث الجغرافي السريع (Geo Query Indices):**
-   - `idx_lawyer_profiles_availability` على الأعمدة `(approval_status, is_available, last_active_at)`.
-   - `idx_lawyer_profiles_coords` على الأعمدة `(latitude, longitude)`.
-   - الفهارس دي بتخدم توزيع الطلب على أقرب المحامين ومربعات الخريطة.
-
-2. **فهارس الطلبات ومتابعة الحالات:**
-   - `idx_orders_client_id`: استرجاع طلبات العميل مرتبة زمنياً.
-   - `idx_orders_lawyer_id`: استرجاع مهام المحامي الجارية.
-   - `idx_orders_status`: فرز الطلبات حسب الحالة (PENDING / IN_PROGRESS).
-   - `idx_order_logs_order`: تتبع كامل لسجل الحالات وتاريخ التحويلات.
-
-3. **سلامة العمليات المتزامنة (Concurrency & Idempotency):**
-   - استخدام الـ Database Transactions `withTransaction` عند إنشاء أو قبول الطلبات يمنع قبول الطلب من أكثر من محامٍ في نفس الوقت (`Race Conditions`).
-   - مفتاح فريد `order_number` لمنع تكرار الفواتير والطلبات.
-
----
-
-## 🧾 4. الجداول الحالية حسب التحديثات (Migrations)
-
-التحديثات في `backend/migrations` بتتطبق لوحدها مع كل تشغيل للسيرفر، بالترتيب، ومرة واحدة لكل تحديث. لو تحديث فشل السيرفر مش بيشتغل. `022` فهارس بس، ومفيهوش تغيير بيانات.
-
-| التحديث | الجداول والأعمدة |
-|---|---|
-| `001` | `users`، `user_credentials`، `user_sessions`، `email_verifications`، `password_resets`، `lawyer_profiles`، `lawyer_documents` |
-| `002` | `service_orders`، `order_status_logs`، وموقع المحامي وإتاحته |
-| `003` | `complaints`، `order_appeals`، `client_credits`، `reviews`، `problem_prices`، `client_problem_prices`، `notifications`، `lawyer_strikes`، `lawyer_reports` |
-| `004` | `device_tokens` لإشعارات الموبايل |
-| `005`–`007` | حداثة موقع المحامي، وسبب قفل الإتاحة |
-| `008` | نسبة الضريبة في الطلب وشروط الخدمة |
-| `009` | حالة التقديم على «محاميك حالاً» `urgent_status` |
-| `016` | تصحيح نصوص الإشعارات القديمة اللي كانت بتتكلم عن الكود |
-| `015` | `notifications.ticket_id` عشان الإشعار يفتح تذكرته، والاعتراضات المفتوحة اتنقلت لتذاكر |
-| `014` | `support_tickets` و`ticket_messages` و`ticket_attachments` للدعم الفني، والشكاوى المفتوحة القديمة اتنقلت لتذاكر |
-| `013` | `service_orders.review_reminder_sent` لتذكير التقييم مرة واحدة |
-| `012` | ترقيم ML الموحد: `order_number` و`reference` في `complaints` و`lawyer_reports` و`order_appeals` و`wallet_transfers`، كل واحد بتسلسل خاص بيه |
-| `011` | `wallet_transfers`: كل تحويل بين حسابين، والفلوس نفسها بتتسجل في `client_credits` أو `lawyer_adjustments` |
-| `010` | `account_warnings`، و`lawyer_adjustments`، و`users.suspended_until`، ونوع الشكوى `kind` في `complaints` و`lawyer_reports` |
-
-**الفلوس:**
-- **رصيد الموكل:** مجموع `client_credits`، وفيه الردود والتسويات وحركات الإدارة والدفع من الرصيد بالسالب.
-- **أتعاب المحامي:** `payout_amount` في الطلب حسب `payout_status`: `HELD` أو `FROZEN` أو `AVAILABLE` أو `REFUNDED`.
-- **حركات الإدارة على المحامي:** في `lawyer_adjustments`، وبتتجمع على المتاح.
-- **الرصيد السالب:** دين بيتسدد من المبالغ اللي بتدخل بعده.
-
-**الإنذارات:** في `account_warnings` للطرفين. الإنذار الملغى `revoked_at` ما بيتحسبش، و3 سارية في 30 يوم بتوقف الحساب أسبوع عبر `users.suspended_until`.
-
-## 5. جداول الأموال والمتابعة
-| الجدول | الغرض |
-|---|---|
-| `payments` | كل دفعة موكل برقم `ML-PAY` وطريقتها: `WALLET` من الرصيد، أو `DIRECT` من غير بوابة دفع (migration `018`). |
-| `failed_payments` | محاولة دفع ما تمتش وسببها، عشان تظهر للموكل في صفحة المدفوعات (migration `029`). |
-| `payout_events` | سجل تجميد الأتعاب وفكها وتسويتها، ومن قام بذلك (migration `017`). |
-| `admin_actions` | قرارات الإدارة: الحسابات والأسعار والنسب وطلبات المحامين والتعليقات وإعدادات الاستشارة (migration `019`). |
-| `consultation_settings` | صف واحد: سعر الاستشارة، وسعر الاطلاع الأساسي، وسعر الورقة، وأقصى عدد ورق، ومدة المكالمة، وأقل طول للتفاصيل، والإتاحة (migration `032`). |
-| `consultations` | كل استشارة سريعة برقم `ML-CNS` ونوعها وتفاصيلها وسعرها وطريقة دفعها وحالتها (`PAID` ثم `CONTACTING` ثم `DONE`، أو `REJECTED` والمبلغ بيرجع للرصيد في `client_credits`) (migration `032`). |
-| `consultation_pages` | صور الورق في التخزين الخاص `consultations/`، لصاحب الاستشارة والإدارة بس (migration `032`). |
-| `order_status_logs` | كل مراحل الطلب، و`changed_by_user_id` فاضي لما النظام هو اللي نفذ (migration `019`). |
-
-عمودا `specialty` و`bio` في `lawyer_profiles` مش مستخدمين في النظام، و`experience_years` بيتكتب عند تسجيل المحامي وقيمته الافتراضية 0 (migration `020`).
-
-جداول `complaints` و`lawyer_reports` و`order_appeals` و`lawyer_approval_history` اتشالت في migration `021` بعد ما حلت محلها تذاكر الدعم.
-
-## 6. جداول ما كانتش متوثقة (اتراجعت على الـ migrations 2026-11-07)
-| الجدول | migration | لازمته |
+### الحسابات والدخول
+| الجدول | فيه إيه | بيستخدمه |
 |---|---|---|
-| `service_requests` | `024` | طلب «محاميك حالاً» قبل ما يبقى طلب: مكان الموكل، والمشكلة، وحدود السعر، والعمولة والضريبة وقتها، ورقم الجولة وموعد نهايتها، والحالة (`OPEN` و`SELECTED` و`NO_OFFERS` و`EXPIRED` و`CANCELLED`)، والطلب اللي اتعمل منه |
-| `request_recipients` | `024` | مين وصله الطلب في أنهي جولة وعلى بعد كام كيلو. مفتاحه الطلب + المحامي |
-| `request_offers` | `024` | عرض المحامي: السعر وصافيه، ولو سحبه. عرض واحد لكل محامي في الطلب |
-| `change_log` | `028` | سجل التغييرات للخط المباشر (`/events`): مين، ونوع، وأنهي حاجة. بيتمسح بعد يومين |
-| `platform_settings` | `008` | صف واحد بس لإعدادات المنصة، زي نسبة الضريبة |
-| `password_reset_requests` | `001` | أكواد تغيير كلمة السر (متخزنة hash)، ومحاولاتها، ومتى اتستخدمت |
-| `admin_login_codes` | `040` | الخطوة التانية لدخول لوحة التحكم: كود الإيميل (hash بس)، 10 دقايق و5 محاولات ومرة واحدة (`auth/adminCode.ts`) |
+| `users` | الحساب: الموبايل والإيميل (فريدين)، والدور (`client`، `lawyer`، `admin`)، والحالة، والاسم، والصورة، و`suspended_until`، و`warnings_count` | `auth`، `users`، `admin` |
+| `user_credentials` | كلمة السر (argon2id)، واحدة لكل حساب | `auth` |
+| `user_sessions` | الجلسات: hash للـ refresh token، والجهاز، والعنوان، والانتهاء والإلغاء | `auth/session.ts` |
+| `email_verifications` | كود تأكيد الإيميل (hash)، ومحاولاته | `auth/register.ts` |
+| `password_reset_requests` | كود تغيير كلمة السر (hash)، ومحاولاته | `auth/password.ts` |
+| `admin_login_codes` | الخطوة التانية لدخول اللوحة: كود الإيميل (hash)، 10 دقايق و5 محاولات ومرة واحدة | `auth/adminCode.ts` |
+| `device_tokens` | موبايلات كل حساب لإشعارات Firebase | `notifications`، `services/pushService.ts` |
 
-## 7. آخر الـ migrations
-| الرقم | التغيير |
+### المحامي
+| الجدول | فيه إيه | بيستخدمه |
+|---|---|---|
+| `lawyer_profiles` | الملف المهني، وحالة الاعتماد، والمكان و«متاح»، والتقييم وعدده، وحالة «محاميك حالاً» (`urgent_status`)، والمحافظة، وعدّاد الإيقاظ | `lawyers`، `lifecycle/sweep.ts` |
+| `lawyer_documents` | ملفات الكارنيه في المخزن الخاص | `lawyers` |
+| `lawyer_strikes` | مخالفات المحامي (اعتذار، عدم رد...)، والملغي منها | `lifecycle/service.ts`، `admin/accounts.ts` |
+| `lawyer_adjustments` | حركات الإدارة والتحويلات على أتعاب المحامي | `admin`، `wallet`، `support/admin.ts` |
+
+### «محاميك حالاً»
+| الجدول | فيه إيه | بيستخدمه |
+|---|---|---|
+| `service_requests` | الطلب قبل الدفع: مكان الموكل، والمشكلة، وحدود السعر، والعمولة والضريبة وقتها، والجولة، والحالة (`OPEN`، `SELECTED`، `NO_OFFERS`، `EXPIRED`، `CANCELLED`) | `requests` |
+| `request_recipients` | مين وصله الطلب، في أنهي جولة، وعلى بعد كام كيلو، ووقت الطريق (`road_seconds`) | `requests/service.ts` |
+| `request_offers` | عرض المحامي: السعر وصافيه، ولو سحبه. عرض واحد لكل محامي في الطلب | `requests` |
+| `service_orders` | الطلب بعد اختيار العرض: الأطراف، والسعر والعمولة والضريبة، والحالة، والمهل، والوصول، والتأجيل، والأتعاب (`payout_status`، `payout_amount`)، والمكان اللحظي للطرفين | `orders`، `lifecycle` |
+| `order_status_logs` | كل مراحل الطلب. `changed_by_user_id` فاضي لما النظام هو اللي نفّذ | `orders`، `lifecycle` |
+| `problem_prices` | حدود السعر ونسبة المنصة لكل مشكلة | `admin/routes.ts`، `requests` |
+| `reviews` | تقييم الموكل للمحامي (واحد لكل طلب)، والإخفاء والبلاغ | `orders/reviews.ts`، `admin` |
+
+### الفلوس
+| الجدول | فيه إيه | بيستخدمه |
+|---|---|---|
+| `payments` | كل دفعة موكل برقم `ML-PAY` وطريقتها: `WALLET` أو `DIRECT` (من غير بوابة دفع حقيقية) | `orders/decisions.ts`، `consultations` |
+| `failed_payments` | محاولة دفع ما تمتش وسببها، لصفحة المدفوعات | `orders/decisions.ts` |
+| `client_credits` | دفتر رصيد الموكل: الردود، والتسويات، وحركات الإدارة، والدفع من الرصيد بالسالب. **الرصيد = مجموع الجدول** | `lifecycle`، `wallet`، `admin` |
+| `payout_events` | سجل تجميد الأتعاب وفكها وتسويتها، ومين عمل كده | `lifecycle/settlement.ts`، `admin/orders.ts` |
+| `wallet_transfers` | كل تحويل بين حسابين برقم `ML-TRF`. الفلوس نفسها في `client_credits` أو `lawyer_adjustments` | `wallet` |
+| `platform_settings` | صف واحد: نسبة الضريبة، وأقل نسخة مسموحة من التطبيق ورابط التحديث | `admin/routes.ts`، `appClient` |
+
+**قواعد الفلوس:** أتعاب المحامي في `service_orders.payout_amount` حسب `payout_status` (`HELD` ثم `AVAILABLE`، أو `FROZEN`، أو `REFUNDED`). الرصيد السالب دين بيتسدد من اللي بيدخل بعده. منطق الفلوس ما يتغيرش غير بطلب صريح من صاحب المشروع.
+
+### الدعم، والاستشارة، والإشعارات، والإدارة
+| الجدول | فيه إيه | بيستخدمه |
+|---|---|---|
+| `support_tickets` | التذكرة برقم `ML-TKT`، ونوعها، وحالتها (`UNDER_REVIEW`، `OPEN`، `CLOSED`)، والطلب لو عليه | `support` |
+| `ticket_messages` | الرسايل: `USER` أو `ADMIN` أو `NOTE` (ملاحظة داخلية) | `support` |
+| `ticket_attachments` | صور الرسايل في المخزن الخاص | `support` |
+| `consultations` | الاستشارة برقم `ML-CNS`: النوع (`CALL`، `PAPERS`)، والسعر، والدفع، والحالة (`PAID`، `CONTACTING`، `DONE`، `REJECTED`) | `consultations` |
+| `consultation_pages` | صور الورق في المخزن الخاص | `consultations` |
+| `consultation_settings` | صف واحد: الأسعار، وأقصى ورق، ومدة المكالمة، والإتاحة | `consultations/admin.ts` |
+| `notifications` | الإشعار، ومربوط بطلب أو تذكرة أو طلب قبل الدفع أو استشارة | `lifecycle/service.ts` (`notify`) |
+| `change_log` | سجل التغييرات للخط المباشر (`/events`). بيتمسح بعد يومين | `services/liveUpdates.ts` |
+| `account_warnings` | إنذارات الطرفين. 3 سارية في 30 يوم بتوقف الحساب أسبوع | `admin/accounts.ts` |
+| `admin_actions` | سجل قرارات الإدارة | `admin/actions.ts` |
+| `app_errors` | أعطال التطبيق على الموبايلات. بيتمسح بعد 30 يوم | `appClient` |
+| `schema_migrations` | التحديثات اللي اتطبقت | `database/migrate.ts` |
+
+## 4. قواعد الحذف
+- **ما بيتمسحش وله سجلات** (`RESTRICT`): الحساب اللي عليه طلبات أو دفعات أو رصيد أو تقييمات أو تحويلات أو تذاكر أو استشارات. يعني السجلات المالية ما بتضيعش بمسح حساب.
+- **بيتمسح مع صاحبه** (`CASCADE`): الجلسات، والأكواد، وموبايلات الإشعارات، وملف المحامي ومستنداته، والإشعارات، والطلبات قبل الدفع وعروضها.
+- **بيفضل والربط يتفك** (`SET NULL`): اسم الموظف اللي عمل الإجراء، والطلب المربوط بتذكرة أو إنذار.
+
+## 5. الفهارس المهمة
+| الفهرس | لازمته |
 |---|---|
-| `032` | الاستشارة السريعة: الإعدادات، والاستشارات، وصور الورق في التخزين الخاص |
-| `033` | الاستشارة: «مقدرناش نوصلك» (`unreachable_at`) و«طلب التواصل» (`callback_requested_at`) |
-| `034` | `notifications.consultation_id`: الإشعار بيفتح الاستشارة |
-| `035` | `lawyer_profiles.governorate` و`governorate_at`، وفهارس خريطة المحامين وقايمة المحافظة |
-| `036` | شيل جداول «أماكن التواجد» (`presence_*`) اللي اتعملت في `031` |
-| `037` إلى `039` | إيقاظ المحامي الساكت، وشيل مسار قديم، وسبب قفل الطلب قبل الدفع (`release_reason`) |
-| `041` | تأكيد الموكل لوصول المحامي: `arrival_asked_at` و`arrived_by_client` في `service_orders` |
-| `042` | وقت الطريق من كل محامي للموكل (`road_seconds` في `request_recipients`)، لكارت العرض |
-| `043` | فهرس المحامين المتاحين مترتب بالمسافة (`idx_lawyer_profiles_near`، GiST)، وفهرس صغير للمتاحين للمهام الزمنية، وشيل 3 فهارس قديمة كانت بتتكتب مع كل «أنا لسه هنا» |
-| `044` | أقل نسخة مسموحة من التطبيق ورابط التحديث (`min_app_build` و`app_update_url` في `platform_settings`)، وجدول أعطال التطبيق `app_errors` (بيتمسح بعد 30 يوم) |
-| `040` | `admin_login_codes` للدخول بخطوتين في اللوحة |
+| `idx_lawyer_profiles_near` (GiST) | أقرب المحامين المتاحين للموكل، مترتبين بالمسافة (migration `043`) |
+| `idx_lawyer_profiles_showcase` و`idx_lawyer_profiles_governorate` و`idx_lawyer_profiles_available` | مربعات الخريطة، وقايمة أعلى المحافظة، والمتاحين للمهام الزمنية (migrations `035` و`043`) |
+| `idx_orders_client_id` و`idx_orders_lawyer_id` و`idx_orders_status` | طلبات كل طرف، والمهام الزمنية |
+| `idx_order_logs_order` | مراحل الطلب |
 
-المرجع دايمًا `backend/migrations`. الـ migrations بتشتغل لوحدها مع تشغيل الخادم، وكل رقم بيشتغل مرة واحدة.
+**التزامن:** الدفع والإلغاء والاعتذار والإنهاء والوصول بيبدأوا بقفل الطلب (`lockOrder`) جوه معاملة واحدة، والدفع من الرصيد بياخد نفس قفل الحساب بتاع التحويل. اختبار «العاصفة» (`tests/storm.test.ts`) بيتأكد إن مفيش محامي اتحجز مرتين ولا جنيه ضاع.
+
+## 6. موجود في القاعدة ومش مستخدم (ما اتمسحش)
+اتأكدت يوم 2026-11-11 إن الكود ما بيلمسهمش. المسح محتاج migration وموافقة صاحب المشروع، ومسجّل في `KNOWN_ISSUES.md`.
+| العنصر | الوضع |
+|---|---|
+| أعمدة `service_orders`: `code_attempts`، `reminder_first_sent`، `reminder_second_sent` | من نظام كود الإنهاء والتذكيرين القديم |
+| أعمدة `lawyer_profiles`: `specialty`، `bio`، `current_status` | ما بتتقراش ولا بتتكتب |
+| تسلسلات `ml_complaint_seq`، `ml_report_seq`، `ml_appeal_seq` | جداولها اتشالت في migration `021` |
+| 20 عمود علاقة من غير فهرس (زي `created_by` و`revoked_by`) | مش مشكلة بالحجم الحالي. يتراجع لو مسح الحسابات بقى بطيء |

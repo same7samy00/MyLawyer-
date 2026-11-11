@@ -1,13 +1,13 @@
 # بنية السيرفرات
 
-**آخر تحقق:** 2026-11-10 (قراءة من السيرفرين). بيانات الدخول وطريقته في `docs/ACCESS.md`، وممنوع أي سر هنا.
+**آخر تحقق:** 2026-11-11 (قراية من السيرفرين: الخدمات، والمنافذ، والجدار الناري، والنسخة الحية، والنسخ الاحتياطية). بيانات الدخول وطريقته في `docs/ACCESS.md`، وممنوع أي سر هنا.
 
 ## 1. الصورة العامة
 ```mermaid
 flowchart LR
-  Phone[التطبيق] -- HTTPS --> API
-  Admin[متصفح الإدارة] -- HTTPS --> API
-  Phone -- صور الخريطة /map/t --> API
+  Phone[التطبيق] -- HTTPS --> CF[Cloudflare: DNS وحماية وكاش]
+  Admin[متصفح الإدارة] -- HTTPS --> CF
+  CF -- HTTPS، وهو بس المسموح له --> API
   subgraph API[السيرفر الأساسي mylawyer-api: my-lawyer.online]
     N1[Nginx :443] --> B[mylawyer-backend: 5 workers]
     B --> PG[(PostgreSQL 16 الأساسية)]
@@ -47,8 +47,8 @@ flowchart LR
 | الجدار الناري | UFW: 22، و80 و443 لعناوين Cloudflare بس |
 | SSH | بالمفتاح بس (`/etc/ssh/sshd_config.d/00-mylawyer.conf`)، وfail2ban بيحظر بعد 5 محاولات |
 | DNS السيرفر | `/etc/systemd/resolved.conf.d/mylawyer.conf` (1.1.1.1 و8.8.8.8)، لأن سيرفرات Contabo كانت بتعلّق |
-| الشهادة | Let's Encrypt لـ `my-lawyer.online` و`www`، وبتتجدد لوحدها (`certbot.timer`) بالتحقق من `/var/www/letsencrypt` |
-| الإيميل | من `noreply@my-lawyer.online`، موقّع DKIM بالمفتاح `mail`، وسجلات SPF وDMARC وMX في Hostinger، والـ PTR في Contabo |
+| الشهادة | Let's Encrypt لـ `my-lawyer.online` و`www`، صالحة لحد 2027-02-05، وبتتجدد لوحدها (`certbot.timer`) بالتحقق من `/var/www/letsencrypt`. التجديد اتجرّب ورا Cloudflare ونجح (2026-11-11). الناس بتشوف شهادة Cloudflare، وشهادتنا هي اللي Cloudflare بيتأكد منها |
+| الإيميل | من `noreply@my-lawyer.online`، موقّع DKIM بالمفتاح `mail`، وسجلات SPF وDKIM وDMARC وMX في Cloudflare، والـ PTR في Contabo |
 
 ## 3. السيرفر التاني `mylawyer-vps`
 عند نفس الشركة وفي نفس المكان (حوالي 1 ملّي ثانية من الأساسي).
@@ -61,7 +61,14 @@ flowchart LR
 | غير كده | نسخة تانية من النسخ اليومية (`/var/backups/mylawyer-api`)، وتاريخ القاعدة المستمر (`/var/lib/pgbackrest`)، ومراقب بينبّه لو السيرفر الأساسي وقع |
 
 ## 4. الدومين
-DNS في Hostinger. `@` و`www` للجديد، و`maps` للقديم. التفاصيل والقيم في `docs/ACCESS.md`.
+الدومين `my-lawyer.online` متسجل في Hostinger، والـ DNS على Cloudflare من 2026-11-11 (`CLOUDFLARE.md`).
+| الاسم | بيروح فين | عن طريق Cloudflare |
+|---|---|---|
+| `my-lawyer.online` | السيرفر الأساسي `45.13.232.30` | أيوه (برتقالي) |
+| `www` | نفس الأساسي (CNAME) | أيوه |
+| `maps` | السيرفر التاني `13.140.141.32` | لأ (رمادي). عليه إيميل التنبيه بس، ومفيهوش خرايط |
+
+الزائر بيكلم Cloudflare، وCloudflare بيكلم السيرفر بـ https وبيتأكد من شهادته (Full strict). السيرفرين ما بيقبلوش 80 و443 غير من عناوين Cloudflare.
 
 ## 5. أوامر قراءة آمنة
 ```bash
