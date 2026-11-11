@@ -38,6 +38,13 @@ void main() {
     expect(find.textContaining('«تحقيق نيابة»'), findsOneWidget);
   });
 
+  test('هيدر طلب المحامي باسم الخدمة المختارة', () {
+    expect(LegalService.titleFor('محضر في قسم الشرطة'), 'محضر شرطة');
+    expect(LegalService.titleFor('حضور مجلس عرفي'), 'حضور مجلس عرفي');
+    expect(LegalService.titleFor('سرقة أو نصب أو احتيال'), 'سرقة أو نصب أو احتيال');
+    expect(LegalService.titleFor(null), 'طلب محامي');
+  });
+
   testWidgets('كلام مش واضح بيرجّع الخدمات يختار منها', (tester) async {
     await tester.pumpWidget(_host());
     await tester.enterText(find.byType(TextField), 'محتاج مساعدة');

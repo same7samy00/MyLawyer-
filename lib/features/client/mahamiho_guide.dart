@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_colors.dart';
 import 'mahamiho_chat_screen.dart';
 
 /// محاميحو: صغير تحت على الشمال، ثابت طول ما الرئيسية مفتوحة.
-/// كل 5 ثواني بيعمل حركة مختلفة (يطلع ويشاور، يطلع، لايك، بيفكّر)، ومع كل حركة
-/// صورة «أهلاً أنا محاميحو» بتظهر جنبه فوق الشريط السفلي وتختفي.
+/// كل 5 ثواني بيعمل حركة مختلفة (يطلع ويشاور، يطلع، لايك، بيفكّر).
+/// جنبه سحابة زرقا فيها «أهلاً! أنا محاميحو»، قاعدة على الشريط السفلي وظاهرة طول ما هو ظاهر،
+/// ولما ينزل ورا الشريط ويطلع تاني بتنزل وتطلع معاه.
 /// لمسه بيفتح صفحة محاميحو (MahamihoChatScreen).
 class MahamihoGuide extends StatefulWidget {
   const MahamihoGuide({super.key});
@@ -17,6 +19,8 @@ class MahamihoGuide extends StatefulWidget {
   @visibleForTesting
   static void resetForTest() => _greeted = false;
 
+  static const hello = 'أهلاً! أنا محاميحو 👋\nموجود هنا عشان أساعدك';
+
   @override
   State<MahamihoGuide> createState() => _MahamihoGuideState();
 }
@@ -26,7 +30,7 @@ class _Clip {
   final String name;
   final int frames;
 
-  /// اللقطة اللي بيكون طلع فيها من ورا الشريط، وصورة الترحيب بتظهر معاها
+  /// اللقطة اللي بيكون طلع فيها من ورا الشريط (صفر = بيبدأ واقف)
   final int upAt;
   const _Clip(this.name, this.frames, {this.upAt = 0});
 
@@ -41,18 +45,17 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
   // بالترتيب ده، وبيلف
   static const _cycle = [_Clip('pop-up', 61, upAt: 12), _Clip('like', 55), _Clip('thinking', 96, upAt: 12), _popWave];
   static const _gap = Duration(seconds: 5);
-  static const _badgeFor = Duration(milliseconds: 3500);
-  static const _badge = 'assets/mahamiho/hello.webp';
   static const _minRise = Duration(milliseconds: 350);
-  Duration _rise = _minRise;
 
   Timer? _timer;
-  Timer? _badgeTimer;
   bool _visible = false;
-  bool _showBadge = false;
   _Clip _clip = _idle;
   int _next = 0;
   int _play = 0;
+
+  /// السحابة ورا الشريط، ومدة طلوعها
+  bool _cloudDown = false;
+  Duration _cloudMove = Duration.zero;
 
   @override
   void initState() {
@@ -74,7 +77,7 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
     super.didChangeDependencies();
     // تجهيز الحركات قبل ما تظهر عشان ما يحصلش وميض وهي بتتبدل
     final config = createLocalImageConfiguration(context);
-    for (final asset in [_idle.asset, _popWave.asset, _badge, for (final c in _cycle) c.asset]) {
+    for (final asset in [_idle.asset, _popWave.asset, for (final c in _cycle) c.asset]) {
       AssetImage(asset).resolve(config);
     }
   }
@@ -82,7 +85,6 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
   @override
   void dispose() {
     _timer?.cancel();
-    _badgeTimer?.cancel();
     super.dispose();
   }
 
@@ -103,21 +105,30 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
     _next = (_next + 1) % _cycle.length;
   }
 
-  /// الحركة بتتمسح من الذاكرة عشان تبدأ من أولها، وبعدها يرجع واقف ويستنى 5 ثواني
+  /// الحركة بتتمسح من الذاكرة عشان تبدأ من أولها، وبعدها يرجع واقف ويستنى 5 ثواني.
+  /// لو الحركة بتبدأ وهو ورا الشريط، السحابة بتنزل معاه وتطلع في نفس وقته
   void _start(_Clip clip) {
     AssetImage(clip.asset).evict();
-    // الصورة بتطلع من ورا الشريط مع محاميحو في نفس الوقت وبنفس سرعته
-    final rise = clip.upDelay < _minRise ? _minRise : clip.upDelay;
+    final pops = clip.upAt > 0;
     setState(() {
       _clip = clip;
       _play++;
-      _rise = rise;
-      _showBadge = true;
+      if (pops) {
+        _cloudDown = true;
+        _cloudMove = Duration.zero;
+      }
     });
-    _badgeTimer?.cancel();
-    _badgeTimer = Timer(rise + _badgeFor, () {
-      if (mounted) setState(() => _showBadge = false);
-    });
+    if (pops) {
+      final rise = clip.upDelay < _minRise ? _minRise : clip.upDelay;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _cloudDown = false;
+            _cloudMove = rise;
+          });
+        }
+      });
+    }
     _schedule(clip.length, () {
       setState(() => _clip = _idle);
       _schedule(_gap, _playNext);
@@ -125,7 +136,6 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
   }
 
   void _onTap() {
-    setState(() => _showBadge = false);
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MahamihoChatScreen()));
   }
 
@@ -137,7 +147,8 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
     final screen = MediaQuery.sizeOf(context).width;
     final width = (screen * 0.22).clamp(80.0, 110.0);
     final height = width * 274 / 270;
-    final badgeWidth = (width * 1.5).clamp(110.0, 170.0);
+    final cloudWidth = (screen - width - 16).clamp(140.0, 185.0);
+    final cloudHeight = cloudWidth * _CloudPainter.ratio;
 
     return Stack(
       children: [
@@ -162,25 +173,20 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
             ),
           ),
         ),
-        // «أهلاً أنا محاميحو» لازقة فيه، وبتطلع من ورا الشريط زيه وتنزل وراه تاني
+        // السحابة لازقة في جنبه وقاعدة على الشريط، والقص بيخليها تختفي ورا الشريط زيه
         Positioned(
-          left: width - 8,
+          left: width - 10,
           bottom: 0,
-          width: badgeWidth,
-          child: IgnorePointer(
+          width: cloudWidth,
+          height: cloudHeight,
+          child: GestureDetector(
+            onTap: _onTap,
             child: ClipRect(
-              child: AnimatedOpacity(
-                opacity: _showBadge ? 1 : 0,
-                duration: _showBadge ? Duration.zero : const Duration(milliseconds: 300),
-                child: AnimatedSlide(
-                  offset: _showBadge ? Offset.zero : const Offset(0, 1.1),
-                  duration: _showBadge ? _rise : const Duration(milliseconds: 300),
-                  curve: _showBadge ? Curves.easeOutBack : Curves.easeIn,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Image.asset(_badge, semanticLabel: 'أهلاً أنا محاميحو موجود هنا لمساعدتك', gaplessPlayback: true),
-                  ),
-                ),
+              child: AnimatedSlide(
+                offset: _cloudDown ? const Offset(0, 1.05) : Offset.zero,
+                duration: _cloudMove,
+                curve: Curves.easeOutBack,
+                child: const _Cloud(text: MahamihoGuide.hello),
               ),
             ),
           ),
@@ -188,4 +194,75 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
       ],
     );
   }
+}
+
+class _Cloud extends StatelessWidget {
+  final String text;
+  const _Cloud({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _CloudPainter(),
+      child: Align(
+        alignment: const Alignment(0, 0.15),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 11.5, height: 1.45, fontWeight: FontWeight.w700, color: Colors.white),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// سحابة زرقا، وحواليها حافة متقطعة بينها وبين السحابة مسافة صغيرة
+class _CloudPainter extends CustomPainter {
+  /// الطول ÷ العرض
+  static const ratio = 96 / 190;
+
+  // السحابة مرسومة في مساحة 190 × 96، والحافة أكبر منها بـ 9٪
+  static Path _cloud() => Path()
+    ..moveTo(27, 66)
+    ..cubicTo(9, 66, 9, 42, 27, 42)
+    ..cubicTo(25, 22, 49, 14, 61, 26)
+    ..cubicTo(69, 6, 99, 4, 109, 22)
+    ..cubicTo(123, 6, 153, 12, 155, 32)
+    ..cubicTo(177, 32, 181, 58, 165, 64)
+    ..cubicTo(169, 80, 145, 86, 133, 76)
+    ..cubicTo(123, 88, 95, 88, 87, 76)
+    ..cubicTo(75, 88, 47, 86, 45, 74)
+    ..cubicTo(35, 78, 23, 74, 27, 66)
+    ..close();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / 190, size.height / 96);
+    final cloud = _cloud();
+    final edge = cloud.transform((Matrix4.identity()
+          ..translate(95.0, 48.0)
+          ..scale(1.09, 1.09)
+          ..translate(-95.0, -48.0))
+        .storage,);
+
+    final dash = Paint()
+      ..color = AppColors.primary
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6;
+    for (final metric in edge.computeMetrics()) {
+      for (double d = 0; d < metric.length; d += 9) {
+        canvas.drawPath(metric.extractPath(d, d + 5), dash);
+      }
+    }
+    canvas.drawPath(cloud, Paint()..color = AppColors.primary);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_CloudPainter oldDelegate) => false;
 }

@@ -9,13 +9,10 @@ Widget _host() => const MaterialApp(
       ),
     );
 
-final _badgeImage = find.byWidgetPredicate((w) => w is Image && w.image is AssetImage && (w.image as AssetImage).assetName.endsWith('hello.webp'));
+final _cloudText = find.text(MahamihoGuide.hello);
 
-Offset _badgeSlide(WidgetTester tester) =>
-    tester.widget<AnimatedSlide>(find.ancestor(of: _badgeImage, matching: find.byType(AnimatedSlide))).offset;
-
-double _badgeOpacity(WidgetTester tester) =>
-    tester.widget<AnimatedOpacity>(find.ancestor(of: _badgeImage, matching: find.byType(AnimatedOpacity))).opacity;
+Offset _cloudSlide(WidgetTester tester) =>
+    tester.widget<AnimatedSlide>(find.ancestor(of: _cloudText, matching: find.byType(AnimatedSlide))).offset;
 
 String _clip(WidgetTester tester) =>
     ((tester.widget<Image>(find.descendant(of: find.bySemanticsLabel('محاميحو'), matching: find.byType(Image))).image) as AssetImage).assetName;
@@ -23,36 +20,41 @@ String _clip(WidgetTester tester) =>
 void main() {
   setUp(MahamihoGuide.resetForTest);
 
-  testWidgets('بيطلع ويشاور، وصورة الترحيب بتظهر وتختفي، وهو بيفضل موجود', (tester) async {
+  testWidgets('بيطلع ويشاور والسحابة بتطلع معاه وبتفضل ظاهرة', (tester) async {
     await tester.pumpWidget(_host());
     expect(find.bySemanticsLabel('محاميحو'), findsNothing);
 
-    await tester.pump(const Duration(milliseconds: 1300));
-    expect(find.bySemanticsLabel('محاميحو'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1200));
     expect(_clip(tester), 'assets/mahamiho/pop-wave.webp');
-    // الصورة بتطلع معاه في نفس اللحظة
-    expect(_badgeOpacity(tester), 1);
-    expect(_badgeSlide(tester), Offset.zero);
+    // أول لقطة: السحابة ورا الشريط معاه
+    expect(_cloudSlide(tester), const Offset(0, 1.05));
+    await tester.pump();
+    await tester.pump();
+    expect(_cloudSlide(tester), Offset.zero);
 
-    await tester.pump(const Duration(seconds: 4));
-    expect(_badgeOpacity(tester), 0);
-    expect(_badgeSlide(tester), const Offset(0, 1.1));
+    await tester.pump(const Duration(seconds: 10));
     expect(find.bySemanticsLabel('محاميحو'), findsOneWidget);
+    expect(_cloudText, findsOneWidget);
+    await tester.pump();
+    expect(_cloudSlide(tester), Offset.zero);
+    await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('كل 5 ثواني بيعمل حركة مختلفة', (tester) async {
+  testWidgets('كل 5 ثواني بيعمل حركة مختلفة، واللايك ما بيحرّكش السحابة', (tester) async {
     await tester.pumpWidget(_host());
-    await tester.pump(const Duration(milliseconds: 1300));
+    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 66 * 42 + 10));
     expect(_clip(tester), 'assets/mahamiho/idle.webp');
 
     await tester.pump(const Duration(seconds: 5));
     expect(_clip(tester), 'assets/mahamiho/pop-up.webp');
-    expect(_badgeOpacity(tester), 1);
+    await tester.pump();
 
     await tester.pump(const Duration(milliseconds: 61 * 42 + 10));
     await tester.pump(const Duration(seconds: 5));
     expect(_clip(tester), 'assets/mahamiho/like.webp');
+    expect(_cloudSlide(tester), Offset.zero);
 
     await tester.pumpWidget(const SizedBox());
   });
@@ -68,18 +70,21 @@ void main() {
     expect(find.text('محضر شرطة'), findsOneWidget);
   });
 
-  testWidgets('على شاشة صغيرة بيفضل صغير، لازق في تحت، وجوه الشاشة', (tester) async {
+  testWidgets('على شاشة صغيرة بيفضل صغير، والسحابة قاعدة على الشريط وجوه الشاشة', (tester) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(_host());
-    await tester.pump(const Duration(milliseconds: 1300));
+    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
     final box = tester.getRect(find.bySemanticsLabel('محاميحو'));
     expect(box.width, lessThanOrEqualTo(110));
-    expect(box.left, greaterThanOrEqualTo(0));
     expect(box.bottom, 640);
-    expect(tester.getRect(find.bySemanticsLabel('أهلاً أنا محاميحو موجود هنا لمساعدتك')).right, lessThanOrEqualTo(320));
+    final cloud = tester.getRect(find.ancestor(of: _cloudText, matching: find.byType(ClipRect)).first);
+    expect(cloud.bottom, 640);
+    expect(cloud.right, lessThanOrEqualTo(320));
     await tester.pumpWidget(const SizedBox());
   });
 }

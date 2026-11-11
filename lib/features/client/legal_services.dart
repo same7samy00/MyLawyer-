@@ -48,6 +48,15 @@ class LegalService {
         urgentProblem: 'إجراءات إدارية', keywords: ['إداري', 'اداري', 'مصلحة', 'شهر عقاري', 'تراخيص'],),
   ];
 
+  /// اسم الخدمة اللي بيتكتب في الهيدر لطلب المحامي: «محضر شرطة» بدل «محضر في قسم الشرطة»،
+  /// ولو المشكلة من القايمة الكاملة بيتكتب اسمها هي
+  static String titleFor(String? problem) {
+    for (final service in all) {
+      if (service.urgentProblem != null && service.urgentProblem == problem) return service.title;
+    }
+    return (problem == null || problem.trim().isEmpty) ? 'طلب محامي' : problem;
+  }
+
   /// أول خدمة كلامها موجود في النص، أو null
   static LegalService? guess(String text) {
     for (final service in all) {

@@ -34,6 +34,7 @@ import '../../data/models/map_lawyer.dart';
 import '../../data/models/service_request.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/request_repository.dart';
+import '../client/legal_services.dart';
 import 'lawyer_google_profile_screen.dart';
 import 'payment_screen.dart';
 
@@ -202,7 +203,8 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
       },
       child: Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppHeader(title: 'محاميك حالاً', isInnerPage: true),
+      // الهيدر باسم الخدمة اللي الموكل اختارها
+      appBar: AppHeader(title: LegalService.titleFor(widget.problemTitle), isInnerPage: true),
       body: Stack(
         children: [
           // 1. خريطة تفاعلية مستضافة على السيرفر
