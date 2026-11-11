@@ -143,7 +143,9 @@ class _WalletTabState extends State<WalletTab> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'المبالغ المرتجعة من طلباتك والتحويلات اللي وصلتك',
+                    AppConfig.walletTransfers
+                        ? 'المبالغ المرتجعة من طلباتك والتحويلات اللي وصلتك'
+                        : 'المبالغ المرتجعة من طلباتك',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'AppFont',
