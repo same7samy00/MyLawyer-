@@ -1,0 +1,5 @@
+# Scripts run on Linux servers. With Windows line endings bash refuses them ("bash\r: No such file"),
+# so they stay LF on every machine, also when copied by hand with scp.
+*.sh text eol=lf
+*.mjs text eol=lf
+backend/deploy.sh text eol=lf
