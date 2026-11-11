@@ -56,13 +56,13 @@ git -c credential.helper= -c "credential.helper=store --file=D:/KAREM/.access/gi
 - **النظام:** Ubuntu 24.04، والخدمات: `mylawyer-backend` (systemd، على `127.0.0.1:4000`)، وPostgreSQL 16 (محلي)، وNginx 1.24، وPostfix وOpenDKIM.
 - **المسارات:** التطبيق في `/var/www/mylawyer` (`current` و`backend` و`site` و`storage`)، وإعداد Nginx في `/etc/nginx/sites-available/mylawyer`، والنسخ الاحتياطية في `/root/mylawyer-backups`.
 - **السجلات:** `journalctl -u mylawyer-backend` و`/var/log/nginx`.
-- **الجدار الناري:** UFW مفتوح فيه 22 و80 و443 بس.
+- **الجدار الناري:** UFW: 22 مفتوح، و80 و443 لعناوين Cloudflare بس (`docs/CLOUDFLARE.md`).
 - **الدخول بكلمة المرور:** مقفول (`00-mylawyer.conf`)، والدخول بالمفتاح بس.
 
 ## السيرفر الجديد `mylawyer-api` (2026-11-07)
 - **الدور:** الباك إند وقاعدة البيانات بعد النقل، والقديم يفضل للخرايط والطرق (قرار صاحب المشروع). لسه فاضي.
 - **الدخول:** `ssh -F D:/KAREM/.access/ssh_config mylawyer-api`، بالمفتاح بس. الدخول بكلمة السر مقفول (`/etc/ssh/sshd_config.d/00-mylawyer.conf`)، وكلمة سر root عند صاحب المشروع ومش محفوظة هنا.
-- **الحماية:** Ubuntu 24.04 متحدّث، وUFW مفتوح فيه 22 و80 و443 بس، وfail2ban على SSH، والتحديثات الأمنية تلقائية.
+- **الحماية:** Ubuntu 24.04 متحدّث، وUFW: 22 مفتوح، و80 و443 لعناوين Cloudflare بس (`docs/CLOUDFLARE.md`)، وfail2ban على SSH، والتحديثات الأمنية تلقائية.
 - **الموارد:** 6 معالجات، و12 جيجا رام، و100 جيجا.
 - **المتسطّب (نفس نسخ القديم):** Node 20.20 وnpm 10.8، وPostgreSQL 16.15 (محلي بس)، وNginx 1.24، وcertbot 2.9، وSwap 4 جيجا، والتوقيت Europe/Berlin زي القديم.
 - **الباك إند شغال هنا من 2026-11-07:** الكود من `origin/main` في `/var/www/mylawyer/backend` (`.env` وملف Firebase جنبه)، وخدمة `mylawyer-backend` بـ 5 workers، وقاعدة `mylawyer_prod` المحلية (اتنقلت من القديم كاملة)، والصور والملفات والموقع في `/var/www/mylawyer`. الخريطة ووقت الطريق واسم المكان من TomTom (`docs/GPS_SYSTEM.md`): خزنة الخريطة في Nginx على `/map/t/`، و`TOMTOM_ROUTING_KEY` في `.env`.

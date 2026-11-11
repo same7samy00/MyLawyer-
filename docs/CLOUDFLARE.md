@@ -1,6 +1,6 @@
 # ربط الدومين بـ Cloudflare
 
-**الحالة (2026-11-11):** مربوط وشغال. الـ DNS على Cloudflare، و`@` برتقالي، و`www` CNAME برتقالي بيتبع `@`، و`maps` رمادي على السيرفر التاني، وSPF فيه السيرفرين. التشفير **Full (strict)**، وAlways Use HTTPS شغالة، وأقل نسخة TLS 1.2. صور الخريطة بتتخزن في Cloudflare لوحدها (`cf-cache-status: HIT`). الـ token في `.access/cloudflare-token.txt` وعلى السيرفر التاني بس في `/etc/mylawyer/cloudflare.env`. **فاضل:** قفل 80 و443 على السيرفرين إلا لـ Cloudflare (القسم 3).
+**الحالة (2026-11-11):** مربوط وشغال. الـ DNS على Cloudflare، و`@` برتقالي، و`www` CNAME برتقالي بيتبع `@`، و`maps` رمادي على السيرفر التاني، وSPF فيه السيرفرين. التشفير **Full (strict)**، وAlways Use HTTPS شغالة، وأقل نسخة TLS 1.2. صور الخريطة بتتخزن في Cloudflare لوحدها (`cf-cache-status: HIT`). الـ token في `.access/cloudflare-token.txt` وعلى السيرفر التاني بس في `/etc/mylawyer/cloudflare.env`. 80 و443 على السيرفرين مقفولين إلا لعناوين Cloudflare (قواعد UFW اسمها `Cloudflare`، من `cloudflare.com/ips-v4` و`ips-v6`)، فمحدش يوصل للسيرفر مباشرة. لو Cloudflare ضاف عناوين جديدة تتضاف بنفس الطريقة.
 
 ## 1. هنستفيد إيه
 | الفايدة | معناها ببساطة |

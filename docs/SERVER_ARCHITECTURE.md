@@ -44,7 +44,7 @@ flowchart LR
 | حماية الأساسي | `mylawyer-main-guard` قبل تشغيل الخادم (`mylawyer-backend.service.d/20-main-guard.conf`): لو التاني خد المكان، خادم الأساسي ما بيشتغلش |
 | تاريخ القاعدة | pgBackRest (`/etc/pgbackrest.conf`)، على الأساسي والتاني (`BACKUP_AND_RECOVERY.md`) |
 | Redis (الذاكرة السريعة) | Redis 7 على `127.0.0.1:6379` و`10.77.0.1` (الخط الخاص)، وبكلمة سر (`/etc/redis/mylawyer.conf`، وعنوانه `REDIS_URL` في `.env`). 1 جيجا بالكتير، ومش بيحفظ على الديسك، وما بيرميش حاجة لو اتملى (`noeviction`) عشان الطابور ما يضيعش، وكل حاجة تانية فيه بتنتهي لوحدها. عليه حدود الطلبات، ومحاولات الدخول الغلط، ومكان المحامي وقت المهمة (`services/fastMemory.ts`)، وكل تغيير بيتبعت للتطبيقات المفتوحة على الخط المباشر (`services/liveUpdates.ts`، ولو Redis ما ردش بيتبعت من قاعدة البيانات زي الأول)، وطابور الإشعارات والإيقاظ وإيميلات الكود (`services/jobQueue.ts`، اسمه `outbox`، 5 محاولات، وكل عملية خادم بتشتغل عليه). لو وقع، الخادم بيكمل وكل عملية بتعد لوحدها |
-| الجدار الناري | UFW: 22 و80 و443 بس |
+| الجدار الناري | UFW: 22، و80 و443 لعناوين Cloudflare بس |
 | SSH | بالمفتاح بس (`/etc/ssh/sshd_config.d/00-mylawyer.conf`)، وfail2ban بيحظر بعد 5 محاولات |
 | DNS السيرفر | `/etc/systemd/resolved.conf.d/mylawyer.conf` (1.1.1.1 و8.8.8.8)، لأن سيرفرات Contabo كانت بتعلّق |
 | الشهادة | Let's Encrypt لـ `my-lawyer.online` و`www`، وبتتجدد لوحدها (`certbot.timer`) بالتحقق من `/var/www/letsencrypt` |
