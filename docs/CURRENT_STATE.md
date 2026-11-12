@@ -21,7 +21,7 @@
 ## 2. فين كل حاجة
 | الجزء | المكان | شغال على |
 |---|---|---|
-| التطبيق | `lib/` | المحاكي `MyLawyer_Lawyer` بآخر نسخة (2026-11-10 بالليل). الموبايل `OFDI4TCAFA9XBQOJ` لسه بالنسخة اللي قبلها، لأنه كان مفصول وقت التثبيت |
+| التطبيق | `lib/` | آخر نسخة مبنية `1.0.0+4` (2026-11-12، `exports/MyLawyer-1.0.0-build4.aab`)، ومتثبتتش على جهاز لسه. المحاكي `MyLawyer_Lawyer` على نسخة 2026-11-10 بالليل. الموبايل `OFDI4TCAFA9XBQOJ` لسه بالنسخة اللي قبلها، لأنه كان مفصول وقت التثبيت |
 | الخادم | `backend/src/` | `https://my-lawyer.online/api/v1` |
 | لوحة التحكم | `backend/public/admin/` | `https://my-lawyer.online/api/v1/admin-panel` |
 | الموقع العام | `backend/public/site/` | `https://my-lawyer.online` |

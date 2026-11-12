@@ -20,7 +20,7 @@
 | النوع | تطبيق، مجاني |
 | اللغة الأساسية | العربية |
 | التوقيع | Play App Signing: جوجل بتوقّع النسخة اللي بتوصل للناس، وإحنا بنرفع بمفتاح الرفع `android/mylawyer-release.jks` (بره Git، **خد منه نسخة بره اللاب**) |
-| ملف الرفع | `flutter build appbundle --release`، والناتج في `build/app/outputs/bundle/release/app-release.aab`. آخر نسخة `1.0.0+2` (2026-11-11، من غير التحويل بين الحسابات) في `exports/MyLawyer-1.0.0-build2.aab`. `1.0.0+1` كان فيها التحويل واتمسحت |
+| ملف الرفع | `flutter build appbundle --release`، والناتج في `build/app/outputs/bundle/release/app-release.aab`. آخر نسخة `1.0.0+4` (2026-11-12، فيها الخدمات الميدانية، من غير التحويل بين الحسابات) في `exports/MyLawyer-1.0.0-build4.aab`. `1.0.0+1` كان فيها التحويل واتمسحت |
 | رقم النسخة | كل رفع جديد لازم رقم أكبر بعد `+` في `pubspec.yaml`، ونفس الرقم في `AppConfig.build` (اختبار بيتأكد) |
 
 ## 3. حسابات مراجعة جوجل
