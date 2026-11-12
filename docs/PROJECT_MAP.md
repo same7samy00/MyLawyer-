@@ -33,7 +33,7 @@ flowchart LR
 | `features/client/` | شاشات الموكل: الرئيسية والطلبات والمحفظة والحساب والخريطة الترويجية |
 | `features/lawyer/` | شاشات المحامي، وشيت إرسال السعر |
 | `features/urgent_service/` | «محاميك حالاً»: الخريطة والعروض والدفع وتفاصيل الطلب (`order_details_sheet`) |
-| `features/consultation/` | «استشارة سريعة» |
+| `features/consultation/` | «استشارة سريعة» والخدمات المكتبية: صفحة محاميهو بالصوت والكتابة (`VOICE_SERVICES.md`) |
 | `features/field_service/` | الخدمات الميدانية: الطلب (ليك ولا لشخص تاني)، والبحث عن المكان، والشروط، وكارت الكود، وصورة الإثبات (`FIELD_SERVICES.md`) |
 | `features/notifications/` | صفحة الإشعارات، و`notification_router` بيفتح الصفحة اللي الإشعار بيتكلم عنها |
 | `features/support/` | الدعم الفني والتذاكر |

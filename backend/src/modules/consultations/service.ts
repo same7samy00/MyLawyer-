@@ -125,6 +125,8 @@ export const listItem = (row: any) => ({
   rejectReason: row.reject_reason,
   canRequestContact: waitingForClient(row),
   contactRequestedAt: row.callback_requested_at,
-  details: row.details,
+  // A voice request's text is for the admin only: the client never sees what the app heard
+  details: row.input_method === 'VOICE' ? null : row.details,
+  viaVoice: row.input_method === 'VOICE',
   createdAt: row.created_at,
 });

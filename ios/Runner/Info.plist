@@ -55,6 +55,10 @@
 	<string>يستخدم My Lawyer موقعك والتطبيق مقفول طول ما أنت متاح، عشان تفضل ظاهر للموكلين القريبين منك.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>يحتاج تطبيق My Lawyer إلى إذن الموقع لتحديد مدينتك وعرض أقرب المحامين والخدمات القانونية المتاحة.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>يستخدم تطبيق My Lawyer الميكروفون عشان تحكي مشكلتك بصوتك بدل ما تكتبها.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>يحوّل تطبيق My Lawyer كلامك لنص عشان يوصل لفريق المحامين.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>يحتاج تطبيق My Lawyer إلى إذن الكاميرا لالتقاط صورة كارنيه نقابة المحامين لتوثيق الحساب.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

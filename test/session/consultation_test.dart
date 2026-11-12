@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/features/consultation/consultation_checkout_screen.dart';
-import 'package:my_lawyer/features/consultation/consultation_details_screen.dart';
 import 'package:my_lawyer/features/consultation/consultation_type_screen.dart';
+import 'package:my_lawyer/features/consultation/mahamiho_request_screen.dart';
 import 'package:my_lawyer/features/urgent_service/payment_method_screen.dart';
 import 'package:my_lawyer/features/urgent_service/payment_screen.dart';
 import 'package:my_lawyer/features/urgent_service/payment_success_screen.dart';
@@ -36,11 +36,17 @@ void main() {
 
       await tester.tap(find.text('استشارة بس'));
       await settleAsync(tester);
-      expect(find.byType(ConsultationDetailsScreen), findsOneWidget);
+      expect(find.byType(MahamihoRequestScreen), findsOneWidget);
 
+      // التبديل للكتابة، وبعدها محاميهو يقول «فهمت طلبك» والمتابعة للدفع
+      await tester.tap(find.text('كتابة'));
+      await tester.pump();
       await tester.enterText(find.byType(TextField), 'صاحب الشقة عايز يطلعني قبل المدة من غير سبب');
       await tester.pump();
-      await tester.tap(find.text('متابعة'));
+      await tester.tap(find.text('أرسل لمحاميهو'));
+      await tester.pump();
+      expect(find.text('فهمت طلبك'), findsOneWidget);
+      await tester.tap(find.text('متابعة للدفع'));
       await tester.pump(const Duration(seconds: 2));
       await settleAsync(tester);
 

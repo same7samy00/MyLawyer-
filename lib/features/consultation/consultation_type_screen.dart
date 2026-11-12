@@ -5,16 +5,16 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/line_illustration.dart';
 import '../../data/models/consultation.dart';
-import 'consultation_details_screen.dart';
 import 'consultation_style.dart';
+import 'mahamiho_request_screen.dart';
 
 /// «استشارة سريعة»، الخطوة 1: نوع الاستشارة.
-/// بعدها: التفاصيل والورق ← تقييم السعر ← الملخص والشروط ← صفحات الدفع المشتركة مع «محاميك حالاً»
+/// بعدها: محاميهو (كلام أو كتابة) والورق ← تقييم السعر ← الملخص والشروط ← صفحات الدفع المشتركة مع «محاميك حالاً»
 class QuickConsultationScreen extends StatelessWidget {
   const QuickConsultationScreen({super.key});
 
   void _choose(BuildContext context, ConsultationKind kind) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ConsultationDetailsScreen(kind: kind)));
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => MahamihoRequestScreen(kind: kind)));
   }
 
   @override

@@ -92,7 +92,7 @@ erDiagram
 | `support_tickets` | التذكرة برقم `ML-TKT`، ونوعها، وحالتها (`UNDER_REVIEW`، `OPEN`، `CLOSED`)، والطلب لو عليه | `support` |
 | `ticket_messages` | الرسايل: `USER` أو `ADMIN` أو `NOTE` (ملاحظة داخلية) | `support` |
 | `ticket_attachments` | صور الرسايل في المخزن الخاص | `support` |
-| `consultations` | الاستشارة برقم `ML-CNS`: النوع (`CALL`، `PAPERS`)، والسعر، والدفع، والحالة (`PAID`، `CONTACTING`، `DONE`، `REJECTED`) | `consultations` |
+| `consultations` | الاستشارة برقم `ML-CNS`: النوع (`CALL`، `PAPERS`)، والسعر، والدفع، والحالة (`PAID`، `CONTACTING`، `DONE`، `REJECTED`)، و`input_method` (`TEXT` أو `VOICE`، migration `048`: النص اللي اتحول من الكلام للإدارة بس) | `consultations` |
 | `consultation_pages` | صور الورق في المخزن الخاص | `consultations` |
 | `consultation_settings` | صف واحد: الأسعار، وأقصى ورق، ومدة المكالمة، والإتاحة | `consultations/admin.ts` |
 | `notifications` | الإشعار، ومربوط بطلب أو تذكرة أو طلب قبل الدفع أو استشارة | `lifecycle/service.ts` (`notify`) |

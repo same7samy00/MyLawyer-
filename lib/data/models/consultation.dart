@@ -51,7 +51,10 @@ class ConsultationDraft {
   final List<String> pagePaths;
   final ConsultationQuote quote;
 
-  const ConsultationDraft({required this.kind, required this.details, required this.pagePaths, required this.quote});
+  /// اتقالت بالصوت: النص بيروح للإدارة والعميل ما بيشوفوش
+  final bool viaVoice;
+
+  const ConsultationDraft({required this.kind, required this.details, required this.pagePaths, required this.quote, this.viaVoice = false});
 }
 
 /// استشارة اتطلبت، وبتظهر في صفحة الطلبات مع باقي الخدمات

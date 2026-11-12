@@ -65,6 +65,8 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     const pageCount = kind === 'PAPERS' ? pages.length : 0;
     const { total } = priceOf(settings, kind, pageCount);
     const method = fields.method === 'wallet' ? 'WALLET' : 'DIRECT';
+    // Told by voice: the app turned it into text that only the admin reads
+    const inputMethod = fields.inputMethod === 'voice' ? 'VOICE' : 'TEXT';
 
     const row = await withTransaction(async (db) => {
       // الرصيد مشترك مع الطلبات والتحويلات، فبناخد نفس قفل الحساب
@@ -74,8 +76,8 @@ export async function consultationRoutes(fastify: FastifyInstance) {
         if (Number(balance.rows[0].balance) < total) throw new HttpError(400, 'رصيدك مش كفاية');
       }
       const saved = await db.query(
-        `INSERT INTO consultations (client_id, kind, details, pages, price, payment_method) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [userId, kind, details, pageCount, total, method]
+        `INSERT INTO consultations (client_id, kind, details, pages, price, payment_method, input_method) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [userId, kind, details, pageCount, total, method, inputMethod]
       );
       const consultation = saved.rows[0];
       if (method === 'WALLET') {

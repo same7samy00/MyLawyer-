@@ -18,7 +18,9 @@
 | `path_provider` | خزنة صور الخريطة على الموبايل | `app_cached_tile_provider.dart` |
 | `image_picker` | الصورة الشخصية، والكارنيه، وصور التذاكر والاستشارة | شاشات التسجيل والدعم |
 | `local_auth` | الدخول بالبصمة | `core/services/biometric_service.dart` |
-| `url_launcher` | فتح الخرايط الخارجية ورابط التحديث | `external_navigation.dart` |
+| `url_launcher` | فتح الخرايط الخارجية ورابط التحديث، وشير كود الخدمات الميدانية على واتساب | `external_navigation.dart`، `field_order_blocks.dart` |
+| `speech_to_text` | تحويل كلام العميل لنص في الخدمات المكتبية، بمحرك الموبايل نفسه (جوجل على أندرويد)، ببلاش | `voice_input.dart` |
+| `audioplayers` | تشغيل ردود محاميهو المسجلة (لو ملفاتها موجودة) | `mahamiho_voice.dart` |
 | `webview_flutter` | صفحة ملف المحامي على جوجل | `lawyer_google_profile_screen.dart` |
 | `video_player` | فيديو البداية | `features/auth/splash_screen.dart` |
 | `pdf` و`printing` | فاتورة PDF | `core/services/invoice_pdf_service.dart` |

@@ -30,6 +30,8 @@ dependencies:
   printing: ^5.14.3
   local_auth: ^2.3.0
   flutter_secure_storage: ^10.3.4
+  speech_to_text: ^7.4.0
+  audioplayers: ^6.4.0
 
 dev_dependencies:
   flutter_test:
@@ -43,6 +45,7 @@ flutter:
     - assets/data/
     - assets/images/
     - assets/mahamiho/
+    - assets/mahamiho/voice/
     - assets/videos/
 
   fonts:

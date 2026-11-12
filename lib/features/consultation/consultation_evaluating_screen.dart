@@ -16,6 +16,7 @@ class ConsultationEvaluatingScreen extends StatefulWidget {
   final String details;
   final List<String> pagePaths;
   final ConsultationSettings settings;
+  final bool viaVoice;
 
   const ConsultationEvaluatingScreen({
     super.key,
@@ -23,6 +24,7 @@ class ConsultationEvaluatingScreen extends StatefulWidget {
     required this.details,
     required this.pagePaths,
     required this.settings,
+    this.viaVoice = false,
   });
 
   @override
@@ -52,7 +54,7 @@ class _ConsultationEvaluatingScreenState extends State<ConsultationEvaluatingScr
     }
     Navigator.of(context).pushReplacement(MaterialPageRoute(
       builder: (_) => ConsultationCheckoutScreen(
-        draft: ConsultationDraft(kind: widget.kind, details: widget.details, pagePaths: widget.pagePaths, quote: quote),
+        draft: ConsultationDraft(kind: widget.kind, details: widget.details, pagePaths: widget.pagePaths, quote: quote, viaVoice: widget.viaVoice),
         settings: widget.settings,
       ),
     ),);

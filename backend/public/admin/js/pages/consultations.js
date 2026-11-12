@@ -87,6 +87,7 @@ async function consultationPage(box) {
   side.append(section('بيانات الدفع', details([
     ['طريقة الدفع', data.payment_method === 'WALLET' ? 'من رصيد الموكل' : 'دفع مباشر'], ['المبلغ', Number(data.price) + ' ج.م'],
     ['عدد المستندات', data.kind === 'PAPERS' ? data.pages : 'لا يوجد'],
+    ['طريقة الإدخال', data.input_method === 'VOICE' ? 'كلام مسجّل (اتحول لنص تلقائيًا، وممكن فيه أخطاء)' : 'كتابة'],
   ])));
   side.append(section('المتابعة', details([
     ['بدء التواصل', data.contacted_at ? date(data.contacted_at) : '-'],

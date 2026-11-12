@@ -11,30 +11,25 @@ import '../../data/repositories/consultation_repository.dart';
 import 'consultation_evaluating_screen.dart';
 import 'consultation_style.dart';
 
-/// الخطوة 2: المشكلة بالتفصيل، وصور الورق لو اختار الاطلاع
-class ConsultationDetailsScreen extends StatefulWidget {
-  final ConsultationKind kind;
+/// «اطلاع على ورق»: بعد ما العميل حكى مشكلته لمحاميحو، هنا بيضيف صور الورق (ورقة في كل صورة)
+class ConsultationPagesScreen extends StatefulWidget {
+  /// المشكلة اللي اتقالت لمحاميحو (بالكتابة أو بالصوت)
+  final String details;
+  final bool viaVoice;
 
-  /// المشكلة اللي الموكل كتبها لمحاميحو بتتكتب هنا جاهزة
-  final String initialDetails;
-
-  const ConsultationDetailsScreen({super.key, required this.kind, this.initialDetails = ''});
+  const ConsultationPagesScreen({super.key, required this.details, this.viaVoice = false});
 
   @override
-  State<ConsultationDetailsScreen> createState() => _ConsultationDetailsScreenState();
+  State<ConsultationPagesScreen> createState() => _ConsultationPagesScreenState();
 }
 
-class _ConsultationDetailsScreenState extends State<ConsultationDetailsScreen> {
-  late final _details = TextEditingController(text: widget.initialDetails);
+class _ConsultationPagesScreenState extends State<ConsultationPagesScreen> {
   final List<XFile> _pages = [];
   ConsultationSettings _settings = const ConsultationSettings();
-
-  bool get _withPapers => widget.kind == ConsultationKind.papers;
 
   @override
   void initState() {
     super.initState();
-    _details.addListener(_onTyping);
     _loadSettings();
   }
 
@@ -43,25 +38,7 @@ class _ConsultationDetailsScreenState extends State<ConsultationDetailsScreen> {
     if (mounted) setState(() => _settings = settings);
   }
 
-  // بنعيد البناء بس لما العداد أو الزرار يتغير
-  late int _lastLength = widget.initialDetails.trim().length;
-  void _onTyping() {
-    final length = _details.text.trim().length;
-    final crossed = (length >= _settings.minDetailsChars) != (_lastLength >= _settings.minDetailsChars);
-    _lastLength = length;
-    if (crossed || length < _settings.minDetailsChars) setState(() {});
-  }
-
-  @override
-  void dispose() {
-    _details.removeListener(_onTyping);
-    _details.dispose();
-    super.dispose();
-  }
-
-  int get _length => _details.text.trim().length;
-
-  bool get _canContinue => _settings.isOpen && _length >= _settings.minDetailsChars && (!_withPapers || _pages.isNotEmpty);
+  bool get _canContinue => _settings.isOpen && _pages.isNotEmpty;
 
   Future<void> _addPages() async {
     final left = _settings.maxPages - _pages.length;
@@ -74,20 +51,20 @@ class _ConsultationDetailsScreenState extends State<ConsultationDetailsScreen> {
   void _continue() {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ConsultationEvaluatingScreen(
-        kind: widget.kind,
-        details: _details.text.trim(),
-        pagePaths: _withPapers ? _pages.map((page) => page.path).toList() : const [],
+        kind: ConsultationKind.papers,
+        details: widget.details,
+        pagePaths: _pages.map((page) => page.path).toList(),
         settings: _settings,
+        viaVoice: widget.viaVoice,
       ),
     ),);
   }
 
   @override
   Widget build(BuildContext context) {
-    final missing = _settings.minDetailsChars - _length;
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const AppHeader(title: 'تفاصيل المشكلة', isInnerPage: true),
+      appBar: const AppHeader(title: 'صور الورق', isInnerPage: true),
       body: SafeArea(
         child: Column(
           children: [
@@ -105,39 +82,11 @@ class _ConsultationDetailsScreenState extends State<ConsultationDetailsScreen> {
                       ),
                       const SizedBox(height: 14),
                     ],
-                    Text('احكي مشكلتك بالتفصيل', style: consultationText(15, FontWeight.w800, AppColors.dark)),
+                    Text('صور الورق (${_pages.length} من ${_settings.maxPages})', style: consultationText(15, FontWeight.w800, AppColors.dark)),
                     const SizedBox(height: 4),
-                    Text(
-                      'اكتب اللي حصل، وإمتى، والأطراف اللي معاك\nكل ما التفاصيل تكتر، الاستشارة تبقى أدق',
-                      style: consultationText(12, FontWeight.w600, AppColors.textMuted, height: 1.5),
-                    ),
+                    Text('كل صورة لازم تكون ورقة واحدة بس', style: consultationText(12, FontWeight.w600, AppColors.textMuted)),
                     const SizedBox(height: 10),
-                    TextField(
-                      controller: _details,
-                      minLines: 7,
-                      maxLines: 12,
-                      maxLength: 4000,
-                      style: consultationText(14, FontWeight.w600, AppColors.dark, height: 1.6),
-                      decoration: InputDecoration(
-                        hintText: 'مثال: اتفقت مع صاحب الشقة على…',
-                        hintStyle: consultationText(13, FontWeight.w500, AppColors.textMuted),
-                        helperText: missing > 0 ? 'محتاجين $missing حرف كمان على الأقل' : null,
-                        helperStyle: consultationText(11.5, FontWeight.w600, AppColors.textMuted),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16.0)),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16.0),
-                          borderSide: const BorderSide(color: AppColors.cardBorder),
-                        ),
-                      ),
-                    ),
-                    if (_withPapers) ...[
-                      const SizedBox(height: 18),
-                      Text('صور الورق (${_pages.length} من ${_settings.maxPages})', style: consultationText(15, FontWeight.w800, AppColors.dark)),
-                      const SizedBox(height: 4),
-                      Text('كل صورة لازم تكون ورقة واحدة بس', style: consultationText(12, FontWeight.w600, AppColors.textMuted)),
-                      const SizedBox(height: 10),
-                      _pagesGrid(),
-                    ],
+                    _pagesGrid(),
                   ],
                 ),
               ),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/services/device_permission_service.dart';
 import '../../data/models/consultation.dart';
 import '../auth/location_permission_screen.dart';
-import '../consultation/consultation_details_screen.dart';
+import '../consultation/mahamiho_request_screen.dart';
 import '../field_service/field_request_screen.dart';
 import '../field_service/field_services.dart';
 import '../urgent_service/problem_description_screen.dart';
@@ -72,7 +72,7 @@ class LegalService {
     final navigator = Navigator.of(context);
     if (!isUrgent) {
       final details = description.isEmpty ? '' : '$title: $description';
-      navigator.push(MaterialPageRoute(builder: (_) => ConsultationDetailsScreen(kind: consultation, initialDetails: details)));
+      navigator.push(MaterialPageRoute(builder: (_) => MahamihoRequestScreen(kind: consultation, initialDetails: details)));
       return;
     }
     // الخدمات الميدانية ليها شاشاتها: المكان بالاسم، وما بتحتاجش موقع الموكل

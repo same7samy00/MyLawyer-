@@ -45,6 +45,23 @@ describe('الاستشارة السريعة', () => {
     assert.equal((await get(lawyerToken)).statusCode, 404);
   });
 
+  it('الطلب بالكلام: النص للإدارة بس، والموكل ما بيشوفوش', async () => {
+    const created = (await call('POST', '/consultations', clientToken, { kind: 'CALL', details, inputMethod: 'voice' })).body.data;
+    assert.equal(created.viaVoice, true);
+    assert.equal(created.details, null);
+    const mine = (await call('GET', `/consultations/${created.id}`, clientToken)).body.data;
+    assert.equal(mine.details, null);
+    assert.equal(mine.viaVoice, true);
+    const forAdmin = (await call('GET', `/admin/consultations/${created.id}`, adminToken)).body.data;
+    assert.equal(forAdmin.details, details);
+    assert.equal(forAdmin.input_method, 'VOICE');
+    assert.equal((await call('GET', '/admin/consultations', adminToken)).body.data[0].input_method, 'VOICE');
+
+    const typed = (await call('POST', '/consultations', clientToken, { kind: 'CALL', details })).body.data;
+    assert.equal(typed.viaVoice, false);
+    assert.equal(typed.details, details);
+  });
+
   it('تفاصيل قصيرة أو محامي أو ورق من غير صور: مرفوض', async () => {
     assert.equal((await call('POST', '/consultations', clientToken, { kind: 'CALL', details: 'قصير' })).status, 400);
     assert.equal((await call('POST', '/consultations', lawyerToken, { kind: 'CALL', details })).status, 403);

@@ -59,7 +59,12 @@ class ConsultationRepository {
   static Future<ApiResponse<Consultation>> submit(ConsultationDraft draft, {required bool fromBalance}) async {
     final res = await ApiService.uploadForm(
       '/consultations',
-      {'kind': draft.kind.code, 'details': draft.details, 'method': fromBalance ? 'wallet' : 'direct'},
+      {
+        'kind': draft.kind.code,
+        'details': draft.details,
+        'method': fromBalance ? 'wallet' : 'direct',
+        if (draft.viaVoice) 'inputMethod': 'voice',
+      },
       draft.pagePaths,
     );
     if (res.isOk && res.data is Map<String, dynamic>) {

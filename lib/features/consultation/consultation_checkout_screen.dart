@@ -29,7 +29,7 @@ class _ConsultationCheckoutScreenState extends State<ConsultationCheckoutScreen>
       builder: (_) => PaymentScreen(
         consultation: _draft,
         problemTitle: 'استشارة سريعة: ${_draft.kind.label}',
-        problemDescription: _draft.details,
+        problemDescription: _draft.viaVoice ? 'طلب بالصوت، وفريق المحامين هيسمعه' : _draft.details,
         locationName: '',
         price: _draft.quote.total,
       ),
@@ -66,7 +66,7 @@ class _ConsultationCheckoutScreenState extends State<ConsultationCheckoutScreen>
                           if (withPapers) _row('عدد الورق', '${_draft.pagePaths.length}'),
                           const SizedBox(height: 6),
                           Text(
-                            _draft.details,
+                            _draft.viaVoice ? 'كلامك اتسجّل وهيوصل لفريق المحامين' : _draft.details,
                             maxLines: 5,
                             overflow: TextOverflow.ellipsis,
                             style: consultationText(13, FontWeight.w600, AppColors.textMain, height: 1.5),
