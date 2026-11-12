@@ -4,6 +4,8 @@ import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/line_illustration.dart';
+import '../field_service/field_request_screen.dart';
+import '../field_service/field_services.dart';
 import 'problem_description_screen.dart';
 
 /// نموذج بيانات المشكلة القانونية لخدمة «محاميك حالاً»
@@ -105,7 +107,9 @@ class _UrgentServiceProblemScreenState extends State<UrgentServiceProblemScreen>
   void _onProblemSelected(UrgentProblemItem item) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => ProblemDescriptionScreen(problemTitle: item.title),
+        builder: (context) => FieldServices.isField(item.title)
+            ? FieldRequestScreen(problemTitle: item.title)
+            : ProblemDescriptionScreen(problemTitle: item.title),
       ),
     );
   }

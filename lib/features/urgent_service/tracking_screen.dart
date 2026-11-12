@@ -30,8 +30,10 @@ import '../../core/widgets/lawyer_profile_summary.dart';
 import '../../core/widgets/lawyer_reviews_panel.dart';
 import '../../core/widgets/line_illustration.dart';
 import '../../core/widgets/map_cards.dart';
+import '../../data/models/field_info.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/models/service_request.dart';
+import '../../data/repositories/field_repository.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/request_repository.dart';
 import '../client/legal_services.dart';
@@ -50,11 +52,15 @@ class TrackingScreen extends StatefulWidget {
   /// طلب مفتوح من صفحة الطلبات: الشاشة بتفتح على عروضه على طول
   final String? resumeRequestId;
 
+  /// طلب ميداني (محضر، نيابة...): المحامين بيتدوّر عليهم حوالين المكان مش حوالين الموكل
+  final FieldDraft? field;
+
   const TrackingScreen({
     super.key,
     this.problemTitle,
     this.problemDescription,
     this.resumeRequestId,
+    this.field,
   });
 
   @override

@@ -18,7 +18,9 @@ import '../../core/widgets/order_status_tracker.dart';
 import '../../core/widgets/postponed_since.dart';
 import '../../core/widgets/sheet_actions.dart';
 import '../../data/models/order_model.dart';
+import '../../data/repositories/field_repository.dart';
 import '../../data/repositories/order_repository.dart';
+import '../field_service/field_order_blocks.dart';
 import '../support/new_ticket_screen.dart';
 import '../support/ticket_details_screen.dart';
 import 'arrival_time_card.dart';
@@ -200,6 +202,25 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
     await _run(() => OrderRepository.confirmArrival(_order.id), 'تم تأكيد وصول المحامي');
   }
 
+  /// الخدمة الميدانية: الشخص قال الكود، والمحامي بيكتبه فيتسجل الوصول
+  Future<void> _openCodeEntry() async {
+    final code = await FieldCodeSheet.ask(context);
+    if (code == null || !mounted) return;
+    await _run(() => FieldRepository.submitCode(_order.id, code), 'تم تسجيل وصولك');
+  }
+
+  /// الشخص رفض المحامي بعد ما قابله: الطلب بيتقفل والأتعاب للمحامي كاملة
+  Future<void> _personRefused() async {
+    if (!await _confirm('الشخص رفض المحامي؟', 'المهمة هتتقفل والأتعاب كاملة ليك، وهتتاح بعد 24 ساعة', 'أيوه، رفض', icon: Icons.person_off_rounded, isDanger: true)) return;
+    await _run(() => FieldRepository.personRefused(_order.id), 'تم تسجيل رفض الشخص');
+  }
+
+  Future<void> _addProof() async {
+    final path = await pickProofPhoto(context);
+    if (path == null || !mounted) return;
+    await _run(() => FieldRepository.uploadProof(_order.id, path), 'الصورة اتحفظت عند الإدارة');
+  }
+
   Future<void> _openCompletion() async {
     if (!await _confirm('إنهاء المهمة', 'خلصت المهمة مع الموكل؟', 'إنهاء', icon: Icons.verified_rounded)) return;
     await _run(() => OrderRepository.completeOrder(_order.id), 'تم إنهاء المهمة، والصافي هيتاح بعد 24 ساعة');
@@ -244,6 +265,10 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
           ),
         ),
         const SizedBox(height: 12),
+        if (!widget.isLawyer && order.field?.code != null) ...[
+          FieldCodeCard(code: order.field!.code!, placeName: order.field!.placeName, onNotice: _showNotice),
+          const SizedBox(height: 12),
+        ],
         if (order.isActive && order.arrivedAt == null) ...[
           // الموكل بيشوف المحامي جاي على الخريطة، والمحامي معاه Google Maps
           if (!widget.isLawyer) ...[
@@ -295,7 +320,13 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
       ),
       _infoRow('نوع المشكلة', order.problemType ?? order.serviceTitle),
       if (order.problemDescription.isNotEmpty) _infoRow('تفاصيل المشكلة', order.problemDescription),
-      if (order.clientAddress != null) _infoRow('المنطقة', order.clientAddress!),
+      if (order.field != null) ...[
+        _infoRow('الطلب لـ', order.field!.personLine),
+        _infoRow('المكان', order.field!.placeName),
+        if (order.field!.detained) _infoRow('الحالة', 'محبوس أو محتجز', valueColor: AppColors.danger),
+        if (order.arrivedAt != null) _infoRow('إثبات الوصول', _arrivalWay(order.field!.arrivalMethod)),
+      ] else if (order.clientAddress != null)
+        _infoRow('المنطقة', order.clientAddress!),
       _infoRow(
         isLawyer ? 'صافي أتعابك' : (order.isPaid ? 'الأتعاب المسددة' : 'الأتعاب المستحقة'),
         '${order.priceText} ج.م',
@@ -402,7 +433,11 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         _primaryAction('هستنى', () => _run(() => OrderRepository.keepWaiting(order.id), 'تمام، هنكمل الانتظار')),
       ],
       if (order.canConfirmArrival) ...[
-        _statusNote('المحامي بيقول إنه وصل\nلو هو معاك دلوقتي أكّد وصوله'),
+        _statusNote(
+          order.field?.forOther == true
+              ? 'المحامي بيقول إنه وصل\nلو هو قدام الشخص دلوقتي أكّد وصوله'
+              : 'المحامي بيقول إنه وصل\nلو هو معاك دلوقتي أكّد وصوله',
+        ),
         _primaryAction('أيوه، المحامي وصل', _confirmArrival),
       ],
       if (order.isPostponed) PostponedSince(since: order.postponedAt!, note: 'والفلوس محجوزة لحد ما المحامي ينهيها'),
@@ -429,23 +464,38 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         if (order.hasOpenComplaint) _statusNote('الطلب قيد المراجعة، والأتعاب متوقفة لحد قرار الإدارة'),
         if (order.clientPhone != null)
           SheetButton('اتصل بالموكل', _isBusy ? null : () => _call(order.clientPhone), icon: Icons.call_rounded, isSuccess: true),
-        _action('افتح مكان الموكل في Google Maps', _openDirections, icon: Icons.navigation_rounded),
+        _action(order.field != null ? 'افتح المكان في Google Maps' : 'افتح مكان الموكل في Google Maps', _openDirections, icon: Icons.navigation_rounded),
         if (!order.hasOpenComplaint) ...[
           // Finishing stays hidden until the lawyer arrives within 50 meters of the client
           if (order.isPostponed) PostponedSince(since: order.postponedAt!, note: 'وأتعابها محجوزة لحد ما تنهيها'),
           if (order.arrivedAt == null) ...[
             _primaryAction('وصلت', _markArrived),
-            _action('الموكل يأكد وصولي', _askArrival),
+            if (order.field?.canTypeCode == true) _action('اكتب كود الشخص', _openCodeEntry, icon: Icons.pin_rounded),
+            _action(order.field?.forOther == true ? 'الموكل يأكد وصولي (للشخص)' : 'الموكل يأكد وصولي', _askArrival),
           ] else ...[
             _primaryAction('إنهاء المهمة', _openCompletion),
             // المؤجلة بتتنهي على طول، ومفيش «إلغاء التأجيل»
             if (!order.isPostponed) _action('مؤجل', _openPostpone),
+            if (order.field?.forOther == true) _action('الشخص رفض', _personRefused, isDanger: true),
           ],
+          if (order.field?.canAddProof == true)
+            _action(order.field!.proofs == 0 ? 'صورة إثبات للإدارة' : 'صورة إثبات (${order.field!.proofs})', _addProof, icon: Icons.photo_camera_rounded),
           _action('اعتذار', _withdraw, isDanger: true),
         ],
       ],
       ..._problemAction(order),
     ];
+  }
+
+  static String _arrivalWay(String? method) {
+    switch (method) {
+      case 'code':
+        return 'كود الشخص';
+      case 'client':
+        return 'تأكيد الموكل';
+      default:
+        return 'منطقة المكان';
+    }
   }
 
   static const TextStyle _labelStyle = TextStyle(

@@ -3,15 +3,14 @@ import { dbPool, query, withTransaction } from '../../database/index.js';
 import { sanitizeText } from '../../utils/security.js';
 import { publishChange } from '../../services/liveUpdates.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
-import { HAS_OPEN_ORDER, lawyerHasOpenOrder, lawyerShare, LAWYER_RESPONSE_SECONDS, notify, PAYMENT_MINUTES } from '../lifecycle/service.js';
-import { callsEnd, chooseEnd, LAWYER_CAN_WORK, LIVE_OFFERS, chooseNextCall, chooseRound, deliverCall, NEW_REQUEST_ID, priceRangeFor, ROUND_SECONDS } from './service.js';
+import { lawyerHasOpenOrder, lawyerShare, LAWYER_RESPONSE_SECONDS, notify, PAYMENT_MINUTES } from '../lifecycle/service.js';
+import { callsEnd, chooseEnd, createServiceRequest, inServiceArea, LAWYER_CAN_WORK, LIVE_OFFERS, chooseRound, deliverCall, priceRangeFor, ROUND_SECONDS } from './service.js';
 import { readOnAction } from '../notifications/readOnAction.js';
 import { roadRoute } from '../../services/roadRoutes.js';
+import { governorateOf } from '../orders/shared.js';
 
 const ROAD_FACTOR = 1.4;
 const CITY_SPEED_KMH = 30;
-
-const NOBODY_NEAR = 'مفيش محامي قريب منك دلوقتي، جرب تاني بعد شوية';
 
 const secondsUntil = (date: string | Date) => Math.max(0, Math.ceil((new Date(date).getTime() - Date.now()) / 1000));
 const roundedKm = (value: unknown) => Number(Number(value).toFixed(1));
@@ -46,40 +45,15 @@ export async function requestRoutes(fastify: FastifyInstance) {
     const description = sanitizeText(body.problemDescription, 3000);
     const lat = Number(body.clientLat);
     const lon = Number(body.clientLon);
-    const inServiceArea = Number.isFinite(lat) && Number.isFinite(lon) && lat >= 22 && lat <= 31.8 && lon >= 24.5 && lon <= 37;
-    if (!body.clientLat || !body.clientLon || !inServiceArea) throw new HttpError(400, 'تعذر تحديد موقعك، حاول تاني');
+    if (!body.clientLat || !body.clientLon || !inServiceArea(lat, lon)) throw new HttpError(400, 'تعذر تحديد موقعك، حاول تاني');
 
-    const problemType = body.problemType ? sanitizeText(body.problemType, 100) : null;
-
-    // The nearest lawyers are worked out before anything is locked, so the road answer holds nothing back.
-    // The first call goes to the nearest 10 inside 10 km. With nobody there it moves straight to 25, then 50 km
-    const firstCall = await chooseNextCall({ id: NEW_REQUEST_ID, client_id: userId, client_latitude: lat, client_longitude: lon }, 1);
-
-    const created = await withTransaction(async (client) => {
-      await client.query('SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);
-
-      const open = await client.query(`SELECT * FROM service_requests WHERE client_id = $1 AND status = 'OPEN' LIMIT 1`, [userId]);
-      if (open.rows[0]) return open.rows[0];
-
-      const openOrder = await client.query(`SELECT ${HAS_OPEN_ORDER('client_id', '$1')} AS open`, [userId]);
-      if (openOrder.rows[0].open) throw new HttpError(409, 'عندك طلب مفتوح بالفعل، كمله من صفحة الطلبات');
-
-      if (!firstCall) throw new HttpError(409, NOBODY_NEAR);
-      const range = await priceRangeFor(client, problemType);
-      const res = await client.query(
-        `INSERT INTO service_requests (
-           client_id, service_title, problem_type, problem_description, client_latitude, client_longitude, client_address,
-           min_price, max_price, commission_percent, tax_percent, round_deadline, round
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW() + make_interval(secs => $12), $13) RETURNING *`,
-        [
-          userId, sanitizeText(body.serviceTitle || 'محاميك حالاً', 255), problemType, description,
-          lat, lon, body.clientAddress ? sanitizeText(body.clientAddress, 500) : null,
-          range.minPrice, range.maxPrice, range.commissionPercent, range.taxPercent, ROUND_SECONDS, firstCall.round,
-        ]
-      );
-      // Every picked lawyer got busy in the last moment: nothing is saved, and the client asks again
-      if (await deliverCall(client, res.rows[0], firstCall) === 0) throw new HttpError(409, NOBODY_NEAR);
-      return res.rows[0];
+    const created = await createServiceRequest(userId, {
+      serviceTitle: body.serviceTitle || 'محاميك حالاً',
+      problemType: body.problemType ? sanitizeText(body.problemType, 100) : null,
+      description,
+      lat,
+      lon,
+      address: body.clientAddress ?? null,
     });
 
     return reply.status(201).send({ success: true, message: 'طلبك اتبعت لأقرب المحامين', data: { id: created.id } });
@@ -123,9 +97,11 @@ export async function requestRoutes(fastify: FastifyInstance) {
 
     const res = await query(
       `SELECT r.*, rr.distance_km, ro.price AS my_price, ro.withdrawn_at AS my_withdrawn_at,
-         EXISTS (SELECT 1 ${LIVE_OFFERS} AND ro.request_id = r.id) AS has_offers
+         EXISTS (SELECT 1 ${LIVE_OFFERS} AND ro.request_id = r.id) AS has_offers,
+         f.request_id AS field_id, f.for_other AS f_for_other, f.person_detained AS f_detained, f.place_kind AS f_place_kind
        FROM request_recipients rr
        JOIN service_requests r ON r.id = rr.request_id
+       LEFT JOIN field_requests f ON f.request_id = r.id
        LEFT JOIN request_offers ro ON ro.request_id = r.id AND ro.lawyer_id = rr.lawyer_id
        WHERE rr.lawyer_id = $1
          -- Every lawyer the request reached can send a price while it is open
@@ -142,9 +118,11 @@ export async function requestRoutes(fastify: FastifyInstance) {
         id: row.id,
         problemType: row.problem_type || row.service_title,
         problemDescription: row.problem_description,
-        service: 'محاميك حالاً',
-        // The lawyer needs the area to price the visit. The exact point stays hidden until payment
-        area: row.client_address,
+        service: row.field_id ? row.service_title : 'محاميك حالاً',
+        // The lawyer needs the area to price the visit. The exact point stays hidden until payment.
+        // A field request names a place, so only its governorate shows until the client pays
+        area: row.field_id ? governorateOf(row.client_address) : row.client_address,
+        field: row.field_id ? { forOther: row.f_for_other, detained: row.f_detained, placeKind: row.f_place_kind } : null,
         distanceKm: roundedKm(row.distance_km),
         minPrice: Number(row.min_price),
         maxPrice: Number(row.max_price),

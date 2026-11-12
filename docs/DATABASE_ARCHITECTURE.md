@@ -70,6 +70,8 @@ erDiagram
 | `service_orders` | الطلب بعد اختيار العرض: الأطراف، والسعر والعمولة والضريبة، والحالة، والمهل، والوصول، والتأجيل، والأتعاب (`payout_status`، `payout_amount`)، والمكان اللحظي للطرفين | `orders`، `lifecycle` |
 | `order_status_logs` | كل مراحل الطلب. `changed_by_user_id` فاضي لما النظام هو اللي نفّذ | `orders`، `lifecycle` |
 | `problem_prices` | حدود السعر ونسبة المنصة لكل مشكلة | `admin/routes.ts`، `requests` |
+| `field_requests` | تفاصيل الطلب الميداني (migration `047`)، صف لكل `service_requests`: لنفسه أو لشخص تاني، واسم الشخص وصلته ومحبوس ولا لأ، واسم المكان ونوعه ونطاق الوصول بالمتر، وكود التسليم (4 أرقام، لشخص تاني بس) ومحاولاته الغلط، وطريقة إثبات الوصول (`area` و`code` و`client`)، ووقت رفض الشخص | `field`، `orders/queries.ts` |
+| `field_proofs` | صور الإثبات اللي المحامي رفعها للإدارة (اسم الملف في `PRIVATE_STORAGE_PATH/field-proofs`). لحد 5 للطلب | `field/routes.ts` |
 | `reviews` | تقييم الموكل للمحامي (واحد لكل طلب)، والإخفاء والبلاغ | `orders/reviews.ts`، `admin` |
 
 ### الفلوس

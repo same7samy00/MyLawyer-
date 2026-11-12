@@ -135,14 +135,18 @@ extension _TrackingMapControls on _TrackingScreenState {
       _lawyersError = null;
     });
 
+    // الطلب الميداني مركزه المكان اللي المحامي رايحه، مش موقع الموكل
+    final field = widget.field;
     // تعذر الموقع لا يترك الخريطة في التحميل إلى ما لا نهاية
-    final result = await LocationService.instance.checkAndRequestPermission().timeout(
-      const Duration(seconds: 10),
-      onTimeout: () => const LocationResult(
-        status: LocationServiceStatus.error,
-        errorMessage: 'تحديد الموقع أخد وقت طويل، حاول تاني',
-      ),
-    );
+    final result = field != null
+        ? LocationResult(status: LocationServiceStatus.ready, position: field.position)
+        : await LocationService.instance.checkAndRequestPermission().timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => const LocationResult(
+              status: LocationServiceStatus.error,
+              errorMessage: 'تحديد الموقع أخد وقت طويل، حاول تاني',
+            ),
+          );
     if (!mounted) return;
 
     LatLng centerLatLng = const LatLng(30.0444, 31.2357);
@@ -155,10 +159,11 @@ extension _TrackingMapControls on _TrackingScreenState {
         _mapController.move(centerLatLng, appMapStartZoom);
       } catch (_) {}
 
-      final resolvedName = await GeoNamingService.instance.getCityAndGovernorate(
-        result.position!.latitude,
-        result.position!.longitude,
-      );
+      final resolvedName = field?.place.name ??
+          await GeoNamingService.instance.getCityAndGovernorate(
+            result.position!.latitude,
+            result.position!.longitude,
+          );
 
       if (mounted) {
         _update(() {

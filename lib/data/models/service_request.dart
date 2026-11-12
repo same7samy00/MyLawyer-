@@ -1,4 +1,5 @@
 import '../../core/services/api_service.dart';
+import 'field_info.dart';
 
 double _number(dynamic value) => value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
 
@@ -18,6 +19,9 @@ class IncomingRequest {
   final String state;
   final String? orderId;
 
+  /// نوع الطلب الميداني (لنفسه أو لشخص تاني، ومحبوس ولا لأ)، أو null لـ «محاميك حالاً»
+  final FieldInfo? field;
+
   /// وقت ما الطلب اتقرا، عشان العد التنازلي يكمل من غير ما نسأل السيرفر تاني
   final DateTime? receivedAt;
 
@@ -35,6 +39,7 @@ class IncomingRequest {
     this.myPrice,
     this.state = 'OPEN',
     this.orderId,
+    this.field,
     this.receivedAt,
   });
 
@@ -59,6 +64,7 @@ class IncomingRequest {
         myPrice: json['myPrice'] == null ? null : _number(json['myPrice']).round(),
         state: json['state']?.toString() ?? 'OPEN',
         orderId: json['orderId']?.toString(),
+        field: FieldInfo.fromJson(json['field']),
         receivedAt: DateTime.now(),
       );
 

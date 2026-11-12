@@ -34,6 +34,7 @@ flowchart LR
 | `features/lawyer/` | شاشات المحامي، وشيت إرسال السعر |
 | `features/urgent_service/` | «محاميك حالاً»: الخريطة والعروض والدفع وتفاصيل الطلب (`order_details_sheet`) |
 | `features/consultation/` | «استشارة سريعة» |
+| `features/field_service/` | الخدمات الميدانية: الطلب (ليك ولا لشخص تاني)، والبحث عن المكان، والشروط، وكارت الكود، وصورة الإثبات (`FIELD_SERVICES.md`) |
 | `features/notifications/` | صفحة الإشعارات، و`notification_router` بيفتح الصفحة اللي الإشعار بيتكلم عنها |
 | `features/support/` | الدعم الفني والتذاكر |
 | `features/account/` | البيانات الشخصية والمدفوعات |
@@ -53,6 +54,7 @@ flowchart LR
 | `src/modules/lifecycle/` | القواعد المشتركة (`notify`، والمخالفات، والتسوية)، والمهام الزمنية (`sweep.ts`) |
 | `src/modules/lawyers/` | ملف المحامي ومكانه، والخريطة والقوايم للعرض (`showcase.ts`) |
 | `src/modules/notifications/` | الإشعارات والعدادات، وقاعدة «اتصرفت = اتقرا» (`readOnAction.ts`) |
+| `src/modules/field/` | الخدمات الميدانية: طلب لشخص تاني، والكود، و«الشخص رفض»، وصور الإثبات، وقواعد النطاق (`FIELD_SERVICES.md`) |
 | `src/modules/consultations/`، `support/`، `wallet/`، `users/`، `routes/` | الاستشارة، والدعم، والمحفظة، والحساب، ووقت الطريق |
 | `src/modules/admin/` | مسارات لوحة التحكم، كلها للإدارة بس |
 | `public/admin/` | لوحة التحكم (JavaScript من غير مكتبات) |

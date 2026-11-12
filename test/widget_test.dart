@@ -30,6 +30,7 @@ import 'package:my_lawyer/features/auth/user_type_selection_screen.dart';
 import 'package:my_lawyer/features/client/home_tab.dart';
 import 'package:my_lawyer/features/client/nearby_lawyers_showcase_screen.dart';
 import 'package:my_lawyer/features/client/orders_tab.dart';
+import 'package:my_lawyer/features/field_service/field_request_screen.dart';
 import 'package:my_lawyer/features/lawyer/lawyer_account_tab.dart';
 import 'package:my_lawyer/features/lawyer/lawyer_home_tab.dart';
 import 'package:my_lawyer/features/lawyer/lawyer_navigation_shell.dart';
@@ -164,8 +165,16 @@ void main() {
       expect(find.text('استشارة قانونية'), findsNothing);
       expect(find.text('صياغة عقود'), findsNothing);
 
-      // Tap on visible item to navigate to ProblemDescriptionScreen
+      // الخدمة الميدانية (المحضر) بتفتح شاشتها: ليا ولا لشخص تاني، والمكان باسمه
       await tester.tap(find.text('محضر في قسم الشرطة'));
+      await tester.pumpAndSettle();
+      expect(find.byType(FieldRequestScreen), findsOneWidget);
+      expect(find.text('لشخص تاني'), findsOneWidget);
+      tester.state<NavigatorState>(find.byType(Navigator).first).pop();
+      await tester.pumpAndSettle();
+
+      // وغيرها بيفتح وصف المشكلة زي ما كان
+      await tester.tap(find.text('مشاجرة أو اعتداء أو تهديد'));
       await tester.pumpAndSettle();
       expect(find.byType(ProblemDescriptionScreen), findsOneWidget);
       expect(find.text('اكتب تفاصيل مشكلتك باختصار'), findsOneWidget);

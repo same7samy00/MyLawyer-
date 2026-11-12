@@ -3,6 +3,8 @@ import { Db, dbPool, withTransaction } from '../../database/index.js';
 import { HAS_OPEN_ORDER, notify, notifyRequestTo } from '../lifecycle/service.js';
 import { publishChange, publishChanges } from '../../services/liveUpdates.js';
 import { Point, roadRoute } from '../../services/roadRoutes.js';
+import { HttpError } from '../../utils/http.js';
+import { sanitizeText } from '../../utils/security.js';
 
 /// Each call lasts one minute, then the next call goes out by itself, even when offers already came (owner decision 2026-11-09)
 export const ROUND_SECONDS = 60;
@@ -326,3 +328,57 @@ export async function releaseChoice(db: Db, order: { id: string; client_id: stri
   await publishChange(db, order.lawyer_id, false, 'orders', order.id);
   return requestId;
 }
+
+const NOBODY_NEAR = 'مفيش محامي قريب منك دلوقتي، جرب تاني بعد شوية';
+
+export interface NewRequest {
+  serviceTitle: string;
+  problemType: string | null;
+  description: string;
+  lat: number;
+  lon: number;
+  address: string | null;
+}
+
+/// Saves a request and sends it to the nearest lawyers. «محاميك حالاً» and the field services both start here:
+/// [afterSaved] runs in the same transaction, so a field request and its details are saved together or not at all.
+/// The nearest lawyers are worked out before anything is locked, so the road answer holds nothing back
+export async function createServiceRequest(
+  userId: string,
+  input: NewRequest,
+  afterSaved?: (client: pg.PoolClient, saved: any) => Promise<void>
+): Promise<{ id: string }> {
+  const firstCall = await chooseNextCall({ id: NEW_REQUEST_ID, client_id: userId, client_latitude: input.lat, client_longitude: input.lon }, 1);
+
+  return withTransaction(async (client) => {
+    await client.query('SELECT id FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);
+
+    const open = await client.query(`SELECT * FROM service_requests WHERE client_id = $1 AND status = 'OPEN' LIMIT 1`, [userId]);
+    if (open.rows[0]) return { id: open.rows[0].id as string };
+
+    const openOrder = await client.query(`SELECT ${HAS_OPEN_ORDER('client_id', '$1')} AS open`, [userId]);
+    if (openOrder.rows[0].open) throw new HttpError(409, 'عندك طلب مفتوح بالفعل، كمله من صفحة الطلبات');
+
+    if (!firstCall) throw new HttpError(409, NOBODY_NEAR);
+    const range = await priceRangeFor(client, input.problemType);
+    const res = await client.query(
+      `INSERT INTO service_requests (
+         client_id, service_title, problem_type, problem_description, client_latitude, client_longitude, client_address,
+         min_price, max_price, commission_percent, tax_percent, round_deadline, round
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW() + make_interval(secs => $12), $13) RETURNING *`,
+      [
+        userId, sanitizeText(input.serviceTitle, 255), input.problemType, input.description,
+        input.lat, input.lon, input.address ? sanitizeText(input.address, 500) : null,
+        range.minPrice, range.maxPrice, range.commissionPercent, range.taxPercent, ROUND_SECONDS, firstCall.round,
+      ]
+    );
+    // Every picked lawyer got busy in the last moment: nothing is saved, and the client asks again
+    if (await deliverCall(client, res.rows[0], firstCall) === 0) throw new HttpError(409, NOBODY_NEAR);
+    if (afterSaved) await afterSaved(client, res.rows[0]);
+    return { id: res.rows[0].id as string };
+  });
+}
+
+/// Egypt's box, the same one every request is checked against
+export const inServiceArea = (lat: number, lon: number) =>
+  Number.isFinite(lat) && Number.isFinite(lon) && lat >= 22 && lat <= 31.8 && lon >= 24.5 && lon <= 37;

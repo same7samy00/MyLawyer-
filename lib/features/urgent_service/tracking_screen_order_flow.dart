@@ -50,25 +50,28 @@ extension _TrackingOrderFlow on _TrackingScreenState {
 
   /// الطلب يروح لأقرب المحامين، والعروض تظهر أول بأول
   Future<void> _sendRequest() async {
-    // الطلب بيروح لأقرب المحامين، فلازم مكان الموكل الحقيقي دلوقتي
-    final location = await LocationService.instance.checkAndRequestPermission(fresh: true);
+    // الطلب بيروح لأقرب المحامين، فلازم مكان الموكل الحقيقي دلوقتي. والطلب الميداني مكانه هو المكان المطلوب
+    final field = widget.field;
+    final location = field != null ? null : await LocationService.instance.checkAndRequestPermission(fresh: true);
     // «بحث جديد» بعد ما الطلب اتقفل بيبعت من نفس صفحة الانتظار
     if (!mounted || (_orderFlowStage != _OrderFlowStage.priceApproval && !_noOffers)) return;
-    final position = location.position;
+    final position = field?.position ?? location?.position;
     if (position == null) {
-      _showMessage(location.errorMessage ?? 'تعذر تحديد موقعك، حاول تاني');
+      _showMessage(location?.errorMessage ?? 'تعذر تحديد موقعك، حاول تاني');
       return;
     }
     _currentPosition = position;
 
-    final res = await RequestRepository.send(
-      serviceTitle: widget.problemTitle ?? 'محاميك حالاً - استشارة وحضور عاجل',
-      problemType: widget.problemTitle ?? 'استشارة وتمثيل فوري',
-      problemDescription: widget.problemDescription ?? 'طلب حضور عاجل واستشارة فورية من خلال خدمة محاميك حالاً',
-      clientLat: position.latitude,
-      clientLon: position.longitude,
-      clientAddress: _locationName,
-    );
+    final res = field != null
+        ? await FieldRepository.send(field)
+        : await RequestRepository.send(
+            serviceTitle: widget.problemTitle ?? 'محاميك حالاً - استشارة وحضور عاجل',
+            problemType: widget.problemTitle ?? 'استشارة وتمثيل فوري',
+            problemDescription: widget.problemDescription ?? 'طلب حضور عاجل واستشارة فورية من خلال خدمة محاميك حالاً',
+            clientLat: position.latitude,
+            clientLon: position.longitude,
+            clientAddress: _locationName,
+          );
     if (!mounted) return;
 
     final requestId = res.data;

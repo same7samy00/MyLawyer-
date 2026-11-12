@@ -4,14 +4,15 @@ import { CANCEL_MINUTES } from '../lifecycle/settlement.js';
 import { OPEN_ORDER_TICKET } from '../support/service.js';
 import { sanitizeText } from '../../utils/security.js';
 import { HttpError, UUID_PATTERN } from '../../utils/http.js';
-import { addClientCredit, addLawyerStrike, ARRIVAL_RADIUS_KM, HOLD_HOURS, isFakeLocation, LIVE_POSITION_SECONDS, MAX_REAL_SPEED_KMH, MOCK_LOCATION_ERROR, notify } from '../lifecycle/service.js';
+import { addClientCredit, addLawyerStrike, ARRIVAL_RADIUS_KM, isFakeLocation, LIVE_POSITION_SECONDS, MAX_REAL_SPEED_KMH, MOCK_LOCATION_ERROR, notify } from '../lifecycle/service.js';
 import { publishPosition } from '../../services/liveUpdates.js';
+import { fieldArrivalRule, markFieldArrival } from '../field/service.js';
 
 /// The lawyer may ask the client to confirm the arrival again only after this long
 const ASK_ARRIVAL_AGAIN_SECONDS = 60;
 /// A lawyer can keep at most this many postponed tasks
 const MAX_POSTPONED_TASKS = 2;
-import { distanceKm, lockOrder, AuthenticatedUser } from './shared.js';
+import { distanceKm, finishOrder, lockOrder, AuthenticatedUser } from './shared.js';
 
 /// Arrival, completion, cancellation and withdrawal
 export async function registerOrderProgress(fastify: FastifyInstance) {
@@ -42,11 +43,15 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
 
       // The arrival is the proof that the two really met: near where the client asked from, or near the last
       // point the client's phone shared on the way, however old, since a phone may stop sharing (owner decision 2026-11-06)
+      // A field order is judged by the area of its place (the client may be somewhere else), not by the client's phone
+      const field = await fieldArrivalRule(client, order.id);
       const distance = distanceKm(lat, lon, Number(order.client_latitude), Number(order.client_longitude));
-      const liveDistance = order.client_live_latitude != null
+      const liveDistance = order.client_live_latitude != null && !field
         ? distanceKm(lat, lon, Number(order.client_live_latitude), Number(order.client_live_longitude))
         : Infinity;
-      if (Math.min(distance, liveDistance) > ARRIVAL_RADIUS_KM) throw new HttpError(400, 'لازم تكون قريب من الموكل');
+      if (Math.min(distance, liveDistance) > (field?.radiusKm ?? ARRIVAL_RADIUS_KM)) {
+        throw new HttpError(400, field ? 'لازم تكون جوه المكان المطلوب' : 'لازم تكون قريب من الموكل');
+      }
 
       await client.query(
         `UPDATE service_orders SET arrived_at = NOW(), arrived_latitude = $1, arrived_longitude = $2 WHERE id = $3`,
@@ -57,7 +62,8 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
          VALUES ($1, $2, 'ACTIVE', 'ACTIVE', 'وصل المحامي إلى موقع الموكل')`,
         [order.id, userId]
       );
-      await notify(client, order.client_id, 'المحامي وصل', 'المحامي عند موقعك دلوقتي', order.id);
+      await markFieldArrival(client, order.id, 'area');
+      await notify(client, order.client_id, 'المحامي وصل', field ? 'المحامي وصل المكان المطلوب' : 'المحامي عند موقعك دلوقتي', order.id);
     });
 
     return reply.send({ success: true, message: 'تم تسجيل وصولك' });
@@ -77,7 +83,12 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
         throw new HttpError(409, 'بعتنا للموكل، استنى رده');
       }
       await client.query('UPDATE service_orders SET arrival_asked_at = NOW(), updated_at = NOW() WHERE id = $1', [order.id]);
-      await notify(client, order.client_id, 'المحامي بيقول إنه وصل', 'لو المحامي معاك دلوقتي، افتح الطلب وأكّد وصوله', order.id);
+      const field = await fieldArrivalRule(client, order.id);
+      await notify(
+        client, order.client_id, 'المحامي بيقول إنه وصل',
+        field?.forOther ? 'لو المحامي قدام الشخص دلوقتي، افتح الطلب وأكّد وصوله' : 'لو المحامي معاك دلوقتي، افتح الطلب وأكّد وصوله',
+        order.id
+      );
     });
 
     return reply.send({ success: true, message: 'بعتنا للموكل يأكد وصولك' });
@@ -103,6 +114,7 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
          VALUES ($1, $2, 'ACTIVE', 'ACTIVE', 'أكد الموكل وصول المحامي من عنده')`,
         [order.id, userId]
       );
+      await markFieldArrival(client, order.id, 'client');
       await notify(client, order.lawyer_id, 'الموكل أكد وصولك', 'كمل الشغل ودوس «إنهاء» أو «مؤجل»', order.id);
     });
 
@@ -229,23 +241,11 @@ export async function registerOrderProgress(fastify: FastifyInstance) {
       const openComplaint = await client.query(`SELECT ${OPEN_ORDER_TICKET('$1')} AS open`, [order.id]);
       if (openComplaint.rows[0].open) throw new HttpError(409, 'الطلب قيد مراجعة تذكرة من الإدارة');
 
-      const res = await client.query(
-        `UPDATE service_orders
-         SET status = 'COMPLETED', completed_at = NOW(), payout_status = 'HELD', payout_amount = lawyer_amount,
-             hold_until = NOW() + make_interval(hours => $2), updated_at = NOW()
-         WHERE id = $1 RETURNING hold_until`,
-        [order.id, HOLD_HOURS]
-      );
-
-      await client.query(
-        `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)
-         VALUES ($1, $2, $3, 'COMPLETED', 'أنهى المحامي المهمة بعد الالتقاء بالموكل')`,
-        [order.id, userId, order.status]
-      );
+      const completed = await finishOrder(client, order, userId, 'أنهى المحامي المهمة بعد الالتقاء بالموكل');
 
       await notify(client, order.client_id, 'انتهت المهمة', 'قيّم المحامي. ولو فيه مشكلة افتح «عندك مشكلة؟»', order.id);
 
-      return { order, completed: res.rows[0] };
+      return { order, completed };
     });
 
     return reply.send({

@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { approximateCoordinate } from '../lifecycle/service.js';
+import { approximateCoordinate, HOLD_HOURS } from '../lifecycle/service.js';
 
 export type { AuthenticatedUser } from '../../utils/http.js';
 
@@ -66,4 +66,22 @@ export function visibleLocation(order: any, viewerId: string, role: string) {
     lawyerLatitude: isLawyer ? (order.lawyer_latitude == null ? null : Number(order.lawyer_latitude)) : coarse(order.lawyer_latitude),
     lawyerLongitude: isLawyer ? (order.lawyer_longitude == null ? null : Number(order.lawyer_longitude)) : coarse(order.lawyer_longitude),
   };
+}
+
+/// The lawyer's fee is held for HOLD_HOURS after the task ends, and a ticket in that time freezes it.
+/// Ending a task by «إنهاء المهمة» and the field service's «الشخص رفض» both close it this way
+export async function finishOrder(db: pg.PoolClient, order: { id: string; status: string; client_id: string }, userId: string, note: string) {
+  const res = await db.query(
+    `UPDATE service_orders
+     SET status = 'COMPLETED', completed_at = NOW(), payout_status = 'HELD', payout_amount = lawyer_amount,
+         hold_until = NOW() + make_interval(hours => $2), updated_at = NOW()
+     WHERE id = $1 RETURNING hold_until`,
+    [order.id, HOLD_HOURS]
+  );
+  await db.query(
+    `INSERT INTO order_status_logs (order_id, changed_by_user_id, old_status, new_status, note)
+     VALUES ($1, $2, $3, 'COMPLETED', $4)`,
+    [order.id, userId, order.status, note]
+  );
+  return res.rows[0] as { hold_until: Date };
 }

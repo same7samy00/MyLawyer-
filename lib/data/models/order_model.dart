@@ -1,4 +1,5 @@
 import '../../core/services/api_service.dart';
+import 'field_info.dart';
 
 /// نموذج بيانات الطلب القانوني في المنصة
 class OrderModel {
@@ -59,6 +60,9 @@ class OrderModel {
   final DateTime? postponedUntil;
   final String? postponedReason;
 
+  /// تفاصيل الخدمة الميدانية (محضر، نيابة، جلسة...) لو الطلب منها
+  final FieldInfo? field;
+
   const OrderModel({
     required this.id,
     required this.orderNumber,
@@ -110,6 +114,7 @@ class OrderModel {
     this.postponedAt,
     this.postponedUntil,
     this.postponedReason,
+    this.field,
   });
 
   /// الخادم يعيد الأرقام أحياناً كنصوص (نوع numeric في PostgreSQL)
@@ -177,6 +182,7 @@ class OrderModel {
       postponedAt: _toDate(json['postponedAt'] ?? json['postponed_at']),
       postponedUntil: _toDate(json['postponedUntil'] ?? json['postponed_until']),
       postponedReason: json['postponedReason']?.toString() ?? json['postponed_reason']?.toString(),
+      field: FieldInfo.fromJson(json['field']),
     );
   }
 

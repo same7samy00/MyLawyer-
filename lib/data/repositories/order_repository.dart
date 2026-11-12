@@ -34,9 +34,15 @@ class OrderRepository {
   // الأرقام والإيميل والمكان الدقيق ما بيتحفظوش على الموبايل
   static const _privateFields = ['clientPhone', 'lawyerPhone', 'clientEmail', 'clientAddress', 'clientLatitude', 'clientLongitude', 'lawyerLatitude', 'lawyerLongitude'];
 
+  /// كود الشخص واسمه وصلته في الطلب الميداني كمان
+  static const _privateFieldParts = ['code', 'personName', 'relation'];
+
   static Object? _withoutPrivate(Object? item) {
     if (item is! Map<String, dynamic>) return item;
-    return {...item}..removeWhere((key, _) => _privateFields.contains(key));
+    final clean = {...item}..removeWhere((key, _) => _privateFields.contains(key));
+    final field = clean['field'];
+    if (field is Map<String, dynamic>) clean['field'] = {...field}..removeWhere((key, _) => _privateFieldParts.contains(key));
+    return clean;
   }
 
   /// آخر طلبات اتعرضت، لحد ما الطلب الجديد من السيرفر يوصل

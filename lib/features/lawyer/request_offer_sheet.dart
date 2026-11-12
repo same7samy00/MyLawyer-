@@ -10,6 +10,7 @@ import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/app_switcher.dart';
 import '../../core/widgets/request_parts.dart';
 import '../../core/widgets/sheet_actions.dart';
+import '../../data/models/field_info.dart';
 import '../../data/models/service_request.dart';
 import '../../data/repositories/request_repository.dart';
 
@@ -129,7 +130,12 @@ class _RequestOfferSheetState extends State<RequestOfferSheet> {
         child: Column(
           children: [
             RequestInfoRow(icon: Icons.shield_rounded, label: 'الخدمة', value: _request.service),
-            RequestInfoRow(icon: Icons.policy_rounded, label: 'المشكلة', value: _request.problemType),
+            if (_request.field == null)
+              RequestInfoRow(icon: Icons.policy_rounded, label: 'المشكلة', value: _request.problemType)
+            else ...[
+              RequestInfoRow(icon: Icons.group_rounded, label: 'الطلب لـ', value: _request.field!.forOther ? (_request.field!.detained ? 'شخص تاني محبوس أو محتجز' : 'شخص تاني') : 'الموكل نفسه'),
+              RequestInfoRow(icon: Icons.apartment_rounded, label: 'المكان', value: FieldInfo.kindLabel(_request.field!.placeKind)),
+            ],
             if (_request.problemDescription.isNotEmpty)
               RequestInfoRow(icon: Icons.notes_rounded, label: 'التفاصيل', value: _request.problemDescription),
             RequestInfoRow(icon: Icons.location_on_rounded, label: 'العنوان', value: _request.area ?? 'غير محدد'),

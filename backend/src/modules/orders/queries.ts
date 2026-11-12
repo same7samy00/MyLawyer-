@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { query } from '../../database/index.js';
 import { REVIEW_WINDOW_DAYS } from '../lifecycle/service.js';
 import { OPEN_ORDER_TICKET } from '../support/service.js';
+import { FIELD_COLUMNS, FIELD_JOIN, fieldView } from '../field/service.js';
 import { hideLiveColumns, livePosition, PAID_STATUSES, paySecondsLeft, visibleLocation, AuthenticatedUser } from './shared.js';
 
 // Building a date format is slow, and this list is read on every refresh
@@ -35,8 +36,10 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
              (SELECT st.id FROM support_tickets st WHERE st.order_id = o.id AND st.user_id = $1 AND st.status <> 'CLOSED' LIMIT 1) as open_ticket_id,
              ${OPEN_ORDER_TICKET('o.id')} as has_open_complaint,
              EXISTS (SELECT 1 FROM reviews r WHERE r.order_id = o.id AND r.edited = FALSE
-                     AND o.completed_at > NOW() - make_interval(days => ${REVIEW_WINDOW_DAYS})) as review_editable
+                     AND o.completed_at > NOW() - make_interval(days => ${REVIEW_WINDOW_DAYS})) as review_editable,
+             ${FIELD_COLUMNS}
       FROM service_orders o
+      ${FIELD_JOIN}
       JOIN users u_client ON o.client_id = u_client.id
       JOIN users u_lawyer ON o.lawyer_id = u_lawyer.id
       JOIN lawyer_profiles lp ON u_lawyer.id = lp.user_id
@@ -133,6 +136,8 @@ export async function registerOrderQueries(fastify: FastifyInstance) {
         openTicketId: o.open_ticket_id,
         hasOpenComplaint: o.has_open_complaint,
         canEditReview: o.review_editable,
+        // Set only for the field services (police report, prosecution, hearing...)
+        field: fieldView(o, role),
       };
     });
 

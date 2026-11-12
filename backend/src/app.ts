@@ -15,6 +15,7 @@ import { consultationRoutes } from './modules/consultations/routes.js';
 import { lawyerRoutes } from './modules/lawyers/routes.js';
 import { orderRoutes } from './modules/orders/routes.js';
 import { requestRoutes } from './modules/requests/routes.js';
+import { fieldRoutes } from './modules/field/routes.js';
 import { roadRouteRoutes } from './modules/routes/routes.js';
 import { closeAllLines, openLine } from './services/liveUpdates.js';
 import { requireAuth } from './utils/http.js';
@@ -209,6 +210,7 @@ export function buildApp() {
     api.register(lawyerRoutes, { prefix: '/lawyers' });
     api.register(orderRoutes, { prefix: '/orders' });
     api.register(requestRoutes, { prefix: '/requests' });
+    api.register(fieldRoutes, { prefix: '/field' });
     api.register(roadRouteRoutes, { prefix: '/routes' });
     api.register(adminRoutes, { prefix: '/admin' });
     api.register(notificationRoutes, { prefix: '/notifications' });
