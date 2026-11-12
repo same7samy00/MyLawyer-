@@ -13,7 +13,6 @@ import '../../core/services/app_visibility.dart';
 import '../../core/services/geo_naming_service.dart';
 import '../../core/services/live_updates.dart';
 import '../../core/services/location_service.dart';
-import '../../core/services/map_lawyer_loader.dart';
 import '../../core/services/routing_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_dialog.dart';
@@ -34,6 +33,7 @@ import '../../data/models/field_info.dart';
 import '../../data/models/map_lawyer.dart';
 import '../../data/models/service_request.dart';
 import '../../data/repositories/field_repository.dart';
+import '../../data/repositories/lawyer_repository.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/request_repository.dart';
 import '../client/legal_services.dart';
@@ -86,7 +86,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   static const double _cardWidth = 195.0;
   static const double _cardHeight = 53.0;
   /// قايمة «المحامين القريبين منك» بحد أقصى العدد ده
-  static const int _nearbyCount = 100;
 
   /// قايمة القريبين بتظهر 20 بس، و«المزيد» بيزوّد 20
   String? _lawyersError;
@@ -134,11 +133,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
   /// الموكل لمس كارت محامي وبيتفرج على ملفه
   bool _isViewingLawyer = false;
   double _mapZoom = appMapStartZoom;
-  /// محامين الخريطة من المربعات الجاهزة، وقايمة «القريبين منك» بتتحسب منهم على الموبايل
-  late final MapLawyerLoader _mapLawyers = MapLawyerLoader(onChanged: () {
-    if (mounted) setState(_refreshNearby);
-  },);
-
   @override
   void initState() {
     super.initState();
@@ -164,7 +158,6 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
     _roundEndTimer?.cancel();
     _followedRequestId = null;
     LiveUpdates.changes.removeListener(_checkRequest);
-    _mapLawyers.dispose();
     _stageTimer?.cancel();
     _cameraAnimController?.dispose();
     _sheetHeightNotifier.dispose();
@@ -251,7 +244,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                   ],
                 ),
 
-              // بعيد عدد في كل منطقة، وفي النص دبابيس صغيرة، وقريب كروت (MapLawyerLoader)
+              // المحامين المتاحين دلوقتي حوالين الموكل، لحظيًا من السيرفر
               if (_orderFlowStage == _OrderFlowStage.idle) LawyerPinsLayer(lawyers: _pinLawyers, selectedId: _selectedLawyer?.id),
 
               MarkerLayer(

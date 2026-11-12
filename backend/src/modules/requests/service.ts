@@ -1,5 +1,6 @@
 import pg from 'pg';
-import { Db, dbPool, withTransaction } from '../../database/index.js';
+import { Db, dbPool, readQuery, withTransaction } from '../../database/index.js';
+import { publicPoint } from '../lawyers/showcase.js';
 import { HAS_OPEN_ORDER, notify, notifyRequestTo } from '../lifecycle/service.js';
 import { publishChange, publishChanges } from '../../services/liveUpdates.js';
 import { Point, roadRoute } from '../../services/roadRoutes.js';
@@ -122,6 +123,42 @@ async function inReach(db: Db, request: any, radius: number, skipAsked: boolean,
     [lat, lon, request.id, radius, except, request.client_id]
   );
   return res.rows.map((row: any) => ({ id: row.id, distance_km: Number(row.distance_km), latitude: Number(row.latitude), longitude: Number(row.longitude) }));
+}
+
+/// The lawyers a request sent from here could reach right now, nearest first, for the list before sending.
+/// The same rules as the calls (can work, place sent in the last minutes, inside 50 km, review accounts apart),
+/// read live and not from the showcase copy, so a lawyer who just turned available shows at once.
+/// Each lawyer's spot is the public one, never the exact place
+export async function availableNear(lat: number, lon: number, clientId: string, limit = 30) {
+  const res = await readQuery(
+    `SELECT * FROM (
+       SELECT u.id, lp.full_name, lp.profile_photo_path, lp.rating, lp.reviews_count, lp.experience_years,
+         lp.latitude::float8 AS latitude, lp.longitude::float8 AS longitude,
+         6371.0 * acos(least(1.0::float8, greatest(-1.0::float8,
+         cos(radians($1::float8)) * cos(radians(lp.latitude::float8)) *
+         cos(radians(lp.longitude::float8) - radians($2::float8)) +
+         sin(radians($1::float8)) * sin(radians(lp.latitude::float8))))) AS distance_km
+       FROM lawyer_profiles lp JOIN users u ON u.id = lp.user_id
+       WHERE ${LAWYER_CAN_WORK('lp', 'u')} AND lp.latitude IS NOT NULL AND lp.longitude IS NOT NULL
+         AND GREATEST(lp.last_location_updated_at, lp.last_active_at) > NOW() - make_interval(mins => ${FRESH_MINUTES})
+         -- Google's review accounts only meet each other, never a real client or lawyer
+         AND u.is_review_account = (SELECT c.is_review_account FROM users c WHERE c.id = $3)
+       ORDER BY point((lp.longitude::float8) * ${LON_SCALE}, lp.latitude::float8) <-> point($2::float8 * ${LON_SCALE}, $1::float8)
+       LIMIT ${limit}
+     ) nearest
+     WHERE distance_km <= $4::float8
+     ORDER BY distance_km ASC`,
+    [lat, lon, clientId, ROUND_RADII_KM[ROUND_RADII_KM.length - 1]]
+  );
+  return res.rows.map((row: any) => ({
+    id: row.id,
+    name: row.full_name,
+    rating: Number(row.rating) || 0,
+    reviewsCount: Number(row.reviews_count) || 0,
+    experienceYears: Number(row.experience_years) || 0,
+    avatar: row.profile_photo_path || null,
+    coordinates: publicPoint(row.id, Number(row.latitude), Number(row.longitude)),
+  }));
 }
 
 /// The really nearest out of more than are needed: by road time with the traffic now, and a lawyer who answers

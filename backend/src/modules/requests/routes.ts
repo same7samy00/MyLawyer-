@@ -4,7 +4,7 @@ import { sanitizeText } from '../../utils/security.js';
 import { publishChange } from '../../services/liveUpdates.js';
 import { AuthenticatedUser, HttpError, requireAuth, UUID_PATTERN } from '../../utils/http.js';
 import { lawyerHasOpenOrder, lawyerShare, LAWYER_RESPONSE_SECONDS, notify, PAYMENT_MINUTES } from '../lifecycle/service.js';
-import { callsEnd, chooseEnd, createServiceRequest, inServiceArea, LAWYER_CAN_WORK, LIVE_OFFERS, chooseRound, deliverCall, priceRangeFor, ROUND_SECONDS } from './service.js';
+import { availableNear, callsEnd, chooseEnd, createServiceRequest, inServiceArea, LAWYER_CAN_WORK, LIVE_OFFERS, chooseRound, deliverCall, priceRangeFor, ROUND_SECONDS } from './service.js';
 import { readOnAction } from '../notifications/readOnAction.js';
 import { roadRoute } from '../../services/roadRoutes.js';
 import { governorateOf } from '../orders/shared.js';
@@ -28,6 +28,18 @@ export async function requestRoutes(fastify: FastifyInstance) {
     const { problemType } = request.query as { problemType?: string };
     const range = await priceRangeFor(dbPool, problemType ? sanitizeText(problemType, 100) : null);
     return reply.send({ success: true, data: { minPrice: range.minPrice, maxPrice: range.maxPrice } });
+  });
+
+  // GET /requests/nearby?lat=&lon= - the lawyers a request from here would reach right now, for the list before
+  // sending. Live, never kept by Nginx or the phone; the showcase map is the copy that waits hours
+  fastify.get('/nearby', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { userId } = request.user as AuthenticatedUser;
+    const { lat, lon } = request.query as { lat?: string; lon?: string };
+    const latitude = Number(lat);
+    const longitude = Number(lon);
+    if (!lat || !lon || !inServiceArea(latitude, longitude)) throw new HttpError(400, 'تعذر تحديد موقعك، حاول تاني');
+    reply.header('Cache-Control', 'no-store');
+    return reply.send({ success: true, data: await availableNear(latitude, longitude, userId) });
   });
 
   // The client sends one request, and the nearest lawyers receive it together

@@ -180,15 +180,20 @@ extension _TrackingMapControls on _TrackingScreenState {
 
     if (!mounted) return;
 
-    final loaded = await _mapLawyers.loadAround(centerLatLng);
+    // المتاحين فعلًا دلوقتي، مش نسخة الخريطة الترويجية المحفوظة ساعات
+    final res = await LawyerRepository.getAvailableNear(centerLatLng.latitude, centerLatLng.longitude);
     if (!mounted) return;
 
-    final lawyers = _mapLawyers.nearest(centerLatLng, count: _TrackingScreenState._nearbyCount);
+    const distance = Distance();
+    final lawyers = [
+      for (final model in res.data ?? const [])
+        MapLawyer.fromModel(model).withDistance(distance(centerLatLng, LatLng(model.latitude, model.longitude))),
+    ];
 
     _update(() {
       _nearbyLawyers = lawyers;
       _isLoading = false;
-      _lawyersError = loaded || lawyers.isNotEmpty ? null : 'تعذر البحث عن المحامين';
+      _lawyersError = res.success ? null : 'تعذر البحث عن المحامين';
     });
 
     if (lawyers.isNotEmpty) {
@@ -207,19 +212,6 @@ extension _TrackingMapControls on _TrackingScreenState {
         _mapZoom = camera.zoom;
       });
     }
-    if (_orderFlowStage == _OrderFlowStage.idle) _mapLawyers.cameraMoved(camera);
-  }
-
-  /// قايمة «القريبين منك» من محامين المربعات اللي على الموبايل، من غير ما نسأل السيرفر.
-  /// المربعات بتتجدد لما الخريطة تتحرك لمنطقة جديدة أو يعدّي عليها 5 دقايق.
-  void _refreshNearby() {
-    if (_orderFlowStage != _OrderFlowStage.idle || _isLoading) return;
-    final lawyers = _mapLawyers.nearest(_searchCenter, count: _TrackingScreenState._nearbyCount);
-    // المحامي المختار يفضل ظاهر حتى لو المنطقة الحالية بعيدة عنه
-    final selected = _selectedLawyer;
-    if (selected != null && !lawyers.any((lawyer) => lawyer.id == selected.id)) lawyers.add(selected);
-    _nearbyLawyers = lawyers;
-    _lawyersError = null;
   }
 
   /// أقرب محامي لموقع الموكل، والقائمة نفسها ممكن تكون لمنطقة تانية على الخريطة
@@ -241,13 +233,10 @@ extension _TrackingMapControls on _TrackingScreenState {
         (lawyer) => const Distance().as(LengthUnit.Meter, _searchCenter, lawyer.position) < 40,
       );
 
-  /// قبل الطلب كل المحامين دبابيس (`LawyerPinsLayer`): محامين الخريطة حسب القرب، والقريبين، والمختار
+  /// قبل الطلب كل المحامين دبابيس (`LawyerPinsLayer`): المتاحين القريبين، والمختار
   List<MapLawyer> get _pinLawyers {
     final selected = _selectedLawyer;
-    final all = {for (final lawyer in _mapLawyers.lawyers) lawyer.id: lawyer};
-    for (final lawyer in _nearbyLawyers) {
-      all.putIfAbsent(lawyer.id, () => lawyer);
-    }
+    final all = {for (final lawyer in _nearbyLawyers) lawyer.id: lawyer};
     if (selected != null) all[selected.id] = selected;
     return all.values.toList();
   }

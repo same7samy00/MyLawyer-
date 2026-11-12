@@ -58,6 +58,37 @@ describe('الخط المفتوح', () => {
   });
 });
 
+describe('المحامين القريبين قبل الطلب', () => {
+  const nearby = async (lat = 30.05) => call('GET', `/requests/nearby?lat=${lat}&lon=31.25`, clientToken);
+
+  it('محامي فتح «متاح» يظهر على طول، ولو قفله يختفي على طول، من غير مكانه بالظبط', async () => {
+    const fresh = await otherLawyer();
+    const res = await nearby();
+    assert.equal(res.status, 200, JSON.stringify(res.body));
+    const raw = await app.inject({ method: 'GET', url: '/api/v1/requests/nearby?lat=30.05&lon=31.25', headers: { authorization: `Bearer ${clientToken}` } });
+    assert.equal(raw.headers['cache-control'], 'no-store');
+    const card = res.body.data.find((item: any) => item.id === fresh.id);
+    assert.ok(card, 'المحامي الجديد ظاهر في نفس اللحظة');
+    assert.notDeepEqual(card.coordinates, [30.06, 31.25]);
+
+    await sql('UPDATE lawyer_profiles SET is_available = FALSE WHERE user_id = $1', [fresh.id]);
+    assert.ok(!(await nearby()).body.data.some((item: any) => item.id === fresh.id));
+    await removeLawyer(fresh.id);
+  });
+
+  it('أبعد من 50 كم، أو موقع قديم، أو مكان بره مصر', async () => {
+    const far = await otherLawyer(30.6);
+    const stale = await otherLawyer();
+    await sql(`UPDATE lawyer_profiles SET last_location_updated_at = NOW() - INTERVAL '1 hour', last_active_at = NOW() - INTERVAL '1 hour' WHERE user_id = $1`, [stale.id]);
+    const ids = (await nearby()).body.data.map((item: any) => item.id);
+    assert.ok(!ids.includes(far.id));
+    assert.ok(!ids.includes(stale.id));
+    assert.equal((await nearby(10)).status, 400);
+    await removeLawyer(far.id);
+    await removeLawyer(stale.id);
+  });
+});
+
 describe('الطلب وعروض الأسعار', () => {
   it('الاستقبال للحالي بس: المختار لحد الدفع، واللي ما اتختارش يختفي', async () => {
     const other = await otherLawyer();

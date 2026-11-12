@@ -63,6 +63,25 @@ class LawyerRepository {
     );
   }
 
+  /// المحامين اللي الطلب هيوصلهم لو اتبعت من هنا دلوقتي: متاحين وقريبين، لحظيًا من غير أي نسخة محفوظة.
+  /// ده لشاشة طلب الخدمة، والخريطة الترويجية بتاخد من [getMapCells]
+  static Future<ApiResponse<List<LawyerModel>>> getAvailableNear(double lat, double lon) async {
+    final res = await ApiService.get('/requests/nearby', queryParams: {'lat': '$lat', 'lon': '$lon'});
+    if (res.isOk && res.data is List) {
+      return ApiResponse<List<LawyerModel>>(
+        success: true,
+        statusCode: res.statusCode,
+        data: [for (final item in res.data as List) LawyerModel.fromJson(item as Map<String, dynamic>)],
+      );
+    }
+    return ApiResponse<List<LawyerModel>>(
+      success: false,
+      statusCode: res.statusCode,
+      error: res.error ?? 'تعذر تحميل المحامين',
+      isConnectivityError: res.isConnectivityError,
+    );
+  }
+
   /// تحديث موقع وحالة المحامي اللحظية
   static Future<bool> updateLawyerLocation({
     required double lat,

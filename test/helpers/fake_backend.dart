@@ -91,6 +91,8 @@ class FakeBackend {
         });
       case 'GET /lawyers/top':
         return json(200, {'success': true, 'data': lawyers});
+      case 'GET /requests/nearby':
+        return json(200, {'success': true, 'data': lawyers});
       case 'GET /requests/range':
         return json(200, {'success': true, 'data': {'minPrice': 500, 'maxPrice': 1500}});
       case 'GET /requests/incoming':
