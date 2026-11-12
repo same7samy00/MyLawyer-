@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/services/geo_naming_service.dart';
+import '../../core/services/location_service.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/lawyer_availability_card.dart';
 import '../../core/widgets/lawyer_pin_illustration.dart';
@@ -46,21 +46,18 @@ class _LawyerHomeTabState extends State<LawyerHomeTab> {
   /// استخراج الموقع الجغرافي الحقيقي للمحامي دون نصوص وهمية
   Future<void> _resolveRealLocation() async {
     try {
-      final permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
-        final pos = await Geolocator.getLastKnownPosition();
-        if (pos != null) {
-          final realAddress = await GeoNamingService.instance.getCityAndGovernorate(
-            pos.latitude,
-            pos.longitude,
-          );
-          if (realAddress.isNotEmpty && mounted) {
-            setState(() {
-              _locationName = realAddress;
-            });
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('user_location_name', realAddress);
-          }
+      final pos = await LocationService.instance.positionIfAllowed();
+      if (pos != null) {
+        final realAddress = await GeoNamingService.instance.getCityAndGovernorate(
+          pos.latitude,
+          pos.longitude,
+        );
+        if (realAddress.isNotEmpty && mounted) {
+          setState(() {
+            _locationName = realAddress;
+          });
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_location_name', realAddress);
         }
       }
     } catch (e) {

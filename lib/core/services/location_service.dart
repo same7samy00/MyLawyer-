@@ -87,6 +87,27 @@ class LocationService {
     }
   }
 
+  /// Where the phone is, without asking for permission: the stored place first,
+  /// and a new reading when the phone has none yet (just restarted, or a new emulator).
+  /// Null when location is off, not allowed, or no reading came in time.
+  Future<Position?> positionIfAllowed() async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.always && permission != LocationPermission.whileInUse) return null;
+      if (!await Geolocator.isLocationServiceEnabled()) return null;
+      return await Geolocator.getLastKnownPosition() ??
+          await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 15),
+            ),
+          );
+    } catch (e) {
+      debugPrint('Location without prompt error: $e');
+      return null;
+    }
+  }
+
   /// Open device app settings
   Future<bool> openAppSettings() async {
     return Geolocator.openAppSettings();
