@@ -28,6 +28,9 @@ abstract class VoiceInput {
   Future<String> stop();
 
   Future<void> cancel();
+
+  /// علو صوت العميل دلوقتي من 0 لـ 1، عشان علامة التسجيل تتحرك على قد صوته
+  ValueListenable<double> get level;
 }
 
 /// التنفيذ الحقيقي: محرك التعرف على الكلام اللي في الموبايل نفسه (جوجل على أندرويد)، ببلاش.
@@ -41,6 +44,16 @@ class SpeechVoiceInput implements VoiceInput {
   String _partial = '';
   String _lastCommit = '';
   VoidCallback? _onFailure;
+  final ValueNotifier<double> _level = ValueNotifier(0);
+
+  @override
+  ValueListenable<double> get level => _level;
+
+  /// المحرك بيبعت العلو بالديسيبل تقريبًا من -2 لـ 10، وبنهدّيه شوية عشان العلامة ما ترعشش
+  void _onSound(double db) {
+    final now = ((db + 2) / 12).clamp(0.0, 1.0);
+    _level.value = _level.value * 0.45 + now * 0.55;
+  }
 
   /// أخطاء بتوقف التسجيل خالص، والباقي (مفيش كلام، انتهت المهلة) بيفتح السمع تاني
   static const _fatal = {'error_permission', 'error_network', 'error_server', 'error_language_not_supported', 'error_language_unavailable'};
@@ -71,6 +84,7 @@ class SpeechVoiceInput implements VoiceInput {
     if (!_wanted || _speech.isListening) return;
     await _speech.listen(
       onResult: _onResult,
+      onSoundLevelChange: _onSound,
       listenOptions: SpeechListenOptions(
         localeId: _localeId,
         listenFor: const Duration(minutes: 3),
@@ -126,6 +140,7 @@ class SpeechVoiceInput implements VoiceInput {
   @override
   Future<String> stop() async {
     _wanted = false;
+    _level.value = 0;
     await _speech.stop();
     // آخر نتيجة بتوصل بعد الإيقاف بلحظة
     await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -137,6 +152,7 @@ class SpeechVoiceInput implements VoiceInput {
   @override
   Future<void> cancel() async {
     _wanted = false;
+    _level.value = 0;
     _committed = '';
     _partial = '';
     await _speech.cancel();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:my_lawyer/features/client/mahamiho_bubble.dart';
 import 'package:my_lawyer/features/client/mahamiho_figure.dart';
 import 'package:my_lawyer/features/client/mahamiho_guide.dart';
 
@@ -10,43 +11,64 @@ Widget _host() => const MaterialApp(
       ),
     );
 
-final _cloudText = find.text(MahamihoGuide.hello);
-
 MahamihoMood _mood(WidgetTester tester) => tester.widget<MahamihoFigure>(find.byType(MahamihoFigure)).mood;
 
-/// مكان محاميحو والسحابة من تحت: لما بينطوا الاتنين بيطلعوا مع بعض
-double _figureBottom(WidgetTester tester) => tester.getRect(find.byType(MahamihoFigure)).bottom;
-double _cloudBottom(WidgetTester tester) => tester.getRect(_cloudText).bottom;
+/// اللي مكتوب في الفقاعة دلوقتي
+String _typed(WidgetTester tester) =>
+    tester.widget<Text>(find.descendant(of: find.byType(MahamihoBubble), matching: find.byType(Text))).data!.trim();
 
 void main() {
   setUp(MahamihoGuide.resetForTest);
 
-  testWidgets('بيظهر بنطة ويشاور، وهو والسحابة بينطوا مع بعض، ونص جسمه بس', (tester) async {
+  testWidgets('بيطلع من ورا الشريط مرة واحدة ويشاور، ونص جسمه بس', (tester) async {
     await tester.pumpWidget(_host());
     expect(find.byType(MahamihoFigure), findsNothing);
 
-    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pump(const Duration(milliseconds: 700));
     expect(_mood(tester), MahamihoMood.wave);
     expect(tester.widget<MahamihoFigure>(find.byType(MahamihoFigure)).halfBody, isTrue);
-    final restFigure = _figureBottom(tester);
-    final restCloud = _cloudBottom(tester);
+    // في الأول تحت الشريط، وبعد الطلعة مكانه ثابت ولازق في الشريط
+    final bottom = tester.getRect(find.byType(MahamihoRise)).bottom;
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(tester.getRect(find.byType(MahamihoFigure)).bottom, bottom);
 
-    // في نص النطة الاتنين أعلى بنفس المسافة
-    await tester.pump(const Duration(milliseconds: 250));
-    final lift = restFigure - _figureBottom(tester);
-    expect(lift, greaterThan(5));
-    expect(restCloud - _cloudBottom(tester), closeTo(lift, 0.5));
-
-    // بعد الحركة بيقف، والسحابة ظاهرة
+    // بعد الحركة بيقف، ومن غير ما يتحرك من مكانه
     await tester.pump(MahamihoMood.clip);
     expect(_mood(tester), MahamihoMood.idle);
-    expect(_cloudText, findsOneWidget);
+    expect(tester.getRect(find.byType(MahamihoFigure)).bottom, bottom);
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('كل شوية بينط ويعمل حركة: تمام، وبعدين بيفكّر، وبعدين بيشاور', (tester) async {
+  testWidgets('الفقاعة بتكتب الكلام حرف حرف وبعدين الجملة اللي بعدها', (tester) async {
     await tester.pumpWidget(_host());
-    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump(const Duration(milliseconds: 300));
+    // بتبدأ تكتب: جزء من أول جملة بس
+    await tester.pump(MahamihoBubble.typeEvery * 4);
+    final first = MahamihoGuide.hello.first;
+    expect(first.startsWith(_typed(tester)), isTrue);
+    expect(_typed(tester).length, lessThan(first.length));
+
+    // الجملة كاملة، وبعد ما تتمسح الجملة التانية بتتكتب
+    for (var i = 0; i < first.length; i++) {
+      await tester.pump(MahamihoBubble.typeEvery);
+    }
+    expect(_typed(tester), first);
+    await tester.pump(MahamihoBubble.holdFull);
+    for (var i = 0; i <= first.length; i++) {
+      await tester.pump(MahamihoBubble.eraseEvery);
+    }
+    await tester.pump(const Duration(milliseconds: 250));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(MahamihoBubble.typeEvery);
+    }
+    expect(MahamihoGuide.hello[1].startsWith(_typed(tester)), isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('كل شوية بيعمل حركة: تمام، وبعدين بيفكّر، وبعدين بيشاور', (tester) async {
+    await tester.pumpWidget(_host());
+    await tester.pump(const Duration(milliseconds: 700));
     await tester.pump(MahamihoMood.clip);
     expect(_mood(tester), MahamihoMood.idle);
 
@@ -62,6 +84,8 @@ void main() {
   testWidgets('لمسه بيفتح صفحة محاميحو', (tester) async {
     await tester.pumpWidget(_host());
     await tester.pump(const Duration(seconds: 2));
+    // يخلص طلعته الأول
+    await tester.pump(const Duration(milliseconds: 500));
 
     await tester.tap(find.byType(MahamihoFigure));
     await tester.pump();
@@ -70,18 +94,18 @@ void main() {
     expect(find.text('محضر شرطة'), findsOneWidget);
   });
 
-  testWidgets('على شاشة صغيرة بيفضل صغير وقاعد على الشريط، والسحابة جوه الشاشة', (tester) async {
+  testWidgets('على شاشة صغيرة بيفضل صغير وقاعد على الشريط، والفقاعة جوه الشاشة', (tester) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(_host());
-    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pump(const Duration(milliseconds: 700));
     await tester.pump(const Duration(seconds: 1));
     final box = tester.getRect(find.byType(MahamihoFigure));
     expect(box.width, lessThanOrEqualTo(120));
     expect(box.bottom, 640);
-    expect(tester.getRect(_cloudText).right, lessThanOrEqualTo(320));
+    expect(tester.getRect(find.byType(MahamihoBubble)).right, lessThanOrEqualTo(320));
     await tester.pumpWidget(const SizedBox());
   });
 }

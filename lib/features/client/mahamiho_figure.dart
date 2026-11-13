@@ -12,8 +12,8 @@ enum MahamihoMood {
 
   String get asset => 'assets/mahamiho/$file.webp';
 
-  /// مدة الحركة الواحدة (48 لقطة × 83 مللي ثانية)
-  static const Duration clip = Duration(milliseconds: 4000);
+  /// مدة الحركة الواحدة (48 لقطة × 55 مللي ثانية)
+  static const Duration clip = Duration(milliseconds: 2640);
 }
 
 /// محاميحو نفسه. [halfBody] بيقص من تحت بس (من الراس لحد الحزام)، ونص الجزء الظاهر من تحت بيختفي في أبيض.

@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/core/services/voice_input.dart';
 import 'package:my_lawyer/data/models/consultation.dart';
+import 'package:my_lawyer/features/client/mahamiho_bubble.dart';
 import 'package:my_lawyer/features/consultation/consultation_checkout_screen.dart';
 import 'package:my_lawyer/features/consultation/consultation_pages_screen.dart';
 import 'package:my_lawyer/features/consultation/mahamiho_request_screen.dart';
 import '../helpers/session_test_helpers.dart';
+
+/// كل اللي محاميحو بيقوله في الفقاعة دلوقتي (بيتكتب على مرات)
+String _says(WidgetTester tester) => tester.widget<MahamihoBubble>(find.byType(MahamihoBubble)).lines.join(' ');
 
 /// ميكروفون وهمي: بيرجّع الكلام اللي اتحدد من غير ما يلمس الموبايل
 class _FakeVoice implements VoiceInput {
@@ -26,6 +30,9 @@ class _FakeVoice implements VoiceInput {
 
   @override
   Future<void> cancel() async => started = false;
+
+  @override
+  final ValueNotifier<double> level = ValueNotifier(0);
 }
 
 const _story = 'اتفقت مع صاحب الشقة على الإيجار لمدة سنة، ودلوقتي عايز يطلعني قبل المدة من غير سبب';
@@ -67,15 +74,15 @@ void main() {
       await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.call, serviceTitle: ConsultationKind.call.serviceName, voice: voice)));
       await settleAsync(tester);
 
-      expect(find.text('أهلاً بيك! احكيلي محتاج إيه وأنا سامعك'), findsOneWidget);
+      expect(_says(tester), contains('احكيلي محتاج إيه'));
       await tester.tap(find.byIcon(Icons.mic_rounded).last);
       await settleAsync(tester);
       expect(voice.started, isTrue);
-      expect(find.text('بسمعك… خد وقتك'), findsOneWidget);
+      expect(_says(tester), contains('خد وقتك'));
 
       await tester.tap(find.byIcon(Icons.stop_rounded));
       await settleAsync(tester);
-      expect(find.text('فهمت طلبك'), findsOneWidget);
+      expect(_says(tester), 'فهمت طلبك');
       expect(find.text(_story), findsNothing);
 
       await tester.tap(find.text('متابعة للدفع'));
@@ -96,7 +103,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.stop_rounded));
       await settleAsync(tester);
 
-      expect(find.text('كمّل كلام شوية عشان أفهمك أحسن'), findsOneWidget);
+      expect(_says(tester), contains('عشان أفهمك أحسن'));
       expect(find.text('متابعة للدفع'), findsNothing);
     });
 
@@ -109,7 +116,7 @@ void main() {
       await settleAsync(tester);
 
       expect(find.byType(TextField), findsOneWidget);
-      expect(find.text('اكتبلي محتاج إيه وأنا هفهمك'), findsOneWidget);
+      expect(_says(tester), contains('اكتبلي محتاج إيه'));
     });
 
     testWidgets('التبديل بين الصوت والكتابة في أي وقت، والكتابة بتظهر للعميل', (tester) async {
@@ -126,11 +133,11 @@ void main() {
       await tester.pump();
       await tester.tap(find.text('أرسل لمحاميحو'));
       await tester.pump();
-      expect(find.text('فهمت طلبك'), findsOneWidget);
+      expect(_says(tester), 'فهمت طلبك');
 
       await tester.tap(find.text('صوت'));
       await settleAsync(tester);
-      expect(find.text('أهلاً بيك! احكيلي محتاج إيه وأنا سامعك'), findsOneWidget);
+      expect(_says(tester), contains('احكيلي محتاج إيه'));
     });
 
     testWidgets('اللي اتكتب لمحاميحو في الشات بيفتح وضع الكتابة جاهز', (tester) async {

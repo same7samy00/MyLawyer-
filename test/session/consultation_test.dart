@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:my_lawyer/features/client/mahamiho_bubble.dart';
 import 'package:my_lawyer/features/consultation/consultation_checkout_screen.dart';
 import 'package:my_lawyer/features/consultation/consultation_type_screen.dart';
 import 'package:my_lawyer/features/consultation/mahamiho_request_screen.dart';
@@ -45,7 +46,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.text('أرسل لمحاميحو'));
       await tester.pump();
-      expect(find.text('فهمت طلبك'), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is MahamihoBubble && w.lines.join(' ') == 'فهمت طلبك'), findsOneWidget);
       await tester.tap(find.text('متابعة للدفع'));
       await tester.pump(const Duration(seconds: 2));
       await settleAsync(tester);

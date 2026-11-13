@@ -7,11 +7,11 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/mahamiho_voice.dart';
 import '../../core/services/voice_input.dart';
 import '../../core/widgets/app_button.dart';
-import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/consultation.dart';
 import '../../data/repositories/consultation_repository.dart';
+import '../client/mahamiho_bubble.dart';
 import '../client/mahamiho_figure.dart';
 import 'consultation_evaluating_screen.dart';
 import 'consultation_pages_screen.dart';
@@ -57,7 +57,7 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
   _Stage _stage = _Stage.ready;
   int _seconds = 0;
   String _spoken = '';
-  String _caption = '';
+  List<String> _caption = const [];
   bool _busy = false;
 
   @override
@@ -89,17 +89,18 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
     if (mounted) setState(() => _settings = settings);
   }
 
-  static const Map<String, String> _lines = {
-    'welcome_voice': 'أهلاً بيك! احكيلي محتاج إيه وأنا سامعك',
-    'welcome_text': 'اكتبلي محتاج إيه وأنا هفهمك',
-    'listening': 'بسمعك… خد وقتك',
-    'understood': 'فهمت طلبك',
-    'short': 'كمّل كلام شوية عشان أفهمك أحسن',
+  /// كلام محاميحو في الفقاعة على مرات، كل جزء بيتكتب لوحده
+  static const Map<String, List<String>> _lines = {
+    'welcome_voice': ['أهلاً بيك، أنا محاميحو', 'احكيلي محتاج إيه', 'وأنا سامعك'],
+    'welcome_text': ['أهلاً بيك، أنا محاميحو', 'اكتبلي محتاج إيه', 'وأنا هفهمك'],
+    'listening': ['بسمعك…', 'خد وقتك'],
+    'understood': ['فهمت طلبك'],
+    'short': ['كمّل كلام شوية', 'عشان أفهمك أحسن'],
   };
 
-  /// جملة مكتوبة، وبتتسمع لو ملفها الصوتي موجود
+  /// كلام في الفقاعة، وبيتسمع لو ملفه الصوتي موجود
   void _say(String line) {
-    setState(() => _caption = _lines[line] ?? '');
+    setState(() => _caption = _lines[line] ?? const []);
     MahamihoVoice.say(line);
   }
 
@@ -257,8 +258,23 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
                       Text('الخدمة متوقفة دلوقتي\nجرب بعد شوية', textAlign: TextAlign.center, style: consultationText(13, FontWeight.w700, AppColors.danger, height: 1.5)),
                       const SizedBox(height: 10),
                     ],
-                    RepaintBoundary(child: MahamihoFigure(mood: _mood, width: _figureWidth)),
-                    _bubble(),
+                    // محاميحو بيطلع من ورا الحافة مرة واحدة، والفقاعة جنبه بتكتب الكلام على مرات
+                    Row(
+                      textDirection: TextDirection.ltr,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        RepaintBoundary(child: MahamihoRise(child: MahamihoFigure(mood: _mood, width: _figureWidth))),
+                        Transform.translate(
+                          offset: Offset(-_figureWidth * 0.12, 0),
+                          child: Padding(
+                            padding: EdgeInsets.only(bottom: _figureWidth * MahamihoFigure.ratio * 0.62),
+                            child: MahamihoBubble(lines: _caption, delay: const Duration(milliseconds: 300)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
                     if (understood) ..._understoodBody() else if (_byVoice) ..._voiceBody() else ..._textBody(),
                   ],
                 ),
@@ -306,22 +322,6 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
   }
 
   /// كلام محاميحو: مكتوب، ومعاه صوت لو الجملة مسجلة
-  Widget _bubble() {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 330),
-      margin: const EdgeInsets.only(top: 2),
-      child: CustomPaint(
-        painter: const DashedRRectPainter(borderRadius: 16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(7.0)),
-          child: Text(_caption, textAlign: TextAlign.center, style: consultationText(16, FontWeight.w700, AppColors.dark, height: 1.5)),
-        ),
-      ),
-    );
-  }
-
   List<Widget> _voiceBody() {
     final listening = _stage == _Stage.listening;
     final minutes = (_seconds ~/ 60).toString();
@@ -360,17 +360,19 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
   Widget _waves() {
     return SizedBox(
       height: 54,
+      // الأعمدة بتعلى على قد صوت العميل، ومن غير كلام بتفضل واطية وبتتهز خفيف
       child: AnimatedBuilder(
-        animation: _wave,
+        animation: Listenable.merge([_wave, _voice.level]),
         builder: (_, __) => Row(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           textDirection: TextDirection.ltr,
           children: [
             for (var i = 0; i < 11; i++)
-              Container(
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 90),
                 width: 6,
-                height: 10 + 40 * (0.5 + 0.5 * math.sin(_wave.value * 2 * math.pi + i * 0.8)).abs(),
+                height: 8 + 44 * math.max(0.08, _voice.level.value) * (0.55 + 0.45 * math.sin(_wave.value * 2 * math.pi + i * 0.8).abs()),
                 margin: const EdgeInsets.symmetric(horizontal: 3),
                 decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(3.0)),
               ),
