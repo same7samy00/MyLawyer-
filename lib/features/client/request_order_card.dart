@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/widgets/order_card.dart';
 import '../../data/models/service_request.dart';
+import 'legal_services.dart';
 
 /// كارت طلب «محاميك حالاً» لسه ما اتختارش فيه محامي: بيدوّر على محامين، أو وصلته عروض، أو اتقفل من غير اختيار.
-/// لما يتختار محامي الطلب بيكمل بنفس الكارت في المرحلة اللي بعدها
+/// لما يتختار محامي الطلب بيكمل بنفس الكارت في المرحلة اللي بعدها: نفس اسم الخدمة ونفس الأيقونة (`OrderSummaryCard`)
 class RequestOrderCard extends StatelessWidget {
   final MyRequest request;
   final VoidCallback? onOpen;
@@ -14,8 +15,8 @@ class RequestOrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isOpen = request.isOpen;
     return OrderCard(
-      title: request.problemType,
-      serviceIcon: Icons.location_on_rounded,
+      title: LegalService.titleFor(request.problemType),
+      serviceIcon: LegalService.iconFor(request.problemType),
       // الطلب بياخد رقم لما يتختار محامي
       number: isOpen ? 'جديد' : 'من غير محامي',
       time: request.createdAt,

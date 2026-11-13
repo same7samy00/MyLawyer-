@@ -842,7 +842,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('ML-ORD-100001'), findsOneWidget);
-      expect(find.text('محضر في قسم الشرطة'), findsAtLeastNWidgets(1));
+      // اسم الخدمة وأيقونتها زي ما الموكل شافهم وهو بيطلب، في كل مراحل الطلب
+      expect(find.text('محضر شرطة'), findsAtLeastNWidgets(1));
+      expect(find.byIcon(Icons.local_police_rounded), findsAtLeastNWidgets(1));
       // الكارت مختصر: اسم الخدمة والرقم والتاريخ والحالة بس، والباقي في صفحة التفاصيل
       expect(find.textContaining('الموكل: 01099990000'), findsNothing);
       expect(find.textContaining('350 ج.م'), findsNothing);

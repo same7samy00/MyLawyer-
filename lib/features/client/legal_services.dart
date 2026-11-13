@@ -59,6 +59,14 @@ class LegalService {
     return (problem == null || problem.trim().isEmpty) ? 'طلب محامي' : problem;
   }
 
+  /// أيقونة الخدمة من اسم المشكلة اللي بيتبعت للسيرفر، عشان الطلب يفضل بنفس الأيقونة في كل مراحله
+  static IconData iconFor(String? problem) {
+    for (final service in all) {
+      if (service.urgentProblem != null && service.urgentProblem == problem) return service.icon;
+    }
+    return Icons.location_on_rounded;
+  }
+
   /// أول خدمة كلامها موجود في النص، أو null
   static LegalService? guess(String text) {
     for (final service in all) {

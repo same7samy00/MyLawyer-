@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models/order_model.dart';
+import '../../features/client/legal_services.dart';
 import 'order_card.dart';
 
 /// لون حالة الطلب: خلص، أو اتقفل، أو مطلوب من الموكل يدفع بوقت، أو ماشي
@@ -20,7 +21,8 @@ IconData orderStatusIcon(OrderModel order, {required bool isLawyer}) {
   return order.arrivedAt == null ? Icons.navigation_rounded : Icons.verified_user_rounded;
 }
 
-/// كارت الطلب بعد اختيار المحامي في صفحة الطلبات، والإجراءات كلها في صفحة التفاصيل
+/// كارت الطلب بعد اختيار المحامي في صفحة الطلبات، والإجراءات كلها في صفحة التفاصيل.
+/// اسم الخدمة وأيقونتها زي كارته قبل اختيار المحامي (`RequestOrderCard`)، فالطلب الواحد شكله واحد في كل مراحله
 class OrderSummaryCard extends StatelessWidget {
   final OrderModel order;
   final bool isLawyer;
@@ -36,8 +38,8 @@ class OrderSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OrderCard(
-      title: order.problemType ?? order.serviceTitle,
-      serviceIcon: Icons.location_on_rounded,
+      title: LegalService.titleFor(order.problemType ?? order.serviceTitle),
+      serviceIcon: LegalService.iconFor(order.problemType),
       number: order.orderNumber,
       time: DateTime.tryParse(order.createdAt)?.toLocal(),
       status: (isLawyer ? order.lawyerStatusLabel : null) ?? order.statusLabel,
