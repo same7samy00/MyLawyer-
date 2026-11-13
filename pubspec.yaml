@@ -1,7 +1,7 @@
 name: my_lawyer
 description: "My Lawyer - Legal Platform & Services"
 publish_to: 'none'
-version: 1.0.0+4
+version: 1.0.0+5
 
 environment:
   sdk: ^3.5.3
