@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 
 import '../constants/app_colors.dart';
 import 'app_card.dart';
+import 'app_header.dart';
 import 'app_skeleton.dart';
 
 /// رأس موحد لكل البوتن شيت: خط السحب في النص، وتحته العنوان، وتحته خط فاصل متقطع.
@@ -78,11 +79,17 @@ class AppSheetHeader extends StatelessWidget {
   }
 }
 
-/// البوتن شيت الموحد: طوله على قد محتواه على أي موبايل.
-/// لو المحتوى أطول من الشاشة أو الكيبورد فتح، الجزء الزيادة بس هو اللي يتحرك جواه
+/// المحتوى الموحد للنوافذ: عنوان، ومحتوى، وأزرار.
+/// [AppSheet.show] بيفتحه **صفحة كاملة** بالهيدر وزرار الرجوع والأزرار في آخر الصفحة (قرار صاحب المشروع 2026-11-13).
+/// [AppSheet.showModal] بيفتحه نافذة سفلية، ودي لتأكيد تسجيل الخروج بس. شيتات الخريطة ثابتة ومش بتستخدم الاتنين
 class AppSheet extends StatelessWidget {
   final String title;
   final List<Widget> children;
+
+  /// الأزرار: في الصفحة بتتثبت في آخرها، وفي النافذة السفلية بتيجي بعد المحتوى
+  final List<Widget> actions;
+
+  /// رجوع لخطوة قبل كده جوه نفس الصفحة (بدل ما الصفحة تتقفل)
   final VoidCallback? onBack;
   final EdgeInsets padding;
 
@@ -90,11 +97,20 @@ class AppSheet extends StatelessWidget {
     super.key,
     required this.title,
     required this.children,
+    this.actions = const [],
     this.onBack,
     this.padding = const EdgeInsets.fromLTRB(20, 16, 20, 18),
   });
 
-  static Future<T?> show<T>(BuildContext context, {required WidgetBuilder builder, bool isDismissible = true}) {
+  /// بيفتح المحتوى صفحة منفصلة، وبيرجع القيمة اللي الصفحة اتقفلت بيها زي النافذة بالظبط
+  static Future<T?> show<T>(BuildContext context, {required WidgetBuilder builder}) {
+    return Navigator.of(context).push<T>(
+      MaterialPageRoute<T>(builder: (context) => _AsPage(child: Builder(builder: builder))),
+    );
+  }
+
+  /// نافذة سفلية، لتأكيد تسجيل الخروج بس
+  static Future<T?> showModal<T>(BuildContext context, {required WidgetBuilder builder, bool isDismissible = true}) {
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
@@ -109,6 +125,7 @@ class AppSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (context.dependOnInheritedWidgetOfExactType<_AsPage>() != null) return _page(context);
     final screen = MediaQuery.sizeOf(context).height;
     return AnimatedPadding(
       duration: const Duration(milliseconds: 180),
@@ -129,7 +146,10 @@ class AppSheet extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: children,
+                    children: [
+                      ...children,
+                      if (actions.isNotEmpty) ...[const SizedBox(height: 14), ...actions],
+                    ],
                   ),
                 ),
               ),
@@ -139,6 +159,50 @@ class AppSheet extends StatelessWidget {
       ),
     );
   }
+
+  /// الصفحة: الهيدر بالعنوان وزرار الرجوع، والمحتوى بيتحرك، والأزرار ثابتة تحت
+  Widget _page(BuildContext context) {
+    final back = onBack;
+    return PopScope(
+      // في صفحة فيها خطوات، الرجوع بيرجع خطوة الأول
+      canPop: back == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) back?.call();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppHeader(title: title, isInnerPage: true, onBack: back),
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+                ),
+              ),
+              if (actions.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: actions),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// علامة إن المحتوى مفتوح صفحة مش نافذة سفلية
+class _AsPage extends InheritedWidget {
+  const _AsPage({required super.child});
+
+  @override
+  bool updateShouldNotify(_AsPage oldWidget) => false;
 }
 
 /// بيبلغ بطول المحتوى كل ما يتغير، عشان الشيت اللي فوق الخريطة يتظبط عليه

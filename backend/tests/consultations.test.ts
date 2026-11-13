@@ -62,6 +62,17 @@ describe('الاستشارة السريعة', () => {
     assert.equal(typed.details, details);
   });
 
+  it('اسم الخدمة اللي الموكل اختارها بيتحفظ ويرجع، واللي مش من الخدمات بيتجاهل', async () => {
+    const contract = (await call('POST', '/consultations', clientToken, { kind: 'CALL', details, serviceTitle: 'كتابة عقد أو مستندات' })).body.data;
+    assert.equal(contract.serviceTitle, 'كتابة عقد أو مستندات');
+    assert.equal((await call('GET', `/consultations/${contract.id}`, clientToken)).body.data.serviceTitle, 'كتابة عقد أو مستندات');
+    assert.equal((await call('GET', '/admin/consultations', adminToken)).body.data[0].service_title, 'كتابة عقد أو مستندات');
+    const unknown = (await call('POST', '/consultations', clientToken, { kind: 'CALL', details, serviceTitle: 'أي حاجة' })).body.data;
+    assert.equal(unknown.serviceTitle, null);
+    // النص موجه للموكل نفسه
+    assert.equal(unknown.statusText, 'دفعت • هنكلمك على رقمك قريب');
+  });
+
   it('تفاصيل قصيرة أو محامي أو ورق من غير صور: مرفوض', async () => {
     assert.equal((await call('POST', '/consultations', clientToken, { kind: 'CALL', details: 'قصير' })).status, 400);
     assert.equal((await call('POST', '/consultations', lawyerToken, { kind: 'CALL', details })).status, 403);

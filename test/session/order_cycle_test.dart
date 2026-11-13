@@ -146,13 +146,14 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
 
-    testWidgets('شيت التقييم يفتح لوحده للموكل أول ما المحامي ينهي المهمة', (tester) async {
+    testWidgets('صفحة التقييم تفتح لوحدها للموكل أول ما المحامي ينهي المهمة', (tester) async {
       backend.orders = [
         {...sampleOrder(status: 'ACTIVE'), 'arrivedAt': DateTime.now().toIso8601String()},
       ];
       await openOrderDetails(tester);
-      // شيت التفاصيل مفتوح لوحده
-      expect(find.byType(BottomSheet), findsOneWidget);
+      // صفحة التفاصيل مفتوحة، ومفيش نوافذ سفلية
+      expect(find.text('تفاصيل الطلب'), findsWidgets);
+      expect(find.byType(BottomSheet), findsNothing);
 
       backend.orders = [
         {...sampleOrder(status: 'COMPLETED'), 'completedAt': DateTime.now().toIso8601String()},
@@ -161,8 +162,10 @@ void main() {
       LiveUpdates.announce(const LiveChange('orders', 'order-1'));
       await settleAsync(tester);
 
-      expect(find.byType(BottomSheet), findsNWidgets(2));
-      expect(find.descendant(of: find.byType(BottomSheet).last, matching: find.text('قيّم المحامي')), findsOneWidget);
+      // صفحة التقييم فوق صفحة التفاصيل
+      expect(find.text('قيّم المحامي'), findsOneWidget);
+      expect(find.text('إرسال التقييم'), findsOneWidget);
+      expect(find.byType(BottomSheet), findsNothing);
 
       await tester.pumpWidget(const SizedBox.shrink());
     });
@@ -401,7 +404,7 @@ void main() {
       await settleAsync(tester);
 
       expect(find.textContaining('ابعت سعرك • باقي'), findsOneWidget);
-      await tester.tap(find.text('عرض التفاصيل'));
+      await tester.tap(find.byIcon(Icons.chevron_right_rounded));
       await settleAsync(tester);
       expect(find.text('ابعت عرضك'), findsOneWidget);
       expect(find.text('العنوان'), findsOneWidget);

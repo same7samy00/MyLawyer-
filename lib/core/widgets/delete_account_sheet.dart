@@ -69,6 +69,10 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
     return AppSheet(
       title: 'حذف الحساب',
       padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
+      actions: packSheetActions([
+        SheetButton('حذف حسابي', _isBusy ? null : _delete, isDanger: true),
+        SheetButton('إلغاء', _isBusy ? null : () => Navigator.of(context).pop()),
+      ]),
       children: [
         const LineIllustration(icon: Icons.person_remove_outlined, height: 96),
         const SizedBox(height: 8),
@@ -103,10 +107,6 @@ class _DeleteAccountSheetState extends State<DeleteAccountSheet> {
               ),
             ),
           ),
-        ...packSheetActions([
-          SheetButton('حذف حسابي', _isBusy ? null : _delete, isDanger: true),
-          SheetButton('إلغاء', _isBusy ? null : () => Navigator.of(context).pop()),
-        ]),
       ],
     );
   }

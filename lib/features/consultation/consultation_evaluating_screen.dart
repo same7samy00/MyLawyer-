@@ -14,6 +14,7 @@ import 'consultation_style.dart';
 /// الخطوة 3: «جاري تقييم سعر الخدمة»، والسعر نفسه من السيرفر حسب أسعار لوحة التحكم
 class ConsultationEvaluatingScreen extends StatefulWidget {
   final ConsultationKind kind;
+  final String serviceTitle;
   final String details;
   final List<String> pagePaths;
   final ConsultationSettings settings;
@@ -22,6 +23,7 @@ class ConsultationEvaluatingScreen extends StatefulWidget {
   const ConsultationEvaluatingScreen({
     super.key,
     required this.kind,
+    required this.serviceTitle,
     required this.details,
     required this.pagePaths,
     required this.settings,
@@ -55,7 +57,14 @@ class _ConsultationEvaluatingScreenState extends State<ConsultationEvaluatingScr
     }
     Navigator.of(context).pushReplacement(MaterialPageRoute(
       builder: (_) => ConsultationCheckoutScreen(
-        draft: ConsultationDraft(kind: widget.kind, details: widget.details, pagePaths: widget.pagePaths, quote: quote, viaVoice: widget.viaVoice),
+        draft: ConsultationDraft(
+          kind: widget.kind,
+          serviceTitle: widget.serviceTitle,
+          details: widget.details,
+          pagePaths: widget.pagePaths,
+          quote: quote,
+          viaVoice: widget.viaVoice,
+        ),
         settings: widget.settings,
       ),
     ),);

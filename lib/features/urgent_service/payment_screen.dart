@@ -169,7 +169,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               ),
                             ),
                             const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                            _buildTableRow('نوع الخدمة', widget.problemTitle ?? 'محاميك حالاً'),
+                            _buildTableRow('نوع الخدمة', widget.problemTitle ?? 'طلب محامي'),
                             if (widget.problemDescription != null && widget.problemDescription!.isNotEmpty)
                               _buildTableRow('تفاصيل المشكلة', widget.problemDescription!),
                             if (widget.consultation == null) ...[

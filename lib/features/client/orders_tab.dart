@@ -39,7 +39,7 @@ class _OrdersTabState extends State<OrdersTab> {
   List<OrderModel> _orders = OrderStore.orders.value;
   bool _showCurrent = true;
 
-  /// الصفحة بتفتح دايمًا على الطلبات الحالية، حتى لو كانت آخر مرة على السجل
+  /// الصفحة بتفتح دايمًا على الطلبات المفتوحة، حتى لو كانت آخر مرة على السجل
   void _backToCurrent() {
     if (mounted && !_showCurrent) setState(() => _showCurrent = true);
   }
@@ -211,7 +211,7 @@ class _OrdersTabState extends State<OrdersTab> {
                 icon: Icons.receipt_long_rounded,
                 title: _showCurrent ? 'مفيش طلبات حالية' : 'السجل فاضي',
                 message: _showCurrent
-                    ? 'أي طلب مفتوح من أي خدمة بيظهر هنا\nزي «محاميك حالاً» و«استشارة سريعة»'
+                    ? 'أي طلب مفتوح من أي خدمة بيظهر هنا\nزي «محضر شرطة» و«استشارة قانونية»'
                     : 'الطلبات اللي خلصت أو اتلغت من كل الخدمات\nبتتجمع هنا',
               );
             }

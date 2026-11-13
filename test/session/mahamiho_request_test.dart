@@ -60,11 +60,11 @@ void main() {
         });
   }
 
-  group('محاميهو: الخدمات المكتبية بالصوت والكتابة', () {
-    testWidgets('الكلام بيتحول لنص، والعميل ما بيشوفوش، ومحاميهو يقول «فهمت طلبك»', (tester) async {
+  group('محاميحو: الخدمات المكتبية بالصوت والكتابة', () {
+    testWidgets('الكلام بيتحول لنص، والعميل ما بيشوفوش، ومحاميحو يقول «فهمت طلبك»', (tester) async {
       fakeServer();
       final voice = _FakeVoice(heard: _story);
-      await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.call, voice: voice)));
+      await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.call, serviceTitle: ConsultationKind.call.serviceName, voice: voice)));
       await settleAsync(tester);
 
       expect(find.text('أهلاً بيك! احكيلي محتاج إيه وأنا سامعك'), findsOneWidget);
@@ -86,9 +86,9 @@ void main() {
       expect(find.text(_story), findsNothing);
     });
 
-    testWidgets('كلام قصير: محاميهو يطلب يكمّل، ومفيش متابعة', (tester) async {
+    testWidgets('كلام قصير: محاميحو يطلب يكمّل، ومفيش متابعة', (tester) async {
       fakeServer();
-      await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.call, voice: _FakeVoice(heard: 'مشكلة'))));
+      await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.call, serviceTitle: ConsultationKind.call.serviceName, voice: _FakeVoice(heard: 'مشكلة'))));
       await settleAsync(tester);
 
       await tester.tap(find.byIcon(Icons.mic_rounded).last);
@@ -102,7 +102,7 @@ void main() {
 
     testWidgets('الميكروفون مش شغال: رسالة، وبيتحول للكتابة لوحده', (tester) async {
       fakeServer();
-      await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.call, voice: _FakeVoice(ready: VoiceReady.unavailable))));
+      await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.call, serviceTitle: ConsultationKind.call.serviceName, voice: _FakeVoice(ready: VoiceReady.unavailable))));
       await settleAsync(tester);
 
       await tester.tap(find.byIcon(Icons.mic_rounded).last);
@@ -114,7 +114,7 @@ void main() {
 
     testWidgets('التبديل بين الصوت والكتابة في أي وقت، والكتابة بتظهر للعميل', (tester) async {
       fakeServer();
-      await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.call, voice: _FakeVoice())));
+      await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.call, serviceTitle: ConsultationKind.call.serviceName, voice: _FakeVoice())));
       await settleAsync(tester);
 
       expect(find.byType(TextField), findsNothing);
@@ -124,7 +124,7 @@ void main() {
 
       await tester.enterText(find.byType(TextField), _story);
       await tester.pump();
-      await tester.tap(find.text('أرسل لمحاميهو'));
+      await tester.tap(find.text('أرسل لمحاميحو'));
       await tester.pump();
       expect(find.text('فهمت طلبك'), findsOneWidget);
 
@@ -133,18 +133,18 @@ void main() {
       expect(find.text('أهلاً بيك! احكيلي محتاج إيه وأنا سامعك'), findsOneWidget);
     });
 
-    testWidgets('اللي اتكتب لمحاميهو في الشات بيفتح وضع الكتابة جاهز', (tester) async {
+    testWidgets('اللي اتكتب لمحاميحو في الشات بيفتح وضع الكتابة جاهز', (tester) async {
       fakeServer();
-      await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.call, initialDetails: _story, voice: _FakeVoice())));
+      await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.call, serviceTitle: ConsultationKind.call.serviceName, initialDetails: _story, voice: _FakeVoice())));
       await settleAsync(tester);
 
       expect(find.text(_story), findsOneWidget);
-      expect(find.text('أرسل لمحاميهو'), findsOneWidget);
+      expect(find.text('أرسل لمحاميحو'), findsOneWidget);
     });
 
     testWidgets('اطلاع على مستندات: بعد الكلام تيجي صور الورق', (tester) async {
       fakeServer();
-      await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.papers, voice: _FakeVoice(heard: _story))));
+      await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.papers, serviceTitle: ConsultationKind.papers.serviceName, voice: _FakeVoice(heard: _story))));
       await settleAsync(tester);
 
       await tester.tap(find.byIcon(Icons.mic_rounded).last);

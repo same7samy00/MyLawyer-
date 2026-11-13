@@ -1,15 +1,16 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import 'mahamiho_chat_screen.dart';
+import 'mahamiho_figure.dart';
 
-/// محاميحو: صغير تحت على الشمال، ثابت طول ما الرئيسية مفتوحة.
-/// كل 5 ثواني بيعمل حركة مختلفة (يطلع ويشاور، يطلع، لايك، بيفكّر).
-/// جنبه سحابة زرقا فيها «أهلاً! أنا محاميحو»، قاعدة على الشريط السفلي وظاهرة طول ما هو ظاهر،
-/// ولما ينزل ورا الشريط ويطلع تاني بتنزل وتطلع معاه.
-/// لمسه بيفتح صفحة محاميحو (MahamihoChatScreen).
+/// محاميحو في كل صفحات الشريط السفلي: نص جسمه من الراس للحزام تحت على الشمال، ونص الجزء الظاهر بيختفي في أبيض.
+/// جنبه قريب منه سحابة زرقا مايلة ناحية راسه فيها «أهلاً! أنا محاميحو».
+/// أول ما يظهر بينط هو والسحابة مع بعض ويشاور، وبعدها كل شوية بينطوا تاني ويعمل حركة (تمام، بيفكّر، بيشاور).
+/// لمسه بيفتح صفحة محاميحو (MahamihoChatScreen)
 class MahamihoGuide extends StatefulWidget {
   const MahamihoGuide({super.key});
 
@@ -25,41 +26,23 @@ class MahamihoGuide extends StatefulWidget {
   State<MahamihoGuide> createState() => _MahamihoGuideState();
 }
 
-/// حركة: الملف ومدتها (عدد اللقطات × 42 مللي ثانية)
-class _Clip {
-  final String name;
-  final int frames;
-
-  /// اللقطة اللي بيكون طلع فيها من ورا الشريط (صفر = بيبدأ واقف)
-  final int upAt;
-  const _Clip(this.name, this.frames, {this.upAt = 0});
-
-  String get asset => 'assets/mahamiho/$name.webp';
-  Duration get length => Duration(milliseconds: frames * 42);
-  Duration get upDelay => Duration(milliseconds: upAt * 42);
-}
-
-class _MahamihoGuideState extends State<MahamihoGuide> {
-  static const _idle = _Clip('idle', 0);
-  static const _popWave = _Clip('pop-wave', 66, upAt: 8);
+class _MahamihoGuideState extends State<MahamihoGuide> with SingleTickerProviderStateMixin {
   // بالترتيب ده، وبيلف
-  static const _cycle = [_Clip('pop-up', 61, upAt: 12), _Clip('like', 55), _Clip('thinking', 96, upAt: 12), _popWave];
-  static const _gap = Duration(seconds: 5);
-  static const _minRise = Duration(milliseconds: 350);
+  static const _cycle = [MahamihoMood.ok, MahamihoMood.thinking, MahamihoMood.wave];
+  static const _gap = Duration(seconds: 6);
+
+  /// النطة: هو والسحابة بيطلعوا لفوق وينزلوا مع بعض
+  late final AnimationController _jump;
 
   Timer? _timer;
   bool _visible = false;
-  _Clip _clip = _idle;
+  MahamihoMood _mood = MahamihoMood.idle;
   int _next = 0;
-  int _play = 0;
-
-  /// السحابة ورا الشريط، ومدة طلوعها
-  bool _cloudDown = false;
-  Duration _cloudMove = Duration.zero;
 
   @override
   void initState() {
     super.initState();
+    _jump = AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
     if (MahamihoGuide._greeted) {
       _visible = true;
       _schedule(_gap, _playNext);
@@ -68,7 +51,7 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
     MahamihoGuide._greeted = true;
     _schedule(const Duration(milliseconds: 1200), () {
       setState(() => _visible = true);
-      _start(_popWave);
+      _start(MahamihoMood.wave);
     });
   }
 
@@ -76,15 +59,13 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // تجهيز الحركات قبل ما تظهر عشان ما يحصلش وميض وهي بتتبدل
-    final config = createLocalImageConfiguration(context);
-    for (final asset in [_idle.asset, _popWave.asset, for (final c in _cycle) c.asset]) {
-      AssetImage(asset).resolve(config);
-    }
+    MahamihoFigure.precache(context);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _jump.dispose();
     super.dispose();
   }
 
@@ -95,7 +76,7 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
     });
   }
 
-  /// في تبويب تاني أو صفحة فوق الرئيسية بيستنى من غير ما يتحرك
+  /// لو صفحة فوق الشريط مفتوحة بيستنى من غير ما يتحرك
   void _playNext() {
     if (!TickerMode.of(context)) {
       _schedule(_gap, _playNext);
@@ -105,32 +86,13 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
     _next = (_next + 1) % _cycle.length;
   }
 
-  /// الحركة بتتمسح من الذاكرة عشان تبدأ من أولها، وبعدها يرجع واقف ويستنى 5 ثواني.
-  /// لو الحركة بتبدأ وهو ورا الشريط، السحابة بتنزل معاه وتطلع في نفس وقته
-  void _start(_Clip clip) {
-    AssetImage(clip.asset).evict();
-    final pops = clip.upAt > 0;
-    setState(() {
-      _clip = clip;
-      _play++;
-      if (pops) {
-        _cloudDown = true;
-        _cloudMove = Duration.zero;
-      }
-    });
-    if (pops) {
-      final rise = clip.upDelay < _minRise ? _minRise : clip.upDelay;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _cloudDown = false;
-            _cloudMove = rise;
-          });
-        }
-      });
-    }
-    _schedule(clip.length, () {
-      setState(() => _clip = _idle);
+  /// بينط ويعمل الحركة من أولها، وبعدها يرجع واقف ويستنى
+  void _start(MahamihoMood mood) {
+    AssetImage(mood.asset).evict();
+    setState(() => _mood = mood);
+    _jump.forward(from: 0);
+    _schedule(MahamihoMood.clip, () {
+      setState(() => _mood = MahamihoMood.idle);
       _schedule(_gap, _playNext);
     });
   }
@@ -145,48 +107,53 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
 
     // الحجم على قد عرض الشاشة: صغير على الموبايلات الصغيرة، وما يكبرش زيادة على التابلت
     final screen = MediaQuery.sizeOf(context).width;
-    final width = (screen * 0.22).clamp(80.0, 110.0);
-    final height = width * 274 / 270;
-    final cloudWidth = (screen - width - 16).clamp(140.0, 185.0);
+    final width = (screen * 0.24).clamp(86.0, 120.0);
+    final height = width * MahamihoFigure.ratio * MahamihoFigure.halfShown;
+    final cloudWidth = (screen * 0.42).clamp(150.0, 180.0);
     final cloudHeight = cloudWidth * _CloudPainter.ratio;
 
     return Stack(
       children: [
         Positioned(
-          left: 4,
+          left: 0,
           bottom: 0,
-          width: width,
-          height: height,
-          child: GestureDetector(
-            onTap: _onTap,
-            child: Semantics(
-              label: 'محاميحو',
-              button: true,
-              child: Image.asset(
-                _clip.asset,
-                key: ValueKey(_play),
-                fit: BoxFit.contain,
-                alignment: Alignment.bottomCenter,
-                gaplessPlayback: true,
-                filterQuality: FilterQuality.medium,
-              ),
-            ),
-          ),
-        ),
-        // السحابة لازقة في جنبه وقاعدة على الشريط، والقص بيخليها تختفي ورا الشريط زيه
-        Positioned(
-          left: width - 10,
-          bottom: 0,
-          width: cloudWidth,
-          height: cloudHeight,
-          child: GestureDetector(
-            onTap: _onTap,
-            child: ClipRect(
-              child: AnimatedSlide(
-                offset: _cloudDown ? const Offset(0, 1.05) : Offset.zero,
-                duration: _cloudMove,
-                curve: Curves.easeOutBack,
-                child: const _Cloud(text: MahamihoGuide.hello),
+          width: width + cloudWidth,
+          height: height + 24,
+          child: AnimatedBuilder(
+            animation: _jump,
+            builder: (context, child) {
+              // طلعة سريعة ونزلة فيها رجّة صغيرة
+              final t = _jump.value;
+              final lift = t == 0 ? 0.0 : math.sin(math.pi * Curves.easeOut.transform(t)) * 22;
+              return Transform.translate(offset: Offset(0, 24 - lift), child: child);
+            },
+            child: GestureDetector(
+              onTap: _onTap,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: 2,
+                    top: 0,
+                    child: Semantics(
+                      label: 'محاميحو',
+                      button: true,
+                      child: MahamihoFigure(mood: _mood, width: width, halfBody: true),
+                    ),
+                  ),
+                  // قريبة منه وطرفها مايل ناحية راسه
+                  Positioned(
+                    left: width * 0.74,
+                    top: height * 0.02,
+                    width: cloudWidth,
+                    height: cloudHeight,
+                    child: Transform.rotate(
+                      angle: -0.12,
+                      alignment: Alignment.bottomLeft,
+                      child: const _Cloud(text: MahamihoGuide.hello),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

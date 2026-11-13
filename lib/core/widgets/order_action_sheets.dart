@@ -117,6 +117,7 @@ class _ReviewSheetState extends State<_ReviewSheet> {
   Widget build(BuildContext context) {
     return AppSheet(
       title: 'قيّم المحامي',
+      actions: [AppButton.primary(text: 'إرسال التقييم', onPressed: _submit)],
       children: [
         Text(widget.lawyerName, textAlign: TextAlign.center, style: _subtitleStyle),
         const SizedBox(height: 10),
@@ -148,7 +149,6 @@ class _ReviewSheetState extends State<_ReviewSheet> {
         ),
         const SizedBox(height: 12),
         _ErrorText(_error),
-        AppButton.primary(text: 'إرسال التقييم', onPressed: _submit),
       ],
     );
   }
@@ -196,6 +196,7 @@ class _ReportReviewSheetState extends State<_ReportReviewSheet> {
   Widget build(BuildContext context) {
     return AppSheet(
       title: 'الإبلاغ عن التعليق',
+      actions: [AppButton.primary(text: 'إرسال البلاغ', onPressed: _submit)],
       children: [
         const Text('الإدارة هتراجع التعليق وتقرر', textAlign: TextAlign.center, style: _subtitleStyle),
         const SizedBox(height: 12),
@@ -209,7 +210,6 @@ class _ReportReviewSheetState extends State<_ReportReviewSheet> {
         ),
         const SizedBox(height: 12),
         _ErrorText(_error),
-        AppButton.primary(text: 'إرسال البلاغ', onPressed: _submit),
       ],
     );
   }
@@ -291,6 +291,12 @@ class _TransferSheetState extends State<_TransferSheet> {
     final confirming = _recipientName != null;
     return AppSheet(
       title: 'تحويل من رصيدك',
+      actions: confirming
+          ? packSheetActions([
+              SheetButton('تأكيد التحويل', _isBusy ? null : _send, isPrimary: true),
+              SheetButton('تعديل', _isBusy ? null : () => setState(() => _recipientName = null)),
+            ])
+          : [AppButton.primary(text: 'متابعة', onPressed: _isBusy ? null : _next)],
       children: [
         Text(
           confirming ? 'راجع البيانات قبل التحويل' : 'من $_minimum لحد $_dailyLimit ج.م في اليوم، ومن غير رسوم',
@@ -313,10 +319,6 @@ class _TransferSheetState extends State<_TransferSheet> {
           Text(_phone.text.trim(), textAlign: TextAlign.center, style: _subtitleStyle),
           const SizedBox(height: 16),
           _ErrorText(_error),
-          ...packSheetActions([
-            SheetButton('تأكيد التحويل', _isBusy ? null : _send, isPrimary: true),
-            SheetButton('تعديل', _isBusy ? null : () => setState(() => _recipientName = null)),
-          ]),
         ] else ...[
           TextField(
             controller: _phone,
@@ -338,7 +340,6 @@ class _TransferSheetState extends State<_TransferSheet> {
           ),
           const SizedBox(height: 12),
           _ErrorText(_error),
-          AppButton.primary(text: 'متابعة', onPressed: _isBusy ? null : _next),
         ],
       ],
     );

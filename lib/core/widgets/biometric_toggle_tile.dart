@@ -145,6 +145,7 @@ class _EnableBiometricSheetState extends State<_EnableBiometricSheet> {
   Widget build(BuildContext context) {
     return AppSheet(
       title: 'تفعيل الدخول بالبصمة',
+      actions: [AppButton.primary(text: 'تأكيد وتفعيل', icon: Icons.fingerprint_rounded, height: 48, onPressed: _confirm)],
       children: [
         const Center(child: LineIllustration(icon: Icons.fingerprint_rounded, height: 90)),
         const SizedBox(height: 12),
@@ -179,8 +180,6 @@ class _EnableBiometricSheetState extends State<_EnableBiometricSheet> {
             style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 12.5, height: 1.5, fontWeight: FontWeight.w700, color: AppColors.danger),
           ),
         ],
-        const SizedBox(height: 16),
-        AppButton.primary(text: 'تأكيد وتفعيل', icon: Icons.fingerprint_rounded, height: 48, onPressed: _confirm),
       ],
     );
   }

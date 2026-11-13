@@ -160,6 +160,10 @@ class _BackgroundLocationSheetState extends State<BackgroundLocationSheet> with 
 
     return AppSheet(
       title: 'عشان تجيلك طلبات وإنت برّه التطبيق',
+      actions: packSheetActions([
+        SheetButton('ابدأ الاستقبال', canStart ? () => Navigator.of(context).pop(true) : null, isPrimary: true),
+        SheetButton('مش دلوقتي', () => Navigator.of(context).pop(false)),
+      ]),
       children: [
             const Text(
               'My Lawyer بيجمع موقعك طول ما أنت «متاح» لاستقبال الطلبات، حتى لو التطبيق مقفول أو مش مستخدم، '
@@ -174,11 +178,6 @@ class _BackgroundLocationSheetState extends State<BackgroundLocationSheet> with 
             _step('اسمح للتطبيق يشتغل في الخلفية', _batteryReady, _enableBattery, note: 'دوس «سماح» في الرسالة اللي هتظهر'),
             if (_needsAutostart)
               _step('فعّل «التشغيل التلقائي» للتطبيق', _autostartDone, _enableAutostart, note: 'في الصفحة اللي هتفتح، فعّل My Lawyer وارجع'),
-            const SizedBox(height: 8),
-            ...packSheetActions([
-              SheetButton('ابدأ الاستقبال', canStart ? () => Navigator.of(context).pop(true) : null, isPrimary: true),
-              SheetButton('مش دلوقتي', () => Navigator.of(context).pop(false)),
-            ]),
       ],
     );
   }

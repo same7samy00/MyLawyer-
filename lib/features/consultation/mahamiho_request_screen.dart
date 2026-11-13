@@ -12,6 +12,7 @@ import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/consultation.dart';
 import '../../data/repositories/consultation_repository.dart';
+import '../client/mahamiho_figure.dart';
 import 'consultation_evaluating_screen.dart';
 import 'consultation_pages_screen.dart';
 import 'consultation_style.dart';
@@ -24,13 +25,16 @@ enum _Stage { ready, listening, understood }
 class MahamihoRequestScreen extends StatefulWidget {
   final ConsultationKind kind;
 
+  /// الخدمة اللي اتختارت من الرئيسية، وبتمشي مع الطلب لحد الدفع
+  final String serviceTitle;
+
   /// اللي العميل كتبه لمحاميحو في الشات بيتكتب هنا جاهز
   final String initialDetails;
 
   /// بديل الميكروفون في الاختبارات
   final VoiceInput? voice;
 
-  const MahamihoRequestScreen({super.key, required this.kind, this.initialDetails = '', this.voice});
+  const MahamihoRequestScreen({super.key, required this.kind, required this.serviceTitle, this.initialDetails = '', this.voice});
 
   @override
   State<MahamihoRequestScreen> createState() => _MahamihoRequestScreenState();
@@ -44,6 +48,10 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
   late final AnimationController _wave;
   ConsultationSettings _settings = const ConsultationSettings();
   Timer? _clock;
+
+  /// محاميحو بيشاور أول ما الصفحة تفتح، وبعد الحركة بيقف
+  bool _greeting = true;
+  Timer? _greetTimer;
 
   late bool _byVoice = widget.initialDetails.trim().isEmpty;
   _Stage _stage = _Stage.ready;
@@ -60,11 +68,15 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
     _wave = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
     _loadSettings();
     _say(_byVoice ? 'welcome_voice' : 'welcome_text');
+    _greetTimer = Timer(MahamihoMood.clip, () {
+      if (mounted) setState(() => _greeting = false);
+    });
   }
 
   @override
   void dispose() {
     _clock?.cancel();
+    _greetTimer?.cancel();
     _wave.dispose();
     _typed.dispose();
     _voice.cancel();
@@ -93,8 +105,17 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
 
   int get _typedLength => _typed.text.trim().length;
 
-  /// محاميهو بيصغر وقت الكتابة والتسجيل عشان الباقي يتشاف على أي موبايل
-  double get _imageHeight => _stage == _Stage.listening ? 150 : (!_byVoice && _stage == _Stage.ready ? 130 : 200);
+  /// محاميحو بيصغر وقت الكتابة والتسجيل عشان الباقي يتشاف على أي موبايل
+  /// محاميحو كامل وصغير: أصغر وإنت بتكتب أو بتتكلم عشان المساحة
+  double get _figureWidth => _stage == _Stage.listening ? 70 : (!_byVoice && _stage == _Stage.ready ? 62 : 88);
+
+  /// «تمام» لما يفهم، وبيفكّر وإنت بتتكلم أو بتكتب، وبيشاور أول ما الصفحة تفتح
+  MahamihoMood get _mood {
+    if (_stage == _Stage.understood) return MahamihoMood.ok;
+    if (_stage == _Stage.listening) return MahamihoMood.thinking;
+    if (!_byVoice && _typed.text.trim().isNotEmpty && _typed.text != widget.initialDetails) return MahamihoMood.thinking;
+    return _greeting ? MahamihoMood.wave : MahamihoMood.idle;
+  }
 
   void _message(String text) => showAppMessage(context, SnackBar(content: Text(text)));
 
@@ -196,8 +217,15 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
     }
     final details = _byVoice ? _spoken : _typed.text.trim();
     final next = widget.kind == ConsultationKind.papers
-        ? ConsultationPagesScreen(details: details, viaVoice: _byVoice)
-        : ConsultationEvaluatingScreen(kind: widget.kind, details: details, pagePaths: const [], settings: _settings, viaVoice: _byVoice);
+        ? ConsultationPagesScreen(details: details, serviceTitle: widget.serviceTitle, viaVoice: _byVoice)
+        : ConsultationEvaluatingScreen(
+            kind: widget.kind,
+            serviceTitle: widget.serviceTitle,
+            details: details,
+            pagePaths: const [],
+            settings: _settings,
+            viaVoice: _byVoice,
+          );
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => next));
   }
 
@@ -214,7 +242,7 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
     final understood = _stage == _Stage.understood;
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const AppHeader(title: 'محاميهو', isInnerPage: true),
+      appBar: const AppHeader(title: 'محاميحو', isInnerPage: true),
       body: SafeArea(
         child: Column(
           children: [
@@ -229,13 +257,7 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
                       Text('الخدمة متوقفة دلوقتي\nجرب بعد شوية', textAlign: TextAlign.center, style: consultationText(13, FontWeight.w700, AppColors.danger, height: 1.5)),
                       const SizedBox(height: 10),
                     ],
-                    RepaintBoundary(
-                      child: Image.asset(
-                        understood ? 'assets/mahamiho/like.webp' : 'assets/mahamiho/idle.webp',
-                        height: _imageHeight,
-                        gaplessPlayback: true,
-                      ),
-                    ),
+                    RepaintBoundary(child: MahamihoFigure(mood: _mood, width: _figureWidth)),
                     _bubble(),
                     if (understood) ..._understoodBody() else if (_byVoice) ..._voiceBody() else ..._textBody(),
                   ],
@@ -414,7 +436,7 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
       case _Stage.listening:
         return AppButton.outlined(text: 'إلغاء', height: 46, onPressed: _cancelListening);
       case _Stage.ready:
-        return _byVoice ? const SizedBox.shrink() : AppButton.primary(text: 'أرسل لمحاميهو', height: 48, onPressed: _typedLength >= _settings.minDetailsChars ? _sendTyped : null);
+        return _byVoice ? const SizedBox.shrink() : AppButton.primary(text: 'أرسل لمحاميحو', height: 48, onPressed: _typedLength >= _settings.minDetailsChars ? _sendTyped : null);
     }
   }
 }

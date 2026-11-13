@@ -13,7 +13,7 @@ class LogoutConfirmationSheet extends StatelessWidget {
   const LogoutConfirmationSheet({super.key, required this.onConfirm});
 
   static Future<void> show(BuildContext context, {required Future<void> Function() onConfirm}) {
-    return AppSheet.show<void>(context, builder: (context) => LogoutConfirmationSheet(onConfirm: onConfirm));
+    return AppSheet.showModal<void>(context, builder: (context) => LogoutConfirmationSheet(onConfirm: onConfirm));
   }
 
   @override

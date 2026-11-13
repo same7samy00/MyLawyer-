@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_header.dart';
 import 'legal_services.dart';
+import 'mahamiho_figure.dart';
 
 /// صفحة محاميحو: شات موجّه. الموكل يختار خدمة أو يكتب مشكلته، محاميحو يسأله يوصف اللي حصل،
 /// ولما يوافق بيفتح أول خطوة في الخدمة والوصف مكتوب جاهز (الدفع والباقي في شاشات الخدمة نفسها).
@@ -35,9 +36,16 @@ class _MahamihoChatScreenState extends State<MahamihoChatScreen> {
   String _description = '';
   bool _typing = false;
 
+  /// بيشاور أول ما الصفحة تفتح، وبعد الحركة بيقف
+  bool _greeting = true;
+
   @override
   void initState() {
     super.initState();
+    _input.addListener(() => setState(() {}));
+    _timers.add(Timer(MahamihoMood.clip, () {
+      if (mounted) setState(() => _greeting = false);
+    }),);
     _messages.add(const _Message('أهلاً! أنا محاميحو 👋\nاختار الخدمة اللي محتاجها، أو احكيلي مشكلتك وأنا أوجّهك.', showServices: true));
   }
 
@@ -49,6 +57,13 @@ class _MahamihoChatScreenState extends State<MahamihoChatScreen> {
     _input.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  /// بيفكّر وإنت بتكتب أو وهو بيجهّز رده، و«تمام» لما يجهّز الطلب، وبيشاور أول ما الصفحة تفتح
+  MahamihoMood get _mood {
+    if (_typing || _input.text.trim().isNotEmpty) return MahamihoMood.thinking;
+    if (_messages.isNotEmpty && _messages.last.askConfirm) return MahamihoMood.ok;
+    return _greeting ? MahamihoMood.wave : MahamihoMood.idle;
   }
 
   void _add(_Message m) {
@@ -133,11 +148,11 @@ class _MahamihoChatScreenState extends State<MahamihoChatScreen> {
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                 itemCount: _messages.length + 1 + (_typing ? 1 : 0),
                 itemBuilder: (context, i) {
-                  // محاميحو واقف فوق أول رسالة
+                  // محاميحو كامل وصغير فوق أول رسالة، من غير قص
                   if (i == 0) {
-                    return const Padding(
-                      padding: EdgeInsets.only(bottom: 8),
-                      child: SizedBox(height: 120, child: Image(image: AssetImage('assets/mahamiho/idle.webp'), gaplessPlayback: true)),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Center(child: MahamihoFigure(mood: _mood, width: 66)),
                     );
                   }
                   i--;

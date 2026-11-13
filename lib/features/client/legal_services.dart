@@ -72,7 +72,7 @@ class LegalService {
     final navigator = Navigator.of(context);
     if (!isUrgent) {
       final details = description.isEmpty ? '' : '$title: $description';
-      navigator.push(MaterialPageRoute(builder: (_) => MahamihoRequestScreen(kind: consultation, initialDetails: details)));
+      navigator.push(MaterialPageRoute(builder: (_) => MahamihoRequestScreen(kind: consultation, serviceTitle: title, initialDetails: details)));
       return;
     }
     // الخدمات الميدانية ليها شاشاتها: المكان بالاسم، وما بتحتاجش موقع الموكل

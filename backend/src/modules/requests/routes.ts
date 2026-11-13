@@ -60,7 +60,7 @@ export async function requestRoutes(fastify: FastifyInstance) {
     if (!body.clientLat || !body.clientLon || !inServiceArea(lat, lon)) throw new HttpError(400, 'تعذر تحديد موقعك، حاول تاني');
 
     const created = await createServiceRequest(userId, {
-      serviceTitle: body.serviceTitle || 'محاميك حالاً',
+      serviceTitle: body.serviceTitle || 'طلب محامي',
       problemType: body.problemType ? sanitizeText(body.problemType, 100) : null,
       description,
       lat,
@@ -130,7 +130,7 @@ export async function requestRoutes(fastify: FastifyInstance) {
         id: row.id,
         problemType: row.problem_type || row.service_title,
         problemDescription: row.problem_description,
-        service: row.field_id ? row.service_title : 'محاميك حالاً',
+        service: row.field_id ? row.service_title : 'طلب محامي',
         // The lawyer needs the area to price the visit. The exact point stays hidden until payment.
         // A field request names a place, so only its governorate shows until the client pays
         area: row.field_id ? governorateOf(row.client_address) : row.client_address,

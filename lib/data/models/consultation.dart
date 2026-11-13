@@ -1,12 +1,15 @@
 /// «استشارة سريعة»: نوعين، استشارة بس (CALL) أو اطلاع على ورق واستشارة (PAPERS)
 enum ConsultationKind {
-  call('CALL', 'استشارة بس'),
-  papers('PAPERS', 'اطلاع على ورق واستشارة');
+  call('CALL', 'استشارة بس', 'استشارة قانونية'),
+  papers('PAPERS', 'اطلاع على ورق واستشارة', 'اطلاع على مستندات');
 
   final String code;
   final String label;
 
-  const ConsultationKind(this.code, this.label);
+  /// اسم الخدمة في الرئيسية، للاستشارة القديمة اللي اتحفظت من غير اسم خدمتها
+  final String serviceName;
+
+  const ConsultationKind(this.code, this.label, this.serviceName);
 }
 
 /// شروط الخدمة من لوحة التحكم
@@ -54,7 +57,17 @@ class ConsultationDraft {
   /// اتقالت بالصوت: النص بيروح للإدارة والعميل ما بيشوفوش
   final bool viaVoice;
 
-  const ConsultationDraft({required this.kind, required this.details, required this.pagePaths, required this.quote, this.viaVoice = false});
+  /// الخدمة اللي الموكل اختارها من الرئيسية، وبيتسمى بيها الطلب في صفحة الطلبات
+  final String serviceTitle;
+
+  const ConsultationDraft({
+    required this.kind,
+    required this.details,
+    required this.pagePaths,
+    required this.quote,
+    required this.serviceTitle,
+    this.viaVoice = false,
+  });
 }
 
 /// استشارة اتطلبت، وبتظهر في صفحة الطلبات مع باقي الخدمات
@@ -62,6 +75,9 @@ class Consultation {
   final String id;
   final String reference;
   final ConsultationKind kind;
+
+  /// اسم الخدمة اللي اتختارت فعلًا، زي «كتابة عقد أو مستندات»
+  final String serviceTitle;
   final String status;
   final String statusText;
   final int price;
@@ -76,6 +92,7 @@ class Consultation {
     required this.id,
     required this.reference,
     required this.kind,
+    required this.serviceTitle,
     required this.status,
     required this.statusText,
     required this.price,
@@ -87,13 +104,17 @@ class Consultation {
     this.createdAt,
   });
 
-  /// مستنية مكالمة الفريق أو الفريق بيكلمه: في «الطلبات الحالية»، والباقي في السجل
+  /// مستنية مكالمة الفريق أو الفريق بيكلمه: في «الطلبات المفتوحة»، والباقي في السجل
   bool get isOngoing => status == 'PAID' || status == 'CONTACTING';
 
-  factory Consultation.fromJson(Map<String, dynamic> json) => Consultation(
+  factory Consultation.fromJson(Map<String, dynamic> json) {
+    final kind = json['kind'] == ConsultationKind.papers.code ? ConsultationKind.papers : ConsultationKind.call;
+    final title = json['serviceTitle']?.toString() ?? '';
+    return Consultation(
         id: json['id']?.toString() ?? '',
         reference: json['reference']?.toString() ?? '',
-        kind: json['kind'] == ConsultationKind.papers.code ? ConsultationKind.papers : ConsultationKind.call,
+        kind: kind,
+        serviceTitle: title.isEmpty ? kind.serviceName : title,
         status: json['status']?.toString() ?? '',
         statusText: json['statusText']?.toString() ?? '',
         price: (json['price'] as num?)?.round() ?? 0,
@@ -104,4 +125,5 @@ class Consultation {
         contactRequested: json['contactRequestedAt'] != null,
         createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '')?.toLocal(),
       );
+  }
 }

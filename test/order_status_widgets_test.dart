@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:my_lawyer/core/constants/app_colors.dart';
 import 'package:my_lawyer/core/services/external_navigation.dart';
 import 'package:my_lawyer/core/services/routing_service.dart';
 import 'package:my_lawyer/core/widgets/order_status_tracker.dart';
+import 'package:my_lawyer/core/widgets/status_pill.dart';
 import 'package:my_lawyer/data/models/order_model.dart';
 
 OrderModel _order(String status, {Map<String, dynamic> extra = const {}}) {
@@ -50,11 +52,16 @@ void main() {
     expect(uri.queryParameters['destination'], '30.79,31.0');
   });
 
-  testWidgets('الشريط يعرض المراحل ونص الحالة', (tester) async {
-    await tester.pumpWidget(_wrap(OrderStatusTracker(order: _order('ACCEPTED'))));
+  testWidgets('الشريط يعرض المراحل وتحتها شارة الحالة', (tester) async {
+    await tester.pumpWidget(
+      _wrap(OrderStatusTracker(
+        order: _order('ACCEPTED'),
+        status: const StatusPill(icon: Icons.timer_outlined, color: AppColors.danger, text: 'اخترت محاميك • ادفع عشان ييجي'),
+      ),),
+    );
 
     expect(find.text('الاختيار'), findsOneWidget);
     expect(find.text('الإنهاء'), findsOneWidget);
-    expect(find.text('اخترت المحامي • كمّل الدفع'), findsOneWidget);
+    expect(find.text('اخترت محاميك • ادفع عشان ييجي'), findsOneWidget);
   });
 }

@@ -57,13 +57,13 @@ Future<void> openOrderDetails(WidgetTester tester, {bool isLawyer = false}) asyn
   addTearDown(tester.view.reset);
   await tester.pumpWidget(testApp(Scaffold(body: isLawyer ? const LawyerOrdersTab() : const OrdersTab())));
   await tester.pumpAndSettle();
-  if (find.text('عرض التفاصيل').evaluate().isEmpty) {
+  if (find.byIcon(Icons.chevron_right_rounded).evaluate().isEmpty) {
     await tester.tap(find.text('سجل الطلبات'));
     await tester.pumpAndSettle();
   }
-  await tester.ensureVisible(find.text('عرض التفاصيل'));
+  await tester.ensureVisible(find.byIcon(Icons.chevron_right_rounded));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('عرض التفاصيل'));
+  await tester.tap(find.byIcon(Icons.chevron_right_rounded));
   await tester.pumpAndSettle();
 }
 

@@ -16,6 +16,7 @@ import {
   readSettings,
   savePages,
   waitingForClient,
+  CONSULTATION_SERVICES,
 } from './service.js';
 
 /// «استشارة سريعة» للموكل: الأسعار والشروط، والسعر قبل الدفع، والطلب بالدفع، وطلباته
@@ -67,6 +68,8 @@ export async function consultationRoutes(fastify: FastifyInstance) {
     const method = fields.method === 'wallet' ? 'WALLET' : 'DIRECT';
     // Told by voice: the app turned it into text that only the admin reads
     const inputMethod = fields.inputMethod === 'voice' ? 'VOICE' : 'TEXT';
+    // The service the client chose on the home page, which names the order on its card
+    const serviceTitle = CONSULTATION_SERVICES.includes(fields.serviceTitle ?? '') ? fields.serviceTitle : null;
 
     const row = await withTransaction(async (db) => {
       // الرصيد مشترك مع الطلبات والتحويلات، فبناخد نفس قفل الحساب
@@ -76,8 +79,9 @@ export async function consultationRoutes(fastify: FastifyInstance) {
         if (Number(balance.rows[0].balance) < total) throw new HttpError(400, 'رصيدك مش كفاية');
       }
       const saved = await db.query(
-        `INSERT INTO consultations (client_id, kind, details, pages, price, payment_method, input_method) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-        [userId, kind, details, pageCount, total, method, inputMethod]
+        `INSERT INTO consultations (client_id, kind, details, pages, price, payment_method, input_method, service_title)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        [userId, kind, details, pageCount, total, method, inputMethod, serviceTitle]
       );
       const consultation = saved.rows[0];
       if (method === 'WALLET') {

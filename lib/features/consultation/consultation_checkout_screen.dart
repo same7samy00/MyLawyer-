@@ -28,7 +28,7 @@ class _ConsultationCheckoutScreenState extends State<ConsultationCheckoutScreen>
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => PaymentScreen(
         consultation: _draft,
-        problemTitle: 'استشارة سريعة: ${_draft.kind.label}',
+        problemTitle: _draft.serviceTitle,
         problemDescription: _draft.viaVoice ? 'طلب بالصوت، وفريق المحامين هيسمعه' : _draft.details,
         locationName: '',
         price: _draft.quote.total,

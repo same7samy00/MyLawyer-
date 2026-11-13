@@ -4,24 +4,24 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/background_location_service.dart';
 import '../../core/services/live_updates.dart';
 import '../../core/services/routing_service.dart';
-import '../../core/widgets/app_card.dart';
+import '../../core/widgets/status_pill.dart';
 import '../../data/models/order_model.dart';
 
-/// وقت الوصول من الدفع لحد «وصلت»:
+/// شارة الحالة تحت المراحل من الدفع لحد «وصلت»، وبتتحدث لوحدها مع كل حركة:
 /// المحامي بيشوف «الموكل على بعد كذا، حوالي كذا دقيقة»، والموكل بيشوف «المحامي هيوصلك خلال حوالي كذا».
 /// الوقت بيتحسب على الطرق الحقيقية من محرك الطرق اللي على السيرفر، بالزحمة المتوقعة،
 /// والسؤال مرة كل دقيقتين أو لما المحامي يتحرك 500 متر، وبين السؤالين الوقت بيقل على قد ما المحامي قرّب.
-class ArrivalTimeCard extends StatefulWidget {
+class ArrivalStatusPill extends StatefulWidget {
   final OrderModel order;
   final bool isLawyer;
 
-  const ArrivalTimeCard({super.key, required this.order, required this.isLawyer});
+  const ArrivalStatusPill({super.key, required this.order, required this.isLawyer});
 
   @override
-  State<ArrivalTimeCard> createState() => _ArrivalTimeCardState();
+  State<ArrivalStatusPill> createState() => _ArrivalStatusPillState();
 }
 
-class _ArrivalTimeCardState extends State<ArrivalTimeCard> {
+class _ArrivalStatusPillState extends State<ArrivalStatusPill> {
   static const double _arrivalMeters = 50;
   static const double _askAgainMeters = 500;
   static const Duration _askAgainEvery = Duration(minutes: 2);
@@ -129,39 +129,10 @@ class _ArrivalTimeCardState extends State<ArrivalTimeCard> {
     final straight = trip == null ? null : const Distance().as(LengthUnit.Meter, trip.$1, trip.$2);
     final near = straight != null && straight <= _arrivalMeters;
 
-    return AppCard(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: near ? AppColors.success.withOpacity(0.1) : AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(7.0),
-            ),
-            child: Icon(
-              near ? Icons.check_circle_rounded : Icons.access_time_rounded,
-              color: near ? AppColors.success : AppColors.primary,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              straight == null ? 'بنحدد مكانك...' : _text(straight),
-              style: TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 14,
-                height: 1.4,
-                fontWeight: FontWeight.w800,
-                color: near ? AppColors.success : AppColors.dark,
-              ),
-            ),
-          ),
-        ],
-      ),
+    return StatusPill(
+      icon: near ? Icons.check_circle_rounded : Icons.navigation_rounded,
+      color: near ? AppColors.success : AppColors.primary,
+      text: straight == null ? 'بنحدد مكانك...' : _text(straight),
     );
   }
 }

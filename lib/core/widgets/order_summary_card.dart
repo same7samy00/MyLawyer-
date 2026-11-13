@@ -3,6 +3,23 @@ import 'package:flutter/material.dart';
 import '../../data/models/order_model.dart';
 import 'order_card.dart';
 
+/// لون حالة الطلب: خلص، أو اتقفل، أو مطلوب من الموكل يدفع بوقت، أو ماشي
+OrderCardTone orderTone(OrderModel order, {required bool isLawyer}) {
+  if (order.isCompleted) return OrderCardTone.done;
+  if (!order.isOngoing) return OrderCardTone.closed;
+  // الموكل هو اللي عليه الدفع بوقت
+  return order.isAccepted && !isLawyer ? OrderCardTone.urgent : OrderCardTone.progress;
+}
+
+/// أيقونة حالة الطلب، في الكارت وفي صفحة الطلب
+IconData orderStatusIcon(OrderModel order, {required bool isLawyer}) {
+  if (order.isCompleted) return Icons.check_circle_rounded;
+  if (!order.isOngoing) return Icons.cancel_outlined;
+  if (order.isAccepted) return isLawyer ? Icons.hourglass_top_rounded : Icons.timer_outlined;
+  if (order.isPostponed) return Icons.event_rounded;
+  return order.arrivedAt == null ? Icons.navigation_rounded : Icons.verified_user_rounded;
+}
+
 /// كارت الطلب بعد اختيار المحامي في صفحة الطلبات، والإجراءات كلها في صفحة التفاصيل
 class OrderSummaryCard extends StatelessWidget {
   final OrderModel order;
@@ -16,39 +33,16 @@ class OrderSummaryCard extends StatelessWidget {
     this.isLawyer = false,
   });
 
-  OrderCardTone get _tone {
-    if (order.isCompleted) return OrderCardTone.done;
-    if (!order.isOngoing) return OrderCardTone.closed;
-    // الموكل هو اللي عليه الدفع بوقت
-    return order.isAccepted && !isLawyer ? OrderCardTone.urgent : OrderCardTone.progress;
-  }
-
-  IconData get _icon {
-    if (order.isCompleted) return Icons.check_circle_rounded;
-    if (!order.isOngoing) return Icons.cancel_outlined;
-    if (order.isAccepted) return isLawyer ? Icons.hourglass_top_rounded : Icons.timer_outlined;
-    if (order.isPostponed) return Icons.event_rounded;
-    return order.arrivedAt == null ? Icons.navigation_rounded : Icons.verified_user_rounded;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final otherParty = isLawyer ? 'الموكل: ${order.clientName ?? '-'}' : 'المحامي: ${order.lawyerName ?? '-'}';
-    final isStopped = order.trackerFailedStep != null;
-
     return OrderCard(
-      service: order.serviceTitle,
-      serviceIcon: Icons.location_on_rounded,
-      date: orderCardDate(DateTime.tryParse(order.createdAt)?.toLocal()),
       title: order.problemType ?? order.serviceTitle,
-      details: '$otherParty • ${order.priceText} ج.م',
+      serviceIcon: Icons.location_on_rounded,
+      number: order.orderNumber,
+      time: DateTime.tryParse(order.createdAt)?.toLocal(),
       status: (isLawyer ? order.lawyerStatusLabel : null) ?? order.statusLabel,
-      statusIcon: _icon,
-      tone: _tone,
-      stages: urgentOrderStages,
-      stagesDone: order.trackerDoneSteps,
-      isStopped: isStopped,
-      reference: 'طلب رقم ${order.orderNumber}',
+      statusIcon: orderStatusIcon(order, isLawyer: isLawyer),
+      tone: orderTone(order, isLawyer: isLawyer),
       onOpen: onOpen,
     );
   }

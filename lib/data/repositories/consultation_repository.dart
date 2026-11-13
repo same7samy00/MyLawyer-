@@ -61,6 +61,7 @@ class ConsultationRepository {
       '/consultations',
       {
         'kind': draft.kind.code,
+        'serviceTitle': draft.serviceTitle,
         'details': draft.details,
         'method': fromBalance ? 'wallet' : 'direct',
         if (draft.viaVoice) 'inputMethod': 'voice',

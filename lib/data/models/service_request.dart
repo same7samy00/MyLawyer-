@@ -27,7 +27,7 @@ class IncomingRequest {
 
   const IncomingRequest({
     required this.id,
-    this.service = 'محاميك حالاً',
+    this.service = 'طلب محامي',
     required this.problemType,
     required this.problemDescription,
     this.area,
@@ -52,8 +52,8 @@ class IncomingRequest {
 
   factory IncomingRequest.fromJson(Map<String, dynamic> json) => IncomingRequest(
         id: json['id'].toString(),
-        service: json['service']?.toString() ?? 'محاميك حالاً',
-        problemType: json['problemType']?.toString() ?? 'محاميك حالاً',
+        service: json['service']?.toString() ?? 'طلب محامي',
+        problemType: json['problemType']?.toString() ?? 'طلب محامي',
         problemDescription: json['problemDescription']?.toString() ?? '',
         area: json['area']?.toString(),
         distanceKm: _number(json['distanceKm']),
@@ -173,8 +173,8 @@ class MyRequest {
   factory MyRequest.fromJson(Map<String, dynamic> json) => MyRequest(
         id: json['id'].toString(),
         status: json['status']?.toString() ?? 'OPEN',
-        problemType: json['problemType']?.toString() ?? 'محاميك حالاً',
-        serviceTitle: json['serviceTitle']?.toString() ?? 'محاميك حالاً',
+        problemType: json['problemType']?.toString() ?? 'طلب محامي',
+        serviceTitle: json['serviceTitle']?.toString() ?? 'طلب محامي',
         minPrice: _number(json['minPrice']).round(),
         maxPrice: _number(json['maxPrice']).round(),
         offers: _number(json['offers']).toInt(),
@@ -189,15 +189,15 @@ class MyRequest {
     switch (status) {
       case 'OPEN':
         if (offers > 0) return 'وصلك $offers ${offers == 1 ? 'عرض' : 'عروض'} • اختار واحد';
-        return 'بندوّر على محامين قريبين';
+        return 'بندوّر لك على محامين قريبين';
       case 'NO_OFFERS':
-        return 'محدش بعت عرض';
+        return 'محدش من المحامين بعت عرض • جرب تاني';
       case 'EXPIRED':
-        return 'الطلب اتلغى • ما اخترتش عرض';
+        return 'طلبك اتلغى لأنك ما اخترتش عرض';
       case 'CANCELLED':
-        return 'لغيت الطلب';
+        return 'إنت لغيت الطلب';
       default:
-        return 'الطلب اتقفل';
+        return 'طلبك اتقفل';
     }
   }
 }

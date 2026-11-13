@@ -267,7 +267,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('مفيش اتصال بالإنترنت'), findsNothing);
-      expect(find.text('عرض التفاصيل'), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
     });

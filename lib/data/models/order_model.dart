@@ -135,7 +135,7 @@ class OrderModel {
       id: json['orderId']?.toString() ?? json['id']?.toString() ?? '',
       orderNumber: json['orderNumber']?.toString() ?? json['order_number']?.toString() ?? '',
       serviceType: json['serviceType']?.toString() ?? json['service_type']?.toString() ?? 'lawyer_now',
-      serviceTitle: json['serviceTitle']?.toString() ?? json['service_title']?.toString() ?? 'محاميك حالاً',
+      serviceTitle: json['serviceTitle']?.toString() ?? json['service_title']?.toString() ?? 'طلب محامي',
       problemType: json['problemType']?.toString() ?? json['problem_type']?.toString() ?? json['clientChoice']?.toString(),
       problemDescription: json['problemDescription']?.toString() ?? json['problem_description']?.toString() ?? '',
       clientLat: _toDouble(json['clientLat'] ?? json['clientLatitude'] ?? json['client_latitude']) ?? 30.0444,
@@ -298,20 +298,20 @@ class OrderModel {
   String get statusLabel {
     switch (status) {
       case 'ACCEPTED':
-        return paySecondsLeft > 0 ? 'اخترت المحامي • كمّل الدفع خلال ${(paySecondsLeft / 60).ceil()} دقيقة' : 'اخترت المحامي • كمّل الدفع';
+        return paySecondsLeft > 0 ? 'اخترت محاميك • ادفع خلال ${(paySecondsLeft / 60).ceil()} دقيقة عشان ييجي' : 'اخترت محاميك • ادفع عشان ييجي';
       case 'ACTIVE':
-        if (postponedAt != null) return 'مؤجل • الفلوس محجوزة';
-        return arrivedAt == null ? 'قيد التنفيذ • المحامي في الطريق' : 'قيد التنفيذ • المحامي وصل';
+        if (postponedAt != null) return 'طلبك مؤجل • فلوسك محجوزة لحد ما يخلص';
+        return arrivedAt == null ? 'محاميك جايلك في الطريق' : 'محاميك وصل وبيشتغل على طلبك';
       case 'COMPLETED':
-        return 'مكتمل ومغلق';
+        return 'طلبك خلص';
       case 'CANCELLED':
-        return 'تم الإلغاء';
+        return 'طلبك اتلغى';
       case 'PAYMENT_EXPIRED':
-        return releaseReason == 'TAKEN' ? 'المحامي اتشغل • اختار غيره' : 'الطلب اتلغى • ما كمّلتش الدفع';
+        return releaseReason == 'TAKEN' ? 'المحامي ده اتشغل بطلب تاني • اختار محامي غيره' : 'طلبك اتلغى لأنك ما دفعتش في الوقت';
       case 'EXPIRED':
-        return 'انتهت المهلة';
+        return 'طلبك اتلغى لأن الوقت خلص';
       case 'REFUNDED':
-        return 'تم رد المبلغ';
+        return 'فلوسك رجعتلك';
       default:
         return 'طلب قديم';
     }
@@ -319,11 +319,11 @@ class OrderModel {
 
   /// نص الحالة من ناحية المحامي لما يختلف عن نص الموكل
   String? get lawyerStatusLabel {
-    if (isAccepted) return 'الموكل اختار عرضك • مستنيين الدفع';
-    if (isPostponed) return 'مؤجل • الفلوس محجوزة';
+    if (isAccepted) return 'الموكل اختار عرضك • مستني يدفع';
+    if (isPostponed) return 'المهمة مؤجلة • أتعابك محجوزة لحد ما تنهيها';
     if (isActive && arrivedAt == null) return 'الموكل دفع • روح لمكانه ودوس «وصلت»';
-    if (isActive) return 'وصلت • كمل الشغل ودوس «إنهاء» أو «مؤجل»';
-    if (status == 'PAYMENT_EXPIRED') return releaseReason == 'TAKEN' ? 'اتدفعلك في طلب تاني' : 'الموكل ما دفعش';
+    if (isActive) return 'وصلت • لما تخلص دوس «إنهاء» أو «مؤجل»';
+    if (status == 'PAYMENT_EXPIRED') return releaseReason == 'TAKEN' ? 'اتقفل لأن موكل تاني دفعلك' : 'اتقفل لأن الموكل ما دفعش في الوقت';
     return null;
   }
 

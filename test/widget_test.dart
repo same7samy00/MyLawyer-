@@ -269,8 +269,8 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('طلب رقم ML-ORD-100001'), findsOneWidget);
-      expect(find.text('عرض التفاصيل'), findsOneWidget);
+      expect(find.text('ML-ORD-100001'), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
       expect(find.text('عندك مشكلة؟'), findsNothing);
     });
     testWidgets('AppHeader renders centered title, action icons without container boxes in RTL', (WidgetTester tester) async {
@@ -668,8 +668,9 @@ void main() {
       );
       await tester.pump();
 
-      // Banner exists
-      expect(find.text('محاميك حالاً'), findsAtLeastNWidgets(1));
+      // Banner exists، واسم «محاميك حالاً» داخلي وما بيظهرش للمستخدم
+      expect(find.text('محامي يوصلك دلوقتي'), findsAtLeastNWidgets(1));
+      expect(find.text('محاميك حالاً'), findsNothing);
       expect(find.text('اطلب الآن'), findsOneWidget);
 
       // Search bar is strictly removed
@@ -739,8 +740,9 @@ void main() {
       // NO search bar
       expect(find.textContaining('ابحث عن محامي'), findsNothing);
 
-      // Exactly ONE service: محاميك حالاً
-      expect(find.text('محاميك حالاً'), findsOneWidget);
+      // Exactly ONE service: طلبات الموكلين القريبين
+      expect(find.text('طلبات الموكلين القريبين'), findsOneWidget);
+      expect(find.text('محاميك حالاً'), findsNothing);
       expect(find.text('استشارة سريعة'), findsNothing);
       expect(find.text('صياغة ومراجعة العقود'), findsNothing);
     });
@@ -760,7 +762,7 @@ void main() {
         ),
       );
 
-      expect(find.text('خدمة «محاميك حالاً» للمحامين'), findsOneWidget);
+      expect(find.text('استقبل طلبات الموكلين القريبين منك'), findsOneWidget);
       expect(find.text('دور المحامي في الخدمة'), findsOneWidget);
       expect(find.text('آلية المشاركة والعمل'), findsOneWidget);
       expect(find.text('تقديم على الخدمة'), findsOneWidget);
@@ -839,11 +841,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('طلب رقم ML-ORD-100001'), findsOneWidget);
+      expect(find.text('ML-ORD-100001'), findsOneWidget);
       expect(find.text('محضر في قسم الشرطة'), findsAtLeastNWidgets(1));
-      expect(find.textContaining('الموكل: 01099990000'), findsOneWidget);
-      expect(find.textContaining('350 ج.م'), findsOneWidget);
-      expect(find.text('عرض التفاصيل'), findsOneWidget);
+      // الكارت مختصر: اسم الخدمة والرقم والتاريخ والحالة بس، والباقي في صفحة التفاصيل
+      expect(find.textContaining('الموكل: 01099990000'), findsNothing);
+      expect(find.textContaining('350 ج.م'), findsNothing);
+      expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
 
       // Actions live on the details page
       expect(find.text('قبول الطلب'), findsNothing);
@@ -870,7 +873,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('عرض التفاصيل'));
+      await tester.tap(find.byIcon(Icons.chevron_right_rounded));
       await tester.pumpAndSettle();
 
       expect(find.byType(OrderDetailsSheet), findsOneWidget);

@@ -15,9 +15,10 @@ import 'consultation_style.dart';
 class ConsultationPagesScreen extends StatefulWidget {
   /// المشكلة اللي اتقالت لمحاميحو (بالكتابة أو بالصوت)
   final String details;
+  final String serviceTitle;
   final bool viaVoice;
 
-  const ConsultationPagesScreen({super.key, required this.details, this.viaVoice = false});
+  const ConsultationPagesScreen({super.key, required this.details, required this.serviceTitle, this.viaVoice = false});
 
   @override
   State<ConsultationPagesScreen> createState() => _ConsultationPagesScreenState();
@@ -52,6 +53,7 @@ class _ConsultationPagesScreenState extends State<ConsultationPagesScreen> {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ConsultationEvaluatingScreen(
         kind: ConsultationKind.papers,
+        serviceTitle: widget.serviceTitle,
         details: widget.details,
         pagePaths: _pages.map((page) => page.path).toList(),
         settings: _settings,

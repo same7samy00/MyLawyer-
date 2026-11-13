@@ -37,7 +37,7 @@ class PaymentRecord {
       reason: json['reason']?.toString(),
       at: DateTime.tryParse(json['at']?.toString() ?? '')?.toLocal(),
       orderNumber: json['orderNumber']?.toString(),
-      service: json['service']?.toString() ?? 'محاميك حالاً',
+      service: json['service']?.toString() ?? 'طلب محامي',
       lawyerName: json['lawyerName']?.toString(),
     );
   }

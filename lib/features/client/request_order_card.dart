@@ -14,18 +14,14 @@ class RequestOrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isOpen = request.isOpen;
     return OrderCard(
-      service: request.serviceTitle,
-      serviceIcon: Icons.location_on_rounded,
-      date: orderCardDate(request.createdAt),
       title: request.problemType,
-      details: 'السعر من ${request.minPrice} لـ ${request.maxPrice} ج.م',
+      serviceIcon: Icons.location_on_rounded,
+      // الطلب بياخد رقم لما يتختار محامي
+      number: isOpen ? 'جديد' : 'من غير محامي',
+      time: request.createdAt,
       status: request.statusLabel,
       statusIcon: !isOpen ? Icons.cancel_outlined : (request.offers > 0 ? Icons.receipt_long_rounded : Icons.search_rounded),
       tone: isOpen ? OrderCardTone.progress : OrderCardTone.closed,
-      stages: urgentOrderStages,
-      stagesDone: 0,
-      isStopped: !isOpen,
-      reference: isOpen ? 'طلب جديد' : 'طلب من غير محامي',
       onOpen: isOpen ? onOpen : null,
     );
   }

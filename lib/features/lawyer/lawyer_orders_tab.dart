@@ -38,7 +38,7 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
   List<IncomingRequest> _requests = const [];
   bool _showCurrent = true;
 
-  /// الصفحة بتفتح دايمًا على الطلبات الحالية، حتى لو كانت آخر مرة على السجل
+  /// الصفحة بتفتح دايمًا على الطلبات المفتوحة، حتى لو كانت آخر مرة على السجل
   void _backToCurrent() {
     if (mounted && !_showCurrent) setState(() => _showCurrent = true);
   }
@@ -136,17 +136,14 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
       key: ValueKey('request-${request.id}'),
       padding: const EdgeInsets.only(bottom: 12),
       child: OrderCard(
-        service: request.service,
-        serviceIcon: Icons.location_on_rounded,
         title: request.problemType,
-        details: '${request.area ?? 'مكان الموكل'} • ${request.distanceKm} كم • ${sent == null ? 'من ${request.minPrice} لـ ${request.maxPrice} ج.م' : 'عرضك $sent ج.م'}',
-        status: sent == null ? 'ابعت سعرك' : 'عرضك اتبعت • مستنيين الموكل يختار',
+        serviceIcon: Icons.location_on_rounded,
+        number: 'جديد',
+        time: request.receivedAt,
+        status: sent == null ? 'ابعت سعرك' : 'عرضك اتبعت • مستني الموكل يختار',
         statusIcon: sent == null ? Icons.timer_outlined : Icons.hourglass_top_rounded,
         tone: sent == null ? OrderCardTone.urgent : OrderCardTone.progress,
         countdownSeconds: sent == null ? request.secondsLeft : null,
-        stages: urgentOrderStages,
-        stagesDone: 0,
-        reference: 'طلب جديد',
         onOpen: () { _openRequest(request); },
       ),
     );

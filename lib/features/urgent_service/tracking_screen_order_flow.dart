@@ -65,9 +65,9 @@ extension _TrackingOrderFlow on _TrackingScreenState {
     final res = field != null
         ? await FieldRepository.send(field)
         : await RequestRepository.send(
-            serviceTitle: widget.problemTitle ?? 'محاميك حالاً - استشارة وحضور عاجل',
+            serviceTitle: widget.problemTitle ?? 'طلب محامي',
             problemType: widget.problemTitle ?? 'استشارة وتمثيل فوري',
-            problemDescription: widget.problemDescription ?? 'طلب حضور عاجل واستشارة فورية من خلال خدمة محاميك حالاً',
+            problemDescription: widget.problemDescription ?? 'طلب محامي يحضر دلوقتي',
             clientLat: position.latitude,
             clientLon: position.longitude,
             clientAddress: _locationName,

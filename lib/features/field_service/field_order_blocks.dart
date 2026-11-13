@@ -7,6 +7,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_sheet.dart';
+import '../../core/widgets/image_source_page.dart';
 import 'field_input.dart';
 
 /// كود التسليم للموكل: يديه للشخص، والشخص يقوله للمحامي لما يقابله. نسخ أو شير على واتساب
@@ -97,6 +98,13 @@ class _FieldCodeSheetState extends State<FieldCodeSheet> {
   Widget build(BuildContext context) {
     return AppSheet(
       title: 'كود الشخص',
+      actions: [
+        AppButton.primary(
+          text: 'تأكيد الوصول',
+          height: 48,
+          onPressed: _controller.text.length == 4 ? () => Navigator.of(context).pop(_controller.text) : null,
+        ),
+      ],
       children: [
         const Text(
           'اطلب الكود من الشخص بعد ما تقابله، واكتبه هنا',
@@ -118,13 +126,6 @@ class _FieldCodeSheetState extends State<FieldCodeSheet> {
             onChanged: (_) => setState(() {}),
           ),
         ),
-        const SizedBox(height: 14),
-        AppButton.primary(
-          text: 'تأكيد الوصول',
-          height: 46,
-          fontSize: 14,
-          onPressed: _controller.text.length == 4 ? () => Navigator.of(context).pop(_controller.text) : null,
-        ),
       ],
     );
   }
@@ -132,19 +133,7 @@ class _FieldCodeSheetState extends State<FieldCodeSheet> {
 
 /// صورة إثبات للإدارة بس (القسم أو ورقة الاستقبال): كاميرا أو معرض
 Future<String?> pickProofPhoto(BuildContext context) async {
-  final source = await AppSheet.show<ImageSource>(
-    context,
-    builder: (sheet) => AppSheet(
-      title: 'صورة إثبات',
-      children: [
-        const Text('الصورة بتتحفظ عند الإدارة بس، والموكل مش بيشوفها', textAlign: TextAlign.center, style: fieldMutedStyle),
-        const SizedBox(height: 14),
-        AppButton.primary(text: 'افتح الكاميرا', icon: Icons.photo_camera_rounded, height: 46, fontSize: 14, onPressed: () => Navigator.of(sheet).pop(ImageSource.camera)),
-        const SizedBox(height: 8),
-        AppButton.outlined(text: 'من المعرض', icon: Icons.photo_library_rounded, height: 46, fontSize: 14, onPressed: () => Navigator.of(sheet).pop(ImageSource.gallery)),
-      ],
-    ),
-  );
+  final source = await pickImageSource(context, title: 'صورة إثبات', note: 'الصورة بتتحفظ عند الإدارة بس، والموكل مش بيشوفها');
   if (source == null) return null;
   final picked = await ImagePicker().pickImage(source: source, maxWidth: 1600, imageQuality: 80);
   return picked?.path;

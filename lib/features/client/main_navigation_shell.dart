@@ -148,13 +148,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 children: List.generate(_tabTitles.length, _buildTab),
               ),
             ),
-            // محاميحو في الرئيسية بس، لازق في الشريط السفلي. حركته بتقف في التبويبات التانية
-            Positioned.fill(
-              child: TickerMode(
-                enabled: _currentIndex == 0,
-                child: Offstage(offstage: _currentIndex != 0, child: const MahamihoGuide()),
-              ),
-            ),
+            // محاميحو في كل صفحات الشريط السفلي، لازق في الشريط
+            const Positioned.fill(child: MahamihoGuide()),
           ],
         ),
         bottomNavigationBar: AppBottomBar(

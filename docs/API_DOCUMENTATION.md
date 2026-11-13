@@ -129,8 +129,8 @@
 | `/support/attachments/:id` | GET | صاحبها أو الإدارة | التطبيق واللوحة | صورة مرفقة من المخزن الخاص |
 | `/consultations/settings` | GET | مسجل | التطبيق | أقصى ورق، ومدة المكالمة، وأقل طول للتفاصيل، والخدمة متاحة ولا لأ |
 | `/consultations/quote` | POST | مسجل | التطبيق | `kind` (`CALL` أو `PAPERS`) و`pages`، ويرجع `lines` و`total`. السعر من الخادم بس |
-| `/consultations` | POST | موكل | التطبيق | الطلب والدفع مرة واحدة (multipart): `kind` و`details` و`method` (`wallet` أو `direct`) وصور الورق، و`inputMethod` (`voice` لو اتقالت بالصوت: النص بيتخزن للإدارة، والعميل بيرجعله `details: null` و`viaVoice: true`) |
-| `/consultations` | GET | مسجل | التطبيق | استشاراتي |
+| `/consultations` | POST | موكل | التطبيق | الطلب والدفع مرة واحدة (multipart): `kind` و`details` و`method` (`wallet` أو `direct`) وصور الورق، و`inputMethod` (`voice` لو اتقالت بالصوت: النص بيتخزن للإدارة، والعميل بيرجعله `details: null` و`viaVoice: true`)، و`serviceTitle` (اسم الخدمة من الرئيسية، واللي مش منهم بيتحفظ `null`) |
+| `/consultations` | GET | مسجل | التطبيق | استشاراتي، وكل واحدة فيها `serviceTitle` و`statusText` (نص الحالة موجه للموكل، زي «دفعت • هنكلمك على رقمك قريب») |
 | `/consultations/:id` | GET | صاحبها | التطبيق | الاستشارة ولينكات صور الورق |
 | `/consultations/pages/:id` | GET | صاحبها أو الإدارة | التطبيق واللوحة | صورة ورقة من المخزن الخاص |
 | `/consultations/:id/contact` | POST | صاحبها | التطبيق | «طلب التواصل» بعد «مقدرناش نوصلك» |

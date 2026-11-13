@@ -117,7 +117,7 @@ class _LawyerHomeTabState extends State<LawyerHomeTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'محاميك حالاً',
+                          'طلبات الموكلين القريبين',
                           style: TextStyle(
                             fontFamily: 'AppFont',
                             fontFamilyFallback: appFontFallback,

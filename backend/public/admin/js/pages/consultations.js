@@ -33,7 +33,7 @@ async function consultationsPage(box) {
     item,
     cells: [
       copyable(item.reference), personCell(item.client_name, item.client_phone),
-      CONSULTATION_KIND[item.kind] + (item.kind === 'PAPERS' ? ' • ' + item.pages + ' ورقة' : ''), Number(item.price) + ' ج.م',
+      (item.service_title || CONSULTATION_KIND[item.kind]) + (item.kind === 'PAPERS' ? ' • ' + item.pages + ' ورقة' : ''), Number(item.price) + ' ج.م',
       active === 'WAITING' ? waitingTime(item.created_at) : date(item.created_at), contactState(item), openButton('فتح', 'consultation', item.id),
     ],
   })), (item) => open('consultation', item.id)));
@@ -86,6 +86,7 @@ async function consultationPage(box) {
 
   side.append(section('بيانات الدفع', details([
     ['طريقة الدفع', data.payment_method === 'WALLET' ? 'من رصيد الموكل' : 'دفع مباشر'], ['المبلغ', Number(data.price) + ' ج.م'],
+    ['الخدمة المطلوبة', data.service_title || CONSULTATION_KIND[data.kind]],
     ['عدد المستندات', data.kind === 'PAPERS' ? data.pages : 'لا يوجد'],
     ['طريقة الإدخال', data.input_method === 'VOICE' ? 'كلام مسجّل (اتحول لنص تلقائيًا، وممكن فيه أخطاء)' : 'كتابة'],
   ])));

@@ -123,7 +123,7 @@ describe('الطلب وعروض الأسعار', () => {
     assert.equal(incoming[0].minPrice, 500);
     assert.equal(incoming[0].netRate, 0.7);
     assert.equal(incoming[0].area, 'المعادي، محافظة القاهرة');
-    assert.equal(incoming[0].service, 'محاميك حالاً');
+    assert.equal(incoming[0].service, 'طلب محامي');
     assert.equal(incoming[0].client_latitude, undefined);
     // Three one-minute calls: the lawyer has until all of them end
     assert.ok(incoming[0].secondsLeft > 170 && incoming[0].secondsLeft <= 180);

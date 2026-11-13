@@ -38,12 +38,12 @@ void main() {
       await settleAsync(tester);
       expect(find.byType(MahamihoRequestScreen), findsOneWidget);
 
-      // التبديل للكتابة، وبعدها محاميهو يقول «فهمت طلبك» والمتابعة للدفع
+      // التبديل للكتابة، وبعدها محاميحو يقول «فهمت طلبك» والمتابعة للدفع
       await tester.tap(find.text('كتابة'));
       await tester.pump();
       await tester.enterText(find.byType(TextField), 'صاحب الشقة عايز يطلعني قبل المدة من غير سبب');
       await tester.pump();
-      await tester.tap(find.text('أرسل لمحاميهو'));
+      await tester.tap(find.text('أرسل لمحاميحو'));
       await tester.pump();
       expect(find.text('فهمت طلبك'), findsOneWidget);
       await tester.tap(find.text('متابعة للدفع'));

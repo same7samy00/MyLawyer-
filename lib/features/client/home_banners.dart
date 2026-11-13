@@ -30,7 +30,7 @@ class HomeBannersCarousel extends StatefulWidget {
       key: key,
       banners: [
         HomeBanner(
-          title: 'محاميك حالاً',
+          title: 'محامي يوصلك دلوقتي',
           body: 'أقرب محامي متاح\nيوصلك في أسرع وقت',
           action: 'اطلب الآن',
           art: const LawyerPinIllustration(size: 96, white: true),

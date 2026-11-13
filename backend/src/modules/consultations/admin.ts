@@ -15,7 +15,7 @@ export async function registerAdminConsultations(fastify: FastifyInstance) {
   fastify.get('/consultations', async (_request: FastifyRequest, reply: FastifyReply) => {
     const res = await query(
       `SELECT c.id, c.reference, c.kind, c.pages, c.price, c.payment_method, c.status, c.created_at, c.contacted_at, c.closed_at,
-              c.unreachable_at, c.callback_requested_at, c.input_method,
+              c.unreachable_at, c.callback_requested_at, c.input_method, c.service_title,
               c.client_id, u.phone AS client_phone, COALESCE(u.full_name, u.phone) AS client_name, LEFT(c.details, 160) AS details_preview
        FROM consultations c JOIN users u ON u.id = c.client_id
        ORDER BY c.created_at DESC LIMIT 500`

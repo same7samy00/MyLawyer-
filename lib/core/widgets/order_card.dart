@@ -4,159 +4,129 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
 import 'app_card.dart';
-import 'service_tag.dart';
+import 'status_pill.dart';
 
 /// لون مربع الحالة: ماشي، أو مطلوب منك حاجة بوقت، أو خلص، أو اتقفل
 enum OrderCardTone { progress, urgent, done, closed }
 
-/// مراحل «محاميك حالاً» في كل الكروت، للموكل والمحامي
-const List<String> urgentOrderStages = ['العروض', 'الاختيار', 'الدفع', 'الوصول', 'الإنهاء'];
+/// لون كل حالة في الكروت وفي صفحة الطلب
+Color orderToneColor(OrderCardTone tone) => switch (tone) {
+      OrderCardTone.progress => AppColors.primary,
+      OrderCardTone.urgent => AppColors.danger,
+      OrderCardTone.done => AppColors.success,
+      OrderCardTone.closed => AppColors.textMuted,
+    };
 
-/// التاريخ والساعة بشكل واحد في كل الكروت
-String orderCardDate(DateTime? date) {
+/// اليوم والشهر بشكل واحد في كل الكروت، مثلًا: 13 نوفمبر
+String orderCardDay(DateTime? date) {
   if (date == null) return '';
   const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-  final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
-  final minute = date.minute.toString().padLeft(2, '0');
-  return '${date.day} ${months[date.month - 1]} • $hour:$minute ${date.hour >= 12 ? 'م' : 'ص'}';
+  return '${date.day} ${months[date.month - 1]}';
 }
 
-/// الكارت الموحد لكل الطلبات من كل الخدمات، للموكل والمحامي:
-/// اسم الخدمة فوق، وبعده العنوان والتفاصيل ومربع الحالة وشريط المراحل، والكارت كله بيفتح التفاصيل
+/// الساعة بشكل واحد في كل الكروت، مثلًا: 4:20 م
+String orderCardTime(DateTime? date) {
+  if (date == null) return '';
+  final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+  return '$hour:${date.minute.toString().padLeft(2, '0')} ${date.hour >= 12 ? 'م' : 'ص'}';
+}
+
+/// الكارت الموحد المختصر لكل الطلبات من كل الخدمات، للموكل والمحامي:
+/// فوق أيقونة الخدمة واسمها اللي اتختار فعلًا وسهم، وتحت خط متقطع رقم الطلب والتاريخ والوقت بأيقوناتهم،
+/// وتحتهم الحالة بلونها وأيقونتها. الكارت كله بيفتح التفاصيل، وكل التفاصيل التانية في صفحة الطلب
 class OrderCard extends StatelessWidget {
-  final String service;
-  final IconData serviceIcon;
-  final String date;
+  /// اسم الخدمة اللي الموكل اختارها فعلًا، زي «محضر في قسم الشرطة» أو «استشارة بالتليفون»
   final String title;
-  final String details;
+  final IconData serviceIcon;
+
+  /// رقم الطلب، أو «جديد» للطلب اللي لسه مالوش رقم
+  final String number;
+  final DateTime? time;
   final String status;
   final IconData statusIcon;
   final OrderCardTone tone;
 
-  /// ثواني باقية بتتعد جنب الحالة، زي مهلة إرسال السعر
+  /// ثواني باقية بتتعد جوه الحالة، زي مهلة إرسال السعر
   final int? countdownSeconds;
-
-  final List<String> stages;
-
-  /// عدد المراحل اللي خلصت، والمرحلة اللي بعدها هي الحالية
-  final int stagesDone;
-
-  /// الطلب وقف عند المرحلة الحالية وما كملش
-  final bool isStopped;
-
-  final String reference;
   final VoidCallback? onOpen;
 
   const OrderCard({
     super.key,
-    required this.service,
-    required this.serviceIcon,
     required this.title,
-    required this.details,
+    required this.serviceIcon,
+    required this.number,
+    required this.time,
     required this.status,
     required this.statusIcon,
     required this.tone,
-    required this.stages,
-    required this.stagesDone,
-    this.date = '',
-    this.reference = '',
     this.countdownSeconds,
-    this.isStopped = false,
     this.onOpen,
   });
 
-  Color get _toneColor => switch (tone) {
-        OrderCardTone.progress => AppColors.primary,
-        OrderCardTone.urgent => AppColors.danger,
-        OrderCardTone.done => AppColors.success,
-        OrderCardTone.closed => AppColors.textMuted,
-      };
-
-  String get _stageText {
-    final total = stages.length;
-    if (stagesDone >= total) return 'خلص • $total من $total';
-    final name = stages[stagesDone];
-    return isStopped ? 'وقف عند مرحلة $name' : 'المرحلة ${stagesDone + 1} من $total • $name';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final color = _toneColor;
+    final color = orderToneColor(tone);
     final seconds = countdownSeconds;
     return AppCard(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       onTap: onOpen,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              Expanded(child: ServiceTag(name: service, icon: serviceIcon)),
-              if (date.isNotEmpty) Text(date, style: _muted(11)),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(7.0)),
+                child: Icon(serviceIcon, color: AppColors.primary, size: 19),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: _text(14, FontWeight.w800, AppColors.dark)),
+              ),
+              if (onOpen != null) const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 24),
             ],
           ),
           const SizedBox(height: 10),
-          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: _text(15, FontWeight.w800, AppColors.dark)),
-          const SizedBox(height: 2),
-          Text(details, maxLines: 1, overflow: TextOverflow.ellipsis, style: _muted(12)),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-            decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(7.0)),
-            child: Row(
-              children: [
-                Icon(statusIcon, size: 18, color: color),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: seconds == null
-                      ? Text(status, style: _text(13, FontWeight.w800, color))
-                      : _CountdownText(label: status, seconds: seconds, style: _text(13, FontWeight.w800, color)),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
+          const DashedDivider(),
+          const SizedBox(height: 9),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              for (var index = 0; index < stages.length; index++) ...[
-                if (index > 0) const SizedBox(width: 4),
-                Expanded(
-                  child: Container(
-                    height: 4,
-                    decoration: BoxDecoration(color: _stageColor(index), borderRadius: BorderRadius.circular(2)),
-                  ),
-                ),
-              ],
+              _info(Icons.tag_rounded, number),
+              _info(Icons.calendar_today_rounded, orderCardDay(time)),
+              _info(Icons.schedule_rounded, orderCardTime(time)),
             ],
           ),
-          const SizedBox(height: 5),
-          Text(_stageText, style: _muted(11)),
-          if (reference.isNotEmpty || onOpen != null) ...[
-            const SizedBox(height: 10),
-            const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-            const SizedBox(height: 9),
-            Row(
-              children: [
-                Expanded(child: Text(reference, maxLines: 1, overflow: TextOverflow.ellipsis, style: _muted(12))),
-                if (onOpen != null) Text('عرض التفاصيل', style: _text(12, FontWeight.w800, AppColors.primary)),
-              ],
-            ),
-          ],
+          const SizedBox(height: 10),
+          StatusPill(
+            icon: statusIcon,
+            color: color,
+            child: seconds == null
+                ? Text(status, maxLines: 1, overflow: TextOverflow.ellipsis, style: StatusPill.textStyle(color))
+                : _CountdownText(label: status, seconds: seconds, style: StatusPill.textStyle(color)),
+          ),
         ],
       ),
     );
   }
 
-  Color _stageColor(int index) {
-    if (index < stagesDone) return AppColors.success;
-    if (index > stagesDone) return AppColors.cardBorder;
-    return isStopped ? AppColors.textMuted : AppColors.primary;
+  static Widget _info(IconData icon, String text) {
+    return Flexible(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.textMuted),
+          const SizedBox(width: 4),
+          Flexible(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: _text(11.5, FontWeight.w600, AppColors.textMuted))),
+        ],
+      ),
+    );
   }
 
   static TextStyle _text(double size, FontWeight weight, Color color) =>
       TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: size, fontWeight: weight, color: color);
-
-  static TextStyle _muted(double size) => _text(size, FontWeight.w600, AppColors.textMuted);
 }
 
 /// الحالة ومعاها الوقت الباقي، وبيعد لوحده كل ثانية

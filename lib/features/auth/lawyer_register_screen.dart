@@ -9,8 +9,8 @@ import '../../core/services/auth_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_pressable.dart';
-import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/auth_hero_header.dart';
+import '../../core/widgets/image_source_page.dart';
 import '../../core/widgets/password_strength_widget.dart';
 import 'email_verification_screen.dart';
 
@@ -121,8 +121,6 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
   }
 
   Future<void> _pickSyndicateImage(ImageSource source) async {
-    Navigator.of(context).pop(); // إغلاق البوتن شيت
-
     try {
       final XFile? pickedFile = await _imagePicker.pickImage(
         source: source,
@@ -147,86 +145,14 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
     }
   }
 
-  void _showImageSourceModal({bool forPhoto = false}) {
+  Future<void> _showImageSourceModal({bool forPhoto = false}) async {
     _isPickingPhoto = forPhoto;
-    AppSheet.show<void>(
+    final source = await pickImageSource(
       context,
-      builder: (context) {
-        return AppSheet(
-              title: _isPickingPhoto ? 'إرفاق صورتك الشخصية' : 'إرفاق صورة كارنيه نقابة المحامين',
-              children: [
-                Text(
-                  _isPickingPhoto
-                      ? 'صورة واضحة لوشك، وهتظهر للموكلين في ملفك'
-                      : 'يرجى التأكد من وضوح الصورة وظهور كافة البيانات ورقم القيد جلياً',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'AppFont',
-                    fontFamilyFallback: appFontFallback,
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppPressable(
-                        child: OutlinedButton.icon(
-                        onPressed: () => _pickSyndicateImage(ImageSource.camera),
-                        icon: const Icon(Icons.camera_alt_rounded, color: AppColors.primary, size: 20),
-                        label: const Text(
-                          'الكاميرا',
-                          style: TextStyle(
-                            fontFamily: 'AppFont',
-                            fontFamilyFallback: appFontFallback,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.primary, width: 1.2),
-                          minimumSize: const Size(double.infinity, 48),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(7.0),
-                          ),
-                        ),
-                      ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: AppPressable(
-                        child: ElevatedButton.icon(
-                        onPressed: () => _pickSyndicateImage(ImageSource.gallery),
-                        icon: const Icon(Icons.photo_library_rounded, color: Colors.white, size: 20),
-                        label: const Text(
-                          'معرض الصور',
-                          style: TextStyle(
-                            fontFamily: 'AppFont',
-                            fontFamilyFallback: appFontFallback,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          minimumSize: const Size(double.infinity, 48),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(7.0),
-                          ),
-                        ),
-                      ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-        );
-      },
+      title: forPhoto ? 'إرفاق صورتك الشخصية' : 'إرفاق صورة كارنيه نقابة المحامين',
+      note: forPhoto ? 'صورة واضحة لوشك، وهتظهر للموكلين في ملفك' : 'اتأكد إن الصورة واضحة وكل البيانات ورقم القيد باينين',
     );
+    if (source != null) await _pickSyndicateImage(source);
   }
 
   Future<void> _validateAndAdvanceStep1() async {

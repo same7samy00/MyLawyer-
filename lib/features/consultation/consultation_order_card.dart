@@ -1,27 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/order_card.dart';
+import '../../core/widgets/order_details_parts.dart';
+import '../../core/widgets/status_pill.dart';
 import '../../data/models/consultation.dart';
 import '../../data/repositories/consultation_repository.dart';
 import 'consultation_style.dart';
 
-String _dateText(DateTime? date) {
-  if (date == null) return '';
-  const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-  return '${date.day} ${months[date.month - 1]}';
+/// لون حالة الاستشارة: مطلوب منك تطلب التواصل، أو خلصت، أو اتقفلت، أو ماشية
+OrderCardTone _tone(Consultation item) {
+  if (item.canRequestContact) return OrderCardTone.urgent;
+  if (item.status == 'DONE') return OrderCardTone.done;
+  return item.isOngoing ? OrderCardTone.progress : OrderCardTone.closed;
 }
 
-Color _statusColor(Consultation item) {
-  if (item.canRequestContact) return AppColors.danger;
-  return switch (item.status) {
-    'DONE' => AppColors.success,
-    'REJECTED' => AppColors.textMuted,
-    _ => AppColors.primary,
-  };
-}
+IconData _icon(Consultation item) => switch (_tone(item)) {
+      OrderCardTone.urgent => Icons.phone_missed_rounded,
+      OrderCardTone.done => Icons.check_circle_rounded,
+      OrderCardTone.closed => Icons.cancel_outlined,
+      OrderCardTone.progress => Icons.phone_in_talk_rounded,
+    };
 
 /// كارت الاستشارة في صفحة الطلبات، بنفس شكل كروت الطلبات
 class ConsultationOrderCard extends StatelessWidget {
@@ -32,33 +35,14 @@ class ConsultationOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDone = item.status == 'DONE';
-    final isStopped = !isDone && !item.isOngoing && !item.canRequestContact;
     return OrderCard(
-      service: 'استشارة سريعة',
+      title: item.serviceTitle,
       serviceIcon: Icons.support_agent_rounded,
-      date: orderCardDate(item.createdAt),
-      title: item.kind.label,
-      details: '${item.price} ج.م',
+      number: item.reference,
+      time: item.createdAt,
       status: item.statusText,
-      statusIcon: item.canRequestContact
-          ? Icons.phone_missed_rounded
-          : isDone
-              ? Icons.check_circle_rounded
-              : isStopped
-                  ? Icons.cancel_outlined
-                  : Icons.phone_in_talk_rounded,
-      tone: item.canRequestContact
-          ? OrderCardTone.urgent
-          : isDone
-              ? OrderCardTone.done
-              : isStopped
-                  ? OrderCardTone.closed
-                  : OrderCardTone.progress,
-      stages: const ['الدفع', 'التواصل', 'الإنهاء'],
-      stagesDone: isDone ? 3 : 1,
-      isStopped: isStopped,
-      reference: 'استشارة رقم ${item.reference}',
+      statusIcon: _icon(item),
+      tone: _tone(item),
       onOpen: onOpen,
     );
   }
@@ -91,63 +75,55 @@ class _ConsultationSheetState extends State<ConsultationSheet> {
     });
   }
 
-  Widget _row(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(width: 96, child: Text(label, style: consultationText(12.5, FontWeight.w700, AppColors.textMuted))),
-            Expanded(child: Text(value, style: consultationText(13, FontWeight.w800, AppColors.dark))),
-          ],
-        ),
-      );
+  Future<void> _copyNumber() async {
+    await Clipboard.setData(ClipboardData(text: _item.reference));
+    if (mounted) setState(() => _notice = 'تم نسخ رقم الطلب');
+  }
+
+  /// مراحل الاستشارة: دفعت، وفريقنا بيكلمك، وخلصت. المرفوضة بتقف عند التواصل
+  static const List<TrackerStep> _steps = [
+    (icon: Icons.payments_rounded, label: 'الدفع'),
+    (icon: Icons.phone_in_talk_rounded, label: 'التواصل'),
+    (icon: Icons.shield_rounded, label: 'الإنهاء'),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final item = _item;
-    final color = _statusColor(item);
+    final isDone = item.status == 'DONE';
     return AppSheet(
-      title: 'استشارة ${item.reference}',
+      title: 'تفاصيل الطلب',
+      actions: [
+        if (item.canRequestContact) AppButton.primary(text: 'طلب التواصل', icon: Icons.call_rounded, height: 48, onPressed: _requestContact),
+      ],
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(7.0)),
-          child: Row(
-            children: [
-              Icon(item.canRequestContact ? Icons.phone_missed_rounded : Icons.phone_in_talk_rounded, color: color),
-              const SizedBox(width: 10),
-              Expanded(child: Text(item.statusText, style: consultationText(14, FontWeight.w900, color))),
-            ],
+        if (_notice != null) ...[
+          Text(_notice!, textAlign: TextAlign.center, style: consultationText(13, FontWeight.w800, AppColors.success, height: 1.5)),
+          const SizedBox(height: 12),
+        ],
+        OrderNumberCard(number: item.reference, time: item.createdAt, onCopy: _copyNumber),
+        const SizedBox(height: 12),
+        AppCard(
+          padding: const EdgeInsets.all(14),
+          child: StageTracker(
+            steps: _steps,
+            doneSteps: isDone ? 3 : 1,
+            failedStep: item.status == 'REJECTED' ? 1 : null,
+            isFinished: isDone,
+            status: StatusPill(icon: _icon(item), color: orderToneColor(_tone(item)), text: item.statusText),
           ),
         ),
-        if (item.canRequestContact) ...[
-          const SizedBox(height: 10),
-          Text(
-            'حاولنا نكلمك ومقدرناش نوصلك\nلما تكون متاح اضغط «طلب التواصل» وهنكلمك خلال دقايق',
-            style: consultationText(12.5, FontWeight.w600, AppColors.textMain, height: 1.6),
-          ),
-        ],
         const SizedBox(height: 12),
-        _row('نوع الاستشارة', item.kind.label),
-        if (item.kind == ConsultationKind.papers) _row('عدد الورق', '${item.pages}'),
-        _row('المبلغ', '${item.price} ج.م'),
-        _row('التاريخ', _dateText(item.createdAt)),
-        if (item.rejectReason != null && item.status == 'REJECTED') _row('سبب الرفض', item.rejectReason!),
-        if (item.details.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text('تفاصيل المشكلة', style: consultationText(12.5, FontWeight.w700, AppColors.textMuted)),
-          const SizedBox(height: 4),
-          Text(item.details, maxLines: 6, overflow: TextOverflow.ellipsis, style: consultationText(13, FontWeight.w600, AppColors.textMain, height: 1.6)),
-        ],
-        if (_notice != null) ...[
-          const SizedBox(height: 12),
-          Text(_notice!, textAlign: TextAlign.center, style: consultationText(13, FontWeight.w800, AppColors.success, height: 1.5)),
-        ],
-        const SizedBox(height: 16),
-        if (item.canRequestContact)
-          AppButton.primary(text: 'طلب التواصل', icon: Icons.call_rounded, height: 48, onPressed: _requestContact)
-        else
-          AppButton.outlined(text: 'إغلاق', height: 46, onPressed: () => Navigator.of(context).pop()),
+        DetailsCard(
+          rows: [
+            DetailRow('الخدمة', item.serviceTitle),
+            DetailRow('نوع الاستشارة', item.kind.label),
+            if (item.kind == ConsultationKind.papers) DetailRow('عدد الورق', '${item.pages}'),
+            if (item.details.isNotEmpty) DetailRow('تفاصيل المشكلة', item.details),
+            DetailRow('المبلغ المدفوع', '${item.price} ج.م', valueColor: AppColors.success),
+            if (item.rejectReason != null && item.status == 'REJECTED') DetailRow('سبب الرفض', item.rejectReason!),
+          ],
+        ),
       ],
     );
   }

@@ -72,7 +72,7 @@ describe('الخدمات الميدانية: الطلب', () => {
     const sent = await call('POST', '/requests', clientToken, { problemType: 'سرقة أو نصب أو احتيال', problemDescription: 'وصف', clientLat: 30.05, clientLon: 31.25 });
     assert.equal(sent.status, 201);
     const card = (await call('GET', '/requests/incoming', lawyerToken)).body.data[0];
-    assert.equal(card.service, 'محاميك حالاً');
+    assert.equal(card.service, 'طلب محامي');
     assert.equal(card.field, null);
     const order = await call('GET', '/orders', clientToken);
     assert.ok((order.body.data as any[]).every((o) => o.field === null));

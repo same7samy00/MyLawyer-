@@ -8,6 +8,9 @@ import { detectFileType } from '../../utils/files.js';
 import { HttpError, UUID_PATTERN } from '../../utils/http.js';
 
 export const CONSULTATION_KINDS = ['CALL', 'PAPERS'] as const;
+
+/// The office services on the home page that become a consultation. Anything else is not saved
+export const CONSULTATION_SERVICES = ['استشارة قانونية', 'اطلاع على مستندات', 'كتابة عقد أو مستندات'];
 export type ConsultationKind = typeof CONSULTATION_KINDS[number];
 const MAX_PAGE_BYTES = 6 * 1024 * 1024;
 const PAGES_DIR = () => path.join(config.privateStoragePath, 'consultations');
@@ -103,11 +106,12 @@ export async function pageFile(db: Db, pageId: string, viewer: { userId: string;
   return fs.existsSync(filePath) ? { filePath, mime: row.mime as string } : null;
 }
 
+/// The status the client reads on the card, spoken to the client (owner decision 2026-11-13)
 export const STATUS_TEXT: Record<string, string> = {
-  PAID: 'مستني مكالمة فريقنا',
-  CONTACTING: 'فريقنا بيكلمك دلوقتي',
-  DONE: 'الاستشارة تمت',
-  REJECTED: 'اترفضت والمبلغ رجع لرصيدك',
+  PAID: 'دفعت • هنكلمك على رقمك قريب',
+  CONTACTING: 'بنتصل بيك دلوقتي، رد على موبايلك',
+  DONE: 'استشارتك خلصت',
+  REJECTED: 'ما قدرناش ناخد استشارتك • فلوسك رجعت لرصيدك',
 };
 
 /// الإدارة بعتت «مقدرناش نوصلك» والموكل لسه ما طلبش التواصل
@@ -121,7 +125,8 @@ export const listItem = (row: any) => ({
   pages: row.pages,
   price: Number(row.price),
   status: row.status,
-  statusText: waitingForClient(row) ? 'مقدرناش نوصلك، اطلب التواصل' : STATUS_TEXT[row.status] ?? row.status,
+  serviceTitle: row.service_title,
+  statusText: waitingForClient(row) ? 'حاولنا نكلمك ومردتش • دوس «طلب التواصل»' : STATUS_TEXT[row.status] ?? row.status,
   rejectReason: row.reject_reason,
   canRequestContact: waitingForClient(row),
   contactRequestedAt: row.callback_requested_at,

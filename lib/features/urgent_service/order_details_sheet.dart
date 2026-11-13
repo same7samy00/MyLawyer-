@@ -14,16 +14,20 @@ import '../../core/widgets/app_dialog.dart';
 import '../../core/widgets/app_sheet.dart';
 import '../../core/widgets/lawyer_profile_sheet.dart';
 import '../../core/widgets/order_action_sheets.dart';
+import '../../core/widgets/order_card.dart';
+import '../../core/widgets/order_details_parts.dart';
 import '../../core/widgets/order_status_tracker.dart';
+import '../../core/widgets/order_summary_card.dart';
 import '../../core/widgets/postponed_since.dart';
 import '../../core/widgets/sheet_actions.dart';
+import '../../core/widgets/status_pill.dart';
 import '../../data/models/order_model.dart';
 import '../../data/repositories/field_repository.dart';
 import '../../data/repositories/order_repository.dart';
 import '../field_service/field_order_blocks.dart';
 import '../support/new_ticket_screen.dart';
 import '../support/ticket_details_screen.dart';
-import 'arrival_time_card.dart';
+import 'arrival_status_pill.dart';
 import 'lawyer_on_map_card.dart';
 import 'payment_screen.dart';
 
@@ -259,10 +263,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         const SizedBox(height: 12),
         AppCard(
           padding: const EdgeInsets.all(14),
-          child: OrderStatusTracker(
-            order: order,
-            statusText: widget.isLawyer ? order.lawyerStatusLabel : null,
-          ),
+          child: OrderStatusTracker(order: order, status: _statusPill(order)),
         ),
         const SizedBox(height: 12),
         if (!widget.isLawyer && order.field?.code != null) ...[
@@ -275,8 +276,6 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
             LawyerOnMapCard(order: order),
             const SizedBox(height: 12),
           ],
-          ArrivalTimeCard(order: order, isLawyer: widget.isLawyer),
-          const SizedBox(height: 12),
         ],
         _buildDetailsCard(order),
         const SizedBox(height: 16),
@@ -285,29 +284,19 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
     );
   }
 
-  Widget _buildNumberCard(OrderModel order) {
-    return AppCard(
-      padding: const EdgeInsets.all(14),
-      onTap: _copyOrderNumber,
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('رقم الطلب', style: _labelStyle),
-                const SizedBox(height: 2),
-                Text(order.orderNumber, style: _numberStyle),
-                const SizedBox(height: 2),
-                Text(order.formattedDate, style: _labelStyle),
-              ],
-            ),
-          ),
-          const Icon(Icons.copy_rounded, size: 20, color: AppColors.textMuted),
-        ],
-      ),
+  /// الحالة تحت المراحل: من الدفع لحد الوصول وقت الوصول الحي، وغير كده حالة الطلب. بتتحدث مع كل تغيير في الطلب
+  Widget _statusPill(OrderModel order) {
+    if (order.isActive && order.arrivedAt == null) return ArrivalStatusPill(order: order, isLawyer: widget.isLawyer);
+    final isLawyer = widget.isLawyer;
+    return StatusPill(
+      icon: orderStatusIcon(order, isLawyer: isLawyer),
+      color: orderToneColor(orderTone(order, isLawyer: isLawyer)),
+      text: (isLawyer ? order.lawyerStatusLabel : null) ?? order.statusLabel,
     );
   }
+
+  Widget _buildNumberCard(OrderModel order) =>
+      OrderNumberCard(number: order.orderNumber, time: DateTime.tryParse(order.createdAt)?.toLocal(), onCopy: _copyOrderNumber);
 
   Widget _buildDetailsCard(OrderModel order) {
     final isLawyer = widget.isLawyer;
@@ -341,17 +330,7 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
       if (!order.isOngoing && closingReason != null) _infoRow('السبب', closingReason),
     ];
 
-    return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      child: Column(
-        children: [
-          for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) const Divider(height: 1, color: AppColors.cardBorder),
-            rows[i],
-          ],
-        ],
-      ),
-    );
+    return DetailsCard(rows: rows);
   }
 
   /// ملف المحامي وتقييماته من غير ما الطلب يتقفل
@@ -367,35 +346,8 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
     );
   }
 
-  Widget _infoRow(String label, String value, {Color? valueColor, VoidCallback? onTap}) {
-    final row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 104, child: Text(label, style: _labelStyle)),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontFamily: 'AppFont',
-                fontFamilyFallback: appFontFallback,
-                fontSize: 12,
-                height: 1.4,
-                fontWeight: FontWeight.w800,
-                color: valueColor ?? (onTap != null ? AppColors.primary : AppColors.dark),
-              ),
-            ),
-          ),
-          if (onTap != null) ...[
-            const Text('عرض الملف', style: TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary)),
-          ],
-        ],
-      ),
-    );
-    if (onTap == null) return row;
-    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(7.0), child: row);
-  }
+  Widget _infoRow(String label, String value, {Color? valueColor, VoidCallback? onTap}) =>
+      DetailRow(label, value, valueColor: valueColor, onTap: onTap);
 
   Widget _action(String text, VoidCallback onPressed, {bool isDanger = false, IconData? icon}) {
     return SheetButton(text, _isBusy ? null : onPressed, icon: icon, isDanger: isDanger);
@@ -497,22 +449,6 @@ class _OrderDetailsSheetState extends State<OrderDetailsSheet> {
         return 'منطقة المكان';
     }
   }
-
-  static const TextStyle _labelStyle = TextStyle(
-    fontFamily: 'AppFont',
-    fontFamilyFallback: appFontFallback,
-    fontSize: 12,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textMuted,
-  );
-
-  static const TextStyle _numberStyle = TextStyle(
-    fontFamily: 'AppFont',
-    fontFamilyFallback: appFontFallback,
-    fontSize: 18,
-    fontWeight: FontWeight.w900,
-    color: AppColors.primary,
-  );
 }
 
 /// سبب التأجيل اللي بيوصل للموكل

@@ -119,7 +119,7 @@ export async function walletRoutes(fastify: FastifyInstance) {
           reason: row.reason,
           at: row.at,
           orderNumber: row.order_number,
-          service: row.service || 'محاميك حالاً',
+          service: row.service || 'طلب محامي',
           lawyerName: row.lawyer_name ? shortName(row.lawyer_name) : null,
         };
       });

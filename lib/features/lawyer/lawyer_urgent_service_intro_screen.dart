@@ -105,7 +105,7 @@ class _LawyerUrgentServiceIntroScreenState extends State<LawyerUrgentServiceIntr
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: const AppHeader(
-        title: 'محاميك حالاً',
+        title: 'طلبات الموكلين القريبين',
         isInnerPage: true,
       ),
       body: SafeArea(
@@ -126,7 +126,7 @@ class _LawyerUrgentServiceIntroScreenState extends State<LawyerUrgentServiceIntr
 
               // العنوان الرئيسي
               const Text(
-                'خدمة «محاميك حالاً» للمحامين',
+                'استقبل طلبات الموكلين القريبين منك',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'AppFont',

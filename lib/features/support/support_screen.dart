@@ -59,34 +59,62 @@ class _SupportScreenState extends State<SupportScreen> {
             ? (_error == null
                 ? const AppSkeletonList()
                 : AppStateMessage(icon: Icons.wifi_off_rounded, title: 'تعذر تحميل التذاكر', message: _error, onRetry: _load))
-            : RefreshIndicator(
-                onRefresh: _load,
-                color: AppColors.primary,
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
+            : Column(
+                children: [
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _load,
+                      color: AppColors.primary,
+                      child: tickets.isEmpty ? _empty() : _list(tickets),
+                    ),
+                  ),
+                  // زرار التذكرة الجديدة في آخر الصفحة، زي زرار «المتابعة» في باقي الشاشات
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                     // A ticket under review waits for the admin before anything new goes out
-                    if (tickets.any((ticket) => ticket.isUnderReview))
-                      const Text('عندك تذكرة تحت المراجعة، تقدر تفتح تذكرة جديدة بعد رد الإدارة',
-                          textAlign: TextAlign.center, style: supportMutedStyle,)
-                    else
-                      AppButton.primary(
-                        text: 'تذكرة جديدة',
-                        icon: Icons.add_rounded,
-                        onPressed: () => _open(const NewTicketScreen()),
-                      ),
-                    const SizedBox(height: 16),
-                    if (tickets.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 40),
-                        child: Text('مفيش تذاكر لسه، ولو عندك أي مشكلة افتح تذكرة والإدارة هترد عليك',
-                            textAlign: TextAlign.center, style: supportMutedStyle,),
-                      ),
-                    for (final ticket in tickets) _TicketCard(ticket: ticket, onTap: () => _open(TicketDetailsScreen(ticketId: ticket.id))),
-                  ],
-                ),
+                    child: tickets.any((ticket) => ticket.isUnderReview)
+                        ? const Text('عندك تذكرة تحت المراجعة، تقدر تفتح تذكرة جديدة بعد رد الإدارة',
+                            textAlign: TextAlign.center, style: supportMutedStyle,)
+                        : AppButton.primary(
+                            text: 'تذكرة جديدة',
+                            icon: Icons.add_rounded,
+                            height: 50,
+                            onPressed: () => _open(const NewTicketScreen()),
+                          ),
+                  ),
+                ],
               ),
       ),
+    );
+  }
+
+  /// مفيش تذاكر: رسمة وشرح في نص الصفحة، والسحب لتحت لسه بيحدّث
+  Widget _empty() {
+    return LayoutBuilder(
+      builder: (context, size) => ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          ConstrainedBox(
+            constraints: BoxConstraints(minHeight: size.maxHeight),
+            child: const Center(
+              child: AppStateMessage(
+                icon: Icons.support_agent_rounded,
+                title: 'مفيش تذاكر لسه',
+                message: 'لو عندك أي مشكلة افتح تذكرة، والإدارة هترد عليك',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _list(List<SupportTicket> tickets) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        for (final ticket in tickets) _TicketCard(ticket: ticket, onTap: () => _open(TicketDetailsScreen(ticketId: ticket.id))),
+      ],
     );
   }
 }
