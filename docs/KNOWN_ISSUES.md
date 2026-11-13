@@ -2,6 +2,23 @@
 
 **آخر مراجعة:** 2026-11-11 (فحص كامل للكود والسيرفرين وقاعدة البيانات). أي بند يتحل يتمسح من هنا. اللي صاحب المشروع قرره ولسه ما اتعملش مكانه `NEXT.md`، مش هنا.
 
+## 0. عاجل: الموقع والخادم واقعين من 2026-11-13 الساعة 6:36 الصبح
+**الحالة وقت الكتابة:** Cloudflare بيرجّع `521` على `my-lawyer.online` كله (الموقع، واللوحة، والـ API). الخادم (`mylawyer-backend`) والقاعدة شغالين، و**Nginx واقف على السيرفرين التنين**.
+
+**السبب (اتأكد من السجلات):** التحديث التلقائي اليومي (`apt-daily-upgrade` / `unattended-upgrade`) حدّث `systemd`، فعمل restart لـ `systemd-resolved` ولـ Nginx في نفس الثانية. Nginx بيدوّر على عنوان `api.tomtom.com` (سطر `proxy_pass` بتاع `/map/t/` في `/etc/nginx/sites-available/mylawyer` سطر 35) وهو بيقوم، والـ DNS كان واقف لحظتها، فرفض يقوم: `host not found in upstream "api.tomtom.com"`. الأساسي وقع 6:36:25 والتاني 6:38:45.
+
+**التصليح الفوري (محتاج موافقة صاحب المشروع، الصلاحيات ما سمحتش للنموذج يغيّر على السيرفر):** الإعدادات سليمة (`nginx -t` ناجح دلوقتي)، فكفاية:
+```
+ssh -F D:/KAREM/.access/ssh_config mylawyer-api 'systemctl start nginx && systemctl is-active nginx'
+ssh -F D:/KAREM/.access/ssh_config mylawyer-vps 'systemctl start nginx && systemctl is-active nginx'
+```
+وبعدها `curl https://my-lawyer.online/api/v1/health` لازم يرجع `UP`.
+
+**عشان ما يتكررش (محتاج موافقة):**
+1. Nginx يدوّر على `api.tomtom.com` وقت الطلب مش وقت القيام: `resolver 127.0.0.53 valid=300s;` و`set $tomtom_upstream https://api.tomtom.com;` و`proxy_pass $tomtom_upstream;` في `location ^~ /map/t/` (على السيرفرين).
+2. Nginx يقوم لوحده لو وقع: `systemctl edit nginx` → `[Service]` `Restart=on-failure` `RestartSec=5s`.
+3. `mylawyer-watch.sh` (كل 5 دقايق) المفروض بعت إيميل للمالك: يتراجع إنه وصل.
+
 ## 1. قبل النشر على المتجر
 | البند | ليه مهم |
 |---|---|
