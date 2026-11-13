@@ -6,6 +6,7 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_message.dart';
+import '../../core/widgets/app_skeleton.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/line_illustration.dart';
 import '../../core/widgets/status_badge.dart';
@@ -92,7 +93,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       body: SafeArea(
         child: payments == null
             ? (_error == null
-                ? const Center(child: AppLoader())
+                ? const AppSkeletonList()
                 : AppStateMessage(icon: Icons.wifi_off_rounded, title: 'تعذر تحميل المدفوعات', message: _error, onRetry: _load))
             : RefreshIndicator(
                 onRefresh: _load,

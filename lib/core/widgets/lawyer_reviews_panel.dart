@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/models/lifecycle_models.dart';
 import '../../data/repositories/lawyer_repository.dart';
-import 'app_loader.dart';
+import 'app_skeleton.dart';
 import 'app_state_message.dart';
 import 'order_action_sheets.dart';
 import 'review_card.dart';
@@ -60,7 +60,7 @@ class _LawyerReviewsPanelState extends State<LawyerReviewsPanel> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: AppLoader());
+      return const AppSkeletonList();
     }
 
     if (_error != null) {

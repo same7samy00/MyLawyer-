@@ -106,12 +106,12 @@ void main() {
       expect(theme.iconButtonTheme.style!.overlayColor!.resolve(states), Colors.transparent);
     });
 
-    testWidgets('هيئة الزر الطبيعية محفوظة: الحواف 24 والارتفاع والخط', (tester) async {
+    testWidgets('هيئة الزر الطبيعية محفوظة: الحواف 7 والارتفاع والخط', (tester) async {
       await tester.pumpWidget(_host(AppButton.primary(text: 'زر', onPressed: () {})));
 
       final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
       final shape = button.style!.shape!.resolve({}) as RoundedRectangleBorder;
-      expect(shape.borderRadius, BorderRadius.circular(24.0));
+      expect(shape.borderRadius, BorderRadius.circular(7.0));
       expect(tester.getSize(find.byType(ElevatedButton)).height, 50.0);
       final text = tester.widget<Text>(find.text('زر'));
       expect(text.style!.fontFamily, 'AppFont');

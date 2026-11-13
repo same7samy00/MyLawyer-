@@ -7,7 +7,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/live_updates.dart';
 import '../../core/services/order_store.dart';
-import '../../core/widgets/app_loader.dart';
+import '../../core/widgets/app_skeleton.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/order_card.dart';
 import '../../core/widgets/order_summary_card.dart';
@@ -155,7 +155,7 @@ class _LawyerOrdersTabState extends State<LawyerOrdersTab> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: AppLoader());
+      return const AppSkeletonList();
     }
 
     if (_errorMessage != null) {

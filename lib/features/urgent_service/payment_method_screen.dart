@@ -232,22 +232,19 @@ class _PaymentOption extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.primaryLight : Colors.white,
-              borderRadius: BorderRadius.circular(14.0),
-              border: Border.all(
-                color: isSelected ? AppColors.primary : AppColors.cardBorder,
-                width: isSelected ? 1.5 : 1.0,
-              ),
+              color: isSelected ? AppColors.primary : Colors.white,
+              borderRadius: BorderRadius.circular(7.0),
+              border: Border.all(color: isSelected ? AppColors.primary : AppColors.cardBorder),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : AppColors.background,
+                    color: isSelected ? Colors.white : AppColors.background,
                     borderRadius: BorderRadius.circular(7.0),
                   ),
-                  child: Icon(icon, size: 20, color: isSelected ? Colors.white : AppColors.dark),
+                  child: Icon(icon, size: 20, color: isSelected ? AppColors.primary : AppColors.dark),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -261,7 +258,7 @@ class _PaymentOption extends StatelessWidget {
                           fontFamilyFallback: appFontFallback,
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: isSelected ? AppColors.primary : AppColors.dark,
+                          color: isSelected ? Colors.white : AppColors.dark,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -272,16 +269,11 @@ class _PaymentOption extends StatelessWidget {
                           fontFamilyFallback: appFontFallback,
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          color: subtitleColor ?? AppColors.textMuted,
+                          color: isSelected ? Colors.white : (subtitleColor ?? AppColors.textMuted),
                         ),
                       ),
                     ],
                   ),
-                ),
-                Icon(
-                  isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-                  color: isSelected ? AppColors.primary : AppColors.cardBorder,
-                  size: 22,
                 ),
               ],
             ),

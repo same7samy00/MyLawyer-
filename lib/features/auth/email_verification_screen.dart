@@ -390,7 +390,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         ),
                         style: TextButton.styleFrom(
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
+                            borderRadius: BorderRadius.circular(7.0),
                           ),
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         ),
@@ -443,7 +443,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                               overlayColor: Colors.transparent,
                               foregroundColor: AppColors.primary,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.0),
+                                borderRadius: BorderRadius.circular(7.0),
                               ),
                             ),
                             child: _isResending

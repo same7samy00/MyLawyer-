@@ -4,7 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
-import '../../core/widgets/app_loader.dart';
+import '../../core/widgets/app_skeleton.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../data/models/support_ticket.dart';
 import '../../data/repositories/support_repository.dart';
@@ -57,7 +57,7 @@ class _SupportScreenState extends State<SupportScreen> {
       body: SafeArea(
         child: tickets == null
             ? (_error == null
-                ? const Center(child: AppLoader())
+                ? const AppSkeletonList()
                 : AppStateMessage(icon: Icons.wifi_off_rounded, title: 'تعذر تحميل التذاكر', message: _error, onRetry: _load))
             : RefreshIndicator(
                 onRefresh: _load,

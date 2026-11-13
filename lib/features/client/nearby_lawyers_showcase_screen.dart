@@ -13,9 +13,9 @@ import '../../core/services/geo_naming_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/map_lawyer_loader.dart';
 import '../../core/widgets/app_button.dart';
-import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_map_layer.dart';
 import '../../core/widgets/app_sheet.dart';
+import '../../core/widgets/app_skeleton.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/lawyer_map_layers.dart';
 import '../../core/widgets/lawyer_profile_summary.dart';
@@ -414,7 +414,7 @@ class _NearbyLawyersShowcaseScreenState extends State<NearbyLawyersShowcaseScree
                     color: Colors.white,
                     elevation: 3,
                     shadowColor: Colors.black.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12.0),
+                    borderRadius: BorderRadius.circular(7.0),
                     child: Container(
                       height: 44,
                       padding: const EdgeInsets.symmetric(horizontal: 16),

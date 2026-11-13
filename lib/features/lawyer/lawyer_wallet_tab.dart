@@ -7,9 +7,9 @@ import '../../core/services/api_service.dart';
 import '../../core/services/live_updates.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
-import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_message.dart';
 import '../../core/widgets/app_pressable.dart';
+import '../../core/widgets/app_skeleton.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/order_action_sheets.dart';
 import '../../data/models/lifecycle_models.dart';
@@ -114,7 +114,7 @@ class _LawyerWalletTabState extends State<LawyerWalletTab> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: AppLoader());
+      return const AppSkeletonList(top: AppSkeleton(child: SkeletonBox(height: 140)));
     }
 
     // لا تعرض أرقام مالية قديمة كأنها حالية
@@ -213,7 +213,7 @@ class _LawyerWalletTabState extends State<LawyerWalletTab> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24.0)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.0)),
                     ),
                   ),
                   ),

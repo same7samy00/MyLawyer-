@@ -95,7 +95,7 @@ class AppBottomBar extends StatelessWidget {
     return AppPressable(
       child: InkWell(
         onTap: () => onTabSelected(index),
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(7.0),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Column(
@@ -147,7 +147,7 @@ class _CountBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
       decoration: BoxDecoration(
         color: AppColors.danger,
-        borderRadius: BorderRadius.circular(9.0),
+        borderRadius: BorderRadius.circular(7.0),
       ),
       child: Text(
         count > 99 ? '99+' : '$count',

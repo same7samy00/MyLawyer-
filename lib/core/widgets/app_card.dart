@@ -16,7 +16,7 @@ class DashedRRectPainter extends CustomPainter {
     this.strokeWidth = 1.0,
     this.dash = 5.0,
     this.gap = 3.5,
-    this.borderRadius = 14.0,
+    this.borderRadius = 7.0,
   });
 
   @override
@@ -84,7 +84,7 @@ class AppCard extends StatelessWidget {
     this.backgroundColor,
     this.border,
     this.isDashed = true, // مفعل افتراضياً للحدود المتقطعة الهادئة
-    this.borderRadius = 14.0,
+    this.borderRadius = 7.0,
     this.onTap,
   });
 

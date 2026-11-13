@@ -77,7 +77,7 @@ class _TypeCard extends StatelessWidget {
           Container(
             width: 48,
             height: 48,
-            decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(12.0)),
+            decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(7.0)),
             child: Icon(icon, color: AppColors.primary),
           ),
           const SizedBox(width: 12),

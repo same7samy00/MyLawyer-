@@ -180,15 +180,15 @@ class _ProblemDescriptionScreenState extends State<ProblemDescriptionScreen> {
                         fillColor: Colors.white,
                         contentPadding: const EdgeInsets.all(16),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16.0),
+                          borderRadius: BorderRadius.circular(7.0),
                           borderSide: const BorderSide(color: AppColors.cardBorder, width: 1.0),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16.0),
+                          borderRadius: BorderRadius.circular(7.0),
                           borderSide: const BorderSide(color: AppColors.cardBorder, width: 1.0),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16.0),
+                          borderRadius: BorderRadius.circular(7.0),
                           borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
                         ),
                       ),

@@ -37,12 +37,12 @@ class SmoothRtlPageTransitionsBuilder extends PageTransitionsBuilder {
   }
 }
 
-/// Central Design System ThemeData with the IBM Plex Sans Arabic font & Minimal UI pill buttons (24.0px)
+/// Central Design System ThemeData with the IBM Plex Sans Arabic font & Minimal UI pill buttons
 class AppTheme {
   AppTheme._();
 
-  static const double borderRadiusValue = 14.0;
-  static const double buttonRadiusValue = 24.0; // حواف مستديرة واضحة للأزرار (Pill Radius)
+  static const double borderRadiusValue = 7.0;
+  static const double buttonRadiusValue = 7.0;
   static final BorderRadius commonBorderRadius = BorderRadius.circular(borderRadiusValue);
   static final BorderRadius buttonBorderRadius = BorderRadius.circular(buttonRadiusValue);
 
@@ -96,29 +96,29 @@ class AppTheme {
         ),
       ),
 
-      // Input Decoration Theme (Minimal UI soft pill-like radius 16.0px)
+      // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16.0),
+          borderRadius: BorderRadius.circular(7.0),
           borderSide: const BorderSide(color: AppColors.cardBorder, width: 1.0),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16.0),
+          borderRadius: BorderRadius.circular(7.0),
           borderSide: const BorderSide(color: AppColors.cardBorder, width: 1.0),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16.0),
+          borderRadius: BorderRadius.circular(7.0),
           borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16.0),
+          borderRadius: BorderRadius.circular(7.0),
           borderSide: const BorderSide(color: AppColors.danger, width: 1.0),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16.0),
+          borderRadius: BorderRadius.circular(7.0),
           borderSide: const BorderSide(color: AppColors.danger, width: 1.4),
         ),
         hintStyle: const TextStyle(
@@ -135,7 +135,7 @@ class AppTheme {
         ),
       ),
 
-      // Button Themes (Pill Radius 24.0px): بلا Ripple وبلا Hover
+      // Button Themes: بلا Ripple وبلا Hover
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
           splashFactory: NoSplash.splashFactory,
@@ -241,12 +241,12 @@ class AppTheme {
         ),
       ),
 
-      // Bottom Sheet Theme (20.0px Top Radius)
+      // Bottom Sheet Theme (7px Top Radius)
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.white,
         elevation: 16,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(7.0)),
         ),
       ),
 

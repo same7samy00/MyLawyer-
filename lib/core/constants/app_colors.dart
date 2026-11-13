@@ -33,5 +33,9 @@ class AppColors {
   // Specialized Cards & Sheets
   static const Color cardBg = Colors.white;
   static const Color bottomSheetHeaderBg = Color(0xFFF1F5F9);
+
+  // Skeleton loading: the shapes and the light that moves over them
+  static const Color skeleton = Color(0xFFE8EDF3);
+  static const Color skeletonShine = Color(0xFFF6F8FB);
 }
 

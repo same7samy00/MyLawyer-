@@ -56,7 +56,7 @@ extension _LawyerRegisterDocuments on _LawyerRegisterScreenState {
             child: Column(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(14.0),
+                  borderRadius: BorderRadius.circular(7.0),
                   child: Image.file(
                     File(_syndicateCardPath!),
                     height: 190,
@@ -85,7 +85,7 @@ extension _LawyerRegisterDocuments on _LawyerRegisterScreenState {
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: AppColors.primary, width: 1.2),
                           minimumSize: const Size(double.infinity, 44),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24.0)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.0)),
                         ),
                       ),
                       ),
@@ -122,7 +122,7 @@ extension _LawyerRegisterDocuments on _LawyerRegisterScreenState {
                   side: const BorderSide(color: AppColors.cardBorder, width: 1.2),
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24.0),
+                    borderRadius: BorderRadius.circular(7.0),
                   ),
                 ),
                 child: const Text(

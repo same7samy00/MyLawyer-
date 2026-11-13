@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/app_choice_chip.dart';
+import '../../core/widgets/app_field_error.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_message.dart';
 import '../../data/models/order_model.dart';
@@ -28,13 +30,23 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
   late OrderModel? _order = widget.order;
   List<OrderModel> _orders = const [];
   List<String> _images = const [];
+  /// غلط الإرسال نفسه من السيرفر، تحت الزرار
   String? _error;
+
+  /// غلط كل خانة، أحمر تحت الخانة نفسها وبيختفي لما تتصلّح
+  final Map<String, String> _errors = {};
   bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.order == null) _loadOrders();
+    _title.addListener(() => _clearError('title'));
+    _body.addListener(() => _clearError('body'));
+  }
+
+  void _clearError(String key) {
+    if (_errors.containsKey(key)) setState(() => _errors.remove(key));
   }
 
   @override
@@ -51,16 +63,18 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
   }
 
   Future<void> _send() async {
-    if (_category == 'ORDER' && _order == null) {
-      setState(() => _error = 'اختار الطلب اللي فيه المشكلة');
-      return;
-    }
-    if (_title.text.trim().length < 3) {
-      setState(() => _error = 'اكتب عنوان للمشكلة');
-      return;
-    }
-    if (_body.text.trim().length < 10) {
-      setState(() => _error = 'اكتب تفاصيل المشكلة في 10 أحرف على الأقل');
+    final errors = <String, String>{
+      if (_category == 'ORDER' && _order == null) 'order': 'اختار الطلب اللي فيه المشكلة',
+      if (_title.text.trim().length < 3) 'title': 'اكتب عنوان للمشكلة',
+      if (_body.text.trim().length < 10) 'body': 'اكتب تفاصيل المشكلة في 10 أحرف على الأقل',
+    };
+    if (errors.isNotEmpty) {
+      setState(() {
+        _error = null;
+        _errors
+          ..clear()
+          ..addAll(errors);
+      });
       return;
     }
 
@@ -108,11 +122,9 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
                 runSpacing: 8,
                 children: [
                   for (final entry in SupportTicket.categories.entries)
-                    ChoiceChip(
-                      label: Text(entry.value, style: supportTextStyle),
+                    AppChoiceChip(
+                      label: entry.value,
                       selected: _category == entry.key,
-                      selectedColor: AppColors.primaryLight,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.0)),
                       onSelected: (_) => setState(() => _category = entry.key),
                     ),
                 ],
@@ -121,6 +133,7 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
             if (widget.order != null || _category == 'ORDER' || _category == 'MONEY') ...[
               const SizedBox(height: 16),
               const Text('الطلب', style: supportTitleStyle),
+              AppFieldError(_errors['order']),
               const SizedBox(height: 8),
               if (widget.order != null)
                 Text('طلب ${widget.order!.orderNumber}', style: supportTextStyle)
@@ -137,7 +150,10 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
                             style: supportTextStyle, overflow: TextOverflow.ellipsis,),
                       ),
                   ],
-                  onChanged: (id) => setState(() => _order = _orders.where((order) => order.id == id).firstOrNull),
+                  onChanged: (id) => setState(() {
+                    _order = _orders.where((order) => order.id == id).firstOrNull;
+                    _errors.remove('order');
+                  }),
                 ),
             ],
             const SizedBox(height: 16),
@@ -147,6 +163,7 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
               style: supportTextStyle,
               decoration: const InputDecoration(hintText: 'عنوان المشكلة', counterText: ''),
             ),
+            AppFieldError(_errors['title']),
             const SizedBox(height: 10),
             TextField(
               controller: _body,
@@ -155,6 +172,7 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
               style: supportTextStyle,
               decoration: const InputDecoration(hintText: 'اكتب المشكلة بالتفصيل', counterText: ''),
             ),
+            AppFieldError(_errors['body']),
             const SizedBox(height: 12),
             const Text('صور (اختياري، لحد 5)', style: supportMutedStyle),
             const SizedBox(height: 8),

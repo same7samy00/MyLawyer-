@@ -4,7 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/live_updates.dart';
 import '../../core/services/notification_center.dart';
 import '../../core/widgets/app_header.dart';
-import '../../core/widgets/app_loader.dart';
+import '../../core/widgets/app_skeleton.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/line_illustration.dart';
 import '../../data/models/lifecycle_models.dart';
@@ -91,7 +91,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: AppLoader());
+      return const AppSkeletonList();
     }
 
     if (_error != null) {

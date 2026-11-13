@@ -115,7 +115,7 @@ extension _ClientRegisterSteps on _ClientRegisterScreenState {
           ),
           const SizedBox(height: 32),
 
-          // زر المتابعة للخطوة التالية 24.0px
+          // زر المتابعة للخطوة التالية
           AppButton.primary(
             text: 'بيانات الحساب',
             onPressed: _validateAndAdvanceStep1,
@@ -214,7 +214,7 @@ extension _ClientRegisterSteps on _ClientRegisterScreenState {
                     side: const BorderSide(color: AppColors.cardBorder, width: 1.2),
                     minimumSize: const Size(double.infinity, 50),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24.0),
+                      borderRadius: BorderRadius.circular(7.0),
                     ),
                   ),
                   child: const Text(
@@ -319,7 +319,7 @@ extension _ClientRegisterSteps on _ClientRegisterScreenState {
                   side: const BorderSide(color: AppColors.cardBorder, width: 1.2),
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24.0),
+                    borderRadius: BorderRadius.circular(7.0),
                   ),
                 ),
                 child: const Text(
@@ -463,23 +463,23 @@ extension _ClientRegisterSteps on _ClientRegisterScreenState {
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 15.0),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(7.0),
         borderSide: const BorderSide(color: AppColors.cardBorder, width: 1.0),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(7.0),
         borderSide: const BorderSide(color: AppColors.cardBorder, width: 1.0),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(7.0),
         borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(7.0),
         borderSide: const BorderSide(color: AppColors.danger, width: 1.0),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(7.0),
         borderSide: const BorderSide(color: AppColors.danger, width: 1.4),
       ),
     );

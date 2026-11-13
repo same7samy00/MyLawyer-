@@ -419,9 +419,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 50,
                           child: Material(
                             color: AppColors.primaryLight,
-                            borderRadius: BorderRadius.circular(12.0),
+                            borderRadius: BorderRadius.circular(7.0),
                             child: InkWell(
-                              borderRadius: BorderRadius.circular(12.0),
+                              borderRadius: BorderRadius.circular(7.0),
                               onTap: _isBiometricBusy ? null : _loginWithBiometric,
                               child: Center(
                                 child: _isBiometricBusy
@@ -463,7 +463,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           foregroundColor: AppColors.primary,
                           padding: const EdgeInsets.symmetric(horizontal: 8.0),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
+                            borderRadius: BorderRadius.circular(7.0),
                           ),
                         ),
                         child: const Text(

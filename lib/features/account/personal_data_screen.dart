@@ -6,8 +6,8 @@ import '../../core/services/notification_center.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
-import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_message.dart';
+import '../../core/widgets/app_skeleton.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/profile_photo.dart';
 import '../../data/repositories/profile_repository.dart';
@@ -90,7 +90,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
       body: SafeArea(
         child: profile == null
             ? (_error == null
-                ? const Center(child: AppLoader())
+                ? const AppSkeletonList(count: 4, top: Center(child: AppSkeleton(child: SkeletonBox(height: 110, circle: true))))
                 : ListView(
                     children: [
                       AppStateMessage(
@@ -125,11 +125,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
       children: [
         Center(
           child: _isUploading
-              ? const SizedBox(
-                  width: 110,
-                  height: 110,
-                  child: Center(child: AppLoader.inline(size: 30)),
-                )
+              ? const AppSkeleton(child: SkeletonBox(height: 110, circle: true))
               : ProfilePhoto(path: profile['profilePhotoPath']?.toString(), size: 110),
         ),
         const SizedBox(height: 12),

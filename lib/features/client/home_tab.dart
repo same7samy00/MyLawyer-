@@ -147,7 +147,7 @@ class _HomeTabState extends State<HomeTab> {
               height: 44,
               decoration: BoxDecoration(
                 color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(12.0),
+                borderRadius: BorderRadius.circular(7.0),
               ),
               child: Center(
                 child: Icon(icon, color: AppColors.primary, size: 22),

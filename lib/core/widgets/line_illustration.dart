@@ -7,7 +7,10 @@ class LineIllustration extends StatelessWidget {
   final IconData icon;
   final double height;
 
-  const LineIllustration({super.key, required this.icon, this.height = 96});
+  /// كلام مكان الأيقونة (اسم الخدمة مثلًا)، والكارت بيتمد على قده
+  final String? label;
+
+  const LineIllustration({super.key, required this.icon, this.height = 96, this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +22,7 @@ class LineIllustration extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           const Positioned.fill(child: EdgeLine()),
-          IllustrationBadge(icon: icon, size: height * 0.62),
+          if (label == null) IllustrationBadge(icon: icon, size: height * 0.62) else _LabelBadge(label: label!, size: height * 0.62),
         ],
       ),
     );
@@ -35,7 +38,7 @@ class IllustrationBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final card = BorderRadius.circular(size * 0.2);
+    final card = BorderRadius.circular(7.0);
     return SizedBox(
       width: size * 1.25,
       height: size * 1.15,
@@ -61,6 +64,62 @@ class IllustrationBadge extends StatelessWidget {
               height: size * 0.76,
               decoration: BoxDecoration(color: AppColors.primary, borderRadius: card),
               child: Icon(icon, color: Colors.white, size: size * 0.42),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// الكارت المائل وجواه كلام بدل الأيقونة: الكارت الأزرق على قد الكلام، والأبيض وراه بنفس مقاسه
+class _LabelBadge extends StatelessWidget {
+  final String label;
+  final double size;
+
+  const _LabelBadge({required this.label, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final card = BorderRadius.circular(7.0);
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width - 80),
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: Transform.rotate(
+              angle: 6 * math.pi / 180,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: card,
+                  border: Border.all(color: AppColors.dark, width: 1.2),
+                ),
+              ),
+            ),
+          ),
+          Transform.rotate(
+            angle: -4 * math.pi / 180,
+            child: Container(
+              height: size * 0.76,
+              constraints: BoxConstraints(minWidth: size * 1.1),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: AppColors.primary, borderRadius: card),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'AppFont',
+                  fontFamilyFallback: appFontFallback,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ],

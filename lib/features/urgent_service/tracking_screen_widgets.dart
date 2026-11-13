@@ -243,7 +243,7 @@ class _OfferCard extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14.0),
+        borderRadius: BorderRadius.circular(7.0),
         border: Border.all(color: AppColors.cardBorder),
       ),
       child: Column(

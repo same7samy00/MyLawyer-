@@ -93,7 +93,7 @@ class UserTypeSelectionScreen extends StatelessWidget {
                             foregroundColor: AppColors.primary,
                             padding: const EdgeInsets.symmetric(horizontal: 8.0),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.0),
+                              borderRadius: BorderRadius.circular(7.0),
                             ),
                           ),
                           child: const Text(
@@ -143,7 +143,7 @@ class UserTypeSelectionScreen extends StatelessWidget {
             height: 52,
             decoration: BoxDecoration(
               color: accentColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12.0),
+              borderRadius: BorderRadius.circular(7.0),
             ),
             child: Icon(
               icon,

@@ -3,8 +3,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_header.dart';
-import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_pressable.dart';
+import '../../core/widgets/app_skeleton.dart';
 import '../../data/models/map_lawyer.dart';
 
 /// شاشة عرض بروفايل ملف جوجل المعتمد للمحامي عبر WebView
@@ -206,7 +206,7 @@ class _LawyerGoogleProfileScreenState extends State<LawyerGoogleProfileScreen> {
                         children: [
                           WebViewWidget(controller: _controller),
                           if (_loadingProgress < 60)
-                            const Center(child: AppLoader()),
+                            const AppSkeletonList(),
                         ],
                       ),
               ),
@@ -262,7 +262,7 @@ class _LawyerGoogleProfileScreenState extends State<LawyerGoogleProfileScreen> {
                 backgroundColor: AppColors.primary,
                 minimumSize: const Size(160, 44),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
+                  borderRadius: BorderRadius.circular(7.0),
                 ),
               ),
             ),

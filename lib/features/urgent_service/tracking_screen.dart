@@ -22,6 +22,7 @@ import '../../core/widgets/app_map_layer.dart';
 import '../../core/widgets/app_message.dart';
 import '../../core/widgets/app_pressable.dart';
 import '../../core/widgets/app_sheet.dart';
+import '../../core/widgets/app_skeleton.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/app_switcher.dart';
 import '../../core/widgets/lawyer_map_layers.dart';
@@ -325,7 +326,7 @@ class _TrackingScreenState extends State<TrackingScreen> with TickerProviderStat
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(7.0)),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.12),

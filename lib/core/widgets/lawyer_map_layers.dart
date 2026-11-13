@@ -247,7 +247,7 @@ class _CardsPainter extends CustomPainter {
 
   /// The card and its pointer as one piece, with one outline
   static Path _cardShape(double width) => _cardShapes.putIfAbsent(width.round(), () {
-        final box = Path()..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(-width / 2, -_pointer - _cardHeight, width, _cardHeight), const Radius.circular(5)));
+        final box = Path()..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(-width / 2, -_pointer - _cardHeight, width, _cardHeight), const Radius.circular(7)));
         final pointer = Path()
           ..moveTo(-_pointer, -_pointer - 1)
           ..quadraticBezierTo(-1.5, -2, 0, 0)

@@ -7,8 +7,8 @@ import '../../core/services/api_service.dart';
 import '../../core/services/live_updates.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
-import '../../core/widgets/app_loader.dart';
 import '../../core/widgets/app_message.dart';
+import '../../core/widgets/app_skeleton.dart';
 import '../../core/widgets/app_state_message.dart';
 import '../../core/widgets/order_action_sheets.dart';
 import '../../data/repositories/order_repository.dart';
@@ -94,7 +94,7 @@ class _WalletTabState extends State<WalletTab> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: AppLoader());
+      return const AppSkeletonList(top: AppSkeleton(child: SkeletonBox(height: 140)));
     }
 
     if (_error != null) {

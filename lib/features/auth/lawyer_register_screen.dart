@@ -189,7 +189,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                           side: const BorderSide(color: AppColors.primary, width: 1.2),
                           minimumSize: const Size(double.infinity, 48),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
+                            borderRadius: BorderRadius.circular(7.0),
                           ),
                         ),
                       ),
@@ -215,7 +215,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                           backgroundColor: AppColors.primary,
                           minimumSize: const Size(double.infinity, 48),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
+                            borderRadius: BorderRadius.circular(7.0),
                           ),
                         ),
                       ),

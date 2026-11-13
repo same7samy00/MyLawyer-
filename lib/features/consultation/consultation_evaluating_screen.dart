@@ -4,6 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_loader.dart';
+import '../../core/widgets/app_skeleton.dart';
 import '../../core/widgets/line_illustration.dart';
 import '../../data/models/consultation.dart';
 import '../../data/repositories/consultation_repository.dart';
@@ -88,7 +89,8 @@ class _ConsultationEvaluatingScreenState extends State<ConsultationEvaluatingScr
                   style: consultationText(13, FontWeight.w600, _error == null ? AppColors.textMuted : AppColors.danger, height: 1.5),
                 ),
                 if (_error == null)
-                  const AppLoader()
+                  // مكان كارت السعر لحد ما يوصل
+                  const Padding(padding: EdgeInsets.only(top: 20), child: AppSkeleton(child: SkeletonRow()))
                 else ...[
                   const SizedBox(height: AppLoader.gap),
                   AppButton.primary(text: 'حاول تاني', height: 48, onPressed: _evaluate),

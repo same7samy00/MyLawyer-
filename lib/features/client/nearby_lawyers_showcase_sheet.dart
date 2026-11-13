@@ -17,7 +17,7 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
         constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.5),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(7.0)),
           boxShadow: [
             BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 24, offset: const Offset(0, -6)),
           ],
@@ -78,7 +78,7 @@ extension _ShowcaseSheetViews on _NearbyLawyersShowcaseScreenState {
       itemBuilder: (context, index) {
         if (index == _nearbyLawyers.length) {
           if (!_topLoadingMore) WidgetsBinding.instance.addPostFrameCallback((_) => _loadMoreTop());
-          return const Padding(padding: EdgeInsets.all(8), child: Center(child: AppLoader(size: 28)));
+          return const AppSkeleton(child: SkeletonRow(circle: true));
         }
         final lawyer = _nearbyLawyers[index];
         return Material(

@@ -3,7 +3,7 @@ import 'package:flutter/rendering.dart';
 
 import '../constants/app_colors.dart';
 import 'app_card.dart';
-import 'app_loader.dart';
+import 'app_skeleton.dart';
 
 /// رأس موحد لكل البوتن شيت: خط السحب في النص، وتحته العنوان، وتحته خط فاصل متقطع.
 /// الشيت اللي فوق الخريطة ثابت وما بيتقفلش، فمالوش خط سحب ([showHandle] = false)
@@ -102,7 +102,7 @@ class AppSheet extends StatelessWidget {
       enableDrag: isDismissible,
       backgroundColor: Colors.white,
       clipBehavior: Clip.antiAlias,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20.0))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(7.0))),
       builder: builder,
     );
   }
@@ -170,7 +170,8 @@ class MeasuredSizeBox extends RenderProxyBox {
   }
 }
 
-/// تحميل موحد جوه أي شيت، بدل طبقة فوق الخريطة
+/// تحميل موحد جوه أي شيت، بدل طبقة فوق الخريطة: كروت Skeleton بشكل كروت المحامين.
+/// [text] بيتقرا لقارئ الشاشة بس
 class SheetLoading extends StatelessWidget {
   final String text;
 
@@ -178,19 +179,24 @@ class SheetLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 28),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const AppLoader.inline(size: 26),
-          const SizedBox(height: 12),
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontFamily: 'AppFont', fontFamilyFallback: appFontFallback, fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textMuted),
+    return Semantics(
+      label: text,
+      // الشيت ممكن يبقى أقصر من التلات كروت، فاللي زيادة بيتقص بدل ما يطلع بره
+      child: const SingleChildScrollView(
+        physics: NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: AppSkeleton(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SkeletonRow(circle: true),
+              SizedBox(height: 10),
+              SkeletonRow(circle: true),
+              SizedBox(height: 10),
+              SkeletonRow(circle: true),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

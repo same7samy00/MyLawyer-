@@ -153,7 +153,7 @@ class _BannerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 10, 12),
-      decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(14.0)),
+      decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(7.0)),
       child: Row(
         children: [
           Expanded(
@@ -188,7 +188,7 @@ class _BannerCard extends StatelessWidget {
                       foregroundColor: AppColors.primary,
                       minimumSize: const Size(96, 34),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.0)),
                     ),
                     child: Text(
                       banner.action,

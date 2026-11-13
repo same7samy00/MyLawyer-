@@ -60,7 +60,7 @@ class AppDialog extends StatelessWidget {
       backgroundColor: Colors.white,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24),
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.0)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.0)),
       child: Padding(
         padding: const EdgeInsets.only(top: 18, bottom: 18),
         child: Column(

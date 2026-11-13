@@ -120,7 +120,7 @@ extension _LawyerRegisterReview on _LawyerRegisterScreenState {
                   ),
                   if (_syndicateCardPath != null)
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(10.0),
+                      borderRadius: BorderRadius.circular(7.0),
                       child: Image.file(
                         File(_syndicateCardPath!),
                         width: 44,
@@ -154,7 +154,7 @@ extension _LawyerRegisterReview on _LawyerRegisterScreenState {
                   side: const BorderSide(color: AppColors.cardBorder, width: 1.2),
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24.0),
+                    borderRadius: BorderRadius.circular(7.0),
                   ),
                 ),
                 child: const Text(

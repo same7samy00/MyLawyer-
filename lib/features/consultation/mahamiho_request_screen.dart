@@ -255,20 +255,19 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
       return Expanded(
         child: InkWell(
           onTap: () => _switchTo(voice),
-          borderRadius: BorderRadius.circular(22.0),
+          borderRadius: BorderRadius.circular(7.0),
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 9),
             decoration: BoxDecoration(
-              color: on ? Colors.white : Colors.transparent,
-              borderRadius: BorderRadius.circular(22.0),
-              border: on ? Border.all(color: AppColors.dashedBorder) : null,
+              color: on ? AppColors.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(7.0),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 18, color: on ? AppColors.primary : AppColors.textMuted),
+                Icon(icon, size: 18, color: on ? Colors.white : AppColors.textMuted),
                 const SizedBox(width: 6),
-                Text(text, style: consultationText(14, FontWeight.w800, on ? AppColors.primary : AppColors.textMuted)),
+                Text(text, style: consultationText(14, FontWeight.w800, on ? Colors.white : AppColors.textMuted)),
               ],
             ),
           ),
@@ -279,7 +278,7 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 12, 20, 4),
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: AppColors.bottomSheetHeaderBg, borderRadius: BorderRadius.circular(26.0)),
+      decoration: BoxDecoration(color: AppColors.bottomSheetHeaderBg, borderRadius: BorderRadius.circular(7.0)),
       child: Row(children: [option('صوت', Icons.mic_rounded, true), const SizedBox(width: 4), option('كتابة', Icons.keyboard_rounded, false)]),
     );
   }
@@ -294,7 +293,7 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(16.0)),
+          decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(7.0)),
           child: Text(_caption, textAlign: TextAlign.center, style: consultationText(16, FontWeight.w700, AppColors.dark, height: 1.5)),
         ),
       ),
@@ -374,8 +373,8 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
           hintStyle: consultationText(13, FontWeight.w500, AppColors.textMuted),
           helperText: missing > 0 ? 'محتاجين $missing حرف كمان على الأقل' : null,
           helperStyle: consultationText(11.5, FontWeight.w600, AppColors.textMuted),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16.0)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16.0), borderSide: const BorderSide(color: AppColors.cardBorder)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(7.0)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(7.0), borderSide: const BorderSide(color: AppColors.cardBorder)),
         ),
       ),
     ];

@@ -165,7 +165,7 @@ class _AccountTabState extends State<AccountTab> {
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: AppColors.danger, width: 1.0),
                 minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24.0)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.0)),
               ),
             ),
             ),

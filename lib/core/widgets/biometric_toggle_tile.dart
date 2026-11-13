@@ -167,8 +167,8 @@ class _EnableBiometricSheetState extends State<_EnableBiometricSheet> {
               icon: Icon(_obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.textMuted),
               onPressed: () => setState(() => _obscure = !_obscure),
             ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0), borderSide: const BorderSide(color: AppColors.cardBorder)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(7.0)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(7.0), borderSide: const BorderSide(color: AppColors.cardBorder)),
           ),
         ),
         if (_error != null) ...[

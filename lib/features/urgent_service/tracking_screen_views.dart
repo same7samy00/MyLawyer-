@@ -305,8 +305,9 @@ extension _TrackingScreenViews on _TrackingScreenState {
                   : const Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // فراغ ثابت فوق وتحت التحميل على أي مقاس
-                        AppLoader(),
+                        // مكان كروت العروض لحد ما توصل
+                        AppSkeleton(child: Column(children: [SkeletonRow(circle: true), SizedBox(height: 10), SkeletonRow(circle: true)])),
+                        SizedBox(height: 14),
                         Text(
                           'بنبعت طلبك لأقرب المحامين\nوالعروض هتظهر هنا أول ما توصل',
                           textAlign: TextAlign.center,

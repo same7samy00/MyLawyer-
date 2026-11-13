@@ -53,7 +53,7 @@ class LogoutConfirmationSheet extends StatelessWidget {
                 style: TextButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24.0),
+                    borderRadius: BorderRadius.circular(7.0),
                   ),
                 ),
                 child: const Text(

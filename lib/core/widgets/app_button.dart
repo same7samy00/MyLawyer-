@@ -11,7 +11,7 @@ import 'app_pressable.dart';
 typedef AppButtonAction = FutureOr<void> Function();
 
 /// زر موحد ومعتمد لكافة أزرار الإجراءات والانتقال في التطبيق
-/// يلتزم بنظام التصميم الحصري (حواف 24.0px Pill Shape، خط Flat Jooza، ألوان المنصة)
+/// يلتزم بنظام التصميم الحصري (حواف 7px، خط Flat Jooza، ألوان المنصة)
 /// ويتحول للرمادي عند الضغط، ويعرض التحميل فقط أثناء العمليات المنتظرة
 class AppButton extends StatefulWidget {
   final String text;
@@ -62,7 +62,7 @@ class AppButton extends StatefulWidget {
         textColor = Colors.white,
         borderColor = null;
 
-  /// زر بإطار (Outlined Button) بحواف 24.0px.
+  /// زر بإطار (Outlined Button) بحواف 7px.
   /// الألوان من غير قيمة ثابتة هنا، عشان زرار الإلغاء ياخد الخلفية الحمرا مع نصه الأبيض وما يبقاش أبيض على أبيض
   const AppButton.outlined({
     super.key,
@@ -80,7 +80,7 @@ class AppButton extends StatefulWidget {
     this.borderColor,
   }) : isOutlined = true;
 
-  static const double buttonRadius = 24.0;
+  static const double buttonRadius = 7.0;
 
   @override
   State<AppButton> createState() => _AppButtonState();
@@ -119,7 +119,7 @@ class _AppButtonState extends State<AppButton> {
     final effectiveBorderColor = widget.borderColor ?? (isCancel ? AppColors.danger : AppColors.cardBorder);
 
     final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(AppButton.buttonRadius), // حواف مستديرة واضحة (Pill Shape) 24.0px
+      borderRadius: BorderRadius.circular(AppButton.buttonRadius),
       side: isOutlined ? BorderSide(color: effectiveBorderColor, width: 1.2) : BorderSide.none,
     );
 
