@@ -6,10 +6,10 @@ import 'mahamiho_bubble.dart';
 import 'mahamiho_chat_screen.dart';
 import 'mahamiho_figure.dart';
 
-/// محاميحو في كل صفحات الشريط السفلي: نص جسمه من الراس للحزام تحت على الشمال، ونص الجزء الظاهر بيختفي في أبيض.
-/// أول ما يظهر بيطلع من ورا الشريط ويشاور (مرة واحدة)، وجنبه فقاعة بتتنفخ من طرفها وبتكتب الكلام على مرات.
-/// بعد كده بيفضل ثابت، وكل شوية بيعمل حركة (تمام، بيفكّر، بيشاور) والفقاعة هي اللي بتتحدث.
-/// لمسه بيفتح صفحة محاميحو (MahamihoChatScreen)
+/// محاميحو في كل صفحات الشريط السفلي: نص جسمه من الراس للحزام، لازق في الشريط.
+/// أول ما يظهر بيطلع من ورا الشريط بسحب ناعم (من غير قفز) ويشاور، وجنبه فقاعة بتكتب الكلام.
+/// لما يخلّص كلامه بينزل ويفضل ظاهر نص دماغه بس. لو دوست عليه وهو نازل بيطلع ويتكلم تاني،
+/// ولو دوست عليه وهو طالع بيفتح صفحة محاميحو (MahamihoChatScreen)
 class MahamihoGuide extends StatefulWidget {
   const MahamihoGuide({super.key});
 
@@ -26,29 +26,25 @@ class MahamihoGuide extends StatefulWidget {
   State<MahamihoGuide> createState() => _MahamihoGuideState();
 }
 
-class _MahamihoGuideState extends State<MahamihoGuide> {
-  // بالترتيب ده، وبيلف
-  static const _cycle = [MahamihoMood.ok, MahamihoMood.thinking, MahamihoMood.wave];
-  static const _gap = Duration(seconds: 6);
+class _MahamihoGuideState extends State<MahamihoGuide> with SingleTickerProviderStateMixin {
+  /// الجزء الظاهر من طوله: 0 مستخبي ورا الشريط، و1 طالع كله، و_peek نص دماغه بس
+  static const _peek = 0.27;
 
+  late final AnimationController _pos;
   Timer? _timer;
-  bool _visible = false;
   MahamihoMood _mood = MahamihoMood.idle;
-  int _next = 0;
+
+  /// بيتكلم دلوقتي (الفقاعة ظاهرة)، و[_spoke] بيتغير مع كل كلام جديد عشان الفقاعة تبدأ من الأول
+  bool _speaking = false;
+  int _spoke = 0;
 
   @override
   void initState() {
     super.initState();
-    if (MahamihoGuide._greeted) {
-      _visible = true;
-      _schedule(_gap, _playNext);
-      return;
-    }
+    _pos = AnimationController(vsync: this, duration: const Duration(milliseconds: 800), value: MahamihoGuide._greeted ? _peek : 0);
+    if (MahamihoGuide._greeted) return;
     MahamihoGuide._greeted = true;
-    _schedule(const Duration(milliseconds: 700), () {
-      setState(() => _visible = true);
-      _start(MahamihoMood.wave);
-    });
+    _schedule(const Duration(milliseconds: 700), _rise);
   }
 
   @override
@@ -61,6 +57,7 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
   @override
   void dispose() {
     _timer?.cancel();
+    _pos.dispose();
     super.dispose();
   }
 
@@ -71,34 +68,45 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
     });
   }
 
-  /// لو صفحة فوق الشريط مفتوحة بيستنى من غير ما يتحرك
-  void _playNext() {
-    if (!TickerMode.of(context)) {
-      _schedule(_gap, _playNext);
-      return;
-    }
-    _start(_cycle[_next]);
-    _next = (_next + 1) % _cycle.length;
+  /// بيطلع بسحب ناعم، وبعدها يشاور ويتكلم
+  void _rise() {
+    _pos.animateTo(1, duration: const Duration(milliseconds: 800), curve: Curves.easeOutCubic);
+    setState(() {
+      _speaking = true;
+      _spoke++;
+    });
+    _schedule(const Duration(milliseconds: 500), () => _start(MahamihoMood.wave));
   }
 
-  /// الحركة من أولها، وبعدها يرجع واقف ويستنى
+  /// خلّص كلامه: الفقاعة تختفي وينزل ويفضل نص دماغه بس
+  void _lower() {
+    _timer?.cancel();
+    setState(() {
+      _speaking = false;
+      _mood = MahamihoMood.idle;
+    });
+    _pos.animateTo(_peek, duration: const Duration(milliseconds: 700), curve: Curves.easeInOutCubic);
+  }
+
+  /// الحركة من أولها، وبعدها يرجع واقف. الصورة القديمة بتفضل ظاهرة لحد ما الجديدة تجهز
+  /// (gaplessPlayback في MahamihoFigure)، فمفيش وميض وهي بتتبدل
   void _start(MahamihoMood mood) {
     AssetImage(mood.asset).evict();
     setState(() => _mood = mood);
-    _schedule(MahamihoMood.clip, () {
-      setState(() => _mood = MahamihoMood.idle);
-      _schedule(_gap, _playNext);
-    });
+    _schedule(MahamihoMood.clip, () => setState(() => _mood = MahamihoMood.idle));
   }
 
   void _onTap() {
+    // نازل أو لسه طالع من تحت: يطلع ويتكلم. طالع خلاص: يفتح صفحة محاميحو
+    if (_pos.value < 0.9 && !_speaking) {
+      _rise();
+      return;
+    }
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MahamihoChatScreen()));
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_visible) return const SizedBox.shrink();
-
     // الحجم على قد عرض الشاشة: صغير على الموبايلات الصغيرة، وما يكبرش زيادة على التابلت
     final screen = MediaQuery.sizeOf(context).width;
     final width = (screen * 0.24).clamp(86.0, 120.0);
@@ -110,6 +118,7 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
           left: 2,
           bottom: 0,
           child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: _onTap,
             child: Row(
               textDirection: TextDirection.ltr,
@@ -119,20 +128,35 @@ class _MahamihoGuideState extends State<MahamihoGuide> {
                 Semantics(
                   label: 'محاميحو',
                   button: true,
-                  child: MahamihoRise(child: MahamihoFigure(mood: _mood, width: width, halfBody: true)),
-                ),
-                // الفقاعة لازقة فيه وطرفها عند راسه، وبتتنفخ بعد ما يطلع
-                Transform.translate(
-                  offset: Offset(-width * 0.16, 0),
-                  child: Padding(
-                    padding: EdgeInsets.only(bottom: height * 0.52),
-                    child: MahamihoBubble(
-                      lines: MahamihoGuide.hello,
-                      maxWidth: (screen - width - 24).clamp(120.0, 170.0),
-                      delay: const Duration(milliseconds: 300),
+                  // ظاهر منه الجزء اللي فوق الشريط بس، وبينزل ويطلع بسحب
+                  child: ClipRect(
+                    child: SizedBox(
+                      width: width,
+                      height: height,
+                      child: AnimatedBuilder(
+                        animation: _pos,
+                        child: MahamihoFigure(mood: _mood, width: width, halfBody: true),
+                        builder: (context, child) => Transform.translate(offset: Offset(0, height * (1 - _pos.value)), child: child),
+                      ),
                     ),
                   ),
                 ),
+                // الفقاعة جنب راسه بمسافة صغيرة (من غير دبوس)، وبتظهر بعد ما يطلع وتختفي لما يخلّص
+                if (_speaking)
+                  Transform.translate(
+                    offset: Offset(-width * 0.185 + 10, 0),
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: height * 0.52),
+                      child: MahamihoBubble(
+                        key: ValueKey(_spoke),
+                        lines: MahamihoGuide.hello,
+                        loop: false,
+                        onDone: _lower,
+                        maxWidth: (screen - width - 24).clamp(120.0, 170.0),
+                        delay: const Duration(milliseconds: 700),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

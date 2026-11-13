@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:my_lawyer/core/services/voice_input.dart';
 import 'package:my_lawyer/data/models/consultation.dart';
 import 'package:my_lawyer/features/client/mahamiho_bubble.dart';
+import 'package:my_lawyer/features/client/mahamiho_figure.dart';
 import 'package:my_lawyer/features/consultation/consultation_checkout_screen.dart';
 import 'package:my_lawyer/features/consultation/consultation_pages_screen.dart';
 import 'package:my_lawyer/features/consultation/mahamiho_request_screen.dart';
@@ -91,6 +92,33 @@ void main() {
       expect(find.byType(ConsultationCheckoutScreen), findsOneWidget);
       expect(find.text('كلامك اتسجّل وهيوصل لفريق المحامين'), findsOneWidget);
       expect(find.text(_story), findsNothing);
+    });
+
+    testWidgets('في الصوت محاميحو في نص الشاشة جوه دايرة بتكبر مع صوت العميل', (tester) async {
+      fakeServer();
+      final voice = _FakeVoice(heard: _story);
+      await tester.pumpWidget(testApp(MahamihoRequestScreen(kind: ConsultationKind.call, serviceTitle: ConsultationKind.call.serviceName, voice: voice)));
+      await settleAsync(tester);
+
+      final figure = find.byType(MahamihoFigure);
+      expect(find.ancestor(of: figure, matching: find.byType(ClipPath)), findsWidgets);
+      // في نص الشاشة بالعرض
+      final screen = tester.getRect(find.byType(Scaffold).first);
+      expect((tester.getCenter(figure).dx - screen.center.dx).abs(), lessThan(20));
+
+      await tester.tap(find.byIcon(Icons.mic_rounded).last);
+      await settleAsync(tester);
+      Size ring() => tester.getSize(find.byKey(const ValueKey('voice-ring')));
+      voice.level.value = 0;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      final quiet = ring().width;
+      voice.level.value = 1;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(ring().width, greaterThan(quiet + 40));
+      await tester.tap(find.byIcon(Icons.stop_rounded));
+      await settleAsync(tester);
     });
 
     testWidgets('كلام قصير: محاميحو يطلب يكمّل، ومفيش متابعة', (tester) async {

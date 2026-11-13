@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -12,6 +11,7 @@ import '../../core/widgets/app_message.dart';
 import '../../data/models/consultation.dart';
 import '../../data/repositories/consultation_repository.dart';
 import '../client/mahamiho_bubble.dart';
+import '../client/mahamiho_circle.dart';
 import '../client/mahamiho_figure.dart';
 import 'consultation_evaluating_screen.dart';
 import 'consultation_pages_screen.dart';
@@ -241,6 +241,8 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
   @override
   Widget build(BuildContext context) {
     final understood = _stage == _Stage.understood;
+    // في الصوت محاميحو جوه دايرة بتتحرك مع صوتك والفقاعة فوق راسه (من فوق الصفحة)، وباقي الحالات الشكل العادي
+    final centered = _byVoice && !understood;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: const AppHeader(title: 'محاميحو', isInnerPage: true),
@@ -249,35 +251,43 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
           children: [
             _toggle(),
             Expanded(
-              child: SingleChildScrollView(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: SingleChildScrollView(
                 keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.fromLTRB(22, 8, 22, 12),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     if (!_settings.isOpen) ...[
                       Text('الخدمة متوقفة دلوقتي\nجرب بعد شوية', textAlign: TextAlign.center, style: consultationText(13, FontWeight.w700, AppColors.danger, height: 1.5)),
                       const SizedBox(height: 10),
                     ],
-                    // محاميحو بيطلع من ورا الحافة مرة واحدة، والفقاعة جنبه بتكتب الكلام على مرات
-                    Row(
-                      textDirection: TextDirection.ltr,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        RepaintBoundary(child: MahamihoRise(child: MahamihoFigure(mood: _mood, width: _figureWidth))),
-                        Transform.translate(
-                          offset: Offset(-_figureWidth * 0.12, 0),
-                          child: Padding(
-                            padding: EdgeInsets.only(bottom: _figureWidth * MahamihoFigure.ratio * 0.62),
-                            child: MahamihoBubble(lines: _caption, delay: const Duration(milliseconds: 300)),
+                    if (centered)
+                      // الفقاعة فوق الدايرة، والدايرة في النص
+                      ..._voiceHead()
+                    else
+                      // محاميحو بيظهر بتلاشي، والفقاعة جنبه بتكتب الكلام على مرات
+                      Row(
+                        textDirection: TextDirection.ltr,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          RepaintBoundary(child: MahamihoFade(child: MahamihoFigure(mood: _mood, width: _figureWidth))),
+                          Transform.translate(
+                            offset: Offset(-_figureWidth * 0.185 + 10, 0),
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: _figureWidth * MahamihoFigure.ratio * 0.62),
+                              child: MahamihoBubble(lines: _caption, delay: const Duration(milliseconds: 300)),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                     const SizedBox(height: 4),
                     if (understood) ..._understoodBody() else if (_byVoice) ..._voiceBody() else ..._textBody(),
                   ],
                 ),
+              ),
               ),
             ),
             Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 14), child: _actions()),
@@ -285,6 +295,19 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
         ),
       ),
     );
+  }
+
+  /// الفقاعة في النص فوق راسه، وتحته محاميحو في دايرة بتكبر وتصغر مع صوتك
+  List<Widget> _voiceHead() {
+    final listening = _stage == _Stage.listening;
+    return [
+      MahamihoStage(
+        mood: _mood,
+        lines: _caption,
+        level: listening ? _voice.level : null,
+        breath: listening ? _wave : null,
+      ),
+    ];
   }
 
   Widget _toggle() {
@@ -330,8 +353,6 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
       if (listening) ...[
         const SizedBox(height: 12),
         Text('$minutes:$seconds', textDirection: TextDirection.ltr, style: consultationText(30, FontWeight.w900, AppColors.primary)),
-        const SizedBox(height: 6),
-        _waves(),
       ],
       const SizedBox(height: 10),
       _micButton(listening),
@@ -353,31 +374,6 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
         height: 84,
         decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
         child: Icon(listening ? Icons.stop_rounded : Icons.mic_rounded, color: Colors.white, size: listening ? 38 : 40),
-      ),
-    );
-  }
-
-  Widget _waves() {
-    return SizedBox(
-      height: 54,
-      // الأعمدة بتعلى على قد صوت العميل، ومن غير كلام بتفضل واطية وبتتهز خفيف
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_wave, _voice.level]),
-        builder: (_, __) => Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          textDirection: TextDirection.ltr,
-          children: [
-            for (var i = 0; i < 11; i++)
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 90),
-                width: 6,
-                height: 8 + 44 * math.max(0.08, _voice.level.value) * (0.55 + 0.45 * math.sin(_wave.value * 2 * math.pi + i * 0.8).abs()),
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(3.0)),
-              ),
-          ],
-        ),
       ),
     );
   }
@@ -442,3 +438,4 @@ class _MahamihoRequestScreenState extends State<MahamihoRequestScreen> with Sing
     }
   }
 }
+

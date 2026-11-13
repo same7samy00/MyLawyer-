@@ -45,10 +45,10 @@ class MahamihoFigure extends StatelessWidget {
     final full = width * ratio;
     final image = Image.asset(
       mood.asset,
-      key: ValueKey(mood),
       width: width,
       height: full,
       fit: BoxFit.contain,
+      // من غير key: لما الحركة تتبدل الصورة القديمة بتفضل لحد ما الجديدة تجهز، فمفيش وميض
       gaplessPlayback: true,
       filterQuality: FilterQuality.medium,
     );

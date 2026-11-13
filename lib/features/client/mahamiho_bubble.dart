@@ -1,21 +1,33 @@
 import 'dart:async';
+import 'dart:ui' show PathMetric;
 
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 
-/// فقاعة كلام محاميحو: زرقا صغيرة وطرفها جزء منها (شكل واحد مش حتتين)، ووراها فقاعة أزرق فاتح.
-/// بتتنفخ من طرفها أول ما تظهر، والكلام بيتكتب حرف حرف ويتمسح ويتكتب اللي بعده، فما يظهرش مرة واحدة.
-/// الطرف تحت على الشمال، فمحاميحو لازم يكون على شمالها
+/// فقاعة كلام محاميحو: زرقا مليانة وحوافها 7 ومن غير ظل ومن غير دبوس (مثلث)، وحواليها إطار تاني بخط أزرق متقطع وبينهم فراغ.
+/// بتظهر بتلاشي، والكلام بيتكتب حرف حرف ويتمسح ويتكتب اللي بعده، فما يظهرش مرة واحدة.
+/// بتتحط جنب راس محاميحو بمسافة صغيرة من غير ما تلزق فيه
 class MahamihoBubble extends StatefulWidget {
   /// الكلام على مرات، كل واحدة بتتكتب لوحدها
   final List<String> lines;
   final double maxWidth;
 
-  /// قبل ما تتنفخ، عشان تستنى محاميحو يطلع
+  /// قبل ما تظهر، عشان تستنى محاميحو يطلع
   final Duration delay;
 
-  const MahamihoBubble({super.key, required this.lines, this.maxWidth = 170, this.delay = Duration.zero});
+  /// false: بيقول الجمل مرة واحدة وبعد آخر جملة بيستنى لحظة وينده [onDone]. true: بيلف على الجمل
+  final bool loop;
+  final VoidCallback? onDone;
+
+  const MahamihoBubble({
+    super.key,
+    required this.lines,
+    this.maxWidth = 170,
+    this.delay = Duration.zero,
+    this.loop = true,
+    this.onDone,
+  });
 
   @visibleForTesting
   static const typeEvery = Duration(milliseconds: 38);
@@ -27,7 +39,7 @@ class MahamihoBubble extends StatefulWidget {
 }
 
 class _MahamihoBubbleState extends State<MahamihoBubble> with SingleTickerProviderStateMixin {
-  late final AnimationController _pop;
+  late final AnimationController _fade;
   Timer? _timer;
   int _line = 0;
   int _shown = 0;
@@ -36,10 +48,10 @@ class _MahamihoBubbleState extends State<MahamihoBubble> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _pop = AnimationController(vsync: this, duration: const Duration(milliseconds: 380));
+    _fade = AnimationController(vsync: this, duration: const Duration(milliseconds: 320));
     _timer = Timer(widget.delay, () {
       if (!mounted) return;
-      _pop.forward();
+      _fade.forward();
       _tick();
     });
   }
@@ -48,7 +60,7 @@ class _MahamihoBubbleState extends State<MahamihoBubble> with SingleTickerProvid
   void didUpdateWidget(MahamihoBubble old) {
     super.didUpdateWidget(old);
     // كلام جديد بيبدأ يتكتب من الأول
-    if (old.lines.join('\n') != widget.lines.join('\n') && _pop.value > 0) {
+    if (old.lines.join('\n') != widget.lines.join('\n') && _fade.value > 0) {
       _timer?.cancel();
       setState(() {
         _line = 0;
@@ -62,7 +74,7 @@ class _MahamihoBubbleState extends State<MahamihoBubble> with SingleTickerProvid
   @override
   void dispose() {
     _timer?.cancel();
-    _pop.dispose();
+    _fade.dispose();
     super.dispose();
   }
 
@@ -75,6 +87,13 @@ class _MahamihoBubbleState extends State<MahamihoBubble> with SingleTickerProvid
       if (_shown < full) {
         setState(() => _shown++);
         _timer = Timer(MahamihoBubble.typeEvery, _tick);
+        return;
+      }
+      // آخر جملة في كلام مش بيلف: بيستنى لحظة وبيخلّص
+      if (!widget.loop && _line == widget.lines.length - 1) {
+        _timer = Timer(MahamihoBubble.holdFull, () {
+          if (mounted) widget.onDone?.call();
+        });
         return;
       }
       // جملة واحدة بس بتفضل مكتوبة
@@ -101,31 +120,16 @@ class _MahamihoBubbleState extends State<MahamihoBubble> with SingleTickerProvid
     final shown = text.substring(0, _shown.clamp(0, text.length));
     return Semantics(
       label: widget.lines.join('، '),
-      child: ScaleTransition(
-        scale: CurvedAnimation(parent: _pop, curve: Curves.elasticOut),
-        alignment: Alignment.bottomLeft,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: 112, maxWidth: widget.maxWidth),
-          child: CustomPaint(
-            painter: _BubblePainter(),
-            child: Padding(
-              // تحت فيه مكان الطرف، وفوق على اليمين مكان الفقاعة اللي ورا
-              padding: const EdgeInsets.fromLTRB(11, 15, 11, _BubblePainter.tail + 9),
-              child: Text(
-                // مسافة مخفية بتحجز طول الجملة كلها عشان الفقاعة ما تكبرش وهي بتكتب
-                shown.isEmpty ? ' ' : shown,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                style: const TextStyle(
-                  fontFamily: 'AppFont',
-                  fontFamilyFallback: appFontFallback,
-                  fontSize: 11.5,
-                  height: 1.45,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+      child: FadeTransition(
+        opacity: CurvedAnimation(parent: _fade, curve: Curves.easeOut),
+        child: SpeechShape(
+          maxWidth: widget.maxWidth,
+          // مسافة مخفية بتحجز مكان الكلام عشان الفقاعة ما تكبرش وهي بتكتب
+          child: Text(
+            shown.isEmpty ? ' ' : shown,
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            style: speechStyle(11.5),
           ),
         ),
       ),
@@ -133,69 +137,114 @@ class _MahamihoBubbleState extends State<MahamihoBubble> with SingleTickerProvid
   }
 }
 
-/// الفقاعة الزرقا وطرفها مرسومين خط واحد، ووراها فقاعة فاتحة مزاحة لفوق ولليمين
-class _BubblePainter extends CustomPainter {
-  static const double tail = 8;
-  static const double radius = 7;
-  static const double back = 6;
+TextStyle speechStyle(double size, {Color color = Colors.white}) => TextStyle(
+      fontFamily: 'AppFont',
+      fontFamilyFallback: appFontFallback,
+      fontSize: size,
+      height: 1.45,
+      fontWeight: FontWeight.w700,
+      color: color,
+    );
 
-  Path _shape(Rect body) {
-    // جسم الفقاعة بحواف 7، والطرف طالع من الحافة اللي تحت بخط ناعم ومن غير فاصل
-    const r = radius;
-    final tipX = body.left + 10;
-    return Path()
-      ..moveTo(body.left + r, body.top)
-      ..lineTo(body.right - r, body.top)
-      ..arcToPoint(Offset(body.right, body.top + r), radius: const Radius.circular(r))
-      ..lineTo(body.right, body.bottom - r)
-      ..arcToPoint(Offset(body.right - r, body.bottom), radius: const Radius.circular(r))
-      ..lineTo(tipX + 14, body.bottom)
-      ..quadraticBezierTo(tipX + 4, body.bottom + 1, tipX - 2, body.bottom + tail)
-      ..quadraticBezierTo(tipX + 1, body.bottom + 2, tipX - 1, body.bottom)
-      ..lineTo(body.left + r, body.bottom)
-      ..arcToPoint(Offset(body.left, body.bottom - r), radius: const Radius.circular(r))
-      ..lineTo(body.left, body.top + r)
-      ..arcToPoint(Offset(body.left + r, body.top), radius: const Radius.circular(r))
-      ..close();
+/// شكل الفقاعة (زرقا وحواليها إطار متقطع) حوالين أي محتوى. ده اللي بيستخدمه الشات كمان
+class SpeechShape extends StatelessWidget {
+  final Widget child;
+  final double maxWidth;
+  final double minWidth;
+
+  const SpeechShape({super.key, required this.child, this.maxWidth = 170, this.minWidth = 112});
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(minWidth: minWidth, maxWidth: maxWidth),
+      child: CustomPaint(
+        painter: const _BubblePainter(),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(11 + _BubblePainter.gap, 9 + _BubblePainter.gap, 11 + _BubblePainter.gap, 9 + _BubblePainter.gap),
+          child: child,
+        ),
+      ),
+    );
   }
+}
+
+/// كلام محاميحو كامل من غير كتابة حرف حرف، بنفس شكل الفقاعة (للشات)
+class MahamihoSpeech extends StatelessWidget {
+  final String text;
+  final double maxWidth;
+  final bool muted;
+
+  const MahamihoSpeech({super.key, required this.text, required this.maxWidth, this.muted = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return SpeechShape(
+      maxWidth: maxWidth,
+      minWidth: 0,
+      child: Text(text, style: speechStyle(13, color: muted ? const Color(0xB3FFFFFF) : Colors.white).copyWith(fontWeight: FontWeight.w600, height: 1.55)),
+    );
+  }
+}
+
+/// الفقاعة الزرقا بحواف 7، وحواليها إطار أزرق متقطع بينهم فراغ [gap]. من غير ظل ولا دبوس
+class _BubblePainter extends CustomPainter {
+  static const double radius = 7;
+  static const double stroke = 1.4;
+
+  /// الفراغ بين الفقاعة والإطار المتقطع اللي حواليها
+  static const double gap = 4;
+
+  const _BubblePainter();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final body = Rect.fromLTRB(0, back, size.width - back, size.height - tail);
-    final behind = RRect.fromRectAndRadius(body.shift(const Offset(back, -back)), const Radius.circular(radius));
-    canvas.drawRRect(behind, Paint()..color = AppColors.primary.withOpacity(0.18));
-    canvas.drawPath(_shape(body), Paint()..color = AppColors.primary);
+    const inset = stroke / 2;
+    final body = Rect.fromLTRB(gap, gap, size.width - gap, size.height - gap);
+    canvas.drawRRect(RRect.fromRectAndRadius(body, const Radius.circular(radius)), Paint()..color = AppColors.primary);
+
+    final line = Paint()
+      ..color = AppColors.primary
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+    final frame = Path()..addRRect(RRect.fromRectAndRadius(Rect.fromLTRB(inset, inset, size.width - inset, size.height - inset), const Radius.circular(radius + gap)));
+    for (final PathMetric m in frame.computeMetrics()) {
+      for (double at = 0; at < m.length; at += 8) {
+        canvas.drawPath(m.extractPath(at, (at + 4.5).clamp(0, m.length)), line);
+      }
+    }
   }
 
   @override
   bool shouldRepaint(_BubblePainter oldDelegate) => false;
 }
 
-/// محاميحو بيطلع من ورا الحافة اللي تحته لفوق برجّة خفيفة، مرة واحدة أول ما يظهر، فمفيش فراغ تحته أبدًا.
-/// بعد كده بيفضل ثابت، والفقاعة هي اللي بتتحدث بالكلام
-class MahamihoRise extends StatefulWidget {
+
+/// محاميحو بيظهر بتلاشي (fade) من غير قفز ولا حركة، مرة واحدة أول ما يظهر
+class MahamihoFade extends StatefulWidget {
   final Widget child;
   final Duration delay;
 
-  const MahamihoRise({super.key, required this.child, this.delay = Duration.zero});
+  const MahamihoFade({super.key, required this.child, this.delay = Duration.zero});
 
   @override
-  State<MahamihoRise> createState() => _MahamihoRiseState();
+  State<MahamihoFade> createState() => _MahamihoFadeState();
 }
 
-class _MahamihoRiseState extends State<MahamihoRise> with SingleTickerProviderStateMixin {
-  late final AnimationController _rise;
+class _MahamihoFadeState extends State<MahamihoFade> with SingleTickerProviderStateMixin {
+  late final AnimationController _fade;
   Timer? _wait;
 
   @override
   void initState() {
     super.initState();
-    _rise = AnimationController(vsync: this, duration: const Duration(milliseconds: 380));
+    _fade = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
     if (widget.delay == Duration.zero) {
-      _rise.forward();
+      _fade.forward();
     } else {
       _wait = Timer(widget.delay, () {
-        if (mounted) _rise.forward();
+        if (mounted) _fade.forward();
       });
     }
   }
@@ -203,19 +252,10 @@ class _MahamihoRiseState extends State<MahamihoRise> with SingleTickerProviderSt
   @override
   void dispose() {
     _wait?.cancel();
-    _rise.dispose();
+    _fade.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    final rise = CurvedAnimation(parent: _rise, curve: Curves.easeOutBack);
-    return ClipRect(
-      child: AnimatedBuilder(
-        animation: rise,
-        child: widget.child,
-        builder: (context, child) => FractionalTranslation(translation: Offset(0, 1 - rise.value), child: child),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => FadeTransition(opacity: CurvedAnimation(parent: _fade, curve: Curves.easeOut), child: widget.child);
 }
