@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { app, call, sql, closeOrders, clientToken, lawyerToken, adminToken, clientBalance, wallet, lawyerId } from './harness.js';
-import { usePlaceSource } from '../src/services/placeSearch.js';
 
 const SERVICE = 'محضر في قسم الشرطة';
 const PLACE = { placeName: 'قسم شرطة المعادي، المعادي، محافظة القاهرة', placeLat: 30.05, placeLon: 31.25 };
@@ -55,15 +54,6 @@ describe('الخدمات الميدانية: الطلب', () => {
     assert.equal((await sendRequest({ problemDescription: '  ' })).status, 400);
     assert.equal((await call('POST', '/field/requests', lawyerToken, { serviceTitle: SERVICE })).status, 403);
     assert.equal((await call('POST', '/field/requests', null, {})).status, 401);
-  });
-
-  it('البحث عن مكان بالاسم', async () => {
-    usePlaceSource(async (text) => [{ name: `قسم ${text}`, address: 'المعادي، القاهرة', lat: 30.05, lon: 31.25 }]);
-    const found = (await call('GET', `/field/places?q=${encodeURIComponent('المعادي')}`, clientToken)).body.data;
-    assert.equal(found[0].name, 'قسم المعادي');
-    assert.equal(found[0].lat, 30.05);
-    assert.deepEqual((await call('GET', '/field/places?q=x', clientToken)).body.data, []);
-    usePlaceSource(null);
   });
 
   it('الطلب بيروح للمحامي، والمحامي يشوف النوع والمحافظة بس قبل السعر', async () => {

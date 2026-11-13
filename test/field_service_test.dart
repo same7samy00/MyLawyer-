@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:my_lawyer/core/constants/app_colors.dart';
+import 'package:my_lawyer/core/widgets/app_button.dart';
+import 'package:my_lawyer/core/widgets/app_choice_chip.dart';
 import 'package:my_lawyer/data/models/field_info.dart';
 import 'package:my_lawyer/data/models/order_model.dart';
 import 'package:my_lawyer/data/models/service_request.dart';
 import 'package:my_lawyer/features/field_service/field_order_blocks.dart';
+import 'package:my_lawyer/features/field_service/field_pin_screen.dart';
 import 'package:my_lawyer/features/field_service/field_services.dart';
 
 Map<String, dynamic> _fieldJson({Map<String, dynamic> extra = const {}}) => {
@@ -100,5 +104,56 @@ void main() {
     expect(find.text('4821'), findsOneWidget);
     expect(find.text('نسخ الكود'), findsOneWidget);
     expect(find.text('شير'), findsOneWidget);
+  });
+
+  testWidgets('مكان الشخص التاني: المحافظة وبعدين الخريطة، والتأكيد مقفول لحد ما يقرّب', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Directionality(textDirection: TextDirection.rtl, child: FieldPinScreen(serviceTitle: 'محضر في قسم الشرطة')),
+      ),
+    );
+    expect(find.text('اختار المحافظة'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+
+    await tester.tap(find.text('الغربية'));
+    await tester.pump();
+    expect(find.text('محافظة الغربية'), findsOneWidget);
+    expect(find.text('قرّب أكتر عشان تحدد المكان بالظبط'), findsOneWidget);
+    final confirm = tester.widget<AppButton>(find.widgetWithText(AppButton, 'تأكيد المكان'));
+    expect(confirm.onPressed, isNull);
+
+    // «تغيير» بيرجع لقايمة المحافظات
+    await tester.tap(find.text('تغيير'));
+    await tester.pump();
+    expect(find.text('اختار المحافظة'), findsOneWidget);
+  });
+
+  test('كل المحافظات ليها عاصمة جوه مصر', () {
+    expect(FieldServices.governorates.length, 27);
+    for (final (lat, lon) in FieldServices.governorates.values) {
+      expect(lat, inInclusiveRange(22.0, 31.7));
+      expect(lon, inInclusiveRange(24.7, 36.9));
+    }
+  });
+
+  testWidgets('الاختيار المختار أزرق ونصه أبيض ومن غير علامة صح', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(
+            children: [
+              AppChoiceChip(label: 'أخ', selected: true, onSelected: (_) {}),
+              AppChoiceChip(label: 'أخت', selected: false, onSelected: (_) {}),
+            ],
+          ),
+        ),
+      ),
+    );
+    final chips = tester.widgetList<ChoiceChip>(find.byType(ChoiceChip)).toList();
+    expect(chips.every((chip) => chip.showCheckmark == false), isTrue);
+    expect(chips.first.selectedColor, AppColors.primary);
+    expect(chips.first.labelStyle?.color, Colors.white);
+    expect(chips.last.labelStyle?.color, AppColors.textMain);
+    expect(find.byIcon(Icons.check), findsNothing);
   });
 }

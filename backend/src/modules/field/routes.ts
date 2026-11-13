@@ -11,7 +11,6 @@ import { notify } from '../lifecycle/service.js';
 import { OPEN_ORDER_TICKET } from '../support/service.js';
 import { createServiceRequest, inServiceArea } from '../requests/service.js';
 import { finishOrder, lockOrder } from '../orders/shared.js';
-import { searchPlaces } from '../../services/placeSearch.js';
 import { arrivalRadiusMeters, FIELD_SERVICES, markFieldArrival, MAX_CODE_ATTEMPTS, MAX_PROOF_PHOTOS, newHandoverCode } from './service.js';
 
 const PROOFS_DIR = () => path.join(config.privateStoragePath, 'field-proofs');
@@ -36,13 +35,6 @@ async function lockFieldOrder(client: any, orderId: string, lawyerId: string) {
 /// The field services: a request for the client or for another person, to a named place
 export async function fieldRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', requireAuth());
-
-  // The client looks the place up by name (a police station, a prosecution, a court)
-  fastify.get('/places', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { q } = request.query as { q?: string };
-    const places = await searchPlaces(typeof q === 'string' ? q : '');
-    return reply.send({ success: true, data: places });
-  });
 
   // The client sends a field request. It reaches the nearest lawyers to the place, with the same offers and
   // payment as every request, and the field details are saved with it

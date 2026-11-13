@@ -79,7 +79,6 @@
 بعد ما الطلب يتبعت بيكمل في `/requests` (العروض والاختيار) وفي `/orders` (الدفع والباقي) زي «محاميك حالاً».
 | المسار | الطريقة | الصلاحية | مين بيطلبه | الوظيفة |
 |---|:---:|---|---|---|
-| `/field/places?q=` | GET | مسجل | التطبيق | بحث عن مكان بالاسم (TomTom): `name` و`address` و`lat` و`lon`. فاضية لو ما لقاش |
 | `/field/requests` | POST | موكل | التطبيق | طلب ميداني: `serviceTitle` (واحدة من الخمس)، `problemDescription`، `placeName`، `placeLat`، `placeLon`، `placeVerified`، `forOther`، `personName`، `relation`، `detained`. بيروح لأقرب المحامين للمكان |
 | `/field/orders/:id/code` | POST | محامي | التطبيق | كود الشخص `code` = وصول. `400` لو غلط، و`423` بعد 5 غلط |
 | `/field/orders/:id/refused` | POST | محامي | التطبيق | «الشخص رفض» بعد الوصول: يقفل المهمة والأتعاب للمحامي كاملة |

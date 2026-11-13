@@ -1,25 +1,16 @@
 import 'package:geolocator/geolocator.dart';
 
-/// مكان الخدمة الميدانية: قسم أو نيابة أو محكمة أو مصلحة
+/// مكان الخدمة الميدانية: اسم المنطقة، والنقطة اللي المحامي بيروحها
 class FieldPlace {
   final String name;
-
-  /// الشارع والمنطقة تحت الاسم
-  final String address;
   final double lat;
   final double lon;
 
-  /// false لو الموكل كتب الاسم بإيده، فالنقطة هي نقطته هو
+  /// true لو الموكل حط دبوس على المكان نفسه (لشخص تاني)، فالنطاق بتاع نوع المكان.
+  /// false لو النقطة هي موقع الموكل من الـ GPS (ليا أنا)، فالنطاق 300 متر على الأقل
   final bool verified;
 
-  const FieldPlace({required this.name, this.address = '', required this.lat, required this.lon, this.verified = true});
-
-  factory FieldPlace.fromJson(Map<String, dynamic> json) => FieldPlace(
-        name: json['name']?.toString() ?? '',
-        address: json['address']?.toString() ?? '',
-        lat: (json['lat'] as num).toDouble(),
-        lon: (json['lon'] as num).toDouble(),
-      );
+  const FieldPlace({required this.name, required this.lat, required this.lon, this.verified = true});
 }
 
 /// اللي الموكل ملاه قبل ما الطلب الميداني يتبعت

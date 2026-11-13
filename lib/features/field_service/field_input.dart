@@ -28,7 +28,7 @@ const TextStyle fieldLabelStyle = TextStyle(
 
 InputDecoration fieldDecoration({required String hint, IconData? icon}) {
   OutlineInputBorder border(Color color, double width) => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(7.0),
         borderSide: BorderSide(color: color, width: width),
       );
   return InputDecoration(

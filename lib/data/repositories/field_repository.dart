@@ -1,16 +1,9 @@
 import '../../core/services/api_service.dart';
 import '../models/field_info.dart';
 
-/// الخدمات الميدانية: البحث عن المكان، وإرسال الطلب، وكود التسليم، ورفض الشخص، وصورة الإثبات.
+/// الخدمات الميدانية: إرسال الطلب، وكود التسليم، ورفض الشخص، وصورة الإثبات.
 /// بعد ما الطلب يتبعت بيكمل زي أي طلب: عروض ودفع وطلب في صفحة الطلبات
 class FieldRepository {
-  /// أماكن بالاسم، وفاضية لو السيرفر ما لقاش أو ما ردش
-  static Future<List<FieldPlace>> places(String text) async {
-    final res = await ApiService.get('/field/places', queryParams: {'q': text}, timeout: const Duration(seconds: 8));
-    if (!res.isOk || res.data is! List) return const [];
-    return [for (final item in res.data as List) FieldPlace.fromJson(item as Map<String, dynamic>)];
-  }
-
   static Future<ApiResponse<String>> send(FieldDraft draft) async {
     final res = await ApiService.post('/field/requests', draft.toJson());
     if (res.isOk && res.data is Map<String, dynamic>) {

@@ -16,6 +16,8 @@ import 'package:my_lawyer/core/theme/app_theme.dart';
 import 'package:my_lawyer/core/widgets/app_button.dart';
 import 'package:my_lawyer/core/widgets/app_header.dart';
 import 'package:my_lawyer/core/widgets/app_loader.dart';
+import 'package:my_lawyer/core/widgets/app_sheet.dart';
+import 'package:my_lawyer/core/widgets/app_skeleton.dart';
 import 'package:my_lawyer/core/widgets/password_strength_widget.dart';
 import 'package:my_lawyer/core/widgets/profile_home_card.dart';
 import 'package:my_lawyer/data/models/map_lawyer.dart';
@@ -165,11 +167,28 @@ void main() {
       expect(find.text('استشارة قانونية'), findsNothing);
       expect(find.text('صياغة عقود'), findsNothing);
 
-      // الخدمة الميدانية (المحضر) بتفتح شاشتها: ليا ولا لشخص تاني، والمكان باسمه
+      // الخدمة الميدانية (المحضر) بتفتح شاشتها: ليا ولا لشخص تاني. «ليا أنا» بتحدد المكان من الـ GPS،
+      // فالـ Skeleton بيفضل مكان اسم المنطقة (مفيش GPS في الاختبار) وما ينفعش نستنى لحد ما الشاشة تهدى
       await tester.tap(find.text('محضر في قسم الشرطة'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
       expect(find.byType(FieldRequestScreen), findsOneWidget);
       expect(find.text('لشخص تاني'), findsOneWidget);
+      // اسم الخدمة في الرسمة نفسها، ومفيش كارت «الخدمة المختارة»
+      expect(find.text('الخدمة المختارة'), findsNothing);
+      expect(find.byType(AppSkeleton), findsOneWidget);
+      // لشخص تاني: تحديد المكان على الخريطة بدل مكان الموكل
+      await tester.tap(find.text('لشخص تاني'));
+      await tester.pump();
+      expect(find.text('المكان اللي المحامي هيروحه'), findsOneWidget);
+      expect(find.text('حدد المكان على الخريطة'), findsOneWidget);
+      expect(find.byType(AppSkeleton), findsNothing);
+      // المتابعة من غير بيانات: الأخطاء نص أحمر تحت الخانات، مش رسالة تحت الشاشة
+      await tester.tap(find.text('المتابعة'));
+      await tester.pump();
+      expect(find.text('اكتب اسم الشخص'), findsOneWidget);
+      expect(find.text('حدد المكان على الخريطة'), findsNWidgets(2));
+      expect(find.byType(SnackBar), findsNothing);
       tester.state<NavigatorState>(find.byType(Navigator).first).pop();
       await tester.pumpAndSettle();
 
@@ -350,14 +369,14 @@ void main() {
       expect(find.byTooltip('إغلاق'), findsOneWidget);
 
       // 6. Verify loading overlay is present during initial fetch
-      expect(find.text('جاري البحث عن المحامين حواليك'), findsOneWidget);
+      expect(find.byType(SheetLoading), findsOneWidget);
 
       // Advance past location fetch timeout (4s timeout + resolution)
       await tester.pump(const Duration(seconds: 5));
       await tester.pump(const Duration(milliseconds: 200));
 
       // 7. Verify loading overlay is dismissed once data is ready or fallback resolves
-      expect(find.text('جاري البحث عن المحامين حواليك'), findsNothing);
+      expect(find.byType(SheetLoading), findsNothing);
 
       // 8. Tap a lawyer marker to display the unified profile bottom sheet
       if (find.text('أ. أحمد الشافعي').evaluate().isNotEmpty) {
